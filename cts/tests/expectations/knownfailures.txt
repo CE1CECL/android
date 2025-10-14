@@ -1,0 +1,71 @@
+[
+/* These tests consistently fail on GRH78. */
+{ name: "android.location.cts.GeocoderTest#testGetFromLocation" },
+{ name: "android.location.cts.GeocoderTest#testGetFromLocationName" },
+{ name: "android.webkit.cts.WebSettingsTest#testSetAppCacheEnabled" },
+{ name: "android.net.cts.SSLCertificateSocketFactoryTest" },
+
+{
+  description: "Flaky tests that need to be rewritten or deleted.",
+  names: [
+    "android.webkit.cts.CacheManagerTest#testCacheFile",
+    "android.widget.cts.AutoCompleteTextViewTest#testOnFilterComplete"
+  ]
+},
+{
+  bug: 4464677,
+  name: "android.media.cts.MediaRecorderTest#testSetCamera"
+},
+{
+  bug: 5104153,
+  name: "android.media.cts.MediaRecorderTest#testSetMaxDuration"
+},
+{
+  bug: 5103805,
+  name: "android.media.cts.MediaRecorderTest#testSetMaxFileSize"
+},
+{
+  bug: 5898262,
+  name: "android.openglperf.cts.GlVboPerfTest#testVboWithVaryingIndexBufferNumbers"
+},
+{
+  description: "Broken test that is fixed in a future release.",
+  name: "android.provider.cts.MediaStore_Audio_Playlists_MembersTest"
+},
+{
+  description: "These tests pass when executed individually but fail when running CTS as a whole on GRH78.",
+  bug: 3184701,
+  names: [
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testProxyConnection",
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testProxyAuthConnection",
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testConsequentProxyConnection",
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testProxyAuthConnection_doOutput",
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testProxyAuthConnectionFailed",
+    "org.apache.harmony.luni.tests.internal.net.www.protocol.https.HttpsURLConnectionTest#testProxyConnection_Not_Found_Response"
+  ]
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_MPEG4SP_AAC_Video1",
+  bug: 6422606
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_MPEG4SP_AAC_Video2",
+  bug: 6422606
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_H263_AMR_Video1",
+  bug: 6216077
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_H263_AMR_Video2",
+  bug: 6216077
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_H264Base_AAC_Video1",
+  bug: 6215719
+},
+{
+  name: "android.media.cts.StreamingMediaPlayerTest#testRTSP_H264Base_AAC_Video2",
+  bug: 6215719
+}
+]
