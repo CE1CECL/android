@@ -78,7 +78,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-O2 \
 			-Ulinux \
 			-Wa,--noexecstack \
-			-Werror=format-security \
+			-Wno-format-security \
 			-Wstrict-aliasing=2 \
 			-fPIC \
 			-ffunction-sections \

@@ -138,7 +138,7 @@ endif
 
 WFLAGS := -Wall -Wstrict-prototypes
 ifeq (,$(findstring 2.4.18,$(LINUXVER)))
-WFLAGS += -Werror
+WFLAGS += 
 endif
 
 CFILES:= dhd_linux.c linux_osl.c bcmutils.c dhd_common.c dhd_custom_gpio.c

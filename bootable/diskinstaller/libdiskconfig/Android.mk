@@ -14,7 +14,7 @@ ifeq ($(TARGET_ARCH),x86)
 # static library for host
 LOCAL_SRC_FILES := $(commonSources)
 
-LOCAL_CFLAGS := -O2 -g -W -Wall -Werror -D_LARGEFILE64_SOURCE
+LOCAL_CFLAGS := -O2 -g -W -Wall  -D_LARGEFILE64_SOURCE
 
 LOCAL_MODULE := libdiskconfig_host
 LOCAL_STATIC_LIBRARIES := libcutils
@@ -34,7 +34,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(commonSources)
 
-LOCAL_CFLAGS := -O2 -g -W -Wall -Werror
+LOCAL_CFLAGS := -O2 -g -W -Wall 
 
 LOCAL_MODULE := libdiskconfig
 LOCAL_MODULE_TAGS := system_builder

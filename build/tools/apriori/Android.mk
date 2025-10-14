@@ -11,7 +11,7 @@ include $(CLEAR_VARS)
 LOCAL_LDLIBS += -ldl
 LOCAL_CFLAGS += -O2 -g
 LOCAL_CFLAGS += -fno-function-sections -fno-data-sections -fno-inline
-LOCAL_CFLAGS += -Wall -Wno-unused-function #-Werror
+LOCAL_CFLAGS += -Wall -Wno-unused-function #
 LOCAL_CFLAGS += -DSUPPORT_ANDROID_PRELINK_TAGS
 LOCAL_CFLAGS += -DDEBUG
 LOCAL_CFLAGS += -DADJUST_ELF=1

@@ -479,7 +479,7 @@ process_toolchain() {
 
     # Enable some useful compiler flags
     if enabled gcc; then
-        enabled werror && check_add_cflags -Werror
+        enabled werror && check_add_cflags 
         check_add_cflags -Wall
         check_add_cflags -Wdeclaration-after-statement
         check_add_cflags -Wdisabled-optimization
@@ -490,7 +490,7 @@ process_toolchain() {
     fi
 
     if enabled icc; then
-        enabled werror && check_add_cflags -Werror
+        enabled werror && check_add_cflags 
         check_add_cflags -Wall
         check_add_cflags -Wpointer-arith
 

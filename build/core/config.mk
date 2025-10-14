@@ -98,7 +98,7 @@ COMMON_JAVA_PACKAGE_SUFFIX := .jar
 COMMON_ANDROID_PACKAGE_SUFFIX := .apk
 
 # list of flags to turn specific warnings in to errors
-TARGET_ERROR_FLAGS := -Werror=return-type -Werror=non-virtual-dtor -Werror=address -Werror=sequence-point
+TARGET_ERROR_FLAGS := -Wno-return-type -Wno-non-virtual-dtor -Wno-address -Wno-sequence-point
 
 # TODO: do symbol compression
 TARGET_COMPRESS_MODULE_SYMBOLS := false

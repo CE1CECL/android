@@ -187,7 +187,7 @@
           '../platform/mac',
           '../platform/text/mac',
         ],
-        # enable -Wall and -Werror, just in Mac build for now
+        # enable -Wall and , just in Mac build for now
         # FIXME: Also enable this for Linux/Windows after verifying no warnings
         'chromium_code': 1,
       }],

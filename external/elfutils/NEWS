@@ -125,7 +125,7 @@ code needed for nm is in place.
 
 Version 0.77:
 
-cleanups to compile cleanly with gcc 3.3 and -Werror.
+cleanups to compile cleanly with gcc 3.3 and .
 
 libdw: some new code.
 

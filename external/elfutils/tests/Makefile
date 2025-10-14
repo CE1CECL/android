@@ -301,7 +301,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-AM_CFLAGS = -Wall -Werror -std=gnu99
+AM_CFLAGS = -Wall  -std=gnu99
 AM_LDFLAGS = -Wl,-rpath,\$$ORIGIN/../libasm:\$$ORIGIN/../libdw:\$$ORIGIN/../libebl:\$$ORIGIN/../libelf
 INCLUDES = -I$(top_srcdir)/libasm -I$(top_srcdir)/libdw \
 	   -I$(top_srcdir)/libebl -I$(top_srcdir)/libelf \

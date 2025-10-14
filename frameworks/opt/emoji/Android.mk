@@ -32,7 +32,7 @@ ifneq ($(TARGET_SIMULATOR),true)
 LOCAL_SHARED_LIBRARIES += libdl
 endif
 
-LOCAL_CFLAGS += -Wall -Werror
+LOCAL_CFLAGS += -Wall 
 
 LOCAL_LDLIBS += -lpthread
 

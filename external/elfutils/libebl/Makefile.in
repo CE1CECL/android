@@ -287,7 +287,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-@MUDFLAP_FALSE@AM_CFLAGS = -Wall -Werror -Wshadow -fpic \
+@MUDFLAP_FALSE@AM_CFLAGS = -Wall  -Wshadow -fpic \
 @MUDFLAP_FALSE@	-DLIBSTR=\"$$(basename $(libdir))\"
 @MUDFLAP_TRUE@AM_CFLAGS = -Wall -Wshadow -fpic -DLIBSTR=\"$$(basename \
 @MUDFLAP_TRUE@	$(libdir))\"

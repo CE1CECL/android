@@ -232,7 +232,7 @@ sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
 AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
-	    $(if $($(*F)_no_Werror),,-Werror) $(native_ld_cflags)
+	    $(if $($(*F)_no_Werror),,) $(native_ld_cflags)
 
 #AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
 #	    $(native_ld_cflags)

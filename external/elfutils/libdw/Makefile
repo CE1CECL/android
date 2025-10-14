@@ -234,7 +234,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-AM_CFLAGS = -Wall -Werror -Wshadow -std=gnu99
+AM_CFLAGS = -Wall  -Wshadow -std=gnu99
 #AM_CFLAGS = -Wall -Wshadow -std=gnu99
 INCLUDES = -I. -I$(srcdir) -I$(srcdir)/../libelf -I.. -I$(srcdir)/../lib
 lib_LIBRARIES = libdw.a

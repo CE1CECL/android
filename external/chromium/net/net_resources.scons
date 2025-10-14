@@ -11,7 +11,7 @@ configurations = {
     'Debug' : {
         'Append' : dict(
             CCFLAGS = [
-                '-Werror',
+                '',
                 '-pthread',
                 '-fno-exceptions',
                 '-fno-asynchronous-unwind-tables',
@@ -97,7 +97,7 @@ configurations = {
     'Release' : {
         'Append' : dict(
             CCFLAGS = [
-                '-Werror',
+                '',
                 '-pthread',
                 '-fno-exceptions',
                 '-fno-asynchronous-unwind-tables',

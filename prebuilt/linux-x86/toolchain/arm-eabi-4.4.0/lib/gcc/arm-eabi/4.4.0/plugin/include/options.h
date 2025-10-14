@@ -698,9 +698,9 @@ enum opt_code
   OPT_Wenum_compare,                         /* -Wenum-compare */
   OPT_Wenum_identifier,                      /* -Wenum-identifier */
   OPT_Wenum_switch,                          /* -Wenum-switch */
-  OPT_Werror,                                /* -Werror */
-  OPT_Werror_implicit_function_declaration,  /* -Werror-implicit-function-declaration */
-  OPT_Werror_,                               /* -Werror= */
+  OPT_Werror,                                /*  */
+  OPT_Werror_implicit_function_declaration,  /* -Wno-implicit-function-declaration */
+  OPT_Werror_,                               /* -Wno- */
   OPT_Wextra,                                /* -Wextra */
   OPT_Wextraneous_semicolon,                 /* -Wextraneous-semicolon */
   OPT_Wfallthrough,                          /* -Wfallthrough */

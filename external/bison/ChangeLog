@@ -12054,9 +12054,9 @@
 
 2001-11-30  Akim Demaille  <akim@epita.fr>
 
-	* configure.in (WARNING_CFLAGS): Add -Werror when possible.
+	* configure.in (WARNING_CFLAGS): Add  when possible.
 	(CFLAGS): Do not include the WARNING_CFLAGS here, since GNU
-	Gettext doesn't compile cleanly, and dies with -Werror.
+	Gettext doesn't compile cleanly, and dies with .
 	* src/Makefile.am, lib/Makefile.am, tests/atlocal.in (CFLAGS):
 	Include WARNING_CFLAGS here.
 	* lib/xstrdup.c: Include xalloc.h, so that xstrdup be declared
@@ -12610,7 +12610,7 @@
 	use abs. path to find config.h.
 	* tests/calc.at (AT_CHECK_CALC): Don't try to check the compiler's
 	stderr, there can be way too much random noise.
-	Instead pass -Werror to GCC and rely on the exit status.
+	Instead pass  to GCC and rely on the exit status.
 	Reported by Wolfram Wagner.
 
 2001-11-14  Akim Demaille  <akim@epita.fr>

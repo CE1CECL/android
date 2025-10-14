@@ -9,7 +9,7 @@ include $(CLEAR_VARS)
 
 LOCAL_CFLAGS += -O2 -g
 LOCAL_CFLAGS += -fno-function-sections -fno-data-sections -fno-inline
-LOCAL_CFLAGS += -Wall -Wno-unused-function #-Werror
+LOCAL_CFLAGS += -Wall -Wno-unused-function #
 LOCAL_CFLAGS += -DDEBUG
 
 LOCAL_C_INCLUDES:= \

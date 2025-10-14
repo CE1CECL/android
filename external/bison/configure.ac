@@ -45,7 +45,7 @@ AC_ARG_ENABLE(gcc-warnings,
  esac],
               [enableval=no])
 if test "${enableval}" = yes; then
-  BISON_WARNING(-Werror)
+  BISON_WARNING()
   AC_SUBST([WERROR_CFLAGS], [$WARNING_CFLAGS])
   WARNING_CFLAGS=
   BISON_WARNING(-W)

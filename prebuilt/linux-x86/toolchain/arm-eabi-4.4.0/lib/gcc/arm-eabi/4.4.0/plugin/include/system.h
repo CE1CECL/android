@@ -800,10 +800,10 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 #define CONST_CAST_GIMPLE(X) CONST_CAST(union gimple_statement_d *, (X))
 
 /* Activate certain diagnostics as warnings (not errors via the
-   -Werror flag).  */
+    flag).  */
 #if GCC_VERSION >= 4003
 /* If asserts are disabled, activate -Wuninitialized as a warning (not
-   an error/-Werror).  */
+   an error/).  */
 #ifndef ENABLE_ASSERT_CHECKING
 #pragma GCC diagnostic warning "-Wuninitialized"
 #endif

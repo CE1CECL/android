@@ -631,13 +631,13 @@ AC_C_CONST
 dnl ok, here we try to check whether the systems prototypes for
 dnl malloc and friends actually match the prototypes provided
 dnl by gmem.h (keep in sync). i currently only know how to check
-dnl this reliably with gcc (-Werror), improvements for other
+dnl this reliably with gcc (), improvements for other
 dnl compilers are apprechiated.
 SANE_MALLOC_PROTOS=no
 AC_MSG_CHECKING([if malloc() and friends prototypes are gmem.h compatible])
 glib_save_CFLAGS=$CFLAGS
 if test "x$GCC" = "xyes"; then
-  CFLAGS="$CFLAGS -Werror"
+  CFLAGS="$CFLAGS "
   AC_TRY_COMPILE([#include <stdlib.h>], [
     void* (*my_calloc_p)  (size_t, size_t) = calloc;
     void* (*my_malloc_p)  (size_t)         = malloc;

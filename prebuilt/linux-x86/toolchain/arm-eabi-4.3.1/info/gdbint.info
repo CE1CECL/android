@@ -3833,12 +3833,12 @@ needed.
 9.13.1 Preparation
 ------------------
 
-The first step is to establish control.  Build (with `-Werror' enabled)
+The first step is to establish control.  Build (with `' enabled)
 and test the target so that there is a baseline against which the
 debugger can be compared.
 
    At no stage can the test results regress or GDB stop compiling with
-`-Werror'.
+`'.
 
 9.13.2 Add the multi-arch initialization code
 ---------------------------------------------
@@ -4881,7 +4881,7 @@ as `sprintf' are very prone to buffer overflow errors._
 ------------------------
 
 With few exceptions, developers should include the configuration option
-`--enable-gdb-build-warnings=,-Werror' when building GDB.  The
+`--enable-gdb-build-warnings=,' when building GDB.  The
 exceptions are listed in the file `gdb/MAINTAINERS'.
 
    This option causes GDB (when built using GCC) to be compiled with a
@@ -4953,7 +4953,7 @@ as it leads to false negatives -- it is not an error to have
 `-Wunused-parameter'._
 
    _Pragmatics: GDB has not simply accepted the warnings enabled by
-`-Wall -Werror -W...'.  Instead it is selecting warnings when and where
+`-Wall  -W...'.  Instead it is selecting warnings when and where
 their benefits can be demonstrated._
 
 13.4.4 Formatting

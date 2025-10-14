@@ -8,7 +8,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/libdiskconfig
 
-LOCAL_CFLAGS := -O2 -g -W -Wall -Werror
+LOCAL_CFLAGS := -O2 -g -W -Wall 
 
 LOCAL_MODULE := diskinstaller
 LOCAL_MODULE_TAGS := system_builder

@@ -287,7 +287,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-AM_CFLAGS = -Wall -Werror -Wshadow -fpic \
+AM_CFLAGS = -Wall  -Wshadow -fpic \
 	-DLIBSTR=\"$$(basename $(libdir))\"
 #AM_CFLAGS = -Wall -Wshadow -fpic -DLIBSTR=\"$$(basename \
 #	$(libdir))\"

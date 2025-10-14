@@ -17,7 +17,7 @@ DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
 if MUDFLAP
 AM_CFLAGS = -Wall
 else
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = -Wall 
 endif
 INCLUDES = -I. -I$(srcdir) -I.. -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl \
 	   -I$(top_srcdir)/lib

@@ -30053,7 +30053,7 @@ alphabetical order.
    * Peter Gerwinski for various bug fixes and the Pascal front end.
 
    * Kaveh R. Ghazi for his direction via the steering committee,
-     amazing work to make `-W -Wall -W* -Werror' useful, and
+     amazing work to make `-W -Wall -W* ' useful, and
      continuously testing GCC on a plethora of platforms.  Kaveh
      extends his gratitude to the CAIP Center at Rutgers University for
      providing him with computing resources to work on Free Software
@@ -30764,7 +30764,7 @@ GCC version 4.1:
 
    * Andreas Jaeger for mprec updates.
 
-   * Paul Jenner for better `-Werror' support.
+   * Paul Jenner for better `' support.
 
    * Ito Kazumitsu for `NetworkInterface' implementation and updates.
 

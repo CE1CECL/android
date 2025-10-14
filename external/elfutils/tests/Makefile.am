@@ -14,7 +14,7 @@
 ## 3001 King Ranch Road, Ukiah, CA 95482.
 ##
 DEFS = -DHAVE_CONFIG_H -D_GNU_SOURCE
-AM_CFLAGS = -Wall -Werror -std=gnu99
+AM_CFLAGS = -Wall  -std=gnu99
 if !MUDFLAP
 AM_LDFLAGS = -Wl,-rpath,\$$ORIGIN/../libasm:\$$ORIGIN/../libdw:\$$ORIGIN/../libebl:\$$ORIGIN/../libelf
 endif

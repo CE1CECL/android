@@ -166,7 +166,7 @@ export CFLAGS_FOR_TARGET="$ABI_CFLAGS_FOR_TARGET"
 export CXXFLAGS_FOR_TARGET="$ABI_CXXFLAGS_FOR_TARGET"
 # Needed to build a 32-bit gmp on 64-bit systems
 export ABI=$HOST_GMP_ABI
-# -Wno-error is needed because our gdb-6.6 sources use -Werror by default
+# -Wno-error is needed because our gdb-6.6 sources use  by default
 # and fail to build with recent GCC versions.
 export CFLAGS="-Wno-error"
 #export LDFLAGS="$HOST_LDFLAGS"

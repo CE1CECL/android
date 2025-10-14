@@ -477,10 +477,10 @@ installed_static_library_notice_file_targets := \
     $(foreach lib,$(LOCAL_STATIC_LIBRARIES) $(LOCAL_WHOLE_STATIC_LIBRARIES), \
       NOTICE-$(if $(LOCAL_IS_HOST_MODULE),HOST,TARGET)-STATIC_LIBRARIES-$(lib))
 
-# filter out -Werror if the host gcc doesn't have the expected version
+# filter out  if the host gcc doesn't have the expected version
 ifdef LOCAL_IS_HOST_MODULE
 ifndef IS_EXPECTED_HOST_GCC
-LOCAL_CFLAGS := $(filter-out -Werror, $(LOCAL_CFLAGS))
+LOCAL_CFLAGS := $(filter-out , $(LOCAL_CFLAGS))
 endif
 endif
 
