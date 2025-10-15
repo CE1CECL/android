@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <sys/ioctl.h>
@@ -27,8 +28,6 @@
 
 static pthread_once_t g_init = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
-
-char const *const LCD_FILE = "/sys/class/backlight/s5p_bl/brightness";
 
 static int write_int(char const *path, int value)
 {
@@ -70,7 +69,21 @@ static int set_light_backlight(struct light_device_t *dev,
 	int brightness = rgb_to_brightness(state);
 
 	pthread_mutex_lock(&g_lock);
-	err = write_int(LCD_FILE, brightness);
+
+	char *dirname = "/sys/class/backlight";
+	char devname[PATH_MAX];
+	DIR *dir;
+	struct dirent *de;
+	dir = opendir(dirname);
+	if(dir == NULL)
+		return -1;
+	while((de = readdir(dir))) {
+		if(de->d_name[0] == '.')
+			continue;
+		snprintf(devname, sizeof(devname), "%s/%s/brightness", dirname, de->d_name);
+		err = write_int(devname, brightness);
+	}
+	closedir(dir);
 
 	pthread_mutex_unlock(&g_lock);
 	return err;

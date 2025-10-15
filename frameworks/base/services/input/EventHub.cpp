@@ -684,6 +684,13 @@ size_t EventHub::getEvents(int timeoutMillis, RawEvent* buffer, size_t bufferSiz
                         event->when = nsecs_t(iev.time.tv_sec) * 1000000000LL
                                 + nsecs_t(iev.time.tv_usec) * 1000LL;
                         LOGV("event time %lld, now %lld", event->when, now);
+
+                        if (event->when >= now + 10 * 1000000000LL) {
+                            nsecs_t time = systemTime(SYSTEM_TIME_MONOTONIC);
+                            if (event->when > time) {
+                                event->when = time;
+                            }
+                        }
 #else
                         event->when = now;
 #endif

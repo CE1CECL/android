@@ -241,10 +241,10 @@
     <string translatable="false" name="config_tether_apndata"></string>
 
     <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->
-    <bool translatable="false" name="config_wifi_dual_band_support">false</bool>
+    <bool translatable="false" name="config_wifi_dual_band_support">true</bool>
 
     <!-- Boolean indicating whether the wifi chipset has p2p support -->
-    <bool translatable="false" name="config_wifi_p2p_support">false</bool>
+    <bool translatable="false" name="config_wifi_p2p_support">true</bool>
     <!-- Device type information conforming to Annex B format in WiFi Direct specification.
          The default represents a dual-mode smartphone -->
     <string translatable="false" name="config_wifi_p2p_device_type">10-0050F204-5</string>
@@ -254,7 +254,7 @@
          scan and wake the host when a configured SSID is detected by the dongle. This chipset
          capability can provide power savings when wifi needs to be always kept on.
          The driver commands needed to support the feature are BGSCAN-START and BGSCAN-STOP -->
-    <bool translatable="false" name="config_wifi_background_scan_support">false</bool>
+    <bool translatable="false" name="config_wifi_background_scan_support">true</bool>
 
     <!-- Integer indicating wpa_supplicant scan interval in milliseconds -->
     <integer translatable="false" name="config_wifi_supplicant_scan_interval">15000</integer>
@@ -272,13 +272,13 @@
 
     <!-- Flag indicating whether the we should enable the automatic brightness in Settings.
          Software implementation will be used if config_hardware_auto_brightness_available is not set -->
-    <bool name="config_automatic_brightness_available">false</bool>
+    <bool name="config_automatic_brightness_available">true</bool>
 
     <!-- Don't name config resources like this.  It should look like config_annoyDianne -->
     <bool name="config_annoy_dianne">true</bool>
 
     <!-- If this is true, the screen will come on when you unplug usb/power/whatever. -->
-    <bool name="config_unplugTurnsOnScreen">false</bool>
+    <bool name="config_unplugTurnsOnScreen">true</bool>
 
     <!-- If this is true, the screen will fade off. -->
     <bool name="config_animateScreenLights">true</bool>
@@ -287,7 +287,7 @@
 
     <!-- If true, the screen can be rotated via the accelerometer in all 4
          rotations as the default behavior. -->
-    <bool name="config_allowAllRotations">false</bool>
+    <bool name="config_allowAllRotations">true</bool>
 
     <!-- If true, the direction rotation is applied to get to an application's requested
          orientation is reversed.  Normally, the model is that landscape is
@@ -323,7 +323,7 @@
     <!-- Control whether being in the desk dock should enable accelerometer
          based screen orientation.  Note this should probably default to true
          like car dock, but we haven't had a chance to test it. -->
-    <bool name="config_deskDockEnablesAccelerometer">false</bool>
+    <bool name="config_deskDockEnablesAccelerometer">true</bool>
 
     <!-- Control whether being in the car dock should enable accelerometer based
          screen orientation.  This defaults to true because putting a device in
@@ -350,7 +350,7 @@
     <integer name="config_longPressOnPowerBehavior">1</integer>
 
     <!-- Indicate whether the SD card is accessible without removing the battery. -->
-    <bool name="config_batterySdCardAccessibility">false</bool>
+    <bool name="config_batterySdCardAccessibility">true</bool>
 
     <!-- List of file paths for USB host busses to exclude from USB host support.
          For example, if the first USB bus on the device is used to communicate
@@ -442,7 +442,7 @@
     <integer name="config_notificationsBatteryLedOn">125</integer>
 
     <!-- Is the notification LED intrusive? Used to decide if there should be a disable option -->
-    <bool name="config_intrusiveNotificationLed">false</bool>
+    <bool name="config_intrusiveNotificationLed">true</bool>
 
     <!-- Default value for LED off time when the battery is low on charge in miliseconds -->
     <integer name="config_notificationsBatteryLedOff">2875</integer>
@@ -451,10 +451,10 @@
     <bool name="config_disableMenuKeyInLockScreen">false</bool>
 
     <!-- Don't show lock screen before unlock screen (PIN/pattern/password) -->
-    <bool name="config_enableLockBeforeUnlockScreen">false</bool>
+    <bool name="config_enableLockBeforeUnlockScreen">true</bool>
 
     <!-- Diable lockscreen rotation by default -->
-    <bool name="config_enableLockScreenRotation">false</bool>
+    <bool name="config_enableLockScreenRotation">true</bool>
 
     <!-- Enable puk unlockscreen by default.
          If unlock screen is disabled, the puk should be unlocked through Emergency Dialer -->
@@ -636,18 +636,18 @@
 
     <!-- Sets whether menu shortcuts should be displayed on panel menus when
          a keyboard is present. -->
-    <bool name="config_showMenuShortcutsWhenKeyboardPresent">false</bool>
+    <bool name="config_showMenuShortcutsWhenKeyboardPresent">true</bool>
 
     <!-- Do not translate. Defines the slots is Two Digit Number for dialing normally not USSD -->
     <string-array name="config_twoDigitNumberPattern" translatable="false">
     </string-array>
 
     <!-- The VoiceMail default value is displayed to my own number if it is true -->
-    <bool name="config_telephony_use_own_number_for_voicemail">false</bool>
+    <bool name="config_telephony_use_own_number_for_voicemail">true</bool>
 
     <!-- If this value is true, Sms encoded as octet is decoded by utf8 decoder.
          If false, decoded by Latin decoder. -->
-    <bool name="config_sms_utf8_support">false</bool>
+    <bool name="config_sms_utf8_support">true</bool>
 
     <!-- If this value is true, The mms content-disposition field is supported correctly.
          If false, Content-disposition fragments are ignored -->
@@ -694,7 +694,7 @@
     <integer-array name="config_sms_enabled_locking_shift_tables"></integer-array>
 
     <!-- Set to true if the RSSI should always display CDMA signal strength even on EVDO -->
-    <bool name="config_alwaysUseCdmaRssi">false</bool>
+    <bool name="config_alwaysUseCdmaRssi">true</bool>
 
 
     <!-- If this value is true, duplicate Source/Destination port fields
@@ -702,7 +702,7 @@
          ex: MSGTYPE-TotalSegments-CurrentSegment
              -SourcePortDestPort-SourcePortDestPort-OMADM PDU
          If false, not supported. -->
-    <bool name="config_duplicate_port_omadm_wappush">false</bool>
+    <bool name="config_duplicate_port_omadm_wappush">true</bool>
 
     <!-- Maximum numerical value that will be shown in a status bar
          notification icon or in the notification itself. Will be replaced
@@ -726,7 +726,7 @@
     <!-- Whether action menu items should obey the "withText" showAsAction
          flag. This may be set to false for situations where space is
          extremely limited. -->
-    <bool name="config_allowActionMenuItemTextWithIcon">false</bool>
+    <bool name="config_allowActionMenuItemTextWithIcon">true</bool>
 
     <!-- Remote server that can provide NTP responses. -->
     <string translatable="false" name="config_ntpServer">pool.ntp.org</string>
@@ -737,7 +737,7 @@
     <integer name="config_networkPolicyDefaultWarning">2048</integer>
 
     <!-- Set and Unsets WiMAX -->
-    <bool name="config_wimaxEnabled">false</bool>
+    <bool name="config_wimaxEnabled">true</bool>
     <!-- Location of the wimax framwork jar location -->
     <string name="config_wimaxServiceJarLocation" translatable="false"></string>
     <!-- Location of the wimax native library locaiton -->

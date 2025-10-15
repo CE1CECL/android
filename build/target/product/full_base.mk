@@ -24,11 +24,8 @@ PRODUCT_PACKAGES := \
     libdrmframework \
     libdrmframework_jni \
     libfwdlockengine \
-    OpenWnn \
-    PinyinIME \
-    libWnnEngDic \
-    libWnnJpnDic \
-    libwnndict \
+    lights.default \
+    sensors.default \
     VideoEditor \
     WAPPushManager
 

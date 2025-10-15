@@ -1,5 +1,5 @@
 <resources>
-    <bool name="config_hardwareAccelerated">true</bool>
+    <bool name="config_hardwareAccelerated">false</bool>
     <bool name="config_largeHeap">false</bool>
 
 <!-- AllApps/Customize/AppsCustomize -->

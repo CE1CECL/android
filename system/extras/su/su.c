@@ -42,7 +42,7 @@
 int main(int argc, char **argv)
 {
     struct passwd *pw;
-    int uid, gid, myuid;
+    int uid, gid;
 
     if(argc < 2) {
         uid = gid = 0;
@@ -57,13 +57,6 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Until we have something better, only root and the shell can use su. */
-    myuid = getuid();
-    if (myuid != AID_ROOT && myuid != AID_SHELL) {
-        fprintf(stderr,"su: uid %d not allowed to su\n", myuid);
-        return 1;
-    }
-    
     if(setgid(gid) || setuid(uid)) {
         fprintf(stderr,"su: permission denied\n");
         return 1;
