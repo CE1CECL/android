@@ -3194,61 +3194,6 @@ class PackageManagerService extends IPackageManager.Stub {
             if (dataPath.exists()) {
                 mOutPermissions[1] = 0;
                 FileUtils.getPermissions(dataPath.getPath(), mOutPermissions);
-
-                // If we have mismatched owners for the data path, we have a
-                // problem (unless we're running in the simulator.)
-                if (mOutPermissions[1] != pkg.applicationInfo.uid && Process.supportsProcesses()) {
-                    boolean recovered = false;
-                    if ((parseFlags&PackageParser.PARSE_IS_SYSTEM) != 0) {
-                        // If this is a system app, we can at least delete its
-                        // current data so the application will still work.
-                        if (mInstaller != null) {
-                            int ret = mInstaller.remove(pkgName, useEncryptedFSDir);
-                            if (ret >= 0) {
-                                // Old data gone!
-                                String msg = "System package " + pkg.packageName
-                                        + " has changed from uid: "
-                                        + mOutPermissions[1] + " to "
-                                        + pkg.applicationInfo.uid + "; old data erased";
-                                reportSettingsProblem(Log.WARN, msg);
-                                recovered = true;
-
-                                // And now re-install the app.
-                                ret = mInstaller.install(pkgName, useEncryptedFSDir, pkg.applicationInfo.uid,
-                                        pkg.applicationInfo.uid);
-                                if (ret == -1) {
-                                    // Ack should not happen!
-                                    msg = "System package " + pkg.packageName
-                                            + " could not have data directory re-created after delete.";
-                                    reportSettingsProblem(Log.WARN, msg);
-                                    mLastScanError = PackageManager.INSTALL_FAILED_INSUFFICIENT_STORAGE;
-                                    return null;
-                                }
-                            }
-                        }
-                        if (!recovered) {
-                            mHasSystemUidErrors = true;
-                        }
-                    }
-                    if (!recovered) {
-                        pkg.applicationInfo.dataDir = "/mismatched_uid/settings_"
-                            + pkg.applicationInfo.uid + "/fs_"
-                            + mOutPermissions[1];
-                        pkg.applicationInfo.nativeLibraryDir = pkg.applicationInfo.dataDir;
-                        String msg = "Package " + pkg.packageName
-                                + " has mismatched uid: "
-                                + mOutPermissions[1] + " on disk, "
-                                + pkg.applicationInfo.uid + " in settings";
-                        synchronized (mPackages) {
-                            mSettings.mReadMessages.append(msg);
-                            mSettings.mReadMessages.append('\n');
-                            uidError = true;
-                            if (!pkgSetting.uidError) {
-                                reportSettingsProblem(Log.ERROR, msg);
-                            }
-                        }
-                    }
-                }
                 pkg.applicationInfo.dataDir = dataPath.getPath();
             } else {
                 if ((parseFlags&PackageParser.PARSE_CHATTY) != 0 && Config.LOGV)

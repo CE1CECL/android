@@ -9,4 +9,4 @@ TARGET_NO_KERNEL := true
 HAVE_HTC_AUDIO_DRIVER := true
 
 # no hardware camera
-USE_CAMERA_STUB := true
+USE_CAMERA_STUB := false

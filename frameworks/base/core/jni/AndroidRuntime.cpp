@@ -650,10 +650,12 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
     //options[curOpt++].optionString = "-verbose:class";
 
     strcpy(heapsizeOptsBuf, "-Xmx");
-    property_get("dalvik.vm.heapsize", heapsizeOptsBuf+4, "16m");
+    property_get("dalvik.vm.heapsize", heapsizeOptsBuf+4, "18m");
     //LOGI("Heap size: %s", heapsizeOptsBuf);
-    opt.optionString = heapsizeOptsBuf;
-    mOptions.add(opt);
+    if (heapsizeOptsBuf[4] != '\0') {
+        opt.optionString = heapsizeOptsBuf;
+        mOptions.add(opt);
+    }
 
     /*
      * Enable or disable dexopt features, such as bytecode verification and

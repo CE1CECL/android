@@ -1,7 +1,5 @@
 LOCAL_PATH:= $(call my-dir)
 
-ifneq ($(filter crespo crespo4g,$(TARGET_DEVICE)),)
-
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= aplay.c alsa_pcm.c alsa_mixer.c
 LOCAL_MODULE:= aplay
@@ -49,5 +47,3 @@ ifeq ($(BOARD_HAVE_BLUETOOTH),true)
   LOCAL_CFLAGS += -DWITH_A2DP
 endif
 include $(BUILD_SHARED_LIBRARY)
-
-endif
