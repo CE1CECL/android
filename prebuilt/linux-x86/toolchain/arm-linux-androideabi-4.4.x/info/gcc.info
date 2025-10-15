@@ -472,7 +472,7 @@ _Warning Options_
           -Wconversion  -Wcoverage-mismatch  -Wno-deprecated
           -Wno-deprecated-declarations -Wdisabled-optimization
           -Wno-div-by-zero -Wempty-body  -Wenum-compare -Wno-endif-labels
-          -Werror  -Werror=*
+            -Wno-*
           -Wfatal-errors  -Wfloat-equal  -Wformat  -Wformat=2
           -Wno-format-contains-nul -Wno-format-extra-args -Wformat-nonliteral
           -Wformat-security  -Wformat-y2k
@@ -2685,21 +2685,21 @@ warnings but control the kinds of diagnostics produced by GCC.
 `-w'
      Inhibit all warning messages.
 
-`-Werror'
+`'
      Make all warnings into errors.
 
-`-Werror='
+`-Wno-'
      Make the specified warning into an error.  The specifier for a
-     warning is appended, for example `-Werror=switch' turns the
+     warning is appended, for example `-Wno-switch' turns the
      warnings controlled by `-Wswitch' into errors.  This switch takes a
-     negative form, to be used to negate `-Werror' for specific
+     negative form, to be used to negate `' for specific
      warnings, for example `-Wno-error=switch' makes `-Wswitch'
-     warnings not be errors, even when `-Werror' is in effect.  You can
+     warnings not be errors, even when `' is in effect.  You can
      use the `-fdiagnostics-show-option' option to have each
      controllable warning amended with the option which controls it, to
      determine what to use with this option.
 
-     Note that specifying `-Werror='FOO automatically implies `-W'FOO.
+     Note that specifying `-Wno-'FOO automatically implies `-W'FOO.
      However, `-Wno-error='FOO does not imply anything.
 
 `-Wfatal-errors'
@@ -7812,7 +7812,7 @@ cause the preprocessor output to be unsuitable for actual compilation.
      The second and third `FOO' should be in comments, but often are not
      in older programs.  This warning is on by default.
 
-`-Werror'
+`'
      Make all warnings into hard errors.  Source code which triggers
      warnings will be rejected.
 
@@ -34584,7 +34584,7 @@ File: gcc.info,  Node: Diagnostic Pragmas,  Next: Visibility Pragmas,  Prev: Wea
 
 GCC allows the user to selectively enable or disable certain types of
 diagnostics, and change the kind of the diagnostic.  For example, a
-project's policy might require that all sources compile with `-Werror'
+project's policy might require that all sources compile with `'
 but certain files might have exceptions allowing specific types of
 warnings.  Or, a project might selectively enable diagnostics and treat
 them as errors depending on which preprocessor macros are defined.
@@ -34597,7 +34597,7 @@ them as errors depending on which preprocessor macros are defined.
      controllable and which option controls them.
 
      KIND is `error' to treat this diagnostic as an error, `warning' to
-     treat it like a warning (even if `-Werror' is in effect), or
+     treat it like a warning (even if `' is in effect), or
      `ignored' if the diagnostic is to be ignored.  OPTION is a double
      quoted string which matches the command line option.
 
@@ -39622,7 +39622,7 @@ alphabetical order.
    * Peter Gerwinski for various bug fixes and the Pascal front end.
 
    * Kaveh R. Ghazi for his direction via the steering committee,
-     amazing work to make `-W -Wall -W* -Werror' useful, and
+     amazing work to make `-W -Wall -W* ' useful, and
      continuously testing GCC on a plethora of platforms.  Kaveh
      extends his gratitude to the CAIP Center at Rutgers University for
      providing him with computing resources to work on Free Software
@@ -40344,7 +40344,7 @@ GCC version 4.1:
 
    * Andreas Jaeger for mprec updates.
 
-   * Paul Jenner for better `-Werror' support.
+   * Paul Jenner for better `' support.
 
    * Ito Kazumitsu for `NetworkInterface' implementation and updates.
 

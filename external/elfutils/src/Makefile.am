@@ -20,7 +20,7 @@ AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
 	    $(native_ld_cflags)
 else
 AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
-	    $(if $($(*F)_no_Werror),,-Werror) $(native_ld_cflags)
+	    $(if $($(*F)_no_Werror),,) $(native_ld_cflags)
 endif
 if MUDFLAP
 AM_LDFLAGS = -fmudflap

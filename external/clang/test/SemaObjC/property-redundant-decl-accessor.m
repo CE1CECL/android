@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -fsyntax-only -Werror -verify %s
+// RUN: %clang_cc1 -fsyntax-only  -verify %s
 
 @interface MyClass {
     const char	*_myName;

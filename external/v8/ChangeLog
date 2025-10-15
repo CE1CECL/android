@@ -936,7 +936,7 @@
         Added an API to control the disposal of external string resources.
 
         Added missing initialization of a couple of variables which makes
-        some compilers complaint when compiling with -Werror.
+        some compilers complaint when compiling with .
 
         Improved performance on all platforms.
 

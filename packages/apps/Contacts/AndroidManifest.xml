@@ -54,7 +54,7 @@
         android:label="@string/contactsList"
         android:icon="@mipmap/ic_launcher_contacts"
         android:taskAffinity="android.task.contacts"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
     >
 
         <!-- Intercept Dialer Intents for devices without a phone.

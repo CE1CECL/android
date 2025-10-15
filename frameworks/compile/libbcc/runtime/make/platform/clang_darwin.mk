@@ -26,7 +26,7 @@ CC := gcc
 override CC := $(subst -arch ,-arch_,$(CC))
 override CC := $(patsubst -arch_%,,$(CC))
 
-CFLAGS := -Wall -Werror -O3 -fomit-frame-pointer
+CFLAGS := -Wall  -O3 -fomit-frame-pointer
 
 FUNCTIONS.10.4 := eprintf floatundidf floatundisf floatundixf
 FUNCTIONS.armv6 := switch16 switch32 switch8 switchu8 \

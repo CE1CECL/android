@@ -681,7 +681,7 @@
 
 	Bug 552861 – glib-2.0.m4 calls system(3) without storing its result
 
-	* m4macros/glib-2.0.m4: Cosmetic change to make -Werror happy.
+	* m4macros/glib-2.0.m4: Cosmetic change to make  happy.
 	Patch by Andreas Köhler
 
 2008-10-08  Christian Persch  <chpe@gnome.org>

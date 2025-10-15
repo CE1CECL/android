@@ -465,7 +465,7 @@
 	* libabi/op_import.cpp: uninline extract
 
 	* dae/Makefile.am:
-	* daemon/Makefile.am: fix c++ link hack for -Werror
+	* daemon/Makefile.am: fix c++ link hack for 
  
 2002-11-13  Graydon Hoare  <graydon@redhat.com>
 
@@ -512,7 +512,7 @@
 
 2002-11-11  Philippe Elie  <phil.el@wanadoo.fr>
 
-	* configure.in: add -W -Wall and optionnaly -Werror to user space
+	* configure.in: add -W -Wall and optionnaly  to user space
 	  compilation
 
 2002-11-11  John Levon  <levon@movementarian.org>
@@ -2015,7 +2015,7 @@
 	* libutil++/Makefile.in: fix bfd compilation problem
 	  with gcc >= 3.0 and old bfd.h
 	* module/Makefile.in:
-	* module/x86/Makefile.in: fix -Werror typo
+	* module/x86/Makefile.in: fix  typo
 	* pp/op_merge.cpp:
 	* pp/op_time_options.cpp:
 	* pp/op_to_source_options.cpp:
@@ -2081,11 +2081,11 @@
 2002-06-06  Philippe Elie  <phil.el@wanadoo.fr>
 
 	* configure.in: remove gcc 2.91 check
-	* make.common.in: use -Werror even for gcc 2.91
+	* make.common.in: use  even for gcc 2.91
 	* gui/oprof_start.cpp:
 	* libutil++/op_bfd.cpp:
 	* pp/derive_files.cpp:
-	* pp/op_to_source.cpp: small tweak for gcc 2.91 and -Werror
+	* pp/op_to_source.cpp: small tweak for gcc 2.91 and 
 
 2002-06-06  John Levon  <moz@compsoc.man.ac.uk>
 
@@ -2096,7 +2096,7 @@
 	* configure.in: fix typo so non-2.91 is detected
  
 	* module/Makefile.in:
-	* module/x86/Makefile.in: enable -Werror
+	* module/x86/Makefile.in: enable 
 
 	* module/op_dname.c:
 	* module/oprofile.h:
@@ -2152,7 +2152,7 @@
 
 	* Makefile.in:
 	* configure.in: handle module/arch
-	* make.common.in: avoid -Werror with gcc 2.91
+	* make.common.in: avoid  with gcc 2.91
 	* make.deps: small tweak allowing to use it in module
 
 2002-06-06  John Levon  <moz@compsoc.man.ac.uk>
@@ -2163,7 +2163,7 @@
 	* make.common.in: remove duplicate -g -O2
  
 	* include/sstream: fix compiler warning to
-	  allow -Werror
+	  allow 
  
 	* libutil/op_file.c:
 	* libutil/op_fileio.h:
@@ -2173,7 +2173,7 @@
  
 2002-06-06  John Levon  <moz@compsoc.man.ac.uk>
 
-	* make.common.in: enable -Werror for CVS builds
+	* make.common.in: enable  for CVS builds
 	(not in module/)
  
 	* dae/opd_image.c:
@@ -3661,7 +3661,7 @@
  
 2002-01-27  Philippe Elie  <ph_e@club-internet.fr>
 
-	* module/Makefile.in: sorry, -Werror is only usefull
+	* module/Makefile.in: sorry,  is only usefull
 	  for test.
 
 	* doc/oprofile.1.in: a few words about op_stop

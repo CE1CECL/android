@@ -26,7 +26,7 @@
         <activity android:name=".Demos$Demo2"
             android:label="Demo: Slideshow"
             android:theme="@style/Theme.Dream"
-            android:hardwareAccelerated="true"
+            android:hardwareAccelerated="false"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

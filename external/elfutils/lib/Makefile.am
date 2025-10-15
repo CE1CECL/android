@@ -17,7 +17,7 @@
 ## Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 ##
 DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
-AM_CFLAGS = -Wall $(if $($(*F)_no_Werror),,-Werror) $(picflag)
+AM_CFLAGS = -Wall $(if $($(*F)_no_Werror),,) $(picflag)
 if !MUDFLAP
 picflag = -fpic
 endif

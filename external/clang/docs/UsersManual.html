@@ -172,9 +172,9 @@ introduces the language selection and other high level options like -c, -g, etc.
 <h3 id="cl_diagnostics">Options to Control Error and Warning Messages</h3>
 <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
 
-<p><b>-Werror</b>: Turn warnings into errors.</p>
-<p><b>-Werror=foo</b>: Turn warning "foo" into an error.</p>
-<p><b>-Wno-error=foo</b>: Turn warning "foo" into an warning even if -Werror is
+<p><b></b>: Turn warnings into errors.</p>
+<p><b>-Wno-foo</b>: Turn warning "foo" into an error.</p>
+<p><b>-Wno-error=foo</b>: Turn warning "foo" into an warning even if  is
    specified.</p>
 <p><b>-Wfoo</b>: Enable warning foo</p>
 <p><b>-Wno-foo</b>: Disable warning foo</p>
@@ -631,7 +631,7 @@ on both compilers. </p>
 
 <p>In addition to the traditional <tt>-W</tt> flags, one can enable <b>all</b>
    warnings by passing <tt>-Weverything</tt>. 
-   This works as expected with <tt>-Werror</tt>,
+   This works as expected with <tt></tt>,
    and also includes the warnings from <tt>-pedantic</tt>.</p>
    
 <p>Note that when combined with <tt>-w</tt> (which disables all warnings), that

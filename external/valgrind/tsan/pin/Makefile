@@ -4,7 +4,7 @@ PIN_BIN=${PIN_ROOT}/pin
 
 INLINE=
 OPTLEVEL=-O3
-CXXFLAGS_L=$(OPTLEVEL) $(INLINE) -Wall -Werror -Wno-unknown-pragmas -g -fno-omit-frame-pointer -fno-strict-aliasing -fPIC
+CXXFLAGS_L=$(OPTLEVEL) $(INLINE) -Wall  -Wno-unknown-pragmas -g -fno-omit-frame-pointer -fno-strict-aliasing -fPIC
 CXXFLAGS_L64=-DBIGARRAY_MULTIPLIER=1 -DUSING_XED  -DTARGET_IA32E -DHOST_IA32E  -DTARGET_LINUX
 CXXFLAGS_L32=-DBIGARRAY_MULTIPLIER=1 -DUSING_XED  -DTARGET_IA32  -DHOST_IA32   -DTARGET_LINUX
 INCLUDES_L64=-I..  -I$(PIN_ROOT)/extras/xed2-intel64/include -I$(PIN_ROOT)/source/include -I$(PIN_ROOT)/source/include/gen

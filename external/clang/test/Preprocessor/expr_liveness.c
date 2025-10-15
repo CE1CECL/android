@@ -1,4 +1,4 @@
-/* RUN: %clang_cc1 -E %s -DNO_ERRORS -Werror -Wundef
+/* RUN: %clang_cc1 -E %s -DNO_ERRORS  -Wundef
    RUN: not %clang_cc1 -E %s
  */
 

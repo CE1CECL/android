@@ -28,7 +28,7 @@
     
     <application
         android:label="HwUi"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="false">
 
         <activity
                 android:name="DisplayListLayersActivity"

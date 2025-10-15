@@ -49,7 +49,7 @@
                    android:label="@string/application_name"
                    android:icon="@mipmap/ic_launcher_browser"
                    android:backupAgent=".BrowserBackupAgent"
-                   android:hardwareAccelerated="true"
+                   android:hardwareAccelerated="false"
                    android:taskAffinity="android.task.browser" >
 
         <provider android:name=".provider.BrowserProvider2"

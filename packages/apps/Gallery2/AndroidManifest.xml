@@ -200,7 +200,7 @@
                 android:label="@string/photoeditor_name"
                 android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen"
                 android:configChanges="keyboardHidden|orientation|screenSize"
-                android:hardwareAccelerated="true"
+                android:hardwareAccelerated="false"
                 android:process=":edit">
             <intent-filter>
                 <action android:name="android.intent.action.EDIT" />
@@ -214,7 +214,7 @@
         <activity android:name="com.android.gallery3d.app.SlideshowDream"
                 android:label="@string/slideshow_dream_name"
                 android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-                android:hardwareAccelerated="true">
+                android:hardwareAccelerated="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />

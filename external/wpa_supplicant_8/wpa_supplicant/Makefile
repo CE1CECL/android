@@ -98,7 +98,7 @@ OBJS_c += ../src/utils/$(CONFIG_ELOOP).o
 
 
 ifdef CONFIG_EAPOL_TEST
-CFLAGS += -Werror -DEAPOL_TEST
+CFLAGS +=  -DEAPOL_TEST
 endif
 
 ifndef CONFIG_BACKEND

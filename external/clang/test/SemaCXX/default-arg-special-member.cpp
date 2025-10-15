@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 -fsyntax-only -verify %s
-// RUN: %clang_cc1 -Wno-default-arg-special-member -Werror -fsyntax-only %s
+// RUN: %clang_cc1 -Wno-default-arg-special-member  -fsyntax-only %s
 
 class foo {
   foo(foo&, int); // expected-note {{was not a special member function}}

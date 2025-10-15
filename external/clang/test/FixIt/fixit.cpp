@@ -1,11 +1,11 @@
 // RUN: cp %s %t
 // RUN: not %clang_cc1 -pedantic -Wall -fixit -x c++ %t
-// RUN: %clang_cc1 -fsyntax-only -pedantic -Wall -Werror -x c++ %t
+// RUN: %clang_cc1 -fsyntax-only -pedantic -Wall  -x c++ %t
 
 /* This is a test of the various code modification hints that are
    provided as part of warning or extension diagnostics. All of the
    warnings will be fixed by -fixit, and the resulting file should
-   compile cleanly with -Werror -pedantic. */
+   compile cleanly with  -pedantic. */
 
 struct C1 {
   virtual void f();

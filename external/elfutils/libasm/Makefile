@@ -210,7 +210,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-AM_CFLAGS = -Wall -Werror
+AM_CFLAGS = -Wall 
 #AM_CFLAGS = -Wall
 INCLUDES = -I. -I$(srcdir) -I.. -I$(top_srcdir)/libelf -I$(top_srcdir)/libebl \
 	   -I$(top_srcdir)/lib

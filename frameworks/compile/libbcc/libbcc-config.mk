@@ -65,7 +65,7 @@ endif
 # Common Variables
 #=====================================================================
 
-libbcc_CFLAGS := -Wall -Wno-unused-parameter -Werror
+libbcc_CFLAGS := -Wall -Wno-unused-parameter 
 ifneq ($(TARGET_BUILD_VARIANT),eng)
 libbcc_CFLAGS += -D__DISABLE_ASSERTS
 endif

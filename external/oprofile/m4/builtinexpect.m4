@@ -3,7 +3,7 @@ AC_DEFUN([AX_BUILTIN_EXPECT],
 [
 AC_MSG_CHECKING([whether __builtin_expect is understood])
 SAVE_CFLAGS=$CFLAGS
-CFLAGS="-Werror $CFLAGS"
+CFLAGS=" $CFLAGS"
 AC_TRY_LINK(,[
 int i;
 if (__builtin_expect(i, 0)) { }

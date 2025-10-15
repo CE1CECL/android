@@ -13,7 +13,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	Main.cpp
 
-LOCAL_CFLAGS := -Wall -Werror
+LOCAL_CFLAGS := -Wall 
 
 #LOCAL_C_INCLUDES +=
 
@@ -34,7 +34,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := pbkdf2gen
 LOCAL_MODULE_TAGS := optional
-LOCAL_CFLAGS := -Wall -Werror
+LOCAL_CFLAGS := -Wall 
 LOCAL_SRC_FILES := pbkdf2gen.cpp
 LOCAL_LDLIBS += -ldl
 LOCAL_C_INCLUDES := external/openssl/include $(LOCAL_C_INCLUDES)

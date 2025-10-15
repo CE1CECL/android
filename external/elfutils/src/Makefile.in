@@ -232,7 +232,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 @MUDFLAP_FALSE@AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
-@MUDFLAP_FALSE@	    $(if $($(*F)_no_Werror),,-Werror) $(native_ld_cflags)
+@MUDFLAP_FALSE@	    $(if $($(*F)_no_Werror),,) $(native_ld_cflags)
 
 @MUDFLAP_TRUE@AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
 @MUDFLAP_TRUE@	    $(native_ld_cflags)

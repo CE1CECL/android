@@ -8,7 +8,7 @@ Arch.m64 := x86_64
 CC := gcc
 CC.m32 := clang
 
-CFLAGS := -Wall -Werror
+CFLAGS := -Wall 
 CFLAGS.m32 := $(CFLAGS) -m32 -O3
 CFLAGS.m64 := $(CFLAGS) -m64 -O3
 

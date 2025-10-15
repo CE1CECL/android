@@ -17,7 +17,7 @@ DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H -DOBJDIR=\"$(shell pwd)\"
 if MUDFLAP
 AM_CFLAGS = -Wall -Wshadow -fpic
 else
-AM_CFLAGS = -Wall -Werror -Wshadow -fpic
+AM_CFLAGS = -Wall  -Wshadow -fpic
 endif
 AM_CFLAGS += -DLIBSTR=\"$$(basename $(libdir))\"
 

@@ -4,7 +4,7 @@
     <uses-sdk android:minSdkVersion="14" />
     <application
         android:label="RsFountain"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
         android:icon="@drawable/test_pattern">
         <activity android:name="Fountain">
             <intent-filter>

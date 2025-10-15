@@ -133,7 +133,7 @@
         <activity android:name=".Screensaver"
             android:label="@string/app_label"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:hardwareAccelerated="true"
+            android:hardwareAccelerated="false"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

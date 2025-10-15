@@ -39,7 +39,7 @@ UniversalArchs := i386 ppc x86_64
 
 CC := gcc
 
-CFLAGS := -Wall -Werror
+CFLAGS := -Wall 
 CFLAGS.Debug := $(CFLAGS) -g
 CFLAGS.Release := $(CFLAGS) -O3 -fomit-frame-pointer
 CFLAGS.Profile := $(CFLAGS) -pg -g

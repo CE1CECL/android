@@ -33,7 +33,7 @@
         android:icon="@drawable/icon"
         android:logo="@drawable/logo"
         android:theme="@style/AppTheme.Light"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="false">
 
         <activity android:name=".MainActivity"
             android:label="@string/app_name"

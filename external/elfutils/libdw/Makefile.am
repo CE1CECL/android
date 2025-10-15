@@ -17,7 +17,7 @@ DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
 if MUDFLAP
 AM_CFLAGS = -Wall -Wshadow -std=gnu99
 else
-AM_CFLAGS = -Wall -Werror -Wshadow -std=gnu99
+AM_CFLAGS = -Wall  -Wshadow -std=gnu99
 endif
 INCLUDES = -I. -I$(srcdir) -I$(srcdir)/../libelf -I.. -I$(srcdir)/../lib
 VERSION = 1

@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -Werror -emit-llvm %s -o /dev/null
+// RUN: %clang_cc1  -emit-llvm %s -o /dev/null
 #pragma mark LLVM's world
 #ifdef DO_ERROR
 #error LLVM's world

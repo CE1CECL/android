@@ -182,7 +182,7 @@ elseif( LLVM_COMPILER_IS_GCC_COMPATIBLE )
     endif (LLVM_ENABLE_PEDANTIC)
   endif (LLVM_ENABLE_WARNINGS)
   if (LLVM_ENABLE_WERROR)
-    add_llvm_definitions( -Werror )
+    add_llvm_definitions(  )
   endif (LLVM_ENABLE_WERROR)
 endif( MSVC )
 

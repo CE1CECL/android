@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-sdk android:minSdkVersion="11" />
     <application android:label="Image Processing"
-                 android:hardwareAccelerated="true">
+                 android:hardwareAccelerated="false">
         <uses-library android:name="android.test.runner" />
         <activity android:name="ImageProcessingActivity">
             <intent-filter>

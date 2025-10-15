@@ -169,7 +169,7 @@ private:
   /// (an instance of diag::Mapping), or zero if unset.  The high bit is set
   /// when the mapping was established as a user mapping.  If the high bit is
   /// clear, then the low bits are set to the default value, and should be
-  /// mapped with -pedantic, -Werror, etc.
+  /// mapped with -pedantic, , etc.
   ///
   /// A new DiagState is created and kept around when diagnostic pragmas modify
   /// the state so that we know what is the diagnostic state at any given

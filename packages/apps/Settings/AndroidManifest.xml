@@ -60,7 +60,7 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Holo"
             android:uiOptions="splitActionBarWhenNarrow"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
 
         <!-- Settings -->
 

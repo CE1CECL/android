@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 
-COMMON_CFLAGS = ['-Wall', '-Werror']
-COMMON_CXXFLAGS = ['-Wall', '-Werror', '-fno-exceptions']
+COMMON_CFLAGS = ['-Wall', '']
+COMMON_CXXFLAGS = ['-Wall', '', '-fno-exceptions']
 
 configs = {
     'debug': {

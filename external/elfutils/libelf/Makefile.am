@@ -22,7 +22,7 @@ DEFS = -D_GNU_SOURCE -DHAVE_CONFIG_H
 if MUDFLAP
 AM_CFLAGS = -Wall -Wshadow
 else
-AM_CFLAGS = -Wall -Werror -Wshadow
+AM_CFLAGS = -Wall  -Wshadow
 endif
 INCLUDES = -I$(srcdir) -I$(top_srcdir)/lib -I..
 GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)

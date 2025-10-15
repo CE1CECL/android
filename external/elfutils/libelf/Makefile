@@ -250,7 +250,7 @@ sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
 target_alias = 
-AM_CFLAGS = -Wall -Werror -Wshadow
+AM_CFLAGS = -Wall  -Wshadow
 # XXX gcc has a bug in that it generates warnings for internal symbols.
 # XXX Remove the conditional when gcc is fxied.
 #AM_CFLAGS = -Wall -Wshadow

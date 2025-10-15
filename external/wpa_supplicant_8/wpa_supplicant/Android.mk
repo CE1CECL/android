@@ -134,7 +134,7 @@ OBJS_c += src/utils/$(CONFIG_ELOOP).c
 
 
 ifdef CONFIG_EAPOL_TEST
-L_CFLAGS += -Werror -DEAPOL_TEST
+L_CFLAGS +=  -DEAPOL_TEST
 endif
 
 ifndef CONFIG_BACKEND

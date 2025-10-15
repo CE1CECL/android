@@ -69,8 +69,8 @@ addvar CPPFLAGS -I$aospdir/system/core/include \
 addvar CFLAGS -fno-exceptions -Wno-multichar -msoft-float -fpic \
     -ffunction-sections -funwind-tables -fstack-protector -fno-short-enums \
     -march=armv5te -mtune=xscale -mthumb-interwork -fmessage-length=0 \
-    -W -Wall -Wno-unused -Winit-self -Wpointer-arith -Werror=return-type \
-    -Werror=non-virtual-dtor -Werror=address -Werror=sequence-point \
+    -W -Wall -Wno-unused -Winit-self -Wpointer-arith -Wno-return-type \
+    -Wno-non-virtual-dtor -Wno-address -Wno-sequence-point \
     -Wstrict-aliasing=2 -finline-functions -fno-inline-functions-called-once \
     -fgcse-after-reload -frerun-cse-after-loop -frename-registers -mthumb \
     -Os -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64

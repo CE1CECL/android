@@ -246,7 +246,7 @@ def w : Flag<"-w">, HelpText<"Suppress all warnings">;
 def pedantic : Flag<"-pedantic">;
 def pedantic_errors : Flag<"-pedantic-errors">;
 
-// This gets all -W options, including -Werror, -W[no-]system-headers, etc.  The
+// This gets all -W options, including , -W[no-]system-headers, etc.  The
 // driver has stripped off -Wa,foo etc.  The driver has also translated -W to
 // -Wextra, so we don't need to worry about it.
 def W : Joined<"-W">;

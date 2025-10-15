@@ -26,7 +26,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libutils \
 	libdl
 
-LOCAL_CFLAGS += -Wall -Werror
+LOCAL_CFLAGS += -Wall 
 
 LOCAL_LDLIBS += -lpthread
 

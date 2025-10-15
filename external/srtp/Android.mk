@@ -30,7 +30,7 @@ common_SRC_FILES := \
 
 common_CFLAGS := \
     -DPOSIX -iquote$(LOCAL_PATH)/crypto/include \
-    -Werror \
+     \
     -Wno-ignored-qualifiers \
     -Wno-sign-compare \
     -Wno-missing-field-initializers

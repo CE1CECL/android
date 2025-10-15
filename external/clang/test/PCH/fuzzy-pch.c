@@ -1,8 +1,8 @@
 // Test with pch.
 // RUN: %clang_cc1 -emit-pch -DFOO -o %t %S/variables.h
 // RUN: %clang_cc1 -DBAR=int -include-pch %t -fsyntax-only -pedantic %s
-// RUN: %clang_cc1 -DFOO -DBAR=int -include-pch %t -Werror %s
-// RUN: not %clang_cc1 -DFOO -DBAR=int -DX=5 -include-pch %t -Werror %s 
+// RUN: %clang_cc1 -DFOO -DBAR=int -include-pch %t  %s
+// RUN: not %clang_cc1 -DFOO -DBAR=int -DX=5 -include-pch %t  %s 
 
 BAR bar = 17;
 

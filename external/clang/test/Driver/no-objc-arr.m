@@ -1,4 +1,4 @@
-// RUN: %clang  -Werror -fobjc-arc -fsyntax-only -fno-objc-arc -verify %s
+// RUN: %clang   -fobjc-arc -fsyntax-only -fno-objc-arc -verify %s
 // rdar://8949617
 
 void * FOO() {

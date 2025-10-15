@@ -247,7 +247,7 @@ in the following sections.
 \&\-Wc++\-compat \-Wcast\-align  \-Wcast\-qual  \-Wchar\-subscripts  \-Wcomment 
 \&\-Wconversion  \-Wno\-deprecated\-declarations 
 \&\-Wdisabled\-optimization  \-Wno\-div\-by\-zero  \-Wno\-endif\-labels 
-\&\-Werror  \-Werror=* \-Werror\-implicit\-function\-declaration 
+\&\  \-Wno-* \\-implicit\-function\-declaration 
 \&\-Wfatal\-errors  \-Wfloat\-equal  \-Wformat  \-Wformat=2 
 \&\-Wno\-format\-extra\-args \-Wformat\-nonliteral 
 \&\-Wformat\-security  \-Wformat\-y2k 
@@ -2310,8 +2310,8 @@ This warning is enabled by \fB\-Wall\fR.
 .IP "\fB\-Wimplicit\-function\-declaration\fR" 4
 .IX Item "-Wimplicit-function-declaration"
 .PD 0
-.IP "\fB\-Werror\-implicit\-function\-declaration\fR" 4
-.IX Item "-Werror-implicit-function-declaration"
+.IP "\fB\\-implicit\-function\-declaration\fR" 4
+.IX Item "-Wno-implicit-function-declaration"
 .PD
 Give a warning (or error) whenever a function is used before being
 declared.  The form \fB\-Wno\-error\-implicit\-function\-declaration\fR
@@ -3227,22 +3227,22 @@ Warn for pointer argument passing or assignment with different signedness.
 This option is only supported for C and Objective\-C.  It is implied by
 \&\fB\-Wall\fR and by \fB\-pedantic\fR, which can be disabled with
 \&\fB\-Wno\-pointer\-sign\fR.
-.IP "\fB\-Werror\fR" 4
-.IX Item "-Werror"
+.IP "\fB\\fR" 4
+.IX Item ""
 Make all warnings into errors.
-.IP "\fB\-Werror=\fR" 4
-.IX Item "-Werror="
+.IP "\fB\-Wno-\fR" 4
+.IX Item "-Wno-"
 Make the specified warning into an errors.  The specifier for a
-warning is appended, for example \fB\-Werror=switch\fR turns the
+warning is appended, for example \fB\-Wno-switch\fR turns the
 warnings controlled by \fB\-Wswitch\fR into errors.  This switch
-takes a negative form, to be used to negate \fB\-Werror\fR for
+takes a negative form, to be used to negate \fB\\fR for
 specific warnings, for example \fB\-Wno\-error=switch\fR makes
-\&\fB\-Wswitch\fR warnings not be errors, even when \fB\-Werror\fR
+\&\fB\-Wswitch\fR warnings not be errors, even when \fB\\fR
 is in effect.  You can use the \fB\-fdiagnostics\-show\-option\fR
 option to have each controllable warning amended with the option which
 controls it, to determine what to use with this option.
 .Sp
-Note that specifying \fB\-Werror=\fR\fIfoo\fR automatically implies
+Note that specifying \fB\-Wno-\fR\fIfoo\fR automatically implies
 \&\fB\-W\fR\fIfoo\fR.  However, \fB\-Wno\-error=\fR\fIfoo\fR does not
 imply anything.
 .IP "\fB\-Wstack\-protector\fR" 4
@@ -6128,8 +6128,8 @@ This usually happens in code of the form
 .Sp
 The second and third \f(CW\*(C`FOO\*(C'\fR should be in comments, but often are not
 in older programs.  This warning is on by default.
-.IP "\fB\-Werror\fR" 4
-.IX Item "-Werror"
+.IP "\fB\\fR" 4
+.IX Item ""
 Make all warnings into hard errors.  Source code which triggers warnings
 will be rejected.
 .IP "\fB\-Wsystem\-headers\fR" 4

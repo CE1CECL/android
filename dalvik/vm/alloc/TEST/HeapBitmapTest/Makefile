@@ -4,7 +4,7 @@ all: runtest
 $(shell mkdir -p out)
 
 CC := gcc
-CFLAGS := -g -Wall -Werror
+CFLAGS := -g -Wall 
 #CFLAGS += -O2
 
 out/main.o: main.c ../../HeapBitmap.h

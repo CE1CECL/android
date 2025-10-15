@@ -828,11 +828,11 @@ cpp_num cpp_num_sign_extend (cpp_num, size_t);
    position in the translation unit with it, use cpp_error_with_line
    with a line number of zero.  */
 
-/* Warning, an error with -Werror.  */
+/* Warning, an error with .  */
 #define CPP_DL_WARNING		0x00
 /* Same as CPP_DL_WARNING, except it is not suppressed in system headers.  */
 #define CPP_DL_WARNING_SYSHDR	0x01
-/* Warning, an error with -pedantic-errors or -Werror.  */
+/* Warning, an error with -pedantic-errors or .  */
 #define CPP_DL_PEDWARN		0x02
 /* An error.  */
 #define CPP_DL_ERROR		0x03
