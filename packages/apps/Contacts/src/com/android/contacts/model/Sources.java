@@ -203,6 +203,10 @@ public class Sources extends BroadcastReceiver implements OnAccountsUpdateListen
                 // adapter, using the authenticator to find general resources.
                 final String accountType = sync.accountType;
                 final AuthenticatorDescription auth = findAuthenticator(auths, accountType);
+                if (auth == null) {
+                    // no authenticator found for this account type, ignore it.
+                    continue;
+                }
 
                 ContactsSource source;
                 if (GoogleSource.ACCOUNT_TYPE.equals(accountType)) {
@@ -239,14 +243,18 @@ public class Sources extends BroadcastReceiver implements OnAccountsUpdateListen
                 return auth;
             }
         }
-        throw new IllegalStateException("Couldn't find authenticator for specific account type");
+        return null;
+    }
+
+    public ArrayList<Account> getAccounts(boolean writableOnly) {
+        return getAccounts(writableOnly, false);
     }
 
     /**
      * Return list of all known, writable {@link ContactsSource}. Sources
      * returned may require inflation before they can be used.
      */
-    public ArrayList<Account> getAccounts(boolean writableOnly) {
+    public ArrayList<Account> getAccounts(boolean writableOnly, boolean addPhoneOnlyDummy) {
         final AccountManager am = mAccountManager;
         final Account[] accounts = am.getAccounts();
         final ArrayList<Account> matching = Lists.newArrayList();
@@ -261,6 +269,10 @@ public class Sources extends BroadcastReceiver implements OnAccountsUpdateListen
                 matching.add(account);
             }
         }
+
+        if (addPhoneOnlyDummy)
+            matching.add(null);
+
         return matching;
     }
 

@@ -98,6 +98,38 @@ AudioRecord::AudioRecord(
             frameCount, flags, cbf, user, notificationFrames, sessionId);
 }
 
+#ifdef USE_KINETO_COMPATIBILITY
+// Really dirty hack to give a Froyo-compatible constructor
+extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t cbf,
+        void* user,
+        int notificationFrames,
+        int sessionId);
+extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t cbf,
+        void* user,
+        int notificationFrames)
+{
+    return _ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii(This,
+        inputSource, sampleRate, format, channels,
+        frameCount, flags, cbf, user, notificationFrames, 0);
+}
+#endif
+
 AudioRecord::~AudioRecord()
 {
     if (mStatus == NO_ERROR) {
@@ -113,6 +145,40 @@ AudioRecord::~AudioRecord()
         IPCThreadState::self()->flushCommands();
     }
 }
+
+#ifdef USE_KINETO_COMPATIBILITY
+// another hack, this time for a Froyo-compatible AudioRecord::set method
+extern "C" status_t _ZN7android11AudioRecord3setEijijijPFviPvS1_ES1_ibi(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t,
+        void* user,
+        int notificationFrames,
+        bool threadCanCallJava,
+        int sessionId);
+extern "C" status_t _ZN7android11AudioRecord3setEijijijPFviPvS1_ES1_ib(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t cbf,
+        void* user,
+        int notificationFrames,
+        bool threadCanCallJava)
+{
+    return _ZN7android11AudioRecord3setEijijijPFviPvS1_ES1_ibi(
+        This, inputSource, sampleRate, format, channels, frameCount,
+        flags, cbf, user, notificationFrames, threadCanCallJava, 0);
+}
+#endif
 
 status_t AudioRecord::set(
         int inputSource,

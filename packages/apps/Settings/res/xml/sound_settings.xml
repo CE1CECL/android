@@ -38,7 +38,6 @@
 
     <com.android.settings.RingerVolumePreference
             android:key="ring_volume"
-            android:dependency="silent"
             android:title="@string/all_volume_title"
             android:summary="@string/ring_volume_summary"
             android:dialogTitle="@string/all_volume_title"
@@ -55,6 +54,13 @@
             android:dialogTitle="@string/ringtone_title"
             android:persistent="false"
             android:ringtoneType="ringtone" />
+
+    <com.android.settings.IncreasingRingPreference
+            android:key="increasing_ring"
+            android:title="@string/increasing_ring_title"
+            android:dialogTitle="@string/increasing_ring_title"
+            android:persistent="false"
+            android:streamType="ring" />
 
     <PreferenceCategory
             android:title="@string/sound_category_notification_title"/>
@@ -73,6 +79,24 @@
             android:key="notification_pulse"
             android:title="@string/notification_pulse_title"
             android:summary="@string/notification_pulse_summary"
+            android:persistent="false" />
+
+    <CheckBoxPreference
+            android:key="notification_blink"
+            android:title="@string/notification_blink_title"
+            android:summary="@string/notification_blink_summary"
+            android:persistent="false" />
+
+    <CheckBoxPreference
+            android:key="notification_always_on"
+            android:title="@string/notification_always_on_title"
+            android:summary="@string/notification_always_on_summary"
+            android:persistent="false" />
+
+    <CheckBoxPreference
+            android:key="notification_charging"
+            android:title="@string/notification_charging_title"
+            android:summary="@string/notification_charging_summary"
             android:persistent="false" />
 
     <PreferenceCategory
@@ -99,6 +123,12 @@
             android:title="@string/lock_sounds_enable_title"
             android:summaryOn="@string/lock_sounds_enable_summary_on"
             android:summaryOff="@string/lock_sounds_enable_summary_off"
+            android:defaultValue="true" />
+
+    <CheckBoxPreference
+            android:key="power_sounds"
+            android:title="@string/power_sounds_enable_title"
+            android:summary="@string/power_sounds_enable_summary"
             android:defaultValue="true" />
 
     <CheckBoxPreference

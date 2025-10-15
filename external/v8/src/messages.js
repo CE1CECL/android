@@ -42,6 +42,9 @@ var COMPILATION_TYPE_JSON = 2;
 var kVowelSounds = 0;
 var kCapitalVowelSounds = 0;
 
+// Matches Messages::kNoLineNumberInfo from v8.h
+var kNoLineNumberInfo = 0;
+
 // If this object gets passed to an error constructor the error will
 // get an accessor for .message that constructs a descriptive error
 // message on access.
@@ -137,6 +140,7 @@ function FormatMessage(message) {
       malformed_regexp:             "Invalid regular expression: /%0/: %1",
       unterminated_regexp:          "Invalid regular expression: missing /",
       regexp_flags:                 "Cannot supply flags when constructing one RegExp from another",
+      incompatible_method_receiver: "Method %0 called on incompatible receiver %1",
       invalid_lhs_in_assignment:    "Invalid left-hand side in assignment",
       invalid_lhs_in_for_in:        "Invalid left-hand side in for-in",
       invalid_lhs_in_postfix_op:    "Invalid left-hand side expression in postfix operation",
@@ -177,7 +181,6 @@ function FormatMessage(message) {
       // RangeError
       invalid_array_length:         "Invalid array length",
       stack_overflow:               "Maximum call stack size exceeded",
-      apply_overflow:               "Function.prototype.apply cannot support %0 arguments",
       // SyntaxError
       unable_to_parse:              "Parse error",
       duplicate_regexp_flag:        "Duplicate RegExp flag %0",
@@ -191,7 +194,10 @@ function FormatMessage(message) {
       invalid_json:                 "String '%0' is not valid JSON",
       circular_structure:           "Converting circular structure to JSON",
       obj_ctor_property_non_object: "Object.%0 called on non-object",
-      array_indexof_not_defined:    "Array.getIndexOf: Argument undefined"
+      array_indexof_not_defined:    "Array.getIndexOf: Argument undefined",
+      object_not_extensible:        "Can't add property %0, object is not extensible",
+      illegal_access:               "Illegal access",
+      invalid_preparser_data:       "Invalid preparser data for function %0"
     };
   }
   var format = kMessages[message.type];
@@ -201,9 +207,9 @@ function FormatMessage(message) {
 
 
 function GetLineNumber(message) {
-  if (message.startPos == -1) return -1;
+  if (message.startPos == -1) return kNoLineNumberInfo;
   var location = message.script.locationFromPosition(message.startPos, true);
-  if (location == null) return -1;
+  if (location == null) return kNoLineNumberInfo;
   return location.line + 1;
 }
 
@@ -431,6 +437,30 @@ Script.prototype.lineCount = function() {
 
 
 /**
+ * Returns the name of script if available, contents of sourceURL comment
+ * otherwise. See
+ * http://fbug.googlecode.com/svn/branches/firebug1.1/docs/ReleaseNotes_1.1.txt
+ * for details on using //@ sourceURL comment to identify scritps that don't
+ * have name.
+ *
+ * @return {?string} script name if present, value for //@ sourceURL comment
+ * otherwise.
+ */
+Script.prototype.nameOrSourceURL = function() {
+  if (this.name)
+    return this.name;
+  // TODO(608): the spaces in a regexp below had to be escaped as \040
+  // because this file is being processed by js2c whose handling of spaces
+  // in regexps is broken. Also, ['"] are excluded from allowed URLs to
+  // avoid matches against sources that invoke evals with sourceURL.
+  var sourceUrlPattern =
+    /\/\/@[\040\t]sourceURL=[\040\t]*([^\s'"]*)[\040\t]*$/m;
+  var match = sourceUrlPattern.exec(this.source);
+  return match ? match[1] : this.name;
+}
+
+
+/**
  * Class for source location. A source location is a position within some
  * source with the following properties:
  *   script   : script object for the source
@@ -570,18 +600,22 @@ function GetPositionInLine(message) {
 }
 
 
-function ErrorMessage(type, args, startPos, endPos, script, stackTrace) {
+function ErrorMessage(type, args, startPos, endPos, script, stackTrace,
+                      stackFrames) {
   this.startPos = startPos;
   this.endPos = endPos;
   this.type = type;
   this.args = args;
   this.script = script;
   this.stackTrace = stackTrace;
+  this.stackFrames = stackFrames;
 }
 
 
-function MakeMessage(type, args, startPos, endPos, script, stackTrace) {
-  return new ErrorMessage(type, args, startPos, endPos, script, stackTrace);
+function MakeMessage(type, args, startPos, endPos, script, stackTrace,
+                     stackFrames) {
+  return new ErrorMessage(type, args, startPos, endPos, script, stackTrace,
+                          stackFrames);
 }
 
 
@@ -650,6 +684,11 @@ CallSite.prototype.getEvalOrigin = function () {
   return FormatEvalOrigin(script);
 };
 
+CallSite.prototype.getScriptNameOrSourceURL = function () {
+  var script = %FunctionGetScript(this.fun);
+  return script ? script.nameOrSourceURL() : null;
+};
+
 CallSite.prototype.getFunction = function () {
   return this.fun;
 };
@@ -673,14 +712,20 @@ CallSite.prototype.getMethodName = function () {
   // See if we can find a unique property on the receiver that holds
   // this function.
   var ownName = this.fun.name;
-  if (ownName && this.receiver && this.receiver[ownName] === this.fun)
+  if (ownName && this.receiver &&
+      (ObjectLookupGetter.call(this.receiver, ownName) === this.fun ||
+       ObjectLookupSetter.call(this.receiver, ownName) === this.fun ||
+       this.receiver[ownName] === this.fun)) {
     // To handle DontEnum properties we guess that the method has
     // the same name as the function.
     return ownName;
+  }
   var name = null;
   for (var prop in this.receiver) {
-    if (this.receiver[prop] === this.fun) {
-      // If we find more than one match bail out to avoid confusion
+    if (this.receiver.__lookupGetter__(prop) === this.fun ||
+        this.receiver.__lookupSetter__(prop) === this.fun ||
+        (!this.receiver.__lookupGetter__(prop) && this.receiver[prop] === this.fun)) {
+      // If we find more than one match bail out to avoid confusion.
       if (name)
         return null;
       name = prop;
@@ -735,20 +780,24 @@ CallSite.prototype.isConstructor = function () {
 };
 
 function FormatEvalOrigin(script) {
-  var eval_origin = "";
+  var sourceURL = script.nameOrSourceURL();
+  if (sourceURL)
+    return sourceURL;
+
+  var eval_origin = "eval at ";
   if (script.eval_from_function_name) {
     eval_origin += script.eval_from_function_name;
   } else {
     eval_origin +=  "<anonymous>";
   }
-  
+
   var eval_from_script = script.eval_from_script;
   if (eval_from_script) {
     if (eval_from_script.compilation_type == COMPILATION_TYPE_EVAL) {
       // eval script originated from another eval.
-      eval_origin += " (eval at " + FormatEvalOrigin(eval_from_script) + ")";
+      eval_origin += " (" + FormatEvalOrigin(eval_from_script) + ")";
     } else {
-      // eval script originated from "real" scource.
+      // eval script originated from "real" source.
       if (eval_from_script.name) {
         eval_origin += " (" + eval_from_script.name;
         var location = eval_from_script.locationFromPosition(script.eval_from_script_position, true);
@@ -762,40 +811,45 @@ function FormatEvalOrigin(script) {
       }
     }
   }
-  
+
   return eval_origin;
 };
 
 function FormatSourcePosition(frame) {
+  var fileName;
   var fileLocation = "";
   if (frame.isNative()) {
     fileLocation = "native";
   } else if (frame.isEval()) {
-    fileLocation = "eval at " + frame.getEvalOrigin();
+    fileName = frame.getScriptNameOrSourceURL();
+    if (!fileName)
+      fileLocation = frame.getEvalOrigin();
   } else {
-    var fileName = frame.getFileName();
-    if (fileName) {
-      fileLocation += fileName;
-      var lineNumber = frame.getLineNumber();
-      if (lineNumber != null) {
-        fileLocation += ":" + lineNumber;
-        var columnNumber = frame.getColumnNumber();
-        if (columnNumber) {
-          fileLocation += ":" + columnNumber;
-        }
+    fileName = frame.getFileName();
+  }
+
+  if (fileName) {
+    fileLocation += fileName;
+    var lineNumber = frame.getLineNumber();
+    if (lineNumber != null) {
+      fileLocation += ":" + lineNumber;
+      var columnNumber = frame.getColumnNumber();
+      if (columnNumber) {
+        fileLocation += ":" + columnNumber;
       }
     }
   }
+
   if (!fileLocation) {
     fileLocation = "unknown source";
   }
   var line = "";
   var functionName = frame.getFunction().name;
-  var methodName = frame.getMethodName();
   var addPrefix = true;
   var isConstructor = frame.isConstructor();
   var isMethodCall = !(frame.isToplevel() || isConstructor);
   if (isMethodCall) {
+    var methodName = frame.getMethodName();
     line += frame.getTypeName() + ".";
     if (functionName) {
       line += functionName;

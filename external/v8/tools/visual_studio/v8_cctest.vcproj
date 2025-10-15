@@ -156,11 +156,19 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\test\cctest\test-circular-queue.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\test\cctest\test-compiler.cc"
 			>
 		</File>
 		<File
 			RelativePath="..\..\test\cctest\test-conversions.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\test\cctest\test-cpu-profiler.cc"
 			>
 		</File>
 		<File
@@ -220,6 +228,10 @@
 			>
 		</File>
 		<File
+			RelativePath="..\..\test\cctest\test-profile-generator.cc"
+			>
+		</File>
+		<File
 			RelativePath="..\..\test\cctest\test-serialize.cc"
 			>
 		</File>
@@ -233,6 +245,10 @@
 		</File>
 		<File
 			RelativePath="..\..\test\cctest\test-strings.cc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\test\cctest\test-unbound-queue.cc"
 			>
 		</File>
 		<File

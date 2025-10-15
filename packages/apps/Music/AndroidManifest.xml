@@ -26,6 +26,7 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application android:icon="@drawable/app_music"
         android:label="@string/musicbrowserlabel"
@@ -80,6 +81,7 @@
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
                 <data android:mimeType="application/itunes"/>
+                <data android:mimeType="application/x-flac"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="com.android.music.PLAYBACK_VIEWER" />
@@ -98,6 +100,7 @@
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
                 <data android:mimeType="application/itunes"/>
+                <data android:mimeType="application/x-flac"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -108,6 +111,7 @@
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
                 <data android:mimeType="application/itunes"/>
+                <data android:mimeType="application/x-flac"/>
             </intent-filter>
             <intent-filter
                 android:priority="-1">
@@ -119,6 +123,7 @@
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
                 <data android:mimeType="application/itunes"/>
+                <data android:mimeType="application/x-flac"/>
             </intent-filter>
         </activity>
 
@@ -194,19 +199,17 @@
             android:taskAffinity="android.task.video"
             android:label="@string/videobrowserlabel"
             android:icon="@drawable/app_video"
-            android:exported="false" >
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.PICK" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.dir/video"/>
             </intent-filter>
-<!--
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
--->
         </activity>
         <activity android:name="com.android.music.MediaPickerActivity"
                 android:label="@string/mediapickerlabel" android:exported="false" >
@@ -243,6 +246,7 @@
                 <data android:mimeType="audio/*"/>
                 <data android:mimeType="application/ogg"/>
                 <data android:mimeType="application/x-ogg"/>
+                <data android:mimeType="application/x-flac"/>
             </intent-filter>
             <!-- Second way to invoke us: someone asks to pick an item from
                  some media Uri. -->
@@ -263,14 +267,22 @@
             android:theme="@android:style/Theme.Dialog" android:exported="false" />
         <activity android:name="com.android.music.ScanningProgress"
             android:theme="@android:style/Theme.Dialog" android:exported="false" />
+        <activity android:name="MusicSettingsActivity" android:label="@string/settings" />
+        <activity android:name="EditGesturesActivity" android:label="@string/edit_gestures_title" />
+        <activity android:name="CustomizeGestureActivity" android:label="@string/customize_gesture_title" />
         <service android:name="com.android.music.MediaPlaybackService"
-            android:exported="false" />
-
-        <receiver android:name="com.android.music.MediaAppWidgetProvider">
+            android:exported="true" />
+        <receiver android:name="com.android.music.MediaAppWidgetProvider4x1" android:label="Music (4x1)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/appwidget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/appwidget4x1_info" />
+        </receiver>
+        <receiver android:name="com.android.music.MediaAppWidgetProvider4x2" android:label="Music (4x2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/appwidget4x2_info" />
         </receiver>
     </application>
 </manifest>

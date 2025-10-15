@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CyanogenMod-statistieken</string>
+
+    <!-- Main -->
+    <string name="main_title">Anonieme statistieken</string>
+    <string name="main_desc">Indien ingeschakeld kunnen de ontwikkelaars van CyanogenMod unieke installaties op toestellen volgen. Een uniek ID-nummer wordt verstuurd, maar geen gebruikersgegevens. De gegevens worden telkens verzonden wanneer het toestel opstart. Tik onderin het scherm op \'Voorbeeld\' voor een voorbeeld van de verzonden gegevens.</string>
+    <string name="main_optin">Anonieme statistieken verzenden toestaan</string>
+    <string name="main_btn_preview">Voorbeeld</string>
+    <string name="main_btn_save">Opslaan</string>
+    <string name="main_show_stats">Statistieken</string>
+
+    <!-- Preview -->
+    <string name="preview_id_lbl">Uniek ID-nummer</string>
+    <string name="preview_device_lbl">Toestel</string>
+    <string name="preview_version_lbl">Versie</string>
+    <string name="preview_done_btn">Klaar</string>
+    <string name="preview_country_lbl">Land</string>
+    <string name="preview_carrier_lbl">Provider</string>
+
+    <!-- Notification -->
+    <string name="notification_ticker">Statistieken verzonden</string>
+    <string name="notification_title">CyanogenMod-statistieken</string>
+    <string name="notification_desc">Anonieme statistieken in-/uitschakelen</string>
+    <string name="main_link">&lt;a href=&quot;http://www.cyanogenmod.org/blog/cmstats-what-it-is-and-why-you-should-opt-in&quot;&gt;Lees meer&lt;/a&gt;</string>
+</resources>

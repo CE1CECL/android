@@ -58,6 +58,12 @@ public class PushReceiver extends BroadcastReceiver {
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = DEBUG ? Config.LOGD : Config.LOGV;
 
+    private static final String[] ADDRESS_PROJECTION = new String[] {
+        Mms.Addr.ADDRESS };
+
+    // These must be consistent with ADDRESS_PROJECTION
+    private static final int COLUMN_ADDRESS = 0;
+
     private class ReceivePushTask extends AsyncTask<Intent,Void,Void> {
         private Context mContext;
         public ReceivePushTask(Context context) {
@@ -99,6 +105,7 @@ public class PushReceiver extends BroadcastReceiver {
                         ContentValues values = new ContentValues(1);
                         values.put(Mms.THREAD_ID, threadId);
                         SqliteWrapper.update(mContext, cr, uri, values, null, null);
+                        notifyIfNeeded(mContext, pdu, type, uri);
                         break;
                     }
                     case MESSAGE_TYPE_NOTIFICATION_IND: {
@@ -201,6 +208,33 @@ public class PushReceiver extends BroadcastReceiver {
         }
 
         return -1;
+    }
+
+    private static void notifyIfNeeded(Context context, GenericPdu pdu, int type, Uri pduUri) {
+        if (type == MESSAGE_TYPE_READ_ORIG_IND) {
+            // Not supporting read notifications right now. Start implementation here.
+            return;
+        } else if (type == MESSAGE_TYPE_DELIVERY_IND) {
+            int status = ((DeliveryInd) pdu).getStatus();
+            if (status == PduHeaders.STATUS_FORWARDED ||
+                status == PduHeaders.STATUS_RETRIEVED) {
+                // Look up recipient
+                Uri uri = Uri.withAppendedPath(Mms.CONTENT_URI, pduUri.getLastPathSegment());
+                uri = Uri.withAppendedPath(uri, "addr");
+                Cursor cursor = context.getContentResolver().query(uri, ADDRESS_PROJECTION,
+                        null, null, null);
+                try {
+                    if (cursor != null && cursor.moveToFirst()) {
+                        MessagingNotification.nonBlockingShowDelivery(context,
+                            cursor.getString(COLUMN_ADDRESS));
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                }
+            }
+        }
     }
 
     private static boolean isDuplicateNotification(

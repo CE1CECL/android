@@ -64,6 +64,7 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.os.WorkSource;
 import android.provider.Settings;
 import android.util.Slog;
@@ -104,11 +105,12 @@ import com.android.internal.R;
  */
 public class WifiService extends IWifiManager.Stub {
     private static final String TAG = "WifiService";
-    private static final boolean DBG = false;
+    private static final boolean DBG = SystemProperties.getBoolean("wifi.debug", false);
     private static final Pattern scanResultPattern = Pattern.compile("\t+");
     private final WifiStateTracker mWifiStateTracker;
     /* TODO: fetch a configurable interface */
     private static final String SOFTAP_IFACE = "wl0.1";
+    private static final String TI_SOFTAP_IFACE = "tiap0";
 
     private Context mContext;
     private int mWifiApState;
@@ -770,12 +772,17 @@ public class WifiService extends IWifiManager.Stub {
             /* Configuration changed on a running access point */
             if(enable && (wifiConfig != null)) {
                 try {
-                    nwService.setAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
-                                             SOFTAP_IFACE);
+                    if (SystemProperties.getBoolean("wifi.hotspot.ti", false)) {
+                        nwService.setAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
+                                                 TI_SOFTAP_IFACE);
+                    } else {
+                        nwService.setAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
+                                                 SOFTAP_IFACE);
+                    }
                     setWifiApConfiguration(wifiConfig);
                     return true;
                 } catch(Exception e) {
-                    Slog.e(TAG, "Exception in nwService during AP restart");
+                    Slog.e(TAG, "Exception in nwService during AP restart", e);
                     try {
                         nwService.stopAccessPoint();
                     } catch (Exception ee) {
@@ -805,17 +812,30 @@ public class WifiService extends IWifiManager.Stub {
             /* Use default config if there is no existing config */
             if (wifiConfig == null) wifiConfig = getWifiApConfiguration();
 
-            if (!mWifiStateTracker.loadDriver()) {
-                Slog.e(TAG, "Failed to load Wi-Fi driver for AP mode");
-                setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
-                return false;
+            if (SystemProperties.getBoolean("wifi.hotspot.ti", false)) {
+                if (!mWifiStateTracker.loadHotspotDriver()) {
+                    Slog.e(TAG, "Failed to load Wi-Fi driver for AP mode");
+                    setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
+                    return false;
+                }
+            } else {
+                if (!mWifiStateTracker.loadDriver()) {
+                    Slog.e(TAG, "Failed to load Wi-Fi driver for AP mode");
+                    setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
+                    return false;
+                }
             }
 
             try {
-                nwService.startAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
-                                           SOFTAP_IFACE);
+                if (SystemProperties.getBoolean("wifi.hotspot.ti", false)) {
+                    nwService.startAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
+                                               TI_SOFTAP_IFACE);
+                } else {
+                    nwService.startAccessPoint(wifiConfig, mWifiStateTracker.getInterfaceName(),
+                                               SOFTAP_IFACE);
+                }
             } catch(Exception e) {
-                Slog.e(TAG, "Exception in startAccessPoint()");
+                Slog.e(TAG, "Exception in startAccessPoint()", e);
                 setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.DRIVER_UNLOAD);
                 return false;
             }
@@ -827,15 +847,23 @@ public class WifiService extends IWifiManager.Stub {
             try {
                 nwService.stopAccessPoint();
             } catch(Exception e) {
-                Slog.e(TAG, "Exception in stopAccessPoint()");
+                Slog.e(TAG, "Exception in stopAccessPoint()", e);
                 setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.DRIVER_UNLOAD);
                 return false;
             }
 
-            if (!mWifiStateTracker.unloadDriver()) {
-                Slog.e(TAG, "Failed to unload Wi-Fi driver for AP mode");
-                setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
-                return false;
+            if (SystemProperties.getBoolean("wifi.hotspot.ti", false)) {
+                if (!mWifiStateTracker.unloadHotspotDriver()) {
+                    Slog.e(TAG, "Failed to unload Wi-Fi driver for AP mode");
+                    setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
+                    return false;
+                }
+            } else {
+                if (!mWifiStateTracker.unloadDriver()) {
+                    Slog.e(TAG, "Failed to unload Wi-Fi driver for AP mode");
+                    setWifiApEnabledState(WIFI_AP_STATE_FAILED, uid, DriverAction.NO_DRIVER_UNLOAD);
+                    return false;
+                }
             }
         }
 
@@ -863,7 +891,11 @@ public class WifiService extends IWifiManager.Stub {
          * Unload the driver if going to a failed state
          */
         if ((mWifiApState == WIFI_AP_STATE_FAILED) && (flag == DriverAction.DRIVER_UNLOAD)) {
-            mWifiStateTracker.unloadDriver();
+            if (SystemProperties.getBoolean("wifi.hotspot.ti", false)) {
+                mWifiStateTracker.unloadHotspotDriver();
+            } else {
+                mWifiStateTracker.unloadDriver();
+            }
         }
 
         long ident = Binder.clearCallingIdentity();
@@ -990,6 +1022,15 @@ public class WifiService extends IWifiManager.Stub {
             }
         }
 
+        value = mWifiStateTracker.getNetworkVariable(netId, WifiConfiguration.modeVarName);
+        config.adhocSSID = false;
+        if (!TextUtils.isEmpty(value)) {
+            try {
+                config.adhocSSID = Integer.parseInt(value) != 0;
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
         value = mWifiStateTracker.getNetworkVariable(netId, WifiConfiguration.wepTxKeyIdxVarName);
         config.wepTxKeyIndex = -1;
         if (!TextUtils.isEmpty(value)) {
@@ -1090,6 +1131,15 @@ public class WifiService extends IWifiManager.Stub {
 
         for (WifiConfiguration.EnterpriseField field :
                 config.enterpriseFields) {
+            /*
+             * Skip reading the password field, as the actual value isn't returned
+             * anyway, and the returned '*' might cause confusion when saving the
+             * config again, as '*' might actually be a valid password.
+             */
+            if (field == config.password) {
+                continue;
+            }
+
             value = mWifiStateTracker.getNetworkVariable(netId,
                     field.varName());
             if (!TextUtils.isEmpty(value)) {
@@ -1166,6 +1216,55 @@ public class WifiService extends IWifiManager.Stub {
                     Slog.d(TAG, "failed to set BSSID: "+config.BSSID);
                 }
                 break setVariables;
+            }
+
+            if(config.adhocSSID) {
+                if (DBG) {
+                    Slog.d(TAG, "setting adhoc network");
+                }
+                //Set Adhoc Mode
+                if (!mWifiStateTracker.setNetworkVariable(
+                        netId,
+                        WifiConfiguration.modeVarName,
+                        config.modeAdhoc)) {
+                    if (DBG) {
+                        Slog.d(TAG, "failed to set adhoc mode: " + config.adhocSSID);
+                    }
+                    break setVariables;
+                }
+
+                String frequency;
+                if (config.frequency != 0) {
+                    frequency = Integer.toString(config.frequency);
+                } else {
+                    //Default to channel 11
+                    frequency = Integer.toString(WifiConfiguration.ChannelFrequency.CHANNEL_11);
+                }
+
+                //Set frequency
+                if (!mWifiStateTracker.setNetworkVariable(
+                        netId,
+                        WifiConfiguration.frequencyVarName,
+                        frequency)) {
+                    if (DBG) {
+                        Slog.d(TAG, "failed to set frequency: " + frequency);
+                    }
+                    break setVariables;
+                }
+            } else {
+                if (DBG) {
+                    Slog.d(TAG, "setting non adhoc network");
+                }
+                //Set Infrastructure Mode
+                if (!mWifiStateTracker.setNetworkVariable(
+                        netId,
+                        WifiConfiguration.modeVarName,
+                        config.modeInfrastructure)) {
+                    if (DBG) {
+                        Slog.d(TAG, "failed to set infrastructure mode: " + config.adhocSSID);
+                    }
+                    break setVariables;
+                }
             }
 
             String allowedKeyManagementString =
@@ -1481,7 +1580,7 @@ public class WifiService extends IWifiManager.Stub {
                     if (scanResult != null) {
                         scanList.add(scanResult);
                     } else if (DBG) {
-                        Slog.w(TAG, "misformatted scan result for: " + line);
+                        Slog.d(TAG, "misformatted scan result for: " + line);
                     }
                 }
                 lineBeg = lineEnd + 1;
@@ -1919,8 +2018,12 @@ public class WifiService extends IWifiManager.Stub {
         synchronized (mWifiStateTracker) {
             mTmpWorkSource.clear();
             if (mDeviceIdle) {
-                for (int i=0; i<mLocks.mList.size(); i++) {
-                    mTmpWorkSource.add(mLocks.mList.get(i).mWorkSource);
+                try {
+                    for (int i=0; i<mLocks.mList.size(); i++) {
+                        mTmpWorkSource.add(mLocks.mList.get(i).mWorkSource);
+                    }
+                } catch (IndexOutOfBoundsException e) {
+                    //Oh well, it's gone
                 }
             }
             mWifiStateTracker.updateBatteryWorkSourceLocked(mTmpWorkSource);

@@ -844,8 +844,10 @@ static void wpa_config_write_global(FILE *f, struct wpa_config *config)
 #endif /* CONFIG_CTRL_IFACE */
 	if (config->eapol_version != DEFAULT_EAPOL_VERSION)
 		fprintf(f, "eapol_version=%d\n", config->eapol_version);
+#ifndef ANDROID
 	if (config->ap_scan != DEFAULT_AP_SCAN)
 		fprintf(f, "ap_scan=%d\n", config->ap_scan);
+#endif
 	if (config->fast_reauth != DEFAULT_FAST_REAUTH)
 		fprintf(f, "fast_reauth=%d\n", config->fast_reauth);
 #ifdef EAP_TLS_OPENSSL
@@ -915,12 +917,24 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 	struct wpa_config_blob *blob;
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 	int ret = 0;
+	char *tmpfile = NULL;
+	int rc;
 
-	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", name);
+	tmpfile = (char *)malloc(strlen(name) + sizeof(".tmp"));
+	if (tmpfile) {
+		strcpy(tmpfile, name);
+		strcat(tmpfile, ".tmp");
+	} else {
+		/* Failed to create new config file then rename;
+		   revert to overwriting config file directly */
+		tmpfile = (char *)name;
+	}
 
-	f = fopen(name, "w");
+	wpa_printf(MSG_DEBUG, "Writing configuration file '%s'", tmpfile);
+
+	f = fopen(tmpfile, "w");
 	if (f == NULL) {
-		wpa_printf(MSG_DEBUG, "Failed to open '%s' for writing", name);
+		wpa_printf(MSG_ERROR, "Failed to open '%s' for writing", tmpfile);
 		return -1;
 	}
 
@@ -942,7 +956,17 @@ int wpa_config_write(const char *name, struct wpa_config *config)
 	}
 #endif /* CONFIG_NO_CONFIG_BLOBS */
 
+	fflush(f);
+	fsync(fileno(f));
 	fclose(f);
+	if (tmpfile != name) {
+		rc = rename(tmpfile, name);
+		free(tmpfile);
+		if (rc != 0) {
+			wpa_printf(MSG_ERROR, "Failed to write configuration file '%s'", name);
+			return -1;
+		}
+	}
 
 	wpa_printf(MSG_DEBUG, "Configuration file '%s' written %ssuccessfully",
 		   name, ret ? "un" : "");

@@ -78,15 +78,7 @@ public class BluetoothPbapVcardManager {
             Contacts.DISPLAY_NAME, // 4
     };
 
-    private static final int ID_COLUMN_INDEX = 0;
-
-    private static final int PHONE_TYPE_COLUMN_INDEX = 1;
-
-    private static final int PHONE_LABEL_COLUMN_INDEX = 2;
-
     private static final int PHONE_NUMBER_COLUMN_INDEX = 3;
-
-    private static final int CONTACTS_DISPLAY_NAME_COLUMN_INDEX = 4;
 
     static final String SORT_ORDER_PHONE_NUMBER = CommonDataKinds.Phone.NUMBER + " ASC";
 
@@ -131,7 +123,7 @@ public class BluetoothPbapVcardManager {
                 size = getCallHistorySize(type);
                 break;
         }
-        if (V) Log.v(TAG, "getPhonebookSzie size = " + size + " type = " + type);
+        if (V) Log.v(TAG, "getPhonebookSize size = " + size + " type = " + type);
         return size;
     }
 
@@ -242,8 +234,14 @@ public class BluetoothPbapVcardManager {
         ArrayList<String> nameList = new ArrayList<String>();
 
         Cursor contactCursor = null;
-        final Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI,
+        Uri uri = null;
+
+        if (phoneNumber != null && phoneNumber.length() == 0) {
+            uri = Contacts.CONTENT_URI;
+        } else {
+            uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI,
                 Uri.encode(phoneNumber));
+        }
 
         try {
             contactCursor = mResolver.query(uri, CONTACTS_PROJECTION, CLAUSE_ONLY_VISIBLE,
@@ -270,7 +268,7 @@ public class BluetoothPbapVcardManager {
     }
 
     public final int composeAndSendCallLogVcards(final int type, Operation op,
-            final int startPoint, final int endPoint, final boolean vcardType21) {
+            final int startPoint, final int endPoint, final boolean vcardType21, long filter) {
         if (startPoint < 1 || startPoint > endPoint) {
             Log.e(TAG, "internal error: startPoint or endPoint is not correct.");
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -327,11 +325,11 @@ public class BluetoothPbapVcardManager {
 
         if (V) Log.v(TAG, "Call log query selection is: " + selection);
 
-        return composeAndSendVCards(op, selection, vcardType21, null, false);
+        return composeAndSendVCards(op, selection, vcardType21, filter, null, false);
     }
 
     public final int composeAndSendPhonebookVcards(Operation op, final int startPoint,
-            final int endPoint, final boolean vcardType21, String ownerVCard) {
+            final int endPoint, final boolean vcardType21, long filter, String ownerVCard) {
         if (startPoint < 1 || startPoint > endPoint) {
             Log.e(TAG, "internal error: startPoint or endPoint is not correct.");
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -372,11 +370,11 @@ public class BluetoothPbapVcardManager {
 
         if (V) Log.v(TAG, "Query selection is: " + selection);
 
-        return composeAndSendVCards(op, selection, vcardType21, ownerVCard, true);
+        return composeAndSendVCards(op, selection, vcardType21, filter, ownerVCard, true);
     }
 
     public final int composeAndSendPhonebookOneVcard(Operation op, final int offset,
-            final boolean vcardType21, String ownerVCard, int orderByWhat) {
+            final boolean vcardType21, String ownerVCard, int orderByWhat, long filter) {
         if (offset < 1) {
             Log.e(TAG, "Internal error: offset is not correct.");
             return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -421,11 +419,11 @@ public class BluetoothPbapVcardManager {
 
         if (V) Log.v(TAG, "Query selection is: " + selection);
 
-        return composeAndSendVCards(op, selection, vcardType21, ownerVCard, true);
+        return composeAndSendVCards(op, selection, vcardType21, filter, ownerVCard, true);
     }
 
     public final int composeAndSendVCards(Operation op, final String selection,
-            final boolean vcardType21, String ownerVCard, boolean isContacts) {
+            final boolean vcardType21, long filter, String ownerVCard, boolean isContacts) {
         long timestamp = 0;
         if (V) timestamp = System.currentTimeMillis();
 
@@ -442,7 +440,7 @@ public class BluetoothPbapVcardManager {
                 vcardType |= VCardConfig.FLAG_REFRAIN_IMAGE_EXPORT;
                 vcardType |= VCardConfig.FLAG_REFRAIN_PHONE_NUMBER_FORMATTING;
 
-                composer = new VCardComposer(mContext, vcardType, true);
+                composer = new BluetoothPbapVcardComposer(mContext, vcardType, filter, true);
                 composer.addHandler(new HandlerForStringBuffer(op, ownerVCard));
                 if (!composer.init(Contacts.CONTENT_URI, selection, null, Contacts._ID)) {
                     return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -481,7 +479,7 @@ public class BluetoothPbapVcardManager {
                         BluetoothPbapObexServer.sIsAborted = false;
                         break;
                     }
-                    if (!composer.createOneEntry()) {
+                    if (!composer.createOneEntry(vcardType21)) {
                         Log.e(TAG, "Failed to read a contact. Error reason: "
                                 + composer.getErrorReason());
                         return ResponseCodes.OBEX_HTTP_INTERNAL_ERROR;
@@ -504,7 +502,6 @@ public class BluetoothPbapVcardManager {
      * Handler to emit VCard String to PCE once size grow to maxPacketSize.
      */
     public class HandlerForStringBuffer implements OneEntryHandler {
-        @SuppressWarnings("hiding")
         private Operation operation;
 
         private OutputStream outputStream;

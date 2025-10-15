@@ -40,7 +40,21 @@ public class SettingsActivity extends PreferenceActivity
             "snooze_duration";
     static final String KEY_VOLUME_BEHAVIOR =
             "volume_button_setting";
-
+    static final String KEY_ALARM_LIMIT =
+    		"alarm_limit";
+    static final String SCREENSAVER_TIMEOUT =
+		"screensaver_timeout";
+    static final String SCREENSAVER_COLOR =
+		"screensaver_color";
+    static final String SCREENSAVER_COLOR_ALPHA = 
+    	"screensaver_color_alpha";
+	static final String SCREENSAVER_COLOR_RED = 
+		"screensaver_color_red";
+	static final String SCREENSAVER_COLOR_GREEN = 
+		"screensaver_color_green";
+	static final String SCREENSAVER_COLOR_BLUE = 
+		"screensaver_color_blue";
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,6 +112,17 @@ public class SettingsActivity extends PreferenceActivity
                 (ListPreference) findPreference(KEY_ALARM_SNOOZE);
         snooze.setSummary(snooze.getEntry());
         snooze.setOnPreferenceChangeListener(this);
+        
+        final ListPreference alarmlimit =
+        		(ListPreference) findPreference(KEY_ALARM_LIMIT);
+        alarmlimit.setSummary(alarmlimit.getEntry());
+        alarmlimit.setOnPreferenceChangeListener(this);
+        
+        final ListPreference screensaver_timeout =
+    		(ListPreference) findPreference(SCREENSAVER_TIMEOUT);
+        screensaver_timeout.setSummary(screensaver_timeout.getEntry());
+        screensaver_timeout.setOnPreferenceChangeListener(this);
+        
     }
 
 }

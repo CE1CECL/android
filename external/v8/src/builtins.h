@@ -52,6 +52,7 @@ enum BuiltinExtraArguments {
   V(ArrayUnshift, NO_EXTRA_ARGUMENTS)                               \
   V(ArraySlice, NO_EXTRA_ARGUMENTS)                                 \
   V(ArraySplice, NO_EXTRA_ARGUMENTS)                                \
+  V(ArrayConcat, NO_EXTRA_ARGUMENTS)                                \
                                                                     \
   V(HandleApiCall, NEEDS_CALLED_FUNCTION)                           \
   V(FastHandleApiCall, NO_EXTRA_ARGUMENTS)                          \
@@ -64,10 +65,12 @@ enum BuiltinExtraArguments {
 #define BUILTIN_LIST_A(V)                                                 \
   V(ArgumentsAdaptorTrampoline, BUILTIN, UNINITIALIZED)                   \
   V(JSConstructCall,            BUILTIN, UNINITIALIZED)                   \
+  V(JSConstructStubCountdown,   BUILTIN, UNINITIALIZED)                   \
   V(JSConstructStubGeneric,     BUILTIN, UNINITIALIZED)                   \
   V(JSConstructStubApi,         BUILTIN, UNINITIALIZED)                   \
   V(JSEntryTrampoline,          BUILTIN, UNINITIALIZED)                   \
   V(JSConstructEntryTrampoline, BUILTIN, UNINITIALIZED)                   \
+  V(LazyCompile,                BUILTIN, UNINITIALIZED)                   \
                                                                           \
   V(LoadIC_Miss,                BUILTIN, UNINITIALIZED)                   \
   V(KeyedLoadIC_Miss,           BUILTIN, UNINITIALIZED)                   \
@@ -96,6 +99,8 @@ enum BuiltinExtraArguments {
   V(KeyedLoadIC_IndexedInterceptor,         KEYED_LOAD_IC, MEGAMORPHIC)   \
                                                                           \
   V(StoreIC_Initialize,         STORE_IC, UNINITIALIZED)                  \
+  V(StoreIC_ArrayLength,        STORE_IC, MONOMORPHIC)                    \
+  V(StoreIC_Normal,             STORE_IC, MONOMORPHIC)                    \
   V(StoreIC_Megamorphic,        STORE_IC, MEGAMORPHIC)                    \
                                                                           \
   V(KeyedStoreIC_Initialize,    KEYED_STORE_IC, UNINITIALIZED)            \
@@ -113,7 +118,10 @@ enum BuiltinExtraArguments {
   V(FunctionApply,              BUILTIN, UNINITIALIZED)                   \
                                                                           \
   V(ArrayCode,                  BUILTIN, UNINITIALIZED)                   \
-  V(ArrayConstructCode,         BUILTIN, UNINITIALIZED)
+  V(ArrayConstructCode,         BUILTIN, UNINITIALIZED)                   \
+                                                                          \
+  V(StringConstructCode,        BUILTIN, UNINITIALIZED)
+
 
 #ifdef ENABLE_DEBUGGER_SUPPORT
 // Define list of builtins used by the debugger implemented in assembly.
@@ -124,7 +132,10 @@ enum BuiltinExtraArguments {
   V(LoadIC_DebugBreak,          LOAD_IC, DEBUG_BREAK)          \
   V(KeyedLoadIC_DebugBreak,     KEYED_LOAD_IC, DEBUG_BREAK)    \
   V(StoreIC_DebugBreak,         STORE_IC, DEBUG_BREAK)         \
-  V(KeyedStoreIC_DebugBreak,    KEYED_STORE_IC, DEBUG_BREAK)
+  V(KeyedStoreIC_DebugBreak,    KEYED_STORE_IC, DEBUG_BREAK)   \
+  V(Slot_DebugBreak,            BUILTIN, DEBUG_BREAK)          \
+  V(PlainReturn_LiveEdit,       BUILTIN, DEBUG_BREAK)          \
+  V(FrameDropper_LiveEdit,      BUILTIN, DEBUG_BREAK)
 #else
 #define BUILTIN_LIST_DEBUG_A(V)
 #endif
@@ -160,8 +171,7 @@ enum BuiltinExtraArguments {
   V(STRING_ADD_LEFT, 1)                  \
   V(STRING_ADD_RIGHT, 1)                 \
   V(APPLY_PREPARE, 1)                    \
-  V(APPLY_OVERFLOW, 1)                   \
-  V(STRING_CHAR_AT, 1)
+  V(APPLY_OVERFLOW, 1)
 
 
 class ObjectVisitor;
@@ -240,10 +250,12 @@ class Builtins : public AllStatic {
                                CFunctionId id,
                                BuiltinExtraArguments extra_args);
   static void Generate_JSConstructCall(MacroAssembler* masm);
+  static void Generate_JSConstructStubCountdown(MacroAssembler* masm);
   static void Generate_JSConstructStubGeneric(MacroAssembler* masm);
   static void Generate_JSConstructStubApi(MacroAssembler* masm);
   static void Generate_JSEntryTrampoline(MacroAssembler* masm);
   static void Generate_JSConstructEntryTrampoline(MacroAssembler* masm);
+  static void Generate_LazyCompile(MacroAssembler* masm);
   static void Generate_ArgumentsAdaptorTrampoline(MacroAssembler* masm);
 
   static void Generate_FunctionCall(MacroAssembler* masm);
@@ -251,6 +263,8 @@ class Builtins : public AllStatic {
 
   static void Generate_ArrayCode(MacroAssembler* masm);
   static void Generate_ArrayConstructCode(MacroAssembler* masm);
+
+  static void Generate_StringConstructCode(MacroAssembler* masm);
 };
 
 } }  // namespace v8::internal

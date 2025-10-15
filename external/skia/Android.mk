@@ -2,7 +2,7 @@ BASE_PATH := $(call my-dir)
 LOCAL_PATH:= $(call my-dir)
 
 #############################################################
-#   build the skia+fretype+png+jpeg+zlib+gif library
+#   build the skia+fretype+png+jpeg+zlib+gif+webp library
 #
 
 include $(CLEAR_VARS)
@@ -11,8 +11,14 @@ LOCAL_ARM_MODE := arm
 
 # need a flag to tell the C side when we're on devices with large memory
 # budgets (i.e. larger than the low-end devices that initially shipped)
+ifneq ($(TARGET_SKIA_USE_MORE_MEMORY),false)
 ifeq ($(ARCH_ARM_HAVE_VFP),true)
+    TARGET_SKIA_USE_MORE_MEMORY := true
+endif
+
+ifeq ($(TARGET_SKIA_USE_MORE_MEMORY),true)
     LOCAL_CFLAGS += -DANDROID_LARGE_MEMORY_DEVICE
+endif
 endif
 
 # enable this if we turn on SK_DEBUG, otherwise we exceed our prelink budget
@@ -24,6 +30,19 @@ endif
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
 	LOCAL_CFLAGS += -D__ARM_HAVE_NEON
+	LOCAL_CFLAGS += -ftree-vectorize
+endif
+
+LOCAL_CFLAGS += -O3 -ffast-math -fsingle-precision-constant
+
+# special checks for alpha == 0 and alpha == 255 in S32A_Opaque_BlitRow32
+# procedures (C and assembly) seriously improve skia performance
+ifeq "$(findstring tegra,$(TARGET_BOARD_PLATFORM))" "tegra"
+	LOCAL_CFLAGS += -DTEST_SRC_ALPHA
+endif
+
+ifeq ($(TARGET_BOARD_PLATFORM),omap4)
+    LOCAL_CFLAGS += -DTARGET_OMAP4
 endif
 
 LOCAL_SRC_FILES:= \
@@ -71,6 +90,7 @@ LOCAL_SRC_FILES:= \
 	src/images/SkImageDecoder_libgif.cpp \
 	src/images/SkImageDecoder_libjpeg.cpp \
 	src/images/SkImageDecoder_libpng.cpp \
+	src/images/SkImageDecoder_libwebp.cpp \
 	src/images/SkImageDecoder_libico.cpp \
 	src/images/SkImageDecoder_wbmp.cpp \
 	src/images/SkImageEncoder.cpp \
@@ -175,33 +195,74 @@ LOCAL_SRC_FILES:= \
 	src/utils/SkLayer.cpp \
 	src/utils/SkMeshUtils.cpp \
 	src/utils/SkNinePatch.cpp \
+        src/views/SkTextBox.cpp \
 	src/utils/SkProxyCanvas.cpp
+
+#added SkTextBox because its needed by libtvout from samsung
 
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_SRC_FILES += \
-	src/opts/SkBlitRow_opts_arm.cpp \
-	src/opts/SkBitmapProcState_opts_arm.cpp
+        src/opts/SkBlitRow_opts_arm.cpp \
+        src/opts/SkBitmapProcState_opts_arm.cpp
 else
 LOCAL_SRC_FILES += \
-	src/opts/SkBlitRow_opts_none.cpp \
-	src/opts/SkBitmapProcState_opts_none.cpp
+        src/opts/SkBlitRow_opts_none.cpp \
+        src/opts/SkBitmapProcState_opts_none.cpp
 endif
 
 # these are for emoji support, needed by webkit
 LOCAL_SRC_FILES += \
 	emoji/EmojiFont.cpp
 
+# including the optimized assembly code for the src-overing operation
+ifeq ($(TARGET_ARCH),arm)
+	LOCAL_CFLAGS += -D__CPU_ARCH_ARM
+	LOCAL_SRC_FILES += \
+                src/opts/S32A_D565_Opaque_arm.S \
+                src/opts/S32A_Opaque_BlitRow32_arm.S \
+                src/opts/S32A_Blend_BlitRow32_arm.S
+endif
+
+ifeq "$(findstring armv5te-vfp,$(TARGET_ARCH_VARIANT))" "armv5te-vfp"
+        LOCAL_SRC_FILES += \
+                src/opts/S32_Opaque_D32_nofilter_DX_gether_arm.S
+endif
+
+ifeq "$(findstring armv6,$(TARGET_ARCH_VARIANT))" "armv6"
+	ARCH_ARMV6_ARMV7 := true
+endif
+
+ifeq "$(findstring armv7,$(TARGET_ARCH_VARIANT))" "armv7"
+	ARCH_ARMV6_ARMV7 := true
+endif
+
+ifeq ($(ARCH_ARMV6_ARMV7),true)
+	LOCAL_SRC_FILES += \
+                src/opts/S32_Opaque_D32_nofilter_DX_gether_arm.S
+endif
+
+
+ifeq ($(ARCH_ARM_HAVE_NEON),true)
+	LOCAL_SRC_FILES += \
+		src/opts/memset16_neon.S \
+		src/opts/memset32_neon.S \
+		src/opts/S16_D32_arm.S
+endif
+
 LOCAL_SHARED_LIBRARIES := \
-	libcutils \
+        libcutils \
         libemoji \
-	libjpeg \
-	libutils \
-	libz
+        libjpeg \
+        libutils \
+        libdl \
+        libz
 
 LOCAL_STATIC_LIBRARIES := \
 	libft2 \
 	libpng \
-	libgif
+	libgif \
+	libwebp-decode \
+	libwebp-encode
 
 LOCAL_C_INCLUDES += \
 	$(LOCAL_PATH)/src/core \
@@ -215,10 +276,11 @@ LOCAL_C_INCLUDES += \
 	external/libpng \
 	external/giflib \
 	external/jpeg \
-    frameworks/opt/emoji
+	external/webp/include \
+	frameworks/opt/emoji
 
 ifeq ($(NO_FALLBACK_FONT),true)
-	LOCAL_CFLAGS += -DNO_FALLBACK_FONT
+        LOCAL_CFLAGS += -DNO_FALLBACK_FONT
 endif
 
 LOCAL_LDLIBS += -lpthread
@@ -244,25 +306,25 @@ ifeq ($(ARCH_ARM_HAVE_NEON),true)
 endif
 
 LOCAL_SRC_FILES:= \
-	src/gl/SkGL.cpp \
-	src/gl/SkGLCanvas.cpp \
-	src/gl/SkGLDevice.cpp \
-	src/gl/SkGLDevice_SWLayer.cpp \
-	src/gl/SkGLTextCache.cpp \
-	src/gl/SkTextureCache.cpp
+        src/gl/SkGL.cpp \
+        src/gl/SkGLCanvas.cpp \
+        src/gl/SkGLDevice.cpp \
+        src/gl/SkGLDevice_SWLayer.cpp \
+        src/gl/SkGLTextCache.cpp \
+        src/gl/SkTextureCache.cpp
 
 LOCAL_SHARED_LIBRARIES := \
-	libcutils \
-	libutils \
-	libskia \
-	libGLESv1_CM
+        libcutils \
+        libutils \
+        libskia \
+        libGLESv1_CM
 
 LOCAL_C_INCLUDES += \
-	$(LOCAL_PATH)/src/core \
-	$(LOCAL_PATH)/src/gl \
-	$(LOCAL_PATH)/include/core \
-	$(LOCAL_PATH)/include/effects \
-	$(LOCAL_PATH)/include/utils
+        $(LOCAL_PATH)/src/core \
+        $(LOCAL_PATH)/src/gl \
+        $(LOCAL_PATH)/include/core \
+        $(LOCAL_PATH)/include/effects \
+        $(LOCAL_PATH)/include/utils
 
 LOCAL_LDLIBS += -lpthread
 

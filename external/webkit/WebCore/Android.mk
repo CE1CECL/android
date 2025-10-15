@@ -398,6 +398,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	\
 	platform/android/ClipboardAndroid.cpp \
 	platform/android/CursorAndroid.cpp \
+        platform/android/DNS.cpp \
 	platform/android/DragDataAndroid.cpp \
 	platform/android/EventLoopAndroid.cpp \
 	platform/android/FileChooserAndroid.cpp \
@@ -475,6 +476,7 @@ LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
 	platform/graphics/android/PathAndroid.cpp \
 	platform/graphics/android/PatternAndroid.cpp \
 	platform/graphics/android/PlatformGraphicsContext.cpp \
+	platform/graphics/android/Renderer.cpp \
 	platform/graphics/android/SharedBufferStream.cpp \
 	platform/graphics/android/android_graphics.cpp \
 

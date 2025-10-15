@@ -39,6 +39,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.HashSet;
@@ -363,6 +364,85 @@ public class Controller {
     }
 
     /**
+     * Toggle sync on or off for a particular exchange folder
+     * @hide
+     */
+    public void toggleSyncFolder(final long accountId, final long mailboxId, final Result callback) {
+
+        Mailbox box = new Mailbox();
+        ContentValues cv = new ContentValues();
+        box = Mailbox.restoreMailboxWithId(mContext,mailboxId);
+        Account account = EmailContent.Account.restoreAccountWithId(mContext,accountId);
+        String name = box.mDisplayName;
+        int type = box.mType;
+        String toastSuffix = " " + name;
+        switch (type) {
+            case Mailbox.TYPE_MAIL:
+            case Mailbox.TYPE_SENT:
+            case Mailbox.TYPE_TRASH:
+                if (box.mSyncInterval == EmailContent.Account.CHECK_INTERVAL_NEVER) {
+                    cv.put(Mailbox.SYNC_INTERVAL, account.mSyncInterval);
+                    Toast.makeText(mContext, mContext.getString(R.string.toast_folder_sync_on) + toastSuffix,
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    cv.put(Mailbox.SYNC_INTERVAL, EmailContent.Account.CHECK_INTERVAL_NEVER);
+                    Toast.makeText(mContext, mContext.getString(R.string.toast_folder_sync_off) + toastSuffix,
+                            Toast.LENGTH_LONG).show();
+                }
+                box.update(mProviderContext, cv);
+                break;
+            default:
+                Toast.makeText(mContext, mContext.getString(R.string.toast_folder_sync_invalid),
+                        Toast.LENGTH_LONG).show();
+                break;
+        }
+    }
+
+    /**
+     * Return service for this account - basically a check if it exists or not
+     * If not, we know it's not an exchange account
+     * @hide
+     */
+
+    public IEmailService getService(long accountId) {
+        return getServiceForAccount(accountId);
+    }
+    /**
+     * Toggle folder visibility on or off for a particular folder
+     * @hide
+     */
+    public void toggleHideFolder(final long accountId, final long mailboxId, final Result callback) {
+
+        Mailbox box = new Mailbox();
+        ContentValues cv = new ContentValues();
+        box = Mailbox.restoreMailboxWithId(mContext,mailboxId);
+        Account account = EmailContent.Account.restoreAccountWithId(mContext,accountId);
+        String name = box.mDisplayName;
+        int type = box.mType;
+        String toastSuffix = " " + name;
+        switch (type) {
+            case Mailbox.TYPE_MAIL:
+            case Mailbox.TYPE_SENT:
+            case Mailbox.TYPE_TRASH:
+                if (box.mFlagVisible) {
+                    cv.put(Mailbox.FLAG_VISIBLE, false);
+                    Toast.makeText(mContext, mContext.getString(R.string.toast_folder_hide_on) + toastSuffix,
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    cv.put(Mailbox.FLAG_VISIBLE, true);
+                    Toast.makeText(mContext, mContext.getString(R.string.toast_folder_hide_off) + toastSuffix,
+                            Toast.LENGTH_LONG).show();
+                }
+                box.update(mProviderContext, cv);
+                break;
+            default:
+                Toast.makeText(mContext, mContext.getString(R.string.toast_folder_hide_invalid),
+                        Toast.LENGTH_LONG).show();
+                break;
+        }
+    }
+
+    /**
      * Send a message:
      * - move the message to Outbox (the message is assumed to be in Drafts).
      * - EAS service will take it from there
@@ -543,7 +623,7 @@ public class Controller {
      * @param messageId the id of message
      * @return the accountId corresponding to the given messageId, or -1 if not found.
      */
-    private long lookupAccountForMessage(long messageId) {
+    public long lookupAccountForMessage(long messageId) {
         ContentResolver resolver = mProviderContext.getContentResolver();
         Cursor c = resolver.query(EmailContent.Message.CONTENT_URI,
                                   MESSAGEID_TO_ACCOUNTID_PROJECTION, EmailContent.RECORD_ID + "=?",

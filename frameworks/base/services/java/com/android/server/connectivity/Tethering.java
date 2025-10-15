@@ -43,14 +43,18 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.android.internal.app.ThemeUtils;
 import com.android.internal.telephony.Phone;
 import com.android.internal.util.HierarchicalState;
 import com.android.internal.util.HierarchicalStateMachine;
 
+import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,6 +70,7 @@ import java.util.Set;
 public class Tethering extends INetworkManagementEventObserver.Stub {
 
     private Context mContext;
+    private Context mUiContext;
     private final String TAG = "Tethering";
 
     private boolean mBooted = false;
@@ -111,6 +116,11 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
     private boolean mUsbMassStorageOff;  // track the status of USB Mass Storage
     private boolean mUsbConnected;       // track the status of USB connection
 
+
+    private boolean mLegacy = false;	// whether we need legacy tethering support or not
+    private int mProbing = 0;		// track RNDIS enable/disable disconnects
+    private int kb_disconnect = 0;	// whether there is a kickback usb disconnection event when rndis is enabled
+
     public Tethering(Context context, Looper looper) {
         mContext = context;
         mLooper = looper;
@@ -139,6 +149,13 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         filter.addAction(Intent.ACTION_BOOT_COMPLETED);
         mContext.registerReceiver(mStateReceiver, filter);
+
+        ThemeUtils.registerThemeChangeReceiver(mContext, new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context content, Intent intent) {
+                mUiContext = null;
+            }
+        });
 
         filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_SHARED);
@@ -171,6 +188,8 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         mDnsServers = new String[2];
         mDnsServers[0] = DNS_DEFAULT_SERVER1;
         mDnsServers[1] = DNS_DEFAULT_SERVER2;
+
+        mLegacy = (new File("/sys/devices/platform/msm_hsusb/composition")).exists();
     }
 
     public void interfaceLinkStatusChanged(String iface, boolean link) {
@@ -216,6 +235,11 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         return false;
     }
 
+    public boolean isBTPan(String iface) {
+        if (iface.matches("bnep\\d")) return true;
+        return false;
+    }
+
     public void interfaceAdded(String iface) {
         IBinder b = ServiceManager.getService(Context.NETWORKMANAGEMENT_SERVICE);
         INetworkManagementService service = INetworkManagementService.Stub.asInterface(b);
@@ -228,6 +252,9 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             found = true;
             usb = true;
         }
+        if(isBTPan(iface)){
+            found = true;
+        }
         if (found == false) {
             Log.d(TAG, iface + " is not a tetherable iface, ignoring");
             return;
@@ -236,7 +263,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         synchronized (mIfaces) {
             TetherInterfaceSM sm = mIfaces.get(iface);
             if (sm != null) {
-                Log.e(TAG, "active iface (" + iface + ") reported as added, ignoring");
+                Log.w(TAG, "active iface (" + iface + ") reported as added, ignoring");
                 return;
             }
             sm = new TetherInterfaceSM(iface, mLooper, usb);
@@ -250,7 +277,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         synchronized (mIfaces) {
             TetherInterfaceSM sm = mIfaces.get(iface);
             if (sm == null) {
-                Log.e(TAG, "attempting to remove unknown iface (" + iface + "), ignoring");
+                Log.w(TAG, "attempting to remove unknown iface (" + iface + "), ignoring");
                 return;
             }
             sm.sendMessage(TetherInterfaceSM.CMD_INTERFACE_DOWN);
@@ -265,11 +292,11 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             sm = mIfaces.get(iface);
         }
         if (sm == null) {
-            Log.e(TAG, "Tried to Tether an unknown iface :" + iface + ", ignoring");
+            Log.w(TAG, "Tried to Tether an unknown iface :" + iface + ", ignoring");
             return ConnectivityManager.TETHER_ERROR_UNKNOWN_IFACE;
         }
         if (!sm.isAvailable() && !sm.isErrored()) {
-            Log.e(TAG, "Tried to Tether an unavailable iface :" + iface + ", ignoring");
+            Log.w(TAG, "Tried to Tether an unavailable iface :" + iface + ", ignoring");
             return ConnectivityManager.TETHER_ERROR_UNAVAIL_IFACE;
         }
         sm.sendMessage(TetherInterfaceSM.CMD_TETHER_REQUESTED);
@@ -283,11 +310,11 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             sm = mIfaces.get(iface);
         }
         if (sm == null) {
-            Log.e(TAG, "Tried to Untether an unknown iface :" + iface + ", ignoring");
+            Log.w(TAG, "Tried to Untether an unknown iface :" + iface + ", ignoring");
             return ConnectivityManager.TETHER_ERROR_UNKNOWN_IFACE;
         }
         if (sm.isErrored()) {
-            Log.e(TAG, "Tried to Untethered an errored iface :" + iface + ", ignoring");
+            Log.w(TAG, "Tried to Untethered an errored iface :" + iface + ", ignoring");
             return ConnectivityManager.TETHER_ERROR_UNAVAIL_IFACE;
         }
         sm.sendMessage(TetherInterfaceSM.CMD_TETHER_UNREQUESTED);
@@ -300,7 +327,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             sm = mIfaces.get(iface);
         }
         if (sm == null) {
-            Log.e(TAG, "Tried to getLastTetherError on an unknown iface :" + iface + ", ignoring");
+            Log.w(TAG, "Tried to getLastTetherError on an unknown iface :" + iface + ", ignoring");
             return ConnectivityManager.TETHER_ERROR_UNKNOWN_IFACE;
         }
         return sm.getLastError();
@@ -321,6 +348,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
 
         boolean wifiTethered = false;
         boolean usbTethered = false;
+        boolean btTethered = false;
 
         synchronized (mIfaces) {
             Set ifaces = mIfaces.keySet();
@@ -336,6 +364,8 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
                             usbTethered = true;
                         } else if (isWifi((String)iface)) {
                             wifiTethered = true;
+                        } else if (isBTPan((String)iface)) {
+                            btTethered = true;
                         }
                         activeList.add((String)iface);
                     }
@@ -361,6 +391,8 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             }
         } else if (wifiTethered) {
             showTetheredNotification(com.android.internal.R.drawable.stat_sys_tether_wifi);
+        } else if (btTethered) {
+            showTetheredNotification(com.android.internal.R.drawable.stat_sys_tether_bluetooth);
         } else {
             clearTetheredNotification();
         }
@@ -399,9 +431,16 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         mTetheredNotification.defaults &= ~Notification.DEFAULT_SOUND;
         mTetheredNotification.flags = Notification.FLAG_ONGOING_EVENT;
         mTetheredNotification.tickerText = title;
-        mTetheredNotification.setLatestEventInfo(mContext, title, message, pi);
+        mTetheredNotification.setLatestEventInfo(getUiContext(), title, message, pi);
 
         notificationManager.notify(mTetheredNotification.icon, mTetheredNotification);
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     private void clearTetheredNotification() {
@@ -445,11 +484,36 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
 
     // used on cable insert/remove
     private void enableUsbIfaces(boolean enable) {
+        //If this is true, it indicates this is a RNDIS (re)connect event
+        if (mLegacy && mProbing > 0) {
+            int usbState = 2;
+            // check if usb is mounted (path) or not (empty, returns -1)
+            try {
+                usbState = (new FileInputStream(new File("/sys/devices/platform/usb_mass_storage/lun0/file"))).read();
+                if (usbState != -1) {
+                    mProbing--;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error reading usb ums state :" + e);
+            }
+
+            mProbing--;
+            Log.d(TAG, "Skipping RNDIS reconnect, skips remaining: " + mProbing + ", usbState: " + usbState);
+            return;
+        }
+
         IBinder b = ServiceManager.getService(Context.NETWORKMANAGEMENT_SERVICE);
         INetworkManagementService service = INetworkManagementService.Stub.asInterface(b);
         String[] ifaces = new String[0];
         try {
+            if (mLegacy) {
+                mProbing += 2;
+                Tethering.this.enableUsbRndis(true);
+            }
             ifaces = service.listInterfaces();
+            if (mLegacy) {
+                Tethering.this.enableUsbRndis(false);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Error listing Interfaces :" + e);
             return;
@@ -459,7 +523,12 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
                 if (enable) {
                     interfaceAdded(iface);
                 } else {
-                    interfaceRemoved(iface);
+                    if (kb_disconnect == 0) {
+                        interfaceRemoved(iface);
+                    }
+                    else {
+                        kb_disconnect--;
+                    }
                 }
             }
         }
@@ -500,6 +569,10 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         // bring toggle the interfaces
         String[] ifaces = new String[0];
         try {
+            if (mLegacy && enabled) {
+                mProbing++;
+                Tethering.this.enableUsbRndis(true);
+            }
             ifaces = service.listInterfaces();
         } catch (Exception e) {
             Log.e(TAG, "Error listing Interfaces :" + e);
@@ -831,7 +904,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
                     transitionTo(mInitialState);
                     return;
                 }
-                if (mUsb) Tethering.this.enableUsbRndis(true);
+                if (mUsb && !mLegacy) Tethering.this.enableUsbRndis(true);
                 Log.d(TAG, "Tethered " + mIfaceName);
                 setAvailable(false);
                 setTethered(true);
@@ -839,7 +912,7 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             }
             @Override
             public void exit() {
-                if (mUsb) Tethering.this.enableUsbRndis(false);
+                if (mUsb || mLegacy) Tethering.this.enableUsbRndis(false);
             }
             @Override
             public boolean processMessage(Message message) {
@@ -1251,6 +1324,9 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
                     sm.sendMessage(TetherInterfaceSM.CMD_TETHER_CONNECTION_CHANGED,
                             ifaceName);
                 }
+                String kb_disc = SystemProperties.get("ro.tethering.kb_disconnect");
+                if("1".equals(kb_disc))
+                    kb_disconnect=1;
             }
         }
 

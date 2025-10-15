@@ -52,7 +52,7 @@ bool RegExpMacroAssembler::CanReadUnaligned() {
 }
 
 
-#ifdef V8_NATIVE_REGEXP  // Avoid unused code, e.g., on ARM.
+#ifndef V8_INTERPRETED_REGEXP  // Avoid unused code, e.g., on ARM.
 
 NativeRegExpMacroAssembler::NativeRegExpMacroAssembler() {
 }
@@ -120,8 +120,6 @@ NativeRegExpMacroAssembler::Result NativeRegExpMacroAssembler::Match(
   int start_offset = previous_index;
   int end_offset = subject_ptr->length();
 
-  bool is_ascii = subject->IsAsciiRepresentation();
-
   // The string has been flattened, so it it is a cons string it contains the
   // full string in the first part.
   if (StringShape(subject_ptr).IsCons()) {
@@ -129,7 +127,7 @@ NativeRegExpMacroAssembler::Result NativeRegExpMacroAssembler::Match(
     subject_ptr = ConsString::cast(subject_ptr)->first();
   }
   // Ensure that an underlying string has the same ascii-ness.
-  ASSERT(subject_ptr->IsAsciiRepresentation() == is_ascii);
+  bool is_ascii = subject_ptr->IsAsciiRepresentation();
   ASSERT(subject_ptr->IsExternalString() || subject_ptr->IsSeqString());
   // String is now either Sequential or External
   int char_size_shift = is_ascii ? 0 : 1;
@@ -258,5 +256,6 @@ Address NativeRegExpMacroAssembler::GrowStack(Address stack_pointer,
   return new_stack_base - stack_content_size;
 }
 
-#endif  // V8_NATIVE_REGEXP
+#endif  // V8_INTERPRETED_REGEXP
+
 } }  // namespace v8::internal

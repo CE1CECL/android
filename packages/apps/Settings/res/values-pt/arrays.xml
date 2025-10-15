@@ -104,6 +104,19 @@
     <item msgid="7981731051382306293">"TLS"</item>
     <item msgid="2892994535305020162">"TTLS"</item>
   </string-array>
+  <string-array name="battery_history_type_spinner">
+    <item>Utilização da CPU</item>
+    <item>Utilização da Rede</item>
+    <item>Utilização do GPS</item>
+    <item>Utilização do Sensor</item>
+    <item>Utilização parcial Acordado</item>
+    <item>Outros usos</item>
+  </string-array>
+  <string-array name="battery_history_which_spinner">
+    <item>Desde que foi desconectado</item>
+    <item>Total desde a inicialização</item>
+    <item>Total geral</item>
+  </string-array>
   <string-array name="bluetooth_visibility_timeout_entries">
     <item msgid="1106621950288502195">"2 minutos"</item>
     <item msgid="5780349442819375570">"5 minutos"</item>
@@ -162,5 +175,18 @@
     <item msgid="6293147072807231256">"Nunca"</item>
     <item msgid="1276641209451816572">"Somente no modo silencioso"</item>
     <item msgid="8418930333779132418">"Somente fora do modo silencioso"</item>
+  </string-array>
+  <string-array name="profile_entries">
+    <item>Ligado</item>
+    <item>Desligado</item>
+    <item>Sem substituir</item>
+  </string-array>
+  <string-array name="backgroundWidget">
+    <item>Cinza</item>
+    <item>Transparente</item>
+  </string-array>
+  <string-array name="profile_connection_entries">
+    <item>Desativar</item>
+    <item>Ativar</item>
   </string-array>
 </resources>

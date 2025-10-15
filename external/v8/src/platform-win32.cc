@@ -651,6 +651,11 @@ double OS::DaylightSavingsOffset(double time) {
 }
 
 
+int OS::GetLastError() {
+  return ::GetLastError();
+}
+
+
 // ----------------------------------------------------------------------------
 // Win32 console output.
 //
@@ -838,12 +843,40 @@ size_t OS::AllocateAlignment() {
 void* OS::Allocate(const size_t requested,
                    size_t* allocated,
                    bool is_executable) {
+  // The address range used to randomize RWX allocations in OS::Allocate
+  // Try not to map pages into the default range that windows loads DLLs
+  // Use a multiple of 64k to prevent committing unused memory.
+  // Note: This does not guarantee RWX regions will be within the
+  // range kAllocationRandomAddressMin to kAllocationRandomAddressMax
+#ifdef V8_HOST_ARCH_64_BIT
+  static const intptr_t kAllocationRandomAddressMin = 0x0000000080000000;
+  static const intptr_t kAllocationRandomAddressMax = 0x000003FFFFFF0000;
+#else
+  static const intptr_t kAllocationRandomAddressMin = 0x04000000;
+  static const intptr_t kAllocationRandomAddressMax = 0x3FFF0000;
+#endif
+
   // VirtualAlloc rounds allocated size to page size automatically.
   size_t msize = RoundUp(requested, static_cast<int>(GetPageSize()));
+  intptr_t address = NULL;
 
   // Windows XP SP2 allows Data Excution Prevention (DEP).
   int prot = is_executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
-  LPVOID mbase = VirtualAlloc(NULL, msize, MEM_COMMIT | MEM_RESERVE, prot);
+
+  // For exectutable pages try and randomize the allocation address
+  if (prot == PAGE_EXECUTE_READWRITE && msize >= Page::kPageSize) {
+    address = (V8::RandomPrivate() << kPageSizeBits)
+      | kAllocationRandomAddressMin;
+    address &= kAllocationRandomAddressMax;
+  }
+
+  LPVOID mbase = VirtualAlloc(reinterpret_cast<void *>(address),
+                              msize,
+                              MEM_COMMIT | MEM_RESERVE,
+                              prot);
+  if (mbase == NULL && address != NULL)
+    mbase = VirtualAlloc(NULL, msize, MEM_COMMIT | MEM_RESERVE, prot);
+
   if (mbase == NULL) {
     LOG(StringEvent("OS::Allocate", "VirtualAlloc failed"));
     return NULL;
@@ -1186,6 +1219,10 @@ void OS::LogSharedLibraryAddresses() {
 }
 
 
+void OS::SignalCodeMovingGC() {
+}
+
+
 // Walk the stack using the facilities in dbghelp.dll and tlhelp32.dll
 
 // Switch off warning 4748 (/GS can not protect parameters and local variables
@@ -1249,16 +1286,16 @@ int OS::StackWalk(Vector<OS::StackFrame> frames) {
 
     // Try to locate a symbol for this frame.
     DWORD64 symbol_displacement;
-    IMAGEHLP_SYMBOL64* symbol = NULL;
-    symbol = NewArray<IMAGEHLP_SYMBOL64>(kStackWalkMaxNameLen);
-    if (!symbol) return kStackWalkError;  // Out of memory.
-    memset(symbol, 0, sizeof(IMAGEHLP_SYMBOL64) + kStackWalkMaxNameLen);
-    symbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
-    symbol->MaxNameLength = kStackWalkMaxNameLen;
+    SmartPointer<IMAGEHLP_SYMBOL64> symbol(
+        NewArray<IMAGEHLP_SYMBOL64>(kStackWalkMaxNameLen));
+    if (symbol.is_empty()) return kStackWalkError;  // Out of memory.
+    memset(*symbol, 0, sizeof(IMAGEHLP_SYMBOL64) + kStackWalkMaxNameLen);
+    (*symbol)->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL64);
+    (*symbol)->MaxNameLength = kStackWalkMaxNameLen;
     ok = _SymGetSymFromAddr64(process_handle,             // hProcess
                               stack_frame.AddrPC.Offset,  // Address
                               &symbol_displacement,       // Displacement
-                              symbol);                    // Symbol
+                              *symbol);                   // Symbol
     if (ok) {
       // Try to locate more source information for the symbol.
       IMAGEHLP_LINE64 Line;
@@ -1276,13 +1313,13 @@ int OS::StackWalk(Vector<OS::StackFrame> frames) {
         SNPrintF(MutableCStrVector(frames[frames_count].text,
                                    kStackWalkMaxTextLen),
                  "%s %s:%d:%d",
-                 symbol->Name, Line.FileName, Line.LineNumber,
+                 (*symbol)->Name, Line.FileName, Line.LineNumber,
                  line_displacement);
       } else {
         SNPrintF(MutableCStrVector(frames[frames_count].text,
                                    kStackWalkMaxTextLen),
                  "%s",
-                 symbol->Name);
+                 (*symbol)->Name);
       }
       // Make sure line termination is in place.
       frames[frames_count].text[kStackWalkMaxTextLen - 1] = '\0';
@@ -1294,11 +1331,9 @@ int OS::StackWalk(Vector<OS::StackFrame> frames) {
       // module will never be found).
       int err = GetLastError();
       if (err != ERROR_MOD_NOT_FOUND) {
-        DeleteArray(symbol);
         break;
       }
     }
-    DeleteArray(symbol);
 
     frames_count++;
   }
@@ -1339,6 +1374,12 @@ int OS::ActivationFrameAlignment() {
 #else
   return 8;  // Floating-point math runs faster with 8-byte alignment.
 #endif
+}
+
+
+void OS::ReleaseStore(volatile AtomicWord* ptr, AtomicWord value) {
+  MemoryBarrier();
+  *ptr = value;
 }
 
 
@@ -1803,36 +1844,46 @@ class Sampler::PlatformData : public Malloced {
     // Context used for sampling the register state of the profiled thread.
     CONTEXT context;
     memset(&context, 0, sizeof(context));
-    // Loop until the sampler is disengaged.
-    while (sampler_->IsActive()) {
-      TickSample sample;
+    // Loop until the sampler is disengaged, keeping the specified
+    // sampling frequency.
+    for ( ; sampler_->IsActive(); Sleep(sampler_->interval_)) {
+      TickSample sample_obj;
+      TickSample* sample = CpuProfiler::TickSampleEvent();
+      if (sample == NULL) sample = &sample_obj;
 
-      // If profiling, we record the pc and sp of the profiled thread.
-      if (sampler_->IsProfiling()
-          && SuspendThread(profiled_thread_) != (DWORD)-1) {
-        context.ContextFlags = CONTEXT_FULL;
-        if (GetThreadContext(profiled_thread_, &context) != 0) {
-#if V8_HOST_ARCH_X64
-          sample.pc = reinterpret_cast<Address>(context.Rip);
-          sample.sp = reinterpret_cast<Address>(context.Rsp);
-          sample.fp = reinterpret_cast<Address>(context.Rbp);
-#else
-          sample.pc = reinterpret_cast<Address>(context.Eip);
-          sample.sp = reinterpret_cast<Address>(context.Esp);
-          sample.fp = reinterpret_cast<Address>(context.Ebp);
-#endif
-          sampler_->SampleStack(&sample);
-        }
-        ResumeThread(profiled_thread_);
+      // If the sampler runs in sync with the JS thread, we try to
+      // suspend it. If we fail, we skip the current sample.
+      if (sampler_->IsSynchronous()) {
+        static const DWORD kSuspendFailed = static_cast<DWORD>(-1);
+        if (SuspendThread(profiled_thread_) == kSuspendFailed) continue;
       }
 
       // We always sample the VM state.
-      sample.state = Logger::state();
-      // Invoke tick handler with program counter and stack pointer.
-      sampler_->Tick(&sample);
+      sample->state = VMState::current_state();
 
-      // Wait until next sampling.
-      Sleep(sampler_->interval_);
+      // If profiling, we record the pc and sp of the profiled thread.
+      if (sampler_->IsProfiling()) {
+        context.ContextFlags = CONTEXT_FULL;
+        if (GetThreadContext(profiled_thread_, &context) != 0) {
+#if V8_HOST_ARCH_X64
+          sample->pc = reinterpret_cast<Address>(context.Rip);
+          sample->sp = reinterpret_cast<Address>(context.Rsp);
+          sample->fp = reinterpret_cast<Address>(context.Rbp);
+#else
+          sample->pc = reinterpret_cast<Address>(context.Eip);
+          sample->sp = reinterpret_cast<Address>(context.Esp);
+          sample->fp = reinterpret_cast<Address>(context.Ebp);
+#endif
+          sampler_->SampleStack(sample);
+        }
+      }
+
+      // Invoke tick handler with program counter and stack pointer.
+      sampler_->Tick(sample);
+
+      // If the sampler runs in sync with the JS thread, we have to
+      // remember to resume it.
+      if (sampler_->IsSynchronous()) ResumeThread(profiled_thread_);
     }
   }
 };
@@ -1849,7 +1900,11 @@ static unsigned int __stdcall SamplerEntry(void* arg) {
 
 // Initialize a profile sampler.
 Sampler::Sampler(int interval, bool profiling)
-    : interval_(interval), profiling_(profiling), active_(false) {
+    : interval_(interval),
+      profiling_(profiling),
+      synchronous_(profiling),
+      active_(false),
+      samples_taken_(0) {
   data_ = new PlatformData(this);
 }
 
@@ -1861,9 +1916,9 @@ Sampler::~Sampler() {
 
 // Start profiling.
 void Sampler::Start() {
-  // If we are profiling, we need to be able to access the calling
-  // thread.
-  if (IsProfiling()) {
+  // If we are starting a synchronous sampler, we need to be able to
+  // access the calling thread.
+  if (IsSynchronous()) {
     // Get a handle to the calling thread. This is the thread that we are
     // going to profile. We need to make a copy of the handle because we are
     // going to use it in the sampler thread. Using GetThreadHandle() will

@@ -86,9 +86,11 @@ public class SipEditor extends PreferenceActivity
         DomainAddress(R.string.domain_address, 0, R.string.default_preference_summary),
         DisplayName(R.string.display_name, 0, R.string.display_name_summary),
         ProxyAddress(R.string.proxy_address, 0, R.string.optional_summary),
+        UserAgent(R.string.user_agent, 0, R.string.optional_summary),
         Port(R.string.port, R.string.default_port, R.string.default_port),
         Transport(R.string.transport, R.string.default_transport, NA),
         SendKeepAlive(R.string.send_keepalive, R.string.sip_system_decide, NA),
+        KeepAliveInterval(R.string.keepalive_interval, R.string.default_keepalive_interval, R.string.default_keepalive_interval),
         AuthUserName(R.string.auth_username, 0, R.string.optional_summary);
 
         final int text;
@@ -136,6 +138,8 @@ public class SipEditor extends PreferenceActivity
             } else if ((this == DisplayName)
                     && value.equals(getDefaultDisplayName())) {
                 preference.setSummary(defaultSummary);
+            } else if (preference instanceof ListPreference) {
+                preference.setSummary(((ListPreference) preference).getEntry());
             } else {
                 preference.setSummary(value);
             }
@@ -329,8 +333,14 @@ public class SipEditor extends PreferenceActivity
                         case ProxyAddress:
                             // optional; do nothing
                             break;
+                        case UserAgent:
+                            // optional; do nothing
+                            break;
                         case Port:
                             pref.setText(getString(R.string.default_port));
+                            break;
+                        case KeepAliveInterval:
+                            pref.setText(getString(R.string.default_keepalive_interval));
                             break;
                         default:
                             if (firstEmptyFieldTitle == null) {
@@ -420,8 +430,10 @@ public class SipEditor extends PreferenceActivity
                     .setOutboundProxy(PreferenceKey.ProxyAddress.getValue())
                     .setProtocol(PreferenceKey.Transport.getValue())
                     .setDisplayName(PreferenceKey.DisplayName.getValue())
+                    .setUserAgent(PreferenceKey.UserAgent.getValue())
                     .setPort(Integer.parseInt(PreferenceKey.Port.getValue()))
                     .setSendKeepAlive(isAlwaysSendKeepAlive())
+                    .setKeepAliveInterval(Integer.parseInt(PreferenceKey.KeepAliveInterval.getValue()))
                     .setAutoRegistration(
                             mSharedPreferences.isReceivingCallsEnabled())
                     .setAuthUserName(PreferenceKey.AuthUserName.getValue())
@@ -449,6 +461,7 @@ public class SipEditor extends PreferenceActivity
             ((EditTextPreference) pref).setText(value);
             checkIfDisplayNameSet();
         }
+
         return true;
     }
 

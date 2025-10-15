@@ -135,6 +135,32 @@ static const KeycodeLabel KEYCODES[] = {
     { "BUTTON_START", 108 },
     { "BUTTON_SELECT", 109 },
     { "BUTTON_MODE", 110 },
+#if defined(VISION_KEYPAD)
+    { "USER1", 92 },
+    { "USER2", 93 },
+    { "USER3", 94 },
+    { "USER4", 95 },
+    { "USER5", 96 },
+    { "FUNC_1", 97 },
+    { "FUNC_2", 98 },
+    { "FUNC_3", 99 },
+    { "FUNC_4", 100 },
+    { "FUNC_5", 101 },
+    { "FUNC_6", 102 },
+    { "FUNC_7", 103 },
+    { "FUNC_8", 104 },
+    { "QUECHAR", 105 },
+#elif defined(LATTE_KEYPAD)
+    { "FUNC_1", 92 },
+    { "FUNC_2", 93 },
+    { "FUNC_3", 94 },
+    { "FUNC_4", 95 },
+    { "FUNC_5", 96 },
+    { "FUNC_6", 97 },
+    { "FUNC_7", 98 },
+    { "FUNC_8", 99 },
+    { "QUECHAR", 100 },
+#endif
 
     // NOTE: If you add a new keycode here you must also add it to several other files.
     //       Refer to frameworks/base/core/java/android/view/KeyEvent.java for the full list.

@@ -17,6 +17,7 @@
 package com.android.internal.policy.impl;
 
 import com.android.internal.R;
+import com.android.internal.app.ThemeUtils;
 import com.android.internal.widget.LockPatternUtils;
 
 import android.accounts.Account;
@@ -25,6 +26,7 @@ import android.accounts.OperationCanceledException;
 import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.AccountManagerCallback;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -76,7 +78,16 @@ public class AccountUnlockScreen extends RelativeLayout implements KeyguardScree
     /**
      * Shown while making asynchronous check of password.
      */
+    private Context mUiContext;
     private ProgressDialog mCheckingDialog;
+
+    private BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
+            context.unregisterReceiver(this);
+        }
+    };
 
     /**
      * AccountUnlockScreen constructor.
@@ -142,7 +153,10 @@ public class AccountUnlockScreen extends RelativeLayout implements KeyguardScree
 
     /** {@inheritDoc} */
     public void onPause() {
-
+        if (mUiContext != null) {
+            mContext.unregisterReceiver(mThemeChangeReceiver);
+            mUiContext = null;
+        }
     }
 
     /** {@inheritDoc} */
@@ -310,8 +324,23 @@ public class AccountUnlockScreen extends RelativeLayout implements KeyguardScree
     }
 
     private Dialog getProgressDialog() {
+        if (mUiContext == null && mCheckingDialog != null) {
+            mCheckingDialog.dismiss();
+            mCheckingDialog = null;
+        }
+
         if (mCheckingDialog == null) {
-            mCheckingDialog = new ProgressDialog(mContext);
+            final Context context;
+
+            mUiContext = ThemeUtils.createUiContext(mContext);
+            if (mUiContext != null) {
+                context = mUiContext;
+                ThemeUtils.registerThemeChangeReceiver(mContext, mThemeChangeReceiver);
+            } else {
+                context = mContext;
+            }
+
+            mCheckingDialog = new ProgressDialog(context);
             mCheckingDialog.setMessage(
                     mContext.getString(R.string.lockscreen_glogin_checking_password));
             mCheckingDialog.setIndeterminate(true);
@@ -345,6 +374,10 @@ public class AccountUnlockScreen extends RelativeLayout implements KeyguardScree
     }
 
     public void onTimeChanged() {
+
+    }
+
+    public void onMusicChanged() {
 
     }
 }

@@ -146,6 +146,8 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
     private ContentResolver cr;
     private String currentCarrier = null;
 
+    private boolean mIsSamsungCdma = SystemProperties.getBoolean("ro.ril.samsung_cdma", false);
+
     private ContentObserver mAutoTimeObserver = new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfChange) {
@@ -364,14 +366,25 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
 
                 if (states.length > 9) {
                     try {
+                        // Samsung CDMA devices provide following states
+                        // in hex format as opposed to dec
                         if (states[4] != null) {
-                            baseStationId = Integer.parseInt(states[4]);
+                            if (mIsSamsungCdma)
+                                baseStationId = Integer.parseInt(states[4], 16);
+                            else
+                                baseStationId = Integer.parseInt(states[4]);
                         }
                         if (states[5] != null) {
-                            baseStationLatitude = Integer.parseInt(states[5]);
+                            if (mIsSamsungCdma)
+                                baseStationLatitude = Integer.parseInt(states[5], 16);
+                            else
+                                baseStationLatitude = Integer.parseInt(states[5]);
                         }
                         if (states[6] != null) {
-                            baseStationLongitude = Integer.parseInt(states[6]);
+                            if (mIsSamsungCdma)
+                                baseStationLongitude = Integer.parseInt(states[6], 16);
+                            else
+                                baseStationLongitude = Integer.parseInt(states[6]);
                         }
                         // Some carriers only return lat-lngs of 0,0
                         if (baseStationLatitude == 0 && baseStationLongitude == 0) {
@@ -410,7 +423,10 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
 
             if (ar.exception == null) {
                 String cdmaSubscription[] = (String[])ar.result;
-                if (cdmaSubscription != null && cdmaSubscription.length >= 5) {
+
+                // Samsung CDMA devices have shorter cdmaSubscription parcel
+                int SUB_LENGTH = (mIsSamsungCdma) ? 4 : 5;
+                if (cdmaSubscription != null && cdmaSubscription.length >= SUB_LENGTH) {
                     mMdn = cdmaSubscription[0];
                     if (cdmaSubscription[1] != null) {
                         String[] sid = cdmaSubscription[1].split(",");
@@ -438,7 +454,14 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                     }
                     Log.d(LOG_TAG,"GET_CDMA_SUBSCRIPTION NID=" + cdmaSubscription[2] );
                     mMin = cdmaSubscription[3];
-                    mPrlVersion = cdmaSubscription[4];
+                    // Samsung CDMA devices' prl is not found in this parcel
+                    // instead, extract it from system properties
+                    if (mIsSamsungCdma) {
+                        String[] prl = (SystemProperties.get("ril.prl_ver_1").split(":"));
+                        mPrlVersion = prl[1];
+                    } else {
+                        mPrlVersion = cdmaSubscription[4];
+                    }
                     Log.d(LOG_TAG,"GET_CDMA_SUBSCRIPTION MDN=" + mMdn);
                     //Notify apps subscription info is ready
                     if (cdmaForSubscriptionInfoReadyRegistrants != null) {
@@ -552,32 +575,53 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
     }
 
     @Override
-    protected void powerOffRadioSafely(){
-        // clean data connection
+    protected void powerOffRadioSafely() {
         DataConnectionTracker dcTracker = phone.mDataConnection;
 
         Message msg = dcTracker.obtainMessage(DataConnectionTracker.EVENT_CLEAN_UP_CONNECTION);
-        msg.arg1 = 1; // tearDown is true
         msg.obj = CDMAPhone.REASON_RADIO_TURNED_OFF;
-        dcTracker.sendMessage(msg);
 
-        synchronized(this) {
-            if (!mPendingRadioPowerOffAfterDataOff) {
-                DataConnectionTracker.State currentState = dcTracker.getState();
-                if (currentState != DataConnectionTracker.State.CONNECTED
-                        && currentState != DataConnectionTracker.State.DISCONNECTING
-                        && currentState != DataConnectionTracker.State.INITING) {
-                    if (DBG) log("Data disconnected, turn off radio right away.");
-                    hangupAndPowerOff();
-                }
-                else if (sendEmptyMessageDelayed(EVENT_SET_RADIO_POWER_OFF, 30000)) {
-                    if (DBG) {
-                        log("Wait up to 30 sec for data to disconnect, then turn off radio.");
+        synchronized (this) {
+            if (networkType == ServiceState.RADIO_TECHNOLOGY_1xRTT) {
+                /*
+                 * In 1x CDMA , during radio power off modem will disconnect the
+                 * data call and sends the power down registration message along
+                 * with the data call release message to the network
+                 */
+
+                msg.arg1 = 0; // tearDown is false since modem does it anyway for 1X
+                dcTracker.sendMessage(msg);
+
+                Log.w(LOG_TAG, "Turn off the radio right away");
+                hangupAndPowerOff();
+            } else {
+                if (!mPendingRadioPowerOffAfterDataOff) {
+                    DataConnectionTracker.State currentState = dcTracker.getState();
+                    if (currentState != DataConnectionTracker.State.CONNECTED
+                            && currentState != DataConnectionTracker.State.DISCONNECTING
+                            && currentState != DataConnectionTracker.State.INITING) {
+
+                        msg.arg1 = 0; // tearDown is false as it is not needed.
+                        dcTracker.sendMessage(msg);
+
+                        if (DBG)
+                            log("Data disconnected, turn off radio right away.");
+                        hangupAndPowerOff();
+                    } else {
+                        // clean data connection
+                        msg.arg1 = 1; // tearDown is true
+                        dcTracker.sendMessage(msg);
+
+                        if (sendEmptyMessageDelayed(EVENT_SET_RADIO_POWER_OFF, 30000)) {
+                            if (DBG) {
+                                log("Wait upto 30s for data to disconnect, then turn off radio.");
+                            }
+                            mPendingRadioPowerOffAfterDataOff = true;
+                        } else {
+                            Log.w(LOG_TAG, "Cannot send delayed Msg, turn off radio right away.");
+                            hangupAndPowerOff();
+                        }
                     }
-                    mPendingRadioPowerOffAfterDataOff = true;
-                } else {
-                    Log.w(LOG_TAG, "Cannot send delayed Msg, turn off radio right away.");
-                    hangupAndPowerOff();
                 }
             }
         }
@@ -621,6 +665,17 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
         curSpn = spn;
         curPlmn = plmn;
     }
+
+    /**
+     * Multi-mode radio indication facilitator
+     */
+    public boolean isMultiModeRadio() {
+        // If the device you seek to make work here has a multi-mode radio, for example
+        // a "world" CDMA/GSM/UMTS radio, this function is here to facilitate alternate
+        // code paths in some events.
+        return SystemProperties.get("ro.telephony.ril_class").equalsIgnoreCase("mototegraworld");
+    }
+
 
     /**
      * Handle the result of one of the pollState()-related requests
@@ -679,7 +734,12 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                 int defaultRoamingIndicator = 0;  //[12] Is default roaming indicator from PRL
                 int reasonForDenial = 0;       //[13] Denial reason if registrationState = 3
 
-                if (states.length == 14) {
+                // in some rare cases, such as a CDMA/GSM/UMTS radio, the states array will
+                // contain 15 arguments, differring from the usual 14 contained in CDMA
+                // states packets.
+                boolean multiModeRadio = isMultiModeRadio();
+
+                if (states.length == 14 || (multiModeRadio && states.length == 15 )) {
                     try {
                         if (states[0] != null) {
                             registrationState = Integer.parseInt(states[0]);
@@ -687,14 +747,25 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                         if (states[3] != null) {
                             radioTechnology = Integer.parseInt(states[3]);
                         }
+                        // Samsung CDMA devices provide following states
+                        // in hex format as opposed to dec
                         if (states[4] != null) {
-                            baseStationId = Integer.parseInt(states[4]);
+                            if (mIsSamsungCdma)
+                                baseStationId = Integer.parseInt(states[4], 16);
+                            else
+                                baseStationId = Integer.parseInt(states[4]);
                         }
                         if (states[5] != null) {
-                            baseStationLatitude = Integer.parseInt(states[5]);
+                            if (mIsSamsungCdma)
+                                baseStationLatitude = Integer.parseInt(states[5], 16);
+                            else
+                                baseStationLatitude = Integer.parseInt(states[5]);
                         }
                         if (states[6] != null) {
-                            baseStationLongitude = Integer.parseInt(states[6]);
+                            if (mIsSamsungCdma)
+                                baseStationLongitude = Integer.parseInt(states[6], 16);
+                            else
+                                baseStationLongitude = Integer.parseInt(states[6]);
                         }
                         // Some carriers only return lat-lngs of 0,0
                         if (baseStationLatitude == 0 && baseStationLongitude == 0) {
@@ -722,13 +793,18 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
                         if (states[13] != null) {
                             reasonForDenial = Integer.parseInt(states[13]);
                         }
+                        if((states.length == 15) && (states[14] != null) && multiModeRadio) {
+                            Log.w(LOG_TAG, "Multi-Mode RIL detected - Extraneous value: "
+                                  + states[14]);
+                        }
                     } catch (NumberFormatException ex) {
                         Log.w(LOG_TAG, "error parsing RegistrationState: " + ex);
                     }
                 } else {
                     throw new RuntimeException("Warning! Wrong number of parameters returned from "
-                                         + "RIL_REQUEST_REGISTRATION_STATE: expected 14 got "
-                                         + states.length);
+                                         + "RIL_REQUEST_REGISTRATION_STATE: expected "
+                                         + (multiModeRadio ? "15" : "14")
+                                         + ", got " + states.length);
                 }
 
                 mRegistrationState = registrationState;
@@ -1149,6 +1225,17 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
     }
 
     private TimeZone findTimeZone(int offset, boolean dst, long when) {
+        /**
+         * http://wtogami.blogspot.com/2012/01/hawaii-android-automatic-time-zone-bug.html
+         * NITZ UTC-10 without DST can only be Hawaii
+         * Impossible to differentiate America/Adak from Honolulu/Pacific
+         * from NITZ alone.
+         **/
+        if (offset == -36000000 && dst == false) {
+            Log.d(LOG_TAG, "findTimeZone() Forcing Hawaii Timezone for UTC-10");
+            return TimeZone.getTimeZone("Pacific/Honolulu");
+        }
+
         int rawOffset = offset;
         if (dst) {
             rawOffset -= 3600000;
@@ -1205,7 +1292,16 @@ final class CdmaServiceStateTracker extends ServiceStateTracker {
         } else {
             int[] ints = (int[])ar.result;
             int offset = 2;
-            int cdmaDbm = (ints[offset] > 0) ? -ints[offset] : -120;
+
+            // Samsung CDMA devices only use cdmaDbm for signal strength
+            // parcel is different as well, pull cdmaDbm response correctly
+            // all other values are ignored
+            int cdmaDbm;
+            if (mIsSamsungCdma)
+                cdmaDbm = (ints[0] > 0 ) ? -ints[0] : -120;
+            else
+                cdmaDbm = (ints[offset] > 0) ? -ints[offset] : -120;
+
             int cdmaEcio = (ints[offset+1] > 0) ? -ints[offset+1] : -160;
             int evdoRssi = (ints[offset+2] > 0) ? -ints[offset+2] : -120;
             int evdoEcio = (ints[offset+3] > 0) ? -ints[offset+3] : -1;

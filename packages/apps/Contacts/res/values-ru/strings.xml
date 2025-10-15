@@ -47,6 +47,9 @@
     <string name="menu_viewAddress" msgid="1814744325763202024">"Адрес на карте"</string>
     <string name="menu_makeDefaultNumber" msgid="4838759253316649534">"Сделать номером по умолчанию"</string>
     <string name="menu_makeDefaultEmail" msgid="2599044610375789994">"Установить этот адрес по умолчанию"</string>
+    <string name="menu_shareNumber">Отправить номер</string>
+    <string name="menu_shareEmail">Отправить адрес эл. почты</string>
+    <string name="menu_shareAddress">Отправить адрес</string>
     <string name="menu_splitAggregate" msgid="8368636463748691868">"Отделить"</string>
     <string name="contactsSplitMessage" msgid="5253490235863170269">"Контакты разделены."</string>
     <string name="splitConfirmation_title" msgid="6716467920283502570">"Разделить контакты"</string>
@@ -142,6 +145,7 @@
     <string name="menu_sendTextMessage" msgid="6937343460284499306">"Отправить SMS"</string>
     <string name="recentCalls_callNumber" msgid="1756372533999226126">"Вызов: <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="recentCalls_editNumberBeforeCall" msgid="7756171675833267857">"Изменить номер и вызвать"</string>
+    <string name="recentCalls_addToBlacklist">Добавить в чёрный список</string>
     <string name="recentCalls_addToContact" msgid="1429899535546487008">"Добавить в контакты"</string>
     <string name="recentCalls_removeFromRecentList" msgid="401662244636511330">"Удалить из списка вызовов"</string>
     <string name="recentCalls_deleteAll" msgid="6352364392762163704">"Очистить список вызовов"</string>
@@ -367,6 +371,8 @@
     <string name="name_phonetic_given" msgid="6853570431394449191">"Имя (транскрипция)"</string>
     <string name="name_phonetic_middle" msgid="8643721493320405200">"Отчество (транскрипция)"</string>
     <string name="name_phonetic_family" msgid="462095502140180305">"Фамилия (транскрипция)"</string>
+    <string name="label_date">Дата</string>
+    <string name="button_clear_date">Очистить</string>
     <string name="account_type_format" msgid="718948015590343010">"Контакт <xliff:g id="SOURCE">%1$s</xliff:g>"</string>
     <string name="from_account_format" msgid="687567483928582084">"из <xliff:g id="SOURCE">%1$s</xliff:g>"</string>
     <string name="use_photo_as_primary" msgid="8807110122951157246">"Использовать эту фотографию"</string>
@@ -389,4 +395,112 @@
     <string name="upgrade_out_of_memory_retry" msgid="8431289830472724609">"Повторить попытку обновления"</string>
     <string name="search_results_for" msgid="8705490885073188513">"Результаты поиска для: <xliff:g id="QUERY">%s</xliff:g>"</string>
     <string name="search_results_searching" msgid="7755623475227227314">"Поиск..."</string>
+    <string name="date_year_toggle">Укажите год</string>
+    <string name="date_format_short_no_year">dd.MM.</string>
+    <string name="date_format_full_no_year">d MMMM</string>
+    <!-- Wysie -->
+    <string name="menu_preferences">Настройки</string>
+    <string name="dialer_menu_sms">Сообщение</string>
+    <string name="recent_calls_clear_call_log">Очистить</string>
+    <string name="recent_calls_clear_what">Что очистить?</string>
+    <string name="recent_calls_clear_all">Все</string>
+    <string name="recent_calls_clear_incoming">Входящие</string>
+    <string name="recent_calls_clear_outgoing">Исходящие</string>
+    <string name="recent_calls_clear_missed">Пропущенные</string>
+    <string name="alert_clear_call_log_title">Очистка истории звонков</string>
+    <string name="alert_clear_call_log_message">Вы уверены что хотите очистить всю историю звонков?</string>
+    <string name="alert_clear_cl_all_incoming">Вы уверены что хотите очистить всю историю исходящих звонков?</string>
+    <string name="alert_clear_cl_all_outgoing">Вы уверены что хотите очистить всю историю входящих звонков?</string>
+    <string name="alert_clear_cl_all_missed">Вы уверены что хотите очистить всю историю пропущенных звонков?</string>
+    <string name="fav_clear_freq">Очистить часто набир.</string>
+    <string name="alert_clear_freq_called_msg">Вы уверены что хотите очистить список часто набираемых контактов?</string>
+    <string name="title_last_dialled">Последний набранный по кнопке вызов</string>
+    <string name="summary_last_dialled">Последний набранный номер можно получить нажав на кнопку вызова</string>
+    <string name="title_return_to_dialer">Вернуться к кнопкам после звонка</string>
+    <string name="title_vm_button">Левая кнопка действия</string>
+    <string name="title_vm_handler">Обработчик голосовой почты</string>
+    <string name="title_use_1_for_reg_vm">Кнопка 1 для обыч. голосовой почты</string>
+    <string name="summaryon_use_1_for_reg_vm">Кнопка 1 будет использоваться для обычной голосовой почты</string>
+    <string name="summaryoff_use_1_for_reg_vm">Кнопка 1 будет использоваться для обработчика голосовой почты</string>
+    <string name="title_disable_num_check">Отключить проверку номера</string>
+    <string name="summaryon_disable_num_check">Левая кнопка действия и меню всегда доступны</string>
+    <string name="summaryoff_disable_num_check">Левая кнопка действия и меню доступны только когда набран номер (исключая голосовую почту)</string>
+    <string name="title_enable_haptic_feedback">Включить отклик</string>
+    <string name="summary_enable_haptic_feedback">Использовать отклик на действия - смотри настройки CyanogenMod для регулировки</string>
+    <string name="title_change_digits_color">Изменить цвет цифр</string>
+    <string name="title_digits_color_pressed">Нажатая цифра</string>
+    <string name="title_digits_color_focused">Цифра в фокусе</string>
+    <string name="title_digits_color_unselected">Не выделенная цифра</string>
+    <string name="title_choose_color">Выберите цвет</string>
+    <string name="instructions_choose_color">Нажмите в центр для подтверждения.\nНажмите назад для отмены</string>
+    <string name="entry_no_vm_handler">Нет (Набор номера голосовой почты)</string>
+    <string name="title_cl_exact_time">Точное время</string>
+    <string name="summaryon_cl_exact_time">Показывать точное время в списке вызовов</string>
+    <string name="summaryoff_cl_exact_time">Показывать относительное время в списке вызовов</string>
+    <string name="title_cl_show_seconds">Секунды</string>
+    <string name="summary_cl_show_seconds">Показывать секунды, если используется точное время</string>          
+    <string name="title_cl_ask_before_clear">Спрашивать перед очисткой</string>
+    <string name="summaryon_cl_ask_before_clear">Спрашивает перед очисткой списка вызовов</string>
+    <string name="summaryoff_cl_ask_before_clear">Список вызовов будет очищен сразу</string>
+    <string name="title_contacts_show_pic">Изображение контакта</string>
+    <string name="title_contacts_show_dial_button">Кнопка позвонить</string>
+    <string name="summary_contacts_show_dial_button">Показывать кнопку дозвона для контактов имеющих телефонные номера</string>
+    <string name="title_contacts_show_count">Счётчик контактов</string>
+    <string name="summary_contacts_show_count">Счётчик контактов показывается сверху списка</string>
+    <string name="title_contacts_show_separators">Алфавитный разделитель</string>
+    <string name="summaryon_contacts_show_separators">Алфавитный разделитель будет показан в списке контактов</string>
+    <string name="summaryoff_contacts_show_separators">Алфавитный разделитель не будет показан в списке контактов</string>
+    <string name="title_view_contact">Просмотр контактов</string>
+    <string name="summary_view_contact">Задайте настройки для просмотра одного контакта</string>
+    <string name="title_show_text_mobile_only">Посылать сообщения только на мобильные</string>
+    <string name="summaryon_show_text_mobile_only">Сообщения можно послать только на мобильные номера телефонной книги</string>
+    <string name="summaryoff_show_text_mobile_only">Сообщения можно посылать на все номера телефонной книги</string>
+    <string name="title_favourites_hide_freq_call">Скрыть часто набираемые</string>
+    <string name="summary_favourites_hide_freq_call">Актуальные данные не стираются, только скрывается список часто набираемых.</string>
+    <string name="title_favs_ask_before_clear">Спрашивать перед очисткой</string>
+    <string name="summaryon_favs_ask_before_clear">Спрашивает перед очисткой часто используемых контактов</string>
+    <string name="summaryoff_favs_ask_before_clear">Часто используемые контакты будут очищаться сразу</string>
+    <string name="title_misc_category">Разное</string>
+    <string name="title_sensor_rotation">Включить автоповорот</string>
+    <string name="summary_sensor_rotation">Если включено,он будет вращаться как настроено в системе</string>   
+    <string name="title_data_font_size">Размер шрифта информации о контакте</string>
+    <string name="summary_data_font_size">Выбор размера шрифта в подробной информации о контакте (телефонный номер, эл. почта, адрес и т.д.)</string>
+
+    <string name="title_default_phone_tab">Вкладка по умолчанию</string>
+    <string name="summary_default_phone_tab">Вкладка по умочанию при запуске приложения \"Телефон\"</string>
+
+    <!-- Default Phone Tab strings -->
+    <string name="default_phone_tab_last_used">Последняя используемая (По умолчанию)</string>
+    <string name="default_phone_tab_last_viewed">Последняя просмотренная</string>
+    <string name="default_phone_tab_phone">Кнопки</string>
+    <string name="default_phone_tab_call_log">Вызов</string>
+    <string name="default_phone_tab_contacts">Контакты</string>
+    <string name="default_phone_tab_favorites">Избранное</string>
+
+    <string name="title_about">О программе</string>
+    <string name="title_about_name">Имя модификации</string>
+    <string name="summary_about_name">WyContacts Froyo</string>
+    <string name="title_about_version">Версия</string>
+    <string name="summary_about_version">1.2</string>
+    <string name="title_about_credits">Благодарность</string>
+    <string name="summary_about_credits">Wysie, ChainsDD, geesun, niuchl, rac2030, sileht и остальные с XDA! :)</string>	
+
+    <string name="t9_sort_title">Режим сортировки T9</string>
+    <string name="t9_sort_summary">Выберите способ фильтрации результатов T9</string>
+    <string name="t9_sort_name">Сначала имена</string>
+    <string name="t9_sort_number">Сначала номера</string>
+    <string name="t9_state_title">Включить набор T9</string>
+    <string name="t9_state_summary">Включить поиск T9 в телефоне</string>
+    <string name="t9_dial_click_title">Вызвать выбранный контакт</string>
+    <string name="t9_dial_click_summary">Вызвать выбранный контакт для T9</string>
+    <string name="t9_add_to_contacts">Добавить в контакты</string>
+    <string name="t9_map_row_2">2abcàáâäåɑæçǽćčáабвг</string>
+    <string name="t9_map_row_3">3deféèêëдежз</string>
+    <string name="t9_map_row_4">4ghiíìïîǵийкл</string>
+    <string name="t9_map_row_5">5jklḱḱĺмноп</string>
+    <string name="t9_map_row_6">6mnoòóöôøñŋǿḿńőрсту</string>
+    <string name="t9_map_row_7">7pqrsßɾṕŕśřšфхцч</string>
+    <string name="t9_map_row_8">8tuvúùüûűшщъы</string>
+    <string name="t9_map_row_9">9wxyzýẃźьэюя</string>
+
 </resources>

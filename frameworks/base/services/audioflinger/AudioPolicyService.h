@@ -123,6 +123,9 @@ public:
                                      audio_io_handle_t output,
                                      int delayMs = 0);
     virtual status_t setStreamOutput(AudioSystem::stream_type stream, audio_io_handle_t output);
+#ifdef OMAP_ENHANCEMENT
+    virtual status_t setFMRxActive(bool state);
+#endif
     virtual void setParameters(audio_io_handle_t ioHandle,
                                const String8& keyValuePairs,
                                int delayMs = 0);
@@ -133,6 +136,9 @@ public:
     virtual status_t moveEffects(int session,
                                      audio_io_handle_t srcOutput,
                                      audio_io_handle_t dstOutput);
+#ifdef HAVE_FM_RADIO
+    virtual status_t setFmVolume(float volume, int delayMs = 0);
+#endif
 
 private:
                         AudioPolicyService();
@@ -156,7 +162,10 @@ private:
             STOP_TONE,
             SET_VOLUME,
             SET_PARAMETERS,
-            SET_VOICE_VOLUME
+            SET_VOICE_VOLUME,
+#ifdef HAVE_FM_RADIO
+            SET_FM_VOLUME
+#endif
         };
 
         AudioCommandThread (String8 name);
@@ -174,6 +183,9 @@ private:
                     status_t    volumeCommand(int stream, float volume, int output, int delayMs = 0);
                     status_t    parametersCommand(int ioHandle, const String8& keyValuePairs, int delayMs = 0);
                     status_t    voiceVolumeCommand(float volume, int delayMs = 0);
+#ifdef HAVE_FM_RADIO
+                    status_t    fmVolumeCommand(float volume, int delayMs = 0);
+#endif
                     void        insertCommand_l(AudioCommand *command, int delayMs = 0);
 
     private:
@@ -217,7 +229,12 @@ private:
         public:
             float mVolume;
         };
-
+#ifdef HAVE_FM_RADIO
+        class FmVolumeData {
+        public:
+            float mVolume;
+        };
+#endif
         Mutex   mLock;
         Condition mWaitWorkCV;
         Vector <AudioCommand *> mAudioCommands; // list of pending commands

@@ -31,7 +31,7 @@
 namespace v8 {
 namespace internal {
 
-#ifndef V8_NATIVE_REGEXP
+#ifdef V8_INTERPRETED_REGEXP
 
 class RegExpMacroAssemblerIrregexp: public RegExpMacroAssembler {
  public:
@@ -65,6 +65,7 @@ class RegExpMacroAssemblerIrregexp: public RegExpMacroAssembler {
   virtual void PushRegister(int register_index,
                             StackCheckFlag check_stack_limit);
   virtual void AdvanceRegister(int reg, int by);  // r[reg] += by.
+  virtual void SetCurrentPositionFromEnd(int by);
   virtual void SetRegister(int register_index, int to);
   virtual void WriteCurrentPositionToRegister(int reg, int cp_offset);
   virtual void ClearRegisters(int reg_from, int reg_to);
@@ -134,7 +135,7 @@ class RegExpMacroAssemblerIrregexp: public RegExpMacroAssembler {
   DISALLOW_IMPLICIT_CONSTRUCTORS(RegExpMacroAssemblerIrregexp);
 };
 
-#endif  // !V8_NATIVE_REGEXP
+#endif  // V8_INTERPRETED_REGEXP
 
 } }  // namespace v8::internal
 

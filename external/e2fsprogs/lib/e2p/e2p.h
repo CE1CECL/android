@@ -1,3 +1,12 @@
+/*
+ * e2p.h --- header file for the e2p library
+ *
+ * %Begin-Header%
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
+ * %End-Header%
+ */
+
 #include <sys/types.h>		/* Needed by dirent.h on netbsd */
 #include <stdio.h>
 #include <dirent.h>
@@ -10,6 +19,9 @@
 #define E2P_FEATURE_TYPE_MASK	0x03
 
 #define E2P_FEATURE_NEGATE_FLAG	0x80
+
+#define E2P_FS_FEATURE		0
+#define E2P_JOURNAL_FEATURE	1
 
 /* `options' for print_flags() */
 
@@ -34,10 +46,12 @@ int setflags (int fd, unsigned long flags);
 int setversion (int fd, unsigned long version);
 
 const char *e2p_feature2string(int compat, unsigned int mask);
+const char *e2p_jrnl_feature2string(int compat, unsigned int mask);
 int e2p_string2feature(char *string, int *compat, unsigned int *mask);
+int e2p_jrnl_string2feature(char *string, int *compat_type, unsigned int *mask);
 int e2p_edit_feature(const char *str, __u32 *compat_array, __u32 *ok_array);
 int e2p_edit_feature2(const char *str, __u32 *compat_array, __u32 *ok_array,
-		      __u32 *clear_ok_array, int *type_err, 
+		      __u32 *clear_ok_array, int *type_err,
 		      unsigned int *mask_err);
 
 int e2p_is_null_uuid(void *uu);

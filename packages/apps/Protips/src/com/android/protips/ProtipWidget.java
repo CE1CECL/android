@@ -37,6 +37,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.text.format.Time;
 import android.text.Spannable;
 import android.util.Log;
@@ -84,7 +85,7 @@ public class ProtipWidget extends AppWidgetProvider {
         mTipSet = pref.getInt(PREFS_TIP_SET, 0);
 
         mTips = context.getResources().getTextArray(mTipSet == 1 ? R.array.tips2 : R.array.tips);
-
+	
         if (mTips != null) {
             if (mMessage >= mTips.length) mMessage = 0;
         } else {

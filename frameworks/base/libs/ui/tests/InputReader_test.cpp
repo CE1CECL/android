@@ -486,6 +486,10 @@ private:
         return device ? device->name : String8("unknown");
     }
 
+    virtual uint32_t getDeviceBusType(int32_t deviceId) const {
+        return 0;
+    }
+
     virtual status_t getAbsoluteAxisInfo(int32_t deviceId, int axis,
             RawAbsoluteAxisInfo* outAxisInfo) const {
         Device* device = getDevice(deviceId);
@@ -1368,7 +1372,7 @@ TEST_F(SwitchInputMapperTest, GetSources) {
     SwitchInputMapper* mapper = new SwitchInputMapper(mDevice);
     addMapperAndConfigure(mapper);
 
-    ASSERT_EQ(uint32_t(0), mapper->getSources());
+    ASSERT_EQ(uint32_t(AINPUT_SOURCE_SWITCH), mapper->getSources());
 }
 
 TEST_F(SwitchInputMapperTest, GetSwitchState) {

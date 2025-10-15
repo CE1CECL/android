@@ -22,6 +22,9 @@
 // Log debug messages about pointer assignment calculations.
 #define DEBUG_POINTER_ASSIGNMENT 0
 
+// Log mouse events
+#define DEBUG_MOUSE_EVENTS 0
+
 #include <cutils/log.h>
 #include <ui/InputReader.h>
 
@@ -331,8 +334,8 @@ InputDevice* InputReader::createDevice(int32_t deviceId, const String8& name, ui
     }
 
     if (keyboardSources != 0) {
-        device->addMapper(new KeyboardInputMapper(device,
-                associatedDisplayId, keyboardSources, keyboardType));
+        device->addMapper(new KeyboardInputMapper(device, associatedDisplayId, keyboardSources,
+                                  keyboardType, mEventHub->getDeviceBusType(deviceId)));
     }
 
     // Trackball-like devices.
@@ -342,9 +345,29 @@ InputDevice* InputReader::createDevice(int32_t deviceId, const String8& name, ui
 
     // Touchscreen-like devices.
     if (classes & INPUT_DEVICE_CLASS_TOUCHSCREEN_MT) {
+#ifdef TOUCHPAD_INPUT_DEVICE_ID
+        /* According to the Sony Ericsson SDK, the jogdials should be interpreted
+         * as an AINPUT_SOURCE_TOUCHPAD. According to getSources() above, a
+         * touchpad is simply a device with a negative associated display id.
+         *
+         * This is also available to others who need input touchpads to be
+         * recognized as such and not as a regular touchscreen.
+         */
+        if (deviceId == TOUCHPAD_INPUT_DEVICE_ID) {
+            device->addMapper(new MultiTouchInputMapper(device, -1));
+        } else {
+            device->addMapper(new MultiTouchInputMapper(device, associatedDisplayId));
+        }
+#else
         device->addMapper(new MultiTouchInputMapper(device, associatedDisplayId));
+#endif
     } else if (classes & INPUT_DEVICE_CLASS_TOUCHSCREEN) {
         device->addMapper(new SingleTouchInputMapper(device, associatedDisplayId));
+    }
+
+    // Mouse-like devices.
+    if (classes & INPUT_DEVICE_CLASS_MOUSE) {
+        device->addMapper(new MouseInputMapper(device, associatedDisplayId));
     }
 
     return device;
@@ -546,10 +569,16 @@ int32_t InputReader::getState(int32_t deviceId, uint32_t sourceMask, int32_t cod
             size_t numDevices = mDevices.size();
             for (size_t i = 0; i < numDevices; i++) {
                 InputDevice* device = mDevices.valueAt(i);
+                InputDeviceInfo deviceInfo;
+                bool isKeyboard = false;
+                device->getDeviceInfo( &deviceInfo );
+                isKeyboard = (deviceInfo.getKeyboardType() == AINPUT_KEYBOARD_TYPE_ALPHABETIC);
                 if (! device->isIgnored() && sourcesMatchMask(device->getSources(), sourceMask)) {
-                    result = (device->*getStateFunc)(sourceMask, code);
-                    if (result >= AKEY_STATE_DOWN) {
-                        return result;
+                    int32_t state = (device->*getStateFunc)(sourceMask, code);
+                    if (isKeyboard && state > result) {
+                        result = state;
+                    } else if ( state >= AKEY_STATE_DOWN ) {
+                        return state;
                     }
                 }
             }
@@ -737,9 +766,9 @@ int32_t InputDevice::getState(uint32_t sourceMask, int32_t code, GetStateFunc ge
     for (size_t i = 0; i < numMappers; i++) {
         InputMapper* mapper = mMappers[i];
         if (sourcesMatchMask(mapper->getSources(), sourceMask)) {
-            result = (mapper->*getStateFunc)(sourceMask, code);
-            if (result >= AKEY_STATE_DOWN) {
-                return result;
+            int32_t state = (mapper->*getStateFunc)(sourceMask, code);
+            if (state > result) {
+                result = state;
             }
         }
     }
@@ -824,7 +853,7 @@ SwitchInputMapper::~SwitchInputMapper() {
 }
 
 uint32_t SwitchInputMapper::getSources() {
-    return 0;
+    return AINPUT_SOURCE_SWITCH;
 }
 
 void SwitchInputMapper::process(const RawEvent* rawEvent) {
@@ -847,10 +876,12 @@ int32_t SwitchInputMapper::getSwitchState(uint32_t sourceMask, int32_t switchCod
 // --- KeyboardInputMapper ---
 
 KeyboardInputMapper::KeyboardInputMapper(InputDevice* device, int32_t associatedDisplayId,
-        uint32_t sources, int32_t keyboardType) :
+        uint32_t sources, int32_t keyboardType, uint32_t bustype) :
         InputMapper(device), mAssociatedDisplayId(associatedDisplayId), mSources(sources),
-        mKeyboardType(keyboardType) {
+        mKeyboardType(keyboardType), mBusType(bustype) {
     initializeLocked();
+    mBluetooth = (mBusType == BUS_BLUETOOTH);
+    mUSB = (mBusType == BUS_USB);
 }
 
 KeyboardInputMapper::~KeyboardInputMapper() {
@@ -939,7 +970,7 @@ void KeyboardInputMapper::processKey(nsecs_t when, bool down, int32_t keyCode,
         if (down) {
             // Rotate key codes according to orientation if needed.
             // Note: getDisplayInfo is non-reentrant so we can continue holding the lock.
-            if (mAssociatedDisplayId >= 0) {
+            if (!mBluetooth && !mUSB && mAssociatedDisplayId >= 0) {
                 int32_t orientation;
                 if (! getPolicy()->getDisplayInfo(mAssociatedDisplayId, NULL, NULL, & orientation)) {
                     return;
@@ -3177,6 +3208,384 @@ bool TouchInputMapper::markSupportedKeyCodes(uint32_t sourceMask, size_t numCode
     return true;
 }
 
+// --- MouseInputMapper ---
+
+MouseInputMapper::MouseInputMapper(InputDevice* device, int32_t associatedDisplayId) :
+        InputMapper(device), mAssociatedDisplayId(associatedDisplayId) {
+    initializeLocked();
+}
+
+MouseInputMapper::~MouseInputMapper() {
+}
+
+uint32_t MouseInputMapper::getSources() {
+    return AINPUT_SOURCE_MOUSE;
+}
+
+void MouseInputMapper::populateDeviceInfo(InputDeviceInfo* info) {
+    InputMapper::populateDeviceInfo(info);
+}
+
+void MouseInputMapper::dump(String8& dump) {
+    { // acquire lock
+        AutoMutex _l(mLock);
+        dump.append(INDENT2 "Mouse Input Mapper:\n");
+        dump.appendFormat(INDENT3 "AssociatedDisplayId: %d\n", mAssociatedDisplayId);
+        dump.appendFormat(INDENT3 "Down: %s\n", toString(mLocked.down));
+        dump.appendFormat(INDENT3 "DownTime: %lld\n", mLocked.downTime);
+    } // release lock
+}
+
+void MouseInputMapper::initializeLocked() {
+    mAccumulator.clear();
+
+    mLocked.down = false;
+    mLocked.downTime = 0;
+
+    int32_t screenWidth;
+    int32_t screenHeight;
+    if (mAssociatedDisplayId < 0 || ! getPolicy()->getDisplayInfo(mAssociatedDisplayId, &screenWidth, &screenHeight, NULL)) {
+        mAccumulator.absX = 0;
+        mAccumulator.absY = 0;
+    }else{
+        mAccumulator.absX = screenWidth/2;
+        mAccumulator.absY = screenHeight/2;
+    }
+}
+
+void MouseInputMapper::reset() {
+    for (;;) {
+        { // acquire lock
+            AutoMutex _l(mLock);
+
+            if (! mLocked.down) {
+                initializeLocked();
+                break; // done
+            }
+        } // release lock
+
+        // Synthesize trackball button up event on reset.
+        nsecs_t when = systemTime(SYSTEM_TIME_MONOTONIC);
+        mAccumulator.fields = Accumulator::FIELD_BTN_MOUSE;
+        mAccumulator.btnMouse = false;
+	mAccumulator.btnScrollUp = false;
+	mAccumulator.btnScrollDown = false;
+        sync(when);
+    }
+
+    InputMapper::reset();
+}
+
+void MouseInputMapper::process(const RawEvent* rawEvent) {
+    switch (rawEvent->type) {
+    case EV_KEY:
+        switch (rawEvent->scanCode) {
+        case BTN_MOUSE:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_MOUSE;
+            mAccumulator.btnMouse = rawEvent->value != 0;
+            sync(rawEvent->when);
+            break;
+        case BTN_RIGHT:
+            // Back Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_RIGHT;
+            mAccumulator.btnRight = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        case BTN_MIDDLE:
+            // Menu Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_MIDDLE;
+            mAccumulator.btnMiddle = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        case BTN_SIDE:
+            // Home Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_SIDE;
+            mAccumulator.btnSide = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        case BTN_EXTRA:
+            // Search Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_EXTRA;
+            mAccumulator.btnExtra = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        case BTN_FORWARD:
+            // Search Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_FORWARD;
+            mAccumulator.btnForward = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        case BTN_BACK:
+            // Home Button
+            mAccumulator.fields |= Accumulator::FIELD_BTN_BACK;
+            mAccumulator.btnBack = rawEvent->value != 0;
+            sync(rawEvent->when); 
+            break;
+        }
+        break;
+
+    case EV_REL:
+        switch (rawEvent->scanCode) {
+        case REL_X:
+            mAccumulator.fields |= Accumulator::FIELD_REL_X;
+            mAccumulator.relX = rawEvent->value;
+            break;
+        case REL_Y:
+            mAccumulator.fields |= Accumulator::FIELD_REL_Y;
+            mAccumulator.relY = rawEvent->value;
+            break;
+        case REL_WHEEL:
+            mAccumulator.fields |= Accumulator::FIELD_REL_WHEEL;
+            mAccumulator.btnScrollUp = rawEvent->value == 1;
+	    mAccumulator.btnScrollDown = rawEvent->value == -1;
+            break;
+        }
+        break;
+
+    case EV_SYN:
+        switch (rawEvent->scanCode) {
+        case SYN_REPORT:
+            sync(rawEvent->when);
+            break;
+        }
+        break;
+    }
+}
+
+void MouseInputMapper::sync(nsecs_t when) {
+    uint32_t fields = mAccumulator.fields;
+    if (fields == 0) {
+        return; // no new state changes, so nothing to do
+    }
+
+    int motionEventAction;
+    PointerCoords pointerCoords;
+    nsecs_t downTime;
+    { // acquire lock
+        AutoMutex _l(mLock);
+
+       bool downChanged = fields & Accumulator::FIELD_BTN_MOUSE;
+       if (downChanged) {
+           if (mAccumulator.btnMouse) {
+               mLocked.down = true;
+               mLocked.downTime = when;
+           } else {
+               mLocked.down = false;
+           }
+           motionEventAction = mLocked.down ? AMOTION_EVENT_ACTION_DOWN : AMOTION_EVENT_ACTION_UP;
+        } else {
+            motionEventAction = AMOTION_EVENT_ACTION_MOVE;
+        }
+
+
+        if (fields & Accumulator::FIELD_BTN_RIGHT && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnRight ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x03/*Keycode for home*/, 0x20 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+        else if (fields & Accumulator::FIELD_BTN_RIGHT) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnRight ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x04 /*Keycode for back key*/, 0x18 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+        if (fields & Accumulator::FIELD_BTN_MIDDLE && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnMiddle ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x42/*Keycode for enter key*/, 0x27 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+        else if (fields & Accumulator::FIELD_BTN_MIDDLE) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnMiddle ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x52/*Keycode for menu key*/, 0x19 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+       if (fields & Accumulator::FIELD_BTN_SIDE && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnSide ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x16 /*Keycode for right key*/, 0x30 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+       }
+       else if (fields & Accumulator::FIELD_BTN_SIDE) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnSide ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x03 /*Keycode for home key*/, 0x20 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+        if (fields & Accumulator::FIELD_BTN_EXTRA && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnExtra ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x15 /*Keycode for left key*/, 0x31 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+        else if (fields & Accumulator::FIELD_BTN_EXTRA) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnExtra ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x42/*Keycode for enter key*/, 0x27 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+       if (fields & Accumulator::FIELD_BTN_FORWARD) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnForward ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x16 /*Keycode for right key*/, 0x22 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+        if (fields & Accumulator::FIELD_BTN_BACK) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+            AINPUT_SOURCE_DPAD, 0, mAccumulator.btnBack ?
+            AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+            AKEY_EVENT_FLAG_FROM_SYSTEM,
+            0x15/*Keycode for left key*/, 0x23 /*Scancode*/,
+            mContext->getGlobalMetaState(), when);
+        }
+
+	bool scrollChanged = fields & Accumulator::FIELD_REL_WHEEL;
+        if (mAccumulator.btnScrollUp && scrollChanged && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_DOWN,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x57/*Keycode for next key*/, 0x28 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_UP,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x57/*Keycode for next key*/, 0x28 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+        }
+        else if (mAccumulator.btnScrollUp && scrollChanged) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_DOWN,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x13/*Keycode for up key*/, 0x24 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_UP,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x13/*Keycode for up key*/, 0x24 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+        }
+        else if (mAccumulator.btnScrollDown && scrollChanged && mLocked.down) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_DOWN,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x58/*Keycode for previous key*/, 0x29 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_UP,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x58/*Keycode for previous key*/, 0x29 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+        }
+        else if (mAccumulator.btnScrollDown && scrollChanged) {
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_DOWN,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x14/*Keycode for down key*/, 0x25 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+            getDispatcher()->notifyKey(when, getDeviceId(),
+                AINPUT_SOURCE_DPAD, 0, AKEY_EVENT_ACTION_UP,
+                AKEY_EVENT_FLAG_FROM_SYSTEM,
+                0x14/*Keycode for down key*/, 0x25 /*Scancode*/,
+                mContext->getGlobalMetaState(), when);
+        }
+
+        downTime = mLocked.downTime;
+
+        float x = fields & Accumulator::FIELD_REL_X ? mAccumulator.relX : 0.0f;
+        float y = fields & Accumulator::FIELD_REL_Y ? mAccumulator.relY : 0.0f;
+ 
+        static int32_t screenWidth;
+        static int32_t screenHeight;
+        static int32_t orientation;
+
+#if DEBUG_MOUSE_EVENTS
+        LOGI("MouseInputMapper: x,y=%.1f,%.1f abs %dx%d, screen %dx%d",
+                x, y, mAccumulator.absX, mAccumulator.absY, screenWidth, screenHeight);
+#endif
+        mAccumulator.absX = (mAccumulator.absX + x) > screenWidth ? screenWidth -1 : ((mAccumulator.absX + x) < 0 ? 0 : mAccumulator.absX + x);
+        mAccumulator.absY = (mAccumulator.absY + y) > screenHeight ? screenHeight -1 : ((mAccumulator.absY + y) < 0 ? 0 : mAccumulator.absY + y);
+        pointerCoords.x = mAccumulator.absX;
+        pointerCoords.y = mAccumulator.absY;
+        pointerCoords.pressure = mLocked.down ? 1.0f : 0.0f;
+        pointerCoords.size = 0;
+        pointerCoords.touchMajor = 0;
+        pointerCoords.touchMinor = 0;
+        pointerCoords.toolMajor = 0;
+        pointerCoords.toolMinor = 0;
+        pointerCoords.orientation = 0;
+
+        if (mAssociatedDisplayId  < 0 || ! getPolicy()->getDisplayInfo(mAssociatedDisplayId, &screenWidth, &screenHeight, &orientation)) {
+            return;
+        }
+
+        float temp;
+        switch (orientation) {
+        case InputReaderPolicyInterface::ROTATION_90:
+            temp = x;
+            x = y;
+            y = - temp;
+            temp = screenHeight;
+            screenHeight = screenWidth;
+            screenWidth = temp;
+            break;
+
+        case InputReaderPolicyInterface::ROTATION_180:
+            x = - x;
+            y = - y;
+            break;
+
+        case InputReaderPolicyInterface::ROTATION_270:
+            temp = x;
+            x = - y;
+            y = temp;
+            temp = screenHeight;
+            screenHeight = screenWidth;
+            screenWidth = temp;
+            break;
+        }
+
+   } // release lock
+
+   int32_t metaState = mContext->getGlobalMetaState();
+   int32_t pointerId = 0;
+   getDispatcher()->notifyMotion(when, getDeviceId(), AINPUT_SOURCE_MOUSE, 0,
+            motionEventAction, 0, metaState, AMOTION_EVENT_EDGE_FLAG_NONE,
+            1, &pointerId, &pointerCoords, 1, 1, downTime);
+   mAccumulator.clear();
+}
+
+int32_t MouseInputMapper::getScanCodeState(uint32_t sourceMask, int32_t scanCode) {
+    if (scanCode >= BTN_MOUSE && scanCode < BTN_JOYSTICK) {
+        return getEventHub()->getScanCodeState(getDeviceId(), scanCode);
+    } else {
+        return AKEY_STATE_UNKNOWN;
+    }
+}
 
 // --- SingleTouchInputMapper ---
 

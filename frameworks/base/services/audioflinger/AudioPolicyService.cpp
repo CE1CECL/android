@@ -73,7 +73,7 @@ AudioPolicyService::AudioPolicyService()
     // start audio commands thread
     mAudioCommandThread = new AudioCommandThread(String8("ApmCommandThread"));
 
-#if (defined GENERIC_AUDIO) || (defined AUDIO_POLICY_TEST)
+#if defined(GENERIC_AUDIO) || defined(AUDIO_POLICY_TEST)
     mpPolicyManager = new AudioPolicyManagerBase(this);
     LOGV("build for GENERIC_AUDIO - using generic audio policy");
 #else
@@ -123,6 +123,16 @@ status_t AudioPolicyService::setDeviceConnectionState(AudioSystem::audio_devices
             state != AudioSystem::DEVICE_STATE_UNAVAILABLE) {
         return BAD_VALUE;
     }
+
+#ifdef HAS_LGE_STAR_FM_RADIO
+    if (device & AudioSystem::DEVICE_OUT_FM) {
+        if (state == AudioSystem::DEVICE_STATE_AVAILABLE) {
+            setPhoneState(AudioSystem::MODE_FM);
+        } else {
+            setPhoneState(AudioSystem::MODE_NORMAL);
+        }
+    }
+#endif
 
     LOGV("setDeviceConnectionState() tid %d", gettid());
     Mutex::Autolock _l(mLock);
@@ -325,6 +335,13 @@ status_t AudioPolicyService::setStreamVolumeIndex(AudioSystem::stream_type strea
     if (!checkPermission()) {
         return PERMISSION_DENIED;
     }
+#ifdef HAS_LGE_STAR_FM_RADIO
+    /* The star's audio HAL has STREAM_FM as 8. The java layer
+     * sends CM's "standard" STREAM_FM as 10, convert it here */
+    if (stream == AudioSystem::FM) {
+        stream=(AudioSystem::stream_type)8;
+    }
+#endif
     if (stream < 0 || stream >= AudioSystem::NUM_STREAM_TYPES) {
         return BAD_VALUE;
     }
@@ -348,6 +365,9 @@ status_t AudioPolicyService::getStreamVolumeIndex(AudioSystem::stream_type strea
 
 uint32_t AudioPolicyService::getStrategyForStream(AudioSystem::stream_type stream)
 {
+#ifdef FROYO_AUDIOPOLICY
+    return 0;
+#endif
     if (mpPolicyManager == NULL) {
         return 0;
     }
@@ -356,6 +376,9 @@ uint32_t AudioPolicyService::getStrategyForStream(AudioSystem::stream_type strea
 
 audio_io_handle_t AudioPolicyService::getOutputForEffect(effect_descriptor_t *desc)
 {
+#ifdef FROYO_AUDIOPOLICY
+    return NO_INIT;
+#endif
     if (mpPolicyManager == NULL) {
         return NO_INIT;
     }
@@ -369,6 +392,9 @@ status_t AudioPolicyService::registerEffect(effect_descriptor_t *desc,
                                 int session,
                                 int id)
 {
+#ifdef FROYO_AUDIOPOLICY
+    return NO_INIT;
+#endif
     if (mpPolicyManager == NULL) {
         return NO_INIT;
     }
@@ -377,6 +403,9 @@ status_t AudioPolicyService::registerEffect(effect_descriptor_t *desc,
 
 status_t AudioPolicyService::unregisterEffect(int id)
 {
+#ifdef FROYO_AUDIOPOLICY
+    return NO_INIT;
+#endif
     if (mpPolicyManager == NULL) {
         return NO_INIT;
     }
@@ -582,6 +611,16 @@ status_t AudioPolicyService::setStreamOutput(AudioSystem::stream_type stream,
     return af->setStreamOutput(stream, output);
 }
 
+#ifdef OMAP_ENHANCEMENT
+status_t AudioPolicyService::setFMRxActive(bool state)
+{
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+
+    return af->setFMRxActive(state);
+}
+#endif
+
 status_t AudioPolicyService::moveEffects(int session, audio_io_handle_t srcOutput,
                                                audio_io_handle_t dstOutput)
 {
@@ -621,6 +660,13 @@ status_t AudioPolicyService::setVoiceVolume(float volume, int delayMs)
 {
     return mAudioCommandThread->voiceVolumeCommand(volume, delayMs);
 }
+
+#ifdef HAVE_FM_RADIO
+status_t AudioPolicyService::setFmVolume(float volume, int delayMs)
+{
+    return mAudioCommandThread->fmVolumeCommand(volume, delayMs);
+}
+#endif
 
 // -----------  AudioPolicyService::AudioCommandThread implementation ----------
 
@@ -722,6 +768,18 @@ bool AudioPolicyService::AudioCommandThread::threadLoop()
                     }
                     delete data;
                     }break;
+#ifdef HAVE_FM_RADIO
+                case SET_FM_VOLUME: {
+                    FmVolumeData *data = (FmVolumeData *)command->mParam;
+                    LOGV("AudioCommandThread() processing set fm volume volume %f", data->mVolume);
+                    command->mStatus = AudioSystem::setFmVolume(data->mVolume);
+                    if (command->mWaitStatus) {
+                        command->mCond.signal();
+                        mWaitWorkCV.wait(mLock);
+                    }
+                    delete data;
+                    }break;
+#endif
                 default:
                     LOGW("AudioCommandThread() unknown command %d", command->mCommand);
                 }
@@ -893,6 +951,34 @@ status_t AudioPolicyService::AudioCommandThread::voiceVolumeCommand(float volume
     return status;
 }
 
+#ifdef HAVE_FM_RADIO
+status_t AudioPolicyService::AudioCommandThread::fmVolumeCommand(float volume, int delayMs)
+{
+    status_t status = NO_ERROR;
+
+    AudioCommand *command = new AudioCommand();
+    command->mCommand = SET_FM_VOLUME;
+    FmVolumeData *data = new FmVolumeData();
+    data->mVolume = volume;
+    command->mParam = data;
+    if (delayMs == 0) {
+        command->mWaitStatus = true;
+    } else {
+        command->mWaitStatus = false;
+    }
+    Mutex::Autolock _l(mLock);
+    insertCommand_l(command, delayMs);
+    LOGV("AudioCommandThread() adding set fm volume volume %f", volume);
+    mWaitWorkCV.signal();
+    if (command->mWaitStatus) {
+        command->mCond.wait(mLock);
+        status =  command->mStatus;
+        mWaitWorkCV.signal();
+    }
+    return status;
+}
+#endif
+
 // insertCommand_l() must be called with mLock held
 void AudioPolicyService::AudioCommandThread::insertCommand_l(AudioCommand *command, int delayMs)
 {
@@ -955,6 +1041,11 @@ void AudioPolicyService::AudioCommandThread::insertCommand_l(AudioCommand *comma
                     data->mIO, data->mStream);
             removedCommands.add(command2);
         } break;
+#ifdef HAVE_FM_RADIO
+        case SET_FM_VOLUME: {
+            removedCommands.add(command2);
+        } break;
+#endif
         case START_TONE:
         case STOP_TONE:
         default:

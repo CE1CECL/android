@@ -178,6 +178,11 @@ void reboot_service(int fd, void *arg)
     char buf[100];
     int pid, ret;
 
+#ifdef RECOVERY_PRE_COMMAND
+	if (!strncmp((char *)arg,"recovery",8))
+		system( RECOVERY_PRE_COMMAND );
+#endif
+
     sync();
 
     /* Attempt to unmount the SD card first.
@@ -192,9 +197,8 @@ void reboot_service(int fd, void *arg)
         /* wait until vdc succeeds or fails */
         waitpid(pid, &ret, 0);
     }
-
     ret = __reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,
-                    LINUX_REBOOT_CMD_RESTART2, (char *)arg);
+                   LINUX_REBOOT_CMD_RESTART2, (char *)arg);
     if (ret < 0) {
         snprintf(buf, sizeof(buf), "reboot failed: %s\n", strerror(errno));
         writex(fd, buf, strlen(buf));
@@ -335,8 +339,10 @@ static int create_subprocess(const char *cmd, const char *arg0, const char *arg1
 
 #if ADB_HOST
 #define SHELL_COMMAND "/bin/sh"
+#define ALTERNATE_SHELL_COMMAND ""
 #else
 #define SHELL_COMMAND "/system/bin/sh"
+#define ALTERNATE_SHELL_COMMAND "/sbin/sh"
 #endif
 
 int service_to_fd(const char *name)
@@ -392,9 +398,23 @@ int service_to_fd(const char *name)
 #endif
     } else if(!HOST && !strncmp(name, "shell:", 6)) {
         if(name[6]) {
-            ret = create_subprocess(SHELL_COMMAND, "-c", name + 6);
+            struct stat filecheck;
+            ret = -1;
+            if (stat(ALTERNATE_SHELL_COMMAND, &filecheck) == 0) {
+                ret = create_subprocess(ALTERNATE_SHELL_COMMAND, "-c", name + 6);
+            }
+            if (ret == -1) {
+                ret = create_subprocess(SHELL_COMMAND, "-c", name + 6);
+            }
         } else {
-            ret = create_subprocess(SHELL_COMMAND, "-", 0);
+            struct stat filecheck;
+            ret = -1;
+            if (stat(ALTERNATE_SHELL_COMMAND, &filecheck) == 0) {
+                ret = create_subprocess(ALTERNATE_SHELL_COMMAND, "-", 0);
+            }
+            if (ret == -1) {
+                ret = create_subprocess(SHELL_COMMAND, "-", 0);
+            }
         }
 #if !ADB_HOST
     } else if(!strncmp(name, "sync:", 5)) {

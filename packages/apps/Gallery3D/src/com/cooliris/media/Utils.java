@@ -34,6 +34,11 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Matrix;
+import android.graphics.Canvas;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.widget.Toast;
@@ -74,7 +79,7 @@ public class Utils {
         return retVal;
     }
 
-    public static final Bitmap resizeBitmap(Bitmap bitmap, int maxSize) {
+    public static final Bitmap resizeBitmap(Context context, Bitmap bitmap, int maxSize) {
         int srcWidth = bitmap.getWidth();
         int srcHeight = bitmap.getHeight();
         int width = maxSize;
@@ -91,7 +96,42 @@ public class Utils {
                 width = ((maxSize * srcWidth) / srcHeight);
             }
         }
-        if (needsResize) {
+        if (needsResize && context != null && context.getResources().getBoolean(R.bool.use_32bpp_display)) {
+            Bitmap retVal;
+            Matrix m = new Matrix();
+            final float sx = width / (float)srcWidth;
+            final float sy = height / (float)srcHeight;
+            m.setScale(sx, sy);
+
+            Rect srcR = new Rect(0, 0, srcWidth, srcHeight);
+            RectF dstR = new RectF(0, 0, srcWidth, srcHeight);
+            Bitmap.Config config = bitmap.getConfig();
+            if (config == null) {
+                config = Bitmap.Config.ARGB_8888;
+            }
+
+            Canvas canvas = new Canvas();
+            Paint paint;
+            if (m == null || m.isIdentity()) {
+                retVal = Bitmap.createBitmap(width, height, config);
+                paint = null;
+            } else {
+                RectF deviceR = new RectF();
+                m.mapRect(deviceR, dstR);
+                width = Math.round(deviceR.width());
+                height = Math.round(deviceR.height());
+                retVal = Bitmap.createBitmap(width, height, config);
+                retVal.eraseColor(0);
+                canvas.translate(-deviceR.left, -deviceR.top);
+                canvas.concat(m);
+                paint = new Paint();
+                paint.setFilterBitmap(true);
+            }
+            retVal.setDensity(bitmap.getDensity());
+            canvas.setBitmap(retVal);
+            canvas.drawBitmap(bitmap, srcR, dstR, paint);
+            return retVal;
+        } else if (needsResize) {
             Bitmap retVal = Bitmap.createScaledBitmap(bitmap, width, height, true);
             return retVal;
         } else {
@@ -287,7 +327,9 @@ public class Utils {
             roundedSize = (initialSize + 7) / 8 * 8;
         }
 
-        return roundedSize;
+        int result = roundedSize/App.RESPATCH_FACTOR;
+        if(result<=1) return 1;
+        else return result;
     }
 
     public static int computeInitialSampleSize(BitmapFactory.Options options,

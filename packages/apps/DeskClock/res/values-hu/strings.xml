@@ -25,8 +25,6 @@
     <string name="enable_alarm" msgid="1834599140632142536">"Az ébresztés bekapcsolása"</string>
     <string name="disable_alarm" msgid="5889378670229554109">"Az ébresztés kikapcsolása"</string>
     <string name="delete_alarm_confirm" msgid="4237696873219106907">"Az ébresztés törölve lesz."</string>
-    <string name="show_clock" msgid="8358759982675616915">"Óra megjelenítése"</string>
-    <string name="hide_clock" msgid="3217727306480505694">"Óra elrejtése"</string>
     <string name="label" msgid="162189613902857319">"Címke"</string>
     <string name="default_label" msgid="5590025289805630372">"Ébresztő"</string>
     <string name="set_alarm" msgid="9148359866152726808">"Ébresztés beállítása"</string>
@@ -57,7 +55,6 @@
     <string name="every_day" msgid="1058994798884544691">"minden nap"</string>
     <string name="never" msgid="54104287800571769">"Soha"</string>
     <string name="day_concat" msgid="971998564991636532">", "</string>
-    <string name="clock_instructions" msgid="3118560284915857690">"Válassza ki a megjelenítendő órát."</string>
     <string name="analog_gadget" msgid="1670505720837152766">"Analóg óra"</string>
     <string name="settings" msgid="5849739030579520686">"Beállítások"</string>
     <string name="alarm_in_silent_mode_title" msgid="3892612644543516705">"Ébresztés néma üzemmódban"</string>
@@ -70,14 +67,6 @@
     <item msgid="7248236967714374250">"20 perc"</item>
     <item msgid="738394723625179423">"25 perc"</item>
     <item msgid="1180222611308391616">"30 perc"</item>
-  </string-array>
-  <string-array name="snooze_duration_values">
-    <item msgid="3655014754453084122">"5"</item>
-    <item msgid="8939029597449573449">"10"</item>
-    <item msgid="3922647341176353315">"15"</item>
-    <item msgid="5821804105985044459">"20"</item>
-    <item msgid="6048861883552402852">"25"</item>
-    <item msgid="2740866721232379791">"30"</item>
   </string-array>
     <string name="done" msgid="6509722361933858451">"Kész"</string>
     <string name="revert" msgid="9100911171235162926">"Visszavonás"</string>
@@ -96,11 +85,6 @@
     <item msgid="7111908302622811168">"Szundi"</item>
     <item msgid="8573552194573068996">"Elvetés"</item>
   </string-array>
-  <string-array name="volume_button_setting_values">
-    <item msgid="4851033050639608752">"0"</item>
-    <item msgid="3204893476515513084">"1"</item>
-    <item msgid="7687709558968154577">"2"</item>
-  </string-array>
     <string name="alarm_button_description" msgid="740283647046258651">"Ébresztések"</string>
     <string name="gallery_button_description" msgid="1151743663255257668">"Galéria"</string>
     <string name="music_button_description" msgid="1626593420810117999">"Zene"</string>
@@ -111,4 +95,35 @@
     <string name="weather_fetch_failure" msgid="7517010911981312358">"Az időjárás-adatok jelenleg nem érhetők el."</string>
     <string name="menu_item_dock_settings" msgid="3524235151132971114">"Dokkolási beállítások"</string>
     <string name="alarm_klaxon_service_desc" msgid="2153290655559916468">"Hanglejátszó szolgáltatás az Asztali órában beállított ébresztőkhöz."</string>
+    <string name="alarm_limit_title">Ébresztés hossza</string>
+    <string-array name="alarm_limit_entries">
+      <item>5 perc</item>
+      <item>15 perc</item>
+      <item>30 perc</item>
+      <item>60 perc</item>
+      <item>90 perc</item>
+      <item>120 perc</item>
+      <item>Végtelen</item>
+    </string-array>
+    <string name="screensaver_timeout_title">Képernyővédő időtúllépés</string>
+    <string-array name="screensaver_timeout_entries">
+      <item>1 perc</item>
+      <item>5 perc</item>
+      <item>10 perc</item>
+      <item>15 perc</item>
+      <item>30 perc</item>
+      <item>60 perc</item>
+      <item>@string/never</item>
+    </string-array>
+    <string name="color_picker">Óra színe</string>
+    <string name="color_picker_title">Óra színe (Képernyővédőn)</string>
+    <string name="color_picker_summary">Képernyővédőn látható óra színének megváltoztatása</string>
+    <string name="color_picker_sample">11:45</string>
+    <string name="color_picker_alpha">Átlátszó (csak halványan)</string>
+    <string name="color_picker_red">Piros</string>
+    <string name="color_picker_green">Zöld</string>
+    <string name="color_picker_blue">Kék</string>
+    <string name="use_dual_mode_button">Szundi módjai</string>
+    <string name="use_dual_mode_button_on">Szundi gomb hosszú érintésekor az ébresztés elvetése</string>
+    <string name="use_dual_mode_button_off">Különálló Szundi és Elvetés gomb</string>
 </resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">마켓 앱 설치 관리자</string>
+    <string name="activity_title">설치할 앱을 선택하세요.</string>
+
+    <!-- Buttons -->
+    <string name="main_btn_ok">확인</string>
+    <string name="main_btn_selectall">모두 선택</string>
+    <string name="main_btn_cancel">취소</string>
+</resources>

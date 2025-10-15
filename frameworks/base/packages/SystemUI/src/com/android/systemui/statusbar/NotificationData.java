@@ -35,6 +35,7 @@ public class NotificationData {
         public View row; // the outer expanded view
         public View content; // takes the click events and sends the PendingIntent
         public View expanded; // the inflated RemoteViews
+        public boolean cancelled;
     }
     private final ArrayList<Entry> mEntries = new ArrayList<Entry>();
 
@@ -66,6 +67,7 @@ public class NotificationData {
         entry.content = content;
         entry.expanded = expanded;
         entry.icon = icon;
+        entry.cancelled = false;
         final int index = chooseIndex(notification.notification.when);
         mEntries.add(index, entry);
         return index;
@@ -81,6 +83,10 @@ public class NotificationData {
             }
         }
         return null;
+    }
+
+    void clear() {
+        mEntries.clear();
     }
 
     private int chooseIndex(final long when) {

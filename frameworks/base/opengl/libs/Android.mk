@@ -13,6 +13,10 @@ LOCAL_SRC_FILES:= 	       \
 	EGL/Loader.cpp 	       \
 #
 
+ifneq ($(TARGET_USES_GL_VENDOR_EXTENSIONS),false)
+    LOCAL_CFLAGS += -DENABLE_VENDOR_EXTENSIONS
+endif
+
 LOCAL_SHARED_LIBRARIES += libcutils libutils
 LOCAL_LDLIBS := -lpthread -ldl
 LOCAL_MODULE:= libEGL
@@ -27,6 +31,9 @@ else
         LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
     endif
     # we need to access the private Bionic header <bionic_tls.h>
+    ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+        LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
+    endif
     LOCAL_C_INCLUDES += bionic/libc/private
 endif
 
@@ -40,6 +47,9 @@ endif
 
 ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
   LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
+endif
+ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+  LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
 endif
 
 include $(BUILD_SHARED_LIBRARY)
@@ -84,6 +94,9 @@ else
     ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
         LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
     endif
+    ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+        LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
+    endif
     LOCAL_C_INCLUDES += bionic/libc/private
 endif
 
@@ -93,6 +106,9 @@ LOCAL_CFLAGS += -fvisibility=hidden
 
 ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
   LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
+endif
+ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+  LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
 endif
 
 include $(BUILD_SHARED_LIBRARY)
@@ -120,6 +136,9 @@ else
     ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
         LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
     endif
+    ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+        LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
+    endif
     LOCAL_C_INCLUDES += bionic/libc/private
 endif
 
@@ -129,6 +148,9 @@ LOCAL_CFLAGS += -fvisibility=hidden
 
 ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
   LOCAL_CFLAGS += -DHAVE_ARM_TLS_REGISTER
+endif
+ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+  LOCAL_CFLAGS += -DHAVE_TEGRA_ERRATA_657451
 endif
 
 include $(BUILD_SHARED_LIBRARY)

@@ -1,3 +1,4 @@
+ifneq ($(HOST_OS),darwin)
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_PATH:= $(call my-dir)
 
@@ -72,10 +73,11 @@ ifeq ($(HOST_OS),darwin)
         LEOPARD_SDK := /Developer/SDKs/MacOSX10.5.sdk
         ifeq ($(strip $(wildcard $(LEOPARD_SDK))),)
             $(info  Please install the 10.5 SDK on this machine at $(LEOPARD_SDK))
-            $(error Aborting the build.)
+            $(info  Falling back to 10.6 SDK. Emulator may not work.)
+            LEOPARD_SDK := /Developer/SDKs/MacOSX10.6.sdk
         endif
         MY_CFLAGS += -isysroot $(LEOPARD_SDK) -mmacosx-version-min=10.5 -DMACOSX_DEPLOYMENT_TARGET=10.5
-        MY_LDLIBS += -isysroot $(LEOPARD_SDK) -Wl,-syslibroot,$(LEOPARD_SDK) -mmacosx-version-min=10.5
+        MY_LDLIBS += -isysroot $(LEOPARD_SDK) -Wl,-syslibroot,$(LEOPARD_SDK) -mmacosx-version-min=10.5 -read_only_relocs suppress
     endif
 endif
 
@@ -947,3 +949,4 @@ LOCAL_SRC_FILES += $(SDLMAIN_SOURCES)
 include $(BUILD_HOST_EXECUTABLE)
 
 endif  # TARGET_ARCH == arm
+endif

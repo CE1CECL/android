@@ -72,6 +72,7 @@ namespace android {
 #define FM_HEADSET                 ADSP_AUDIO_DEVICE_ID_HEADSET_SPKR_STEREO
 #define FM_SPKR	                   ADSP_AUDIO_DEVICE_ID_SPKR_PHONE_MONO
 #define SPKR_PHONE_HEADSET_STEREO  ADSP_AUDIO_DEVICE_ID_SPKR_PHONE_MONO_W_MONO_HEADSET
+#define HDMI_SPKR                  ADSP_AUDIO_DEVICE_ID_I2S_SPKR
 
 #define ACDB_ID_HAC_HANDSET_MIC 107
 #define ACDB_ID_HAC_HANDSET_SPKR 207
@@ -159,6 +160,10 @@ struct msm_mute_info {
 #define AUDIO_HW_IN_BUFSZ 256  // Default audio input buffer size
 
 #define VOICE_VOLUME_MAX 5  // Maximum voice volume
+#define AUDIO_IOCTL_MAGIC 'a'
+#define AUDIO_START_FM       _IOW(AUDIO_IOCTL_MAGIC, 37, unsigned)
+#define AUDIO_STOP_FM        _IOW(AUDIO_IOCTL_MAGIC, 38, unsigned)
+
 // ----------------------------------------------------------------------------
 
 
@@ -174,7 +179,9 @@ public:
 
     virtual status_t    setVoiceVolume(float volume);
     virtual status_t    setMasterVolume(float volume);
-
+#ifdef HAVE_FM_RADIO
+    virtual status_t    setFmVolume(float volume);
+#endif
     virtual status_t    setMode(int mode);
 
     // mic mute
@@ -228,6 +235,9 @@ private:
     status_t    doAudience_A1026_Control(int Mode, bool Record, uint32_t Routes);
     status_t    doRouting();
     status_t    updateACDB();
+#ifdef HAVE_FM_RADIO
+    status_t    setFmOnOff(bool onoff);
+#endif
     uint32_t    getACDB(int mode, int device);
     AudioStreamInMSM72xx*   getActiveInput_l();
     status_t    do_tpa2018_control(int mode);

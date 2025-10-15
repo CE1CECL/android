@@ -5,8 +5,10 @@
  *                           Laboratoire MASI, Institut Blaise Pascal
  *                           Universite Pierre et Marie Curie (Paris VI)
  *
- * This file can be redistributed under the terms of the GNU Library General
- * Public License
+ * %Begin-Header%
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
+ * %End-Header%
  */
 
 /*
@@ -25,8 +27,8 @@
 
 #include "e2p.h"
 
-/* 
- * Deal with lame glibc's that define this function without actually 
+/*
+ * Deal with lame glibc's that define this function without actually
  * implementing it.  Can you say "attractive nuisance", boys and girls?
  * I knew you could!
  */

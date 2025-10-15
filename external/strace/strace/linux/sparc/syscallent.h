@@ -37,7 +37,7 @@
 	{ 0,	0,	sys_sync,	"sync" },		/* 36 */
 	{ 2,	TS,	sys_kill,	"kill" },		/* 37 */
 	{ 2,	TF,	sys_stat,	"stat" },		/* 38 */
-	{ 4,	TF,	sys_sendfile,	"sendfile" },		/* 39 */
+	{ 4,	0,	sys_sendfile,	"sendfile" },		/* 39 */
 	{ 2,	TF,	sys_lstat,	"lstat" },		/* 40 */
 	{ 2,	0,	sys_dup,	"dup" },		/* 41 */
 	{ 0,	0,	sys_pipe,	"pipe" },		/* 42 */
@@ -61,12 +61,12 @@
 	{ 1,	0,	sys_umask,	"umask" },		/* 60 */
 	{ 1,	TF,	sys_chroot,	"chroot" },		/* 61 */
 	{ 2,	0,	sys_fstat,	"fstat" },		/* 62 */
-	{ 2,	TF,	sys_fstat64,	"fstat64" },		/* 63 */
+	{ 2,	0,	sys_fstat64,	"fstat64" },		/* 63 */
 	{ 0,	0,	sys_getpagesize,"getpagesize" },	/* 64 */
 	{ 3,	0,	sys_msync,	"msync" },		/* 65 */
 	{ 0,	TP,	sys_vfork,	"vfork" },		/* 66 */
-	{ 5,	TF,	sys_pread,	"pread" },		/* 67 */
-	{ 5,	TF,	sys_pwrite,	"pwrite" },		/* 68 */
+	{ 5,	0,	sys_pread,	"pread" },		/* 67 */
+	{ 5,	0,	sys_pwrite,	"pwrite" },		/* 68 */
 	{ 0,    0,	sys_geteuid,	"geteuid32" },		/* 69 */
 	{ 0,	0,	sys_getegid,	"getegid32" },		/* 70 */
 	{ 6,	0,	sys_mmap,	"mmap" },		/* 71 */
@@ -138,7 +138,7 @@
 	{ 1,	TF,	sys_rmdir,	"rmdir" },		/* 137 */
 	{ 2,	TF,	sys_utimes,	"utimes" },		/* 138 */
 	{ 2,	TF,	sys_stat64,	"stat64" },		/* 139 */
-	{ 4,    TF,	sys_sendfile64,	"sendfile64" },		/* 140 */
+	{ 4,    0,	sys_sendfile64,	"sendfile64" },		/* 140 */
 	{ 3,	TN,	sys_getpeername,"getpeername" },	/* 141 */
 	{ 5,    0,	sys_futex,	"futex" },		/* 142 */
 	{ 0,	0,	printargs,	"gettid" },		/* 143 */
@@ -266,40 +266,40 @@
 	{ 1,	0,	sys_timer_delete,"timer_delete" },	/* 265 */
 	{ 3,	0,	sys_timer_create,"timer_create" },	/* 266 */
 	{ 5,	0,	printargs,	"SYS_267" },		/* 267 */
-	{ 5,	0,	printargs,	"SYS_268" },		/* 268 */
-	{ 5,	0,	printargs,	"SYS_269" },		/* 269 */
-	{ 5,	0,	printargs,	"SYS_270" },		/* 270 */
-	{ 5,	0,	printargs,	"SYS_271" },		/* 271 */
-	{ 5,	0,	printargs,	"SYS_272" },		/* 272 */
-	{ 5,	0,	printargs,	"SYS_273" },		/* 273 */
-	{ 5,	0,	printargs,	"SYS_274" },		/* 274 */
-	{ 5,	0,	printargs,	"SYS_275" },		/* 275 */
-	{ 5,	0,	printargs,	"SYS_276" },		/* 276 */
-	{ 5,	0,	printargs,	"SYS_277" },		/* 277 */
-	{ 5,	0,	printargs,	"SYS_278" },		/* 278 */
-	{ 5,	0,	printargs,	"SYS_279" },		/* 279 */
-	{ 5,	0,	printargs,	"SYS_280" },		/* 280 */
-	{ 5,	0,	printargs,	"SYS_281" },		/* 281 */
-	{ 5,	0,	printargs,	"SYS_282" },		/* 282 */
-	{ 5,	0,	printargs,	"SYS_283" },		/* 283 */
-	{ 5,	0,	printargs,	"SYS_284" },		/* 284 */
-	{ 5,	0,	printargs,	"SYS_285" },		/* 285 */
-	{ 5,	0,	printargs,	"SYS_286" },		/* 286 */
-	{ 5,	0,	printargs,	"SYS_287" },		/* 287 */
-	{ 5,	0,	printargs,	"SYS_288" },		/* 288 */
-	{ 5,	0,	printargs,	"SYS_289" },		/* 289 */
-	{ 5,	0,	printargs,	"SYS_290" },		/* 290 */
-	{ 5,	0,	printargs,	"SYS_291" },		/* 291 */
-	{ 5,	0,	printargs,	"SYS_292" },		/* 292 */
-	{ 5,	0,	printargs,	"SYS_293" },		/* 293 */
-	{ 5,	0,	printargs,	"SYS_294" },		/* 294 */
-	{ 5,	0,	printargs,	"SYS_295" },		/* 295 */
-	{ 5,	0,	printargs,	"SYS_296" },		/* 296 */
-	{ 5,	0,	printargs,	"SYS_297" },		/* 297 */
-	{ 5,	0,	printargs,	"SYS_298" },		/* 298 */
-	{ 5,	0,	printargs,	"SYS_299" },		/* 299 */
-	{ 5,	0,	printargs,	"SYS_300" },		/* 300 */
-	{ 5,	0,	printargs,	"SYS_301" },		/* 301 */
+	{ 2,	0,	sys_io_setup,		"io_setup"	}, /* 268 */
+	{ 1,	0,	sys_io_destroy,		"io_destroy"	}, /* 269 */
+	{ 3,	0,	sys_io_submit,		"io_submit"	}, /* 270 */
+	{ 3,	0,	sys_io_cancel,		"io_cancel"	}, /* 271 */
+	{ 5,	0,	sys_io_getevents,	"io_getevents"	}, /* 272 */
+	{ 4,	0,	sys_mq_open,		"mq_open"	}, /* 273 */
+	{ 1,	0,	sys_mq_unlink,		"mq_unlink"	}, /* 274 */
+	{ 5,	0,	sys_mq_timedsend,	"mq_timedsend"	}, /* 275 */
+	{ 5,	0,	sys_mq_timedreceive,	"mq_timedreceive" }, /* 276 */
+	{ 2,	0,	sys_mq_notify,		"mq_notify"	}, /* 277 */
+	{ 3,	0,	sys_mq_getsetattr,	"mq_getsetattr"	}, /* 278 */
+	{ 5,	TP,	sys_waitid,		"waitid"	}, /* 279 */
+	{ 4,	TD,	printargs,		"tee"		}, /* 280 */
+	{ 5,	0,	printargs,		"add_key"	}, /* 281 */
+	{ 4,	0,	printargs,		"request_key"	}, /* 282 */
+	{ 5,	0,	printargs,		"keyctl"	}, /* 283 */
+	{ 4,	TD|TF,	sys_openat,		"openat"	}, /* 284 */
+	{ 3,	TD|TF,	sys_mkdirat,		"mkdirat"	}, /* 285 */
+	{ 4,	TD|TF,	sys_mknodat,		"mknodat"	}, /* 286 */
+	{ 5,	TD|TF,	sys_fchownat,		"fchownat"	}, /* 287 */
+	{ 3,	TD|TF,	sys_futimesat,		"futimesat"	}, /* 288 */
+	{ 4,	TD|TD,	sys_newfstatat,		"fstatat64"	}, /* 289 */
+	{ 3,	TD|TF,	sys_unlinkat,		"unlinkat"	}, /* 290 */
+	{ 4,	TD|TF,	sys_renameat,		"renameat"	}, /* 291 */
+	{ 5,	TD|TF,	sys_linkat,		"linkat"	}, /* 292 */
+	{ 3,	TD|TF,	sys_symlinkat,		"symlinkat"	}, /* 293 */
+	{ 4,	TD|TF,	sys_readlinkat,		"readlinkat"	}, /* 294 */
+	{ 3,	TD|TF,	sys_fchmodat,		"fchmodat"	}, /* 295 */
+	{ 3,	TD|TF,	sys_faccessat,		"faccessat"	}, /* 296 */
+	{ 6,	TD,	sys_pselect6,		"pselect6"	}, /* 297 */
+	{ 5,	TD,	sys_ppoll,		"ppoll"		}, /* 298 */
+	{ 1,	TP,	sys_unshare,		"unshare"	}, /* 299 */
+	{ 2,	0,	printargs,		"set_robust_list" }, /* 300 */
+	{ 3,	0,	printargs,		"get_robust_list" }, /* 301 */
 	{ 5,	0,	printargs,	"SYS_302" },		/* 302 */
 	{ 5,	0,	printargs,	"SYS_303" },		/* 303 */
 	{ 5,	0,	printargs,	"SYS_304" },		/* 304 */

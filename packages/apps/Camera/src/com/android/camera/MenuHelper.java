@@ -57,6 +57,7 @@ public class MenuHelper {
     public static final int POSITION_SWITCH_CAMERA_MODE = 1;
     public static final int POSITION_GOTO_GALLERY = 2;
     public static final int POSITION_SWITCH_CAMERA_ID = 3;
+    public static final int POSITION_CAMERA_SETTINGS = 4;
 
     public static final int NO_STORAGE_ERROR = -1;
     public static final int CANNOT_STAT_ERROR = -2;
@@ -162,11 +163,15 @@ public class MenuHelper {
                 ImageManager.INCLUDE_VIDEOS);
     }
 
+    public static void gotoCameraSettings(Activity activity) {
+        
+    }
+
     private static void gotoGallery(Activity activity, int windowTitleId,
             int mediaTypes) {
         Uri target = Images.Media.EXTERNAL_CONTENT_URI.buildUpon()
                 .appendQueryParameter("bucketId",
-                ImageManager.CAMERA_IMAGE_BUCKET_ID).build();
+                ImageManager.GALLERY_IMAGE_BUCKET_ID).build();
         Intent intent = new Intent(Intent.ACTION_VIEW, target);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra("windowTitle", activity.getString(windowTitleId));
@@ -179,13 +184,13 @@ public class MenuHelper {
         }
     }
 
-    public static int calculatePicturesRemaining() {
+    public static int calculatePicturesRemaining(Context context) {
         try {
             if (!ImageManager.hasStorage()) {
                 return NO_STORAGE_ERROR;
             } else {
                 String storageDirectory =
-                        Environment.getExternalStorageDirectory().toString();
+                        ImageManager.getStorageDirectory();
                 StatFs stat = new StatFs(storageDirectory);
                 final int PICTURE_BYTES = 1500000;
                 float remaining = ((float) stat.getAvailableBlocks()

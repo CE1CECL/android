@@ -42,9 +42,6 @@ HOST_AR  := $(HOST_SDK_TOOLCHAIN_PREFIX)-ar
 endif # $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc exists
 endif # TARGET_PRODUCT == sdk
 
-# Does the build machine have the expected gcc version?
-IS_EXPECTED_HOST_GCC := $(filter 4.4.%, $(shell $(HOST_CC) --version))
-
 # We build everything in 32-bit, because some host tools are
 # 32-bit-only anyway (emulator, acc), and because it gives us
 # more consistency between the host tools and the target.
@@ -61,6 +58,6 @@ HOST_GLOBAL_CFLAGS += \
 	-include $(call select-android-config-h,linux-x86)
 
 # Disable new longjmp in glibc 2.11 and later. See bug 2967937.
-HOST_GLOBAL_CFLAGS += -D_FORTIFY_SOURCE=0
+HOST_GLOBAL_CFLAGS += -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0
 
 HOST_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined

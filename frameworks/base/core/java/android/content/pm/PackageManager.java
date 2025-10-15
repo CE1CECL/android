@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1177,6 +1178,17 @@ public abstract class PackageManager {
     public abstract List<PackageInfo> getInstalledPackages(int flags);
 
     /**
+     * Return a List of all theme packages that are installed
+     * on the device.
+     *
+     * @return A List of PackageInfo objects, one for each theme package
+     *         that is installed on the device.
+     *
+     * @hide
+     */
+    public abstract List<PackageInfo> getInstalledThemePackages();
+
+    /**
      * Check whether a particular package has been granted a particular
      * permission.
      *
@@ -2278,4 +2290,28 @@ public abstract class PackageManager {
      */
     public abstract void movePackage(
             String packageName, IPackageMoveObserver observer, int flags);
+
+    /**
+     * Returns the revoked permissions for given package.
+     * <p>
+     * NOTE: If the package has a shared uid then the revoked permissions for that
+     * 			  uid will be returned.
+     *
+     * @param packageName Name of the package which revoked permissions are needed
+     * @hide
+     */
+    public abstract String[] getRevokedPermissions(String packageName);
+
+    /**
+     * Sets the revoked permissions for given package.
+     * <p>
+     * NOTE: If the package has a shared uid then this method will revoke the
+     * 			  permissions for that shared uid.
+     *
+     * @param packageName Name of the package which revoked permissions are needed
+     * @param the revoked permissions.
+     * @hide
+     */
+    public abstract void setRevokedPermissions(String packageName, String[] perms);
+
 }

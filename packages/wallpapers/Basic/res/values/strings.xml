@@ -64,13 +64,31 @@
         day, hour, minute, and second.
     </string>
     
-	<!-- Wallpaper showing nexus -->
+    <!-- Wallpaper showing nexus -->
     <string name="wallpaper_nexus">Nexus</string>
     <string name="wallpaper_nexus_author">Google</string>
     <string name="wallpaper_nexus_desc">
         A peek inside the neural network.
     </string>
+
+        <!-- Wallpaper showing nexus -->
+    <string name="wallpaper_darknexus">DarkNexus</string>
+    <string name="wallpaper_darknexus_author">Chris Soyars</string>
+    <string name="wallpaper_darknexus_desc">
+        A peek inside the dark neural network.
+    </string>
+
+        <!-- Wallpaper showing nexus -->
+    <string name="wallpaper_sexynexus">SexyNexus</string>
+    <string name="wallpaper_sexynexus_author">Chris Soyars</string>
+    <string name="wallpaper_sexynexus_desc">
+        A peek inside the neural network (for the ladies).
+    </string>
     
+    <string name="nexus_settings">Nexus wallpaper settings</string>
+    <string name="nexus_colorscheme">Color Scheme</string>
+    <string name="nexus_background">Background</string>    
+
     <!-- Polar clock: title of settings activity -->
     <string name="clock_settings">Polar clock settings</string>
     <!-- Polar clock: label for "show seconds" pref -->
@@ -80,21 +98,21 @@
     <!-- Polar clock: label for "palette" pref -->
     <string name="palette">Color palette</string>
 
-	<!-- Polar clock: palette name -->
-	<string name="palette_gray">Iron</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_violet">Midnight</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_matrix">Green Screen</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_white_c">Polar Bear (dynamic)</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_black_c">Black Hole (dynamic)</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_halloween">Pumpkin Pie</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_zenburn">Alien Fruit Salad</string>
-	<!-- Polar clock: palette name -->
-	<string name="palette_oceanic">Blue Laser</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_gray">Iron</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_violet">Midnight</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_matrix">Green Screen</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_white_c">Polar Bear (dynamic)</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_black_c">Black Hole (dynamic)</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_halloween">Pumpkin Pie</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_zenburn">Alien Fruit Salad</string>
+    <!-- Polar clock: palette name -->
+    <string name="palette_oceanic">Blue Laser</string>
 
 </resources>

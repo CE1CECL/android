@@ -43,7 +43,9 @@
 #include "MediaPlayerService.h"
 
 #include "StagefrightRecorder.h"
-
+#ifdef  USE_BOARD_MEDIARECORDER
+#include <hardware_legacy/MediaRecorderHardwareInterface.h>
+#endif
 namespace android {
 
 const char* cameraPermission = "android.permission.CAMERA";
@@ -196,6 +198,16 @@ status_t MediaRecorderClient::setParameters(const String8& params) {
     return mRecorder->setParameters(params);
 }
 
+status_t MediaRecorderClient::setCameraParameters(const String8& params) {
+    LOGV("setCameraParameters(%s)", params.string());
+    Mutex::Autolock lock(mLock);
+    if (mRecorder == NULL) {
+        LOGE("recorder is not initialized");
+        return NO_INIT;
+    }
+    return mRecorder->setCameraParameters(params);
+}
+
 status_t MediaRecorderClient::prepare()
 {
     LOGV("prepare");
@@ -293,7 +305,11 @@ MediaRecorderClient::MediaRecorderClient(const sp<MediaPlayerService>& service, 
 {
     LOGV("Client constructor");
     mPid = pid;
-
+#ifdef USE_BOARD_MEDIARECORDER
+    {
+        mRecorder = createMediaRecorderHardware();
+    }
+#else
     char value[PROPERTY_VALUE_MAX];
     if (!property_get("media.stagefright.enable-record", value, NULL)
         || !strcmp(value, "1") || !strcasecmp(value, "true")) {
@@ -308,7 +324,7 @@ MediaRecorderClient::MediaRecorderClient(const sp<MediaPlayerService>& service, 
         mRecorder = NULL;
     }
 #endif
-
+#endif
     mMediaPlayerService = service;
 }
 

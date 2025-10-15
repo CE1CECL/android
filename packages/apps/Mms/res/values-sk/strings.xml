@@ -26,6 +26,7 @@
     <string name="menu_call_back" msgid="7538482331117914146">"Zavolať kontakt <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="menu_send_email" msgid="671366308915241664">"Odoslať e-mail adresátovi <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="menu_compose_new" msgid="3763437973691046238">"Napísať správu"</string>
+    <string name="menu_mark_all_read">Označiť všetky ako prečítané</string>
     <string name="menu_preferences" msgid="4693148116114749414">"Nastavenia"</string>
     <string name="menu_add_address_to_contacts" msgid="2313624913486309940">"Pridať <xliff:g id="NAME">%s</xliff:g> medzi Kontakty"</string>
     <string name="menu_call" msgid="5877123227307074690">"Hovor"</string>
@@ -108,6 +109,7 @@
     <string name="cannot_send_message" msgid="3918913277571649400">"Správa sa nedá odoslať"</string>
     <string name="cannot_send_message_reason" msgid="8745080126044054343">"Správa nemá žiadnych platných príjemcov."</string>
     <string name="cannot_forward_drm_obj" msgid="84606990079390099">"Objekt DRM obsiahnutý v správe nie je možné preposlať."</string>
+    <string name="cannot_find_contact">Vybraný kontakt nie je možné pripojiť.</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"Prebieha prevádzanie na multimediálnu správu..."</string>
     <string name="converting_to_text_message" msgid="6374423235426015422">"Prebieha prevádzanie na textovú správu..."</string>
     <string name="cannot_add_slide_anymore" msgid="8437666385579890987">"Ďalšie snímky nie je možné pridať."</string>
@@ -167,6 +169,12 @@
     <string name="pref_summary_mms_delivery_reports" msgid="4874657984217756112">"Pri každej odoslanej správe požadovať potvrdenie o doručení"</string>
     <string name="pref_summary_mms_read_reports" msgid="2748323864008907440">"Pri každej odoslanej správe požadovať potvrdenie o prečítaní"</string>
     <string name="pref_summary_sms_delivery_reports" msgid="5852207702358546129">"Pri každej odoslanej správe požadovať potvrdenie o doručení"</string>
+    <string name="pref_title_max_sms_length">Maximálna dĺžka SMS správy</string>
+    <string name="pref_summary_max_sms_length">Maximálna povolená dĺžka správy pri písaní</string>
+    <string name="pref_title_sms_split_160">Rozdeliť SMS</string>
+    <string name="pref_summary_sms_split_160">Rozdeliť správu po každých 160 znakoch</string>
+    <string name="pref_title_sms_split_counter">Počítadlo správ</string>
+    <string name="pref_summary_sms_split_counter">Pridá počítadlo počtu odoslaných správ (napr. 1/2)</string>
     <string name="pref_summary_auto_delete" msgid="7719538116486177613">"Pri dosiahnutí limitu odstrániť staré správy"</string>
     <string name="pref_summary_delete_limit" msgid="597128041393045216">"Počet správ v konverzácii: <xliff:g id="COUNT">%1$s</xliff:g>"</string>
     <string name="pref_title_manage_sim_messages" msgid="7820895261757881177">"Správa správ na karte SIM"</string>
@@ -192,6 +200,8 @@
     <string name="pref_summary_mms_auto_retrieval" msgid="925163257363757048">"Automaticky načítať správy"</string>
     <string name="pref_title_mms_retrieval_during_roaming" msgid="6016227402731817804">"Automatické načítanie pri roamingu"</string>
     <string name="pref_summary_mms_retrieval_during_roaming" msgid="2427892806582531020">"Automaticky načítať správy pri roamingu"</string>
+    <string name="pref_title_save_location">Adresár príloh</string>
+    <string name="pref_summary_save_location">Adresár, do ktorého sa budú ukladať prílohy</string>
     <string name="to_label" msgid="2355268818058389047">"Komu "</string>
     <string name="confirm_dialog_title" msgid="5810813994465120375">"Odstrániť"</string>
     <string name="confirm_dialog_locked_title" msgid="8179085718150932242">"Odstrániť uzamknutú správu?"</string>
@@ -253,6 +263,7 @@
     <string name="attach_sound" msgid="3149325985970669609">"Zvuk"</string>
     <string name="attach_record_sound" msgid="6011431304469858929">"Zaznamenať zvuk"</string>
     <string name="attach_slideshow" msgid="3497422151091037063">"Prezentácia"</string>
+    <string name="attach_contact_info">Informácie o kontakte</string>
     <string name="select_bottom_text" msgid="4201966447623311931">"Dolný text"</string>
     <string name="select_top_text" msgid="6734183477539197815">"Horný text"</string>
     <string name="delivery_toast_body" msgid="4478305651728684364">"Správa prijatá aplikáciou %s"</string>
@@ -335,4 +346,72 @@
     <string name="sending_message" msgid="222836893217450538">"Prebieha odosielanie..."</string>
     <string name="error_state" msgid="5177386717626893507">"Nekonzistentný stav"</string>
     <string name="error_state_text" msgid="5006221625000536698">"Stav konverzácií a príjemcov nie je konzistentný. Nasnímajte fotografiu chybového hlásenia a odošlite ju na adresu android-sms-bugs@google.com."</string>
+    <string name="label_mms_push">Odoslať MMS</string>
+    <string name="desc_mms_push">Odošle MMS z priečinka odoslaných do siete</string>
+
+    <string name="pref_extra_settings">Ďalšie nastavenia</string>
+    <string name="pref_title_mms_back_to_all_threads">Späť na všetky konverzácie</string>
+    <string name="pref_summary_mms_back_to_all_threads">Vždy sa vrátiť na prehľad všetkých konverzácií pri stlačení tlačidla \"Späť\"</string>
+    <string name="pref_title_mms_black_background">Čierne pozadie</string>
+    <string name="pref_summary_mms_black_background">Povoliť/zakázať čierne pozadie\n(prejaví sa po reštarte aplikácie)</string>
+    <string name="pref_title_show_counter_always">Vždy zobrazovať počítadlo znakov</string>
+    <string name="pref_summary_show_counter_always">Pri písaní správy vždy zobrazovať počítadlo napísaných znakov</string>
+    <string name="pref_mms_custom_option">Vlastná</string>
+    <string name="pref_title_mms_user_agent">Vlastná identifikácia MMS</string>
+    <string name="pref_summary_mms_user_agent">Podvrhnúť identifikáciu telefónu pre MMS</string>
+    <string name="pref_mms_user_agent_custom_set">Vlastná identifikácia nastavená na:\n</string>
+    <string name="pref_title_mms_full_timestamp">Celý časový údaj</string>
+    <string name="pref_summary_mms_full_timestamp">Povoliť zobrazenie dátumu a času v správe</string>
+    <string name="pref_title_mms_use_sent_timestamp">Použiť čas odoslania</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Zobraziť čas odoslania od operátora namiesto času prijatia do zariadenia</string>
+    <string name="pref_title_mms_use_sent_timestamp_gmt_correction">Čas odoslania v GMT</string>
+    <string name="pref_summary_mms_use_sent_timestamp_gmt_correction">Povoliť v prípade, že čas odoslania operátora nie je posunutý voči GMT</string>
+    <string name="pref_title_only_mobile_numbers">Iba mobilné čísla</string>
+    <string name="pref_summary_only_mobile_numbers">V poli príjemcu povoliť iba mobilné čísla</string>
+    <string name="pref_title_mms_email_addr_completion">Doplňovať e-mailové adresy</string>
+    <string name="pref_summary_mms_email_addr_completion">Povoliť/zakázať automatické doplňovanie e-mailových adries v poli príjemcu</string>
+    <string name="pref_title_mms_message_font_size">Veľkosť písma správy</string>
+    <string name="pref_summary_mms_message_font_size">Zmeniť veľkosť písma zobrazenej správy</string>
+    <string name="pref_dialogtitle_mms_message_font_size">Vyberte veľkosť písma</string>
+    <string name="pref_title_mms_notification_vibrate_settings">Nastavenie vibrácie</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Vzor vibrácie</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Zmeniť vzor vibrácie</string>
+    <string name="pref_title_mms_notification_vibrate_call">Vibrovať pri hovore</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Povoliť vibráciu pri hovore</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Vlastný vzor vibrácie</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Nastavenie formátu zapnutia/vypnutia v milisekundách: vyp., zap., vyp., zap.\u2026</string>
+    <string name="pref_title_mms_send_on_enter">Odoslať kláv. Enter</string>
+    <string name="pref_summary_mms_send_on_enter">Povoliť/zakázať odoslanie správy pri stlačení klávesy \"Enter\"</string>
+    <string name="prefs_templates_settings">SMS šablóny</string>
+    <string name="pref_title_templates_manage">Šablóny</string>
+    <string name="pref_summary_templates_manage">Upraviť SMS šablóny</string>
+    <string name="pref_title_templates_show_gesture">Gestá</string>
+    <string name="pref_summary_templates_show_gesture">Zobraziť stopu gesta</string>
+    <string name="pref_title_template_gestures_sensitivity">Citlivosť gesta</string>
+    <string name="template_save">Uložiť</string>
+    <string name="template_insert_hint">Tu zadajte text šablóny</string>
+    <string name="template_empty_text">Text šablóny nesmie byť prázdny</string>
+    <string name="template_explanation">Vložte alebo zmeňte text šablóny, prípadne zadajte gesto, ktorým bude šablóna vyvolaná.</string>
+    <string name="template_edit">Zmeniť</string>
+    <string name="template_delete">Odstrániť</string>
+    <string name="template_ctx_menu_title">Akcia</string>
+    <string name="template_list_title">Šablóny</string>
+    <string name="template_edit_title">Zmeniť šablónu</string>
+    <string name="template_new_title">Nová šablóna</string>
+    <string name="template_insert">Vložiť šablónu</string>
+    <string name="template_insert_ctx_menu_title">Zmeniť text</string>
+    <string name="template_gesture_draw">V poli nižšie nakreslite gesto</string>
+    <string name="template_not_present_error">Nie je zadané žiadne gesto</string>
+    <string name="template_not_present_error_title">Chyba</string>
+    <string name="template_select">Vyberte šablónu</string>
+    <string name="template_cancel_confirm_title">Upozornenie</string>
+    <string name="template_cancel_confirm_text">Zrušiť?</string>
+    <string name="gestures_already_present">Upozornenie: Inej šablóne je priradené podobné gesto!</string>
+    <string name="toast_phone_goggles">Nie je povolené odosielanie SMS. Skúste to znova neskôr.</string>
+    <string name="dialog_phone_goggles_title">SMS blokovaná</string>
+    <string name="dialog_phone_goggles_title_unlocked">SMS autorizovaná</string>
+    <string name="dialog_phone_goggles_content">Nie je veľmi vhodné práve teraz odosielať SMS. Určite chcete pokračovať?</string>
+    <string name="dialog_phone_goggles_unauthorized">Nie je vhodné teraz odosielať SMS.</string>
+    <string name="dialog_phone_goggles_ok">Odoslať</string>
+    <string name="dialog_phone_goggles_cancel">Uložiť koncept</string>
 </resources>

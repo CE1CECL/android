@@ -87,35 +87,11 @@ class CompressionHelper;
 #define LOG(Call) ((void) 0)
 #endif
 
-
-class VMState BASE_EMBEDDED {
-#ifdef ENABLE_LOGGING_AND_PROFILING
- public:
-  inline VMState(StateTag state);
-  inline ~VMState();
-
-  StateTag state() { return state_; }
-  Address external_callback() { return external_callback_; }
-  void set_external_callback(Address external_callback) {
-    external_callback_ = external_callback;
-  }
-
- private:
-  bool disabled_;
-  StateTag state_;
-  VMState* previous_;
-  Address external_callback_;
-#else
- public:
-  explicit VMState(StateTag state) {}
-#endif
-};
-
-
 #define LOG_EVENTS_AND_TAGS_LIST(V) \
   V(CODE_CREATION_EVENT,            "code-creation",          "cc")       \
   V(CODE_MOVE_EVENT,                "code-move",              "cm")       \
   V(CODE_DELETE_EVENT,              "code-delete",            "cd")       \
+  V(CODE_MOVING_GC,                 "code-moving-gc",         "cg")       \
   V(FUNCTION_CREATION_EVENT,        "function-creation",      "fc")       \
   V(FUNCTION_MOVE_EVENT,            "function-move",          "fm")       \
   V(FUNCTION_DELETE_EVENT,          "function-delete",        "fd")       \
@@ -131,6 +107,18 @@ class VMState BASE_EMBEDDED {
   V(CALL_MISS_TAG,                  "CallMiss",               "cm")       \
   V(CALL_NORMAL_TAG,                "CallNormal",             "cn")       \
   V(CALL_PRE_MONOMORPHIC_TAG,       "CallPreMonomorphic",     "cpm")      \
+  V(KEYED_CALL_DEBUG_BREAK_TAG,     "KeyedCallDebugBreak",    "kcdb")     \
+  V(KEYED_CALL_DEBUG_PREPARE_STEP_IN_TAG,                                 \
+    "KeyedCallDebugPrepareStepIn",                                        \
+    "kcdbsi")                                                             \
+  V(KEYED_CALL_IC_TAG,              "KeyedCallIC",            "kcic")     \
+  V(KEYED_CALL_INITIALIZE_TAG,      "KeyedCallInitialize",    "kci")      \
+  V(KEYED_CALL_MEGAMORPHIC_TAG,     "KeyedCallMegamorphic",   "kcmm")     \
+  V(KEYED_CALL_MISS_TAG,            "KeyedCallMiss",          "kcm")      \
+  V(KEYED_CALL_NORMAL_TAG,          "KeyedCallNormal",        "kcn")      \
+  V(KEYED_CALL_PRE_MONOMORPHIC_TAG,                                       \
+    "KeyedCallPreMonomorphic",                                            \
+    "kcpm")                                                               \
   V(CALLBACK_TAG,                   "Callback",               "cb")       \
   V(EVAL_TAG,                       "Eval",                   "e")        \
   V(FUNCTION_TAG,                   "Function",               "f")        \
@@ -141,7 +129,13 @@ class VMState BASE_EMBEDDED {
   V(REG_EXP_TAG,                    "RegExp",                 "re")       \
   V(SCRIPT_TAG,                     "Script",                 "sc")       \
   V(STORE_IC_TAG,                   "StoreIC",                "sic")      \
-  V(STUB_TAG,                       "Stub",                   "s")
+  V(STUB_TAG,                       "Stub",                   "s")        \
+  V(NATIVE_FUNCTION_TAG,            "Function",               "f")        \
+  V(NATIVE_LAZY_COMPILE_TAG,        "LazyCompile",            "lc")       \
+  V(NATIVE_SCRIPT_TAG,              "Script",                 "sc")
+// Note that 'NATIVE_' cases for functions and scripts are mapped onto
+// original tags when writing to the log.
+
 
 class Logger {
  public:
@@ -166,6 +160,7 @@ class Logger {
 
   // Emits an event with an int value -> (name, value).
   static void IntEvent(const char* name, int value);
+  static void IntPtrTEvent(const char* name, intptr_t value);
 
   // Emits an event with an handle value -> (name, location).
   static void HandleEvent(const char* name, Object** location);
@@ -215,6 +210,7 @@ class Logger {
   static void CodeCreateEvent(LogEventsAndTags tag, Code* code, String* name,
                               String* source, int line);
   static void CodeCreateEvent(LogEventsAndTags tag, Code* code, int args_count);
+  static void CodeMovingGCEvent();
   // Emits a code create event for a RegExp.
   static void RegExpCodeCreateEvent(Code* code, String* source);
   // Emits a code move event.
@@ -223,6 +219,7 @@ class Logger {
   static void CodeDeleteEvent(Address from);
   // Emits a function object create event.
   static void FunctionCreateEvent(JSFunction* function);
+  static void FunctionCreateEventFromMove(JSFunction* function);
   // Emits a function move event.
   static void FunctionMoveEvent(Address from, Address to);
   // Emits a function delete event.
@@ -242,7 +239,7 @@ class Logger {
   static void HeapSampleJSProducerEvent(const char* constructor,
                                         Address* stack);
   static void HeapSampleStats(const char* space, const char* kind,
-                              int capacity, int used);
+                              intptr_t capacity, intptr_t used);
 
   static void SharedLibraryEvent(const char* library_path,
                                  uintptr_t start,
@@ -260,12 +257,8 @@ class Logger {
   static void LogRuntime(Vector<const char> format, JSArray* args);
 
 #ifdef ENABLE_LOGGING_AND_PROFILING
-  static StateTag state() {
-    return current_state_ ? current_state_->state() : OTHER;
-  }
-
   static bool is_logging() {
-    return is_logging_;
+    return logging_nesting_ > 0;
   }
 
   // Pause/Resume collection of profiling data.
@@ -288,10 +281,13 @@ class Logger {
   // Used for logging stubs found in the snapshot.
   static void LogCodeObjects();
 
- private:
+  // Converts tag to a corresponding NATIVE_... if the script is native.
+  INLINE(static LogEventsAndTags ToNativeByScript(LogEventsAndTags, Script*));
 
   // Profiler's sampling interval (in milliseconds).
   static const int kSamplingIntervalMs = 1;
+
+ private:
 
   // Size of window used for log records compression.
   static const int kCompressionWindowSize = 4;
@@ -322,6 +318,12 @@ class Logger {
   // Used for logging stubs found in the snapshot.
   static void LogCodeObject(Object* code_object);
 
+  // Emits general information about generated code.
+  static void LogCodeInfo();
+
+  // Handles code creation when low-level profiling is active.
+  static void LowLevelCodeCreateEvent(Code* code, LogMessageBuilder* msg);
+
   // Emits a profiler tick event. Used by the profiler thread.
   static void TickEvent(TickSample* sample, bool overflow);
 
@@ -329,6 +331,10 @@ class Logger {
 
   // Logs a StringEvent regardless of whether FLAG_log is true.
   static void UncheckedStringEvent(const char* name, const char* value);
+
+  // Logs an IntEvent regardless of whether FLAG_log is true.
+  static void UncheckedIntEvent(const char* name, int value);
+  static void UncheckedIntPtrTEvent(const char* name, intptr_t value);
 
   // Stops logging and profiling in case of insufficient resources.
   static void StopLoggingAndProfiling();
@@ -343,12 +349,6 @@ class Logger {
   // points to a Profiler, that handles collection
   // of samples.
   static Profiler* profiler_;
-
-  // A stack of VM states.
-  static VMState* current_state_;
-
-  // Singleton bottom or default vm state.
-  static VMState bottom_state_;
 
   // SlidingStateWindow instance keeping a sliding window of the most
   // recent VM states.
@@ -372,9 +372,11 @@ class Logger {
 
   friend class LoggerTestHelper;
 
-  static bool is_logging_;
+  static int logging_nesting_;
   static int cpu_profiler_nesting_;
   static int heap_profiler_nesting_;
+
+  friend class CpuProfiler;
 #else
   static bool is_logging() { return false; }
 #endif
@@ -387,7 +389,7 @@ class StackTracer : public AllStatic {
   static void Trace(TickSample* sample);
 };
 
-
 } }  // namespace v8::internal
+
 
 #endif  // V8_LOG_H_

@@ -36,7 +36,7 @@
 namespace v8 {
 namespace internal {
 
-#ifndef V8_NATIVE_REGEXP
+#ifdef V8_INTERPRETED_REGEXP
 
 RegExpMacroAssemblerIrregexp::RegExpMacroAssemblerIrregexp(Vector<byte> buffer)
     : buffer_(buffer),
@@ -142,6 +142,12 @@ void RegExpMacroAssemblerIrregexp::ReadStackPointerFromRegister(
   ASSERT(register_index >= 0);
   ASSERT(register_index <= kMaxRegister);
   Emit(BC_SET_SP_TO_REGISTER, register_index);
+}
+
+
+void RegExpMacroAssemblerIrregexp::SetCurrentPositionFromEnd(int by) {
+  ASSERT(is_uint24(by));
+  Emit(BC_SET_CURRENT_POSITION_FROM_END, by);
 }
 
 
@@ -459,6 +465,6 @@ void RegExpMacroAssemblerIrregexp::Expand() {
   }
 }
 
-#endif  // !V8_NATIVE_REGEXP
+#endif  // V8_INTERPRETED_REGEXP
 
 } }  // namespace v8::internal

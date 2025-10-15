@@ -337,10 +337,14 @@ all_objects := \
 	$(gen_asm_objects) \
 	$(c_objects) \
 	$(gen_c_objects) \
-	$(objc_objects) \
 	$(yacc_objects) \
 	$(lex_objects) \
 	$(addprefix $(TOPDIR)$(LOCAL_PATH)/,$(LOCAL_PREBUILT_OBJ_FILES))
+
+## Allow a device's own headers to take precedence over global ones
+ifneq ($(TARGET_SPECIFIC_HEADER_PATH),)
+LOCAL_C_INCLUDES += $(TOPDIR)$(TARGET_SPECIFIC_HEADER_PATH)
+endif
 
 LOCAL_C_INCLUDES += $(TOPDIR)$(LOCAL_PATH) $(intermediates) $(base_intermediates)
 
@@ -476,13 +480,6 @@ built_whole_libraries := \
 installed_static_library_notice_file_targets := \
     $(foreach lib,$(LOCAL_STATIC_LIBRARIES) $(LOCAL_WHOLE_STATIC_LIBRARIES), \
       NOTICE-$(if $(LOCAL_IS_HOST_MODULE),HOST,TARGET)-STATIC_LIBRARIES-$(lib))
-
-# filter out  if the host gcc doesn't have the expected version
-ifdef LOCAL_IS_HOST_MODULE
-ifndef IS_EXPECTED_HOST_GCC
-LOCAL_CFLAGS := $(filter-out , $(LOCAL_CFLAGS))
-endif
-endif
 
 ###########################################################
 # Rule-specific variable definitions

@@ -22,7 +22,8 @@ common_SRC_FILES := \
 	pngwtran.c \
 	pngwutil.c
 
-common_CFLAGS := ## -fomit-frame-pointer
+common_CFLAGS := \
+       -fvisibility=hidden ## -fomit-frame-pointer
 
 common_C_INCLUDES += \
 
@@ -48,6 +49,11 @@ include $(BUILD_HOST_STATIC_LIBRARY)
 
 # For the device
 # =====================================================
+
+ifeq ($(ARCH_ARM_HAVE_NEON),true)
+   common_SRC_FILES += contrib/pngneon/png_read_filter_row_neon.s
+   common_CFLAGS += -D__ARM_HAVE_NEON
+endif
 
 include $(CLEAR_VARS)
 

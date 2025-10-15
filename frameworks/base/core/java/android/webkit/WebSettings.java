@@ -22,6 +22,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.util.EventLog;
 import java.lang.SecurityException;
 import java.util.Locale;
@@ -178,6 +179,7 @@ public class WebSettings {
     private boolean         mUseWideViewport = false;
     private boolean         mSupportMultipleWindows = false;
     private boolean         mShrinksStandaloneImagesToFit = false;
+    private boolean         mInvertColor = false;
     // HTML5 API flags
     private boolean         mAppCacheEnabled = false;
     private boolean         mDatabaseEnabled = false;
@@ -408,6 +410,9 @@ public class WebSettings {
             buffer.append(" Build/");
             buffer.append(id);
         }
+        final String modversion = SystemProperties.get("ro.modversion");
+        if (modversion != null && modversion.length() > 0)
+            buffer.append("; " + modversion.replaceAll("(.+?-.*?)-.*","$1"));
         final String base = mContext.getResources().getText(
                 com.android.internal.R.string.web_user_agent).toString();
         return String.format(base, buffer);
@@ -425,6 +430,14 @@ public class WebSettings {
      */
     public boolean getNavDump() {
         return mNavDump;
+    }
+
+    /**
+     * Hides the onscreen zoom controls
+     * @hide
+     */
+    public void showZoomControls(boolean value) {
+        mWebView.showZoomControls(value);
     }
 
     /**
@@ -1429,6 +1442,23 @@ public class WebSettings {
             postSync();
         }
      }
+
+    /**
+     * @hide
+     */
+    public synchronized void setInvertColor(boolean invert) {
+        if (mInvertColor != invert) {
+            mInvertColor = invert;
+            postSync();
+        }
+    }
+
+    /**
+     * @hide
+     */
+    public synchronized boolean getInvertColor() {
+        return mInvertColor;
+    }
 
     int getDoubleTapToastCount() {
         return mDoubleTapToastCount;

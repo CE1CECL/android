@@ -132,9 +132,10 @@ public class EditEvent extends Activity implements View.OnClickListener,
             Events.RRULE,             // 10
             Events._SYNC_ID,          // 11
             Events.TRANSPARENCY,      // 12
-            Events.VISIBILITY,        // 13
-            Events.OWNER_ACCOUNT,     // 14
-            Events.HAS_ATTENDEE_DATA, // 15
+            Events.STATUS,            // 13
+            Events.VISIBILITY,        // 14
+            Events.OWNER_ACCOUNT,     // 15
+            Events.HAS_ATTENDEE_DATA, // 16
     };
     private static final int EVENT_INDEX_ID = 0;
     private static final int EVENT_INDEX_TITLE = 1;
@@ -149,9 +150,10 @@ public class EditEvent extends Activity implements View.OnClickListener,
     private static final int EVENT_INDEX_RRULE = 10;
     private static final int EVENT_INDEX_SYNC_ID = 11;
     private static final int EVENT_INDEX_TRANSPARENCY = 12;
-    private static final int EVENT_INDEX_VISIBILITY = 13;
-    private static final int EVENT_INDEX_OWNER_ACCOUNT = 14;
-    private static final int EVENT_INDEX_HAS_ATTENDEE_DATA = 15;
+    private static final int EVENT_INDEX_STATUS = 13;
+    private static final int EVENT_INDEX_VISIBILITY = 14;
+    private static final int EVENT_INDEX_OWNER_ACCOUNT = 15;
+    private static final int EVENT_INDEX_HAS_ATTENDEE_DATA = 16;
 
     private static final String[] CALENDARS_PROJECTION = new String[] {
             Calendars._ID,           // 0
@@ -170,7 +172,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
             Reminders.MINUTES,  // 1
     };
     private static final int REMINDERS_INDEX_MINUTES = 1;
-    private static final String REMINDERS_WHERE = Reminders.EVENT_ID + "=%d AND (" +
+    private static final String REMINDERS_WHERE = Reminders.EVENT_ID + "=? AND (" +
             Reminders.METHOD + "=" + Reminders.METHOD_ALERT + " OR " + Reminders.METHOD + "=" +
             Reminders.METHOD_DEFAULT + ")";
 
@@ -218,6 +220,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
     private Spinner mCalendarsSpinner;
     private Spinner mRepeatsSpinner;
     private Spinner mAvailabilitySpinner;
+    private Spinner mEventStatusSpinner;
     private Spinner mVisibilitySpinner;
     private TextView mTitleTextView;
     private TextView mLocationTextView;
@@ -636,7 +639,11 @@ public class EditEvent extends Activity implements View.OnClickListener,
 
         boolean newEvent = false;
 
-        mFirstDayOfWeek = Calendar.getInstance().getFirstDayOfWeek();
+        //mFirstDayOfWeek = Calendar.getInstance().getFirstDayOfWeek();
+        //DEFAULT DAY
+        SharedPreferences prefs = CalendarPreferenceActivity.getSharedPreferences(this);
+        String str = prefs.getString(CalendarPreferenceActivity.KEY_WEEK_START_DAY,"1");
+        mFirstDayOfWeek = Integer.parseInt(str);
 
         mStartTime = new Time();
         mEndTime = new Time();
@@ -756,6 +763,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
         mCalendarsSpinner = (Spinner) findViewById(R.id.calendars);
         mRepeatsSpinner = (Spinner) findViewById(R.id.repeats);
         mAvailabilitySpinner = (Spinner) findViewById(R.id.availability);
+        mEventStatusSpinner = (Spinner) findViewById(R.id.event_status);
         mVisibilitySpinner = (Spinner) findViewById(R.id.visibility);
         mRemindersSeparator = findViewById(R.id.reminders_separator);
         mRemindersContainer = (LinearLayout) findViewById(R.id.reminder_items_container);
@@ -833,7 +841,6 @@ public class EditEvent extends Activity implements View.OnClickListener,
         String[] labels = r.getStringArray(R.array.reminder_minutes_labels);
         mReminderLabels = new ArrayList<String>(Arrays.asList(labels));
 
-        SharedPreferences prefs = CalendarPreferenceActivity.getSharedPreferences(this);
         String durationString =
                 prefs.getString(CalendarPreferenceActivity.KEY_DEFAULT_REMINDER, "0");
         mDefaultReminderMinutes = Integer.parseInt(durationString);
@@ -851,8 +858,9 @@ public class EditEvent extends Activity implements View.OnClickListener,
                 && (mEventCursor.getInt(EVENT_INDEX_HAS_ALARM) != 0);
         if (hasAlarm) {
             Uri uri = Reminders.CONTENT_URI;
-            String where = String.format(REMINDERS_WHERE, eventId);
-            Cursor reminderCursor = cr.query(uri, REMINDERS_PROJECTION, where, null, null);
+            String[] whereArgs = new String[] { String.valueOf(eventId) };
+            Cursor reminderCursor = cr.query(uri, REMINDERS_PROJECTION,
+                    REMINDERS_WHERE, whereArgs, null);
             try {
                 // First pass: collect all the custom reminder minutes (e.g.,
                 // a reminder of 8 minutes) into a global list.
@@ -980,6 +988,9 @@ public class EditEvent extends Activity implements View.OnClickListener,
             mAvailabilitySpinner.setSelection(availability);
         }
 
+        int status = intent.getIntExtra(Events.STATUS, Events.STATUS_CONFIRMED);
+        mEventStatusSpinner.setSelection(status);
+
         int visibility = intent.getIntExtra(Events.VISIBILITY, -1);
         if (visibility != -1) {
             mVisibilitySpinner.setSelection(visibility);
@@ -1013,6 +1024,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
             String description = cursor.getString(EVENT_INDEX_DESCRIPTION);
             String location = cursor.getString(EVENT_INDEX_EVENT_LOCATION);
             int availability = cursor.getInt(EVENT_INDEX_TRANSPARENCY);
+            int status = cursor.getInt(EVENT_INDEX_STATUS);
             int visibility = cursor.getInt(EVENT_INDEX_VISIBILITY);
             if (visibility > 0) {
                 // For now we the array contains the values 0, 2, and 3. We subtract one to match.
@@ -1090,6 +1102,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
             mLocationTextView.setText(location);
             mDescriptionTextView.setText(description);
             mAvailabilitySpinner.setSelection(availability);
+            mEventStatusSpinner.setSelection(status);
             mVisibilitySpinner.setSelection(visibility);
 
             // This is an existing event so hide the calendar spinner
@@ -2262,6 +2275,7 @@ public class EditEvent extends Activity implements View.OnClickListener,
         values.put(Events.DESCRIPTION, description);
         values.put(Events.EVENT_LOCATION, location);
         values.put(Events.TRANSPARENCY, mAvailabilitySpinner.getSelectedItemPosition());
+        values.put(Events.STATUS, mEventStatusSpinner.getSelectedItemPosition());
 
         int visibility = mVisibilitySpinner.getSelectedItemPosition();
         if (visibility > 0) {

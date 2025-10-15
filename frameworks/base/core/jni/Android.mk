@@ -80,6 +80,7 @@ LOCAL_SRC_FILES:= \
 	android_util_Process.cpp \
 	android_util_StringBlock.cpp \
 	android_util_XmlBlock.cpp \
+	android_util_PackageRedirectionMap.cpp \
 	android/graphics/AutoDecodeCancel.cpp \
 	android/graphics/Bitmap.cpp \
 	android/graphics/BitmapFactory.cpp \
@@ -130,6 +131,7 @@ LOCAL_SRC_FILES:= \
 	android_server_BluetoothService.cpp \
 	android_server_BluetoothEventLoop.cpp \
 	android_server_BluetoothA2dpService.cpp \
+	android_server_BluetoothHidService.cpp \
 	android_server_Watchdog.cpp \
 	android_message_digest_sha1.cpp \
 	android_ddm_DdmHandleNativeHeap.cpp \
@@ -141,6 +143,52 @@ LOCAL_SRC_FILES:= \
 	android_backup_BackupHelperDispatcher.cpp \
 	android_content_res_ObbScanner.cpp \
     android_content_res_Configuration.cpp
+
+ifeq ($(BOARD_HAVE_FM_RADIO),true)
+    ## There's a difference. BOARD_HAVE_FM_RADIO enabled the runtime
+    ## without modifying the audiosystem (which HAVE_FM_RADIO does)
+    LOCAL_CFLAGS += -DBOARD_HAVE_FM_RADIO
+    ifeq ($(BOARD_FM_DEVICE),)
+        BOARD_FM_DEVICE := $(BOARD_WLAN_DEVICE)
+    endif
+
+    ifeq ($(BOARD_FM_DEVICE),si4709)
+        LOCAL_SRC_FILES += android_hardware_fm_si4709.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),si4708)
+        LOCAL_SRC_FILES += android_hardware_fm_si4708.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),bcm2049)
+	LOCAL_CFLAGS += -DHAS_BCM20780
+        LOCAL_SRC_FILES += android_hardware_fm_bcm4325.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),bcm4329)
+        LOCAL_SRC_FILES += android_hardware_fm_bcm4325.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),bcm4325)
+        LOCAL_SRC_FILES += android_hardware_fm_bcm4325.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),wl1251)
+        LOCAL_SRC_FILES += android_hardware_fm_wl1271.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),wl1271)
+        LOCAL_SRC_FILES += android_hardware_fm_wl1271.cpp
+    endif
+    ifeq ($(BOARD_FM_DEVICE),ti-st)
+        LOCAL_SRC_FILES += android_hardware_fm_ti-st.cpp
+        LOCAL_SHARED_LIBRARIES += libfmstack libmcphal
+        FMSTACK := hardware/ti/wpan/fmradio/fm_stack
+        LOCAL_C_INCLUDES += $(FMSTACK)/HSW_FMStack/stack/inc/ \
+                            $(FMSTACK)/MCP_Common/Platform/fmhal/LINUX/common/inc/ \
+                            $(FMSTACK)/MCP_Common/Platform/os/LINUX/common/inc \
+                            $(FMSTACK)/MCP_Common/inc/ \
+                            $(FMSTACK)/MCP_Common/Platform/inc/ \
+                            $(FMSTACK)/MCP_Common/Platform/os/LINUX/android_zoom2/inc/ \
+                            $(FMSTACK)/MCP_Common/Platform/fmhal/inc/int/ \
+                            $(FMSTACK)/MCP_Common/Platform/fmhal/inc \
+                            $(FMSTACK)/HSW_FMStack/stack/inc/int/
+    endif
+endif
 
 LOCAL_C_INCLUDES += \
 	$(JNI_H_INCLUDE) \
@@ -165,7 +213,7 @@ LOCAL_C_INCLUDES += \
 	external/jpeg \
 	frameworks/opt/emoji
 
-LOCAL_SHARED_LIBRARIES := \
+LOCAL_SHARED_LIBRARIES += \
 	libexpat \
 	libnativehelper \
 	libcutils \
@@ -196,6 +244,8 @@ LOCAL_SHARED_LIBRARIES := \
 	libjpeg \
 	libnfc_ndef
 
+LOCAL_STATIC_LIBRARIES := libreboot
+
 ifeq ($(BOARD_HAVE_BLUETOOTH),true)
 LOCAL_C_INCLUDES += \
 	external/dbus \
@@ -225,6 +275,10 @@ ifeq ($(WITH_MALLOC_LEAK_CHECK),true)
 endif
 
 LOCAL_MODULE:= libandroid_runtime
+
+ifneq ($(BOARD_MOBILEDATA_INTERFACE_NAME),)
+        LOCAL_CFLAGS += -DMOBILE_IFACE_NAME='$(BOARD_MOBILEDATA_INTERFACE_NAME)'
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 

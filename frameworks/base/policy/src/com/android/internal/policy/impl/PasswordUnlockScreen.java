@@ -27,6 +27,7 @@ import com.android.internal.widget.PasswordEntryKeyboardView;
 
 import android.os.CountDownTimer;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.text.method.DigitsKeyListener;
 import android.text.method.TextKeyListener;
@@ -39,7 +40,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
-
+import android.view.ViewGroup;
 import com.android.internal.R;
 import com.android.internal.widget.PasswordEntryKeyboardHelper;
 
@@ -63,6 +64,7 @@ public class PasswordUnlockScreen extends LinearLayout implements KeyguardScreen
     private int mCreationHardKeyboardHidden;
     private CountDownTimer mCountdownTimer;
     private TextView mTitle;
+    private boolean mQuickUnlockScreen;
 
     // To avoid accidental lockout due to events while the device in in the pocket, ignore
     // any passwords with length less than or equal to this length.
@@ -79,13 +81,17 @@ public class PasswordUnlockScreen extends LinearLayout implements KeyguardScreen
         mCallback = callback;
         mLockPatternUtils = lockPatternUtils;
 
+        mQuickUnlockScreen = (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.LOCKSCREEN_QUICK_UNLOCK_CONTROL, 0) == 1);
+
         LayoutInflater layoutInflater = LayoutInflater.from(context);
         if (mCreationOrientation != Configuration.ORIENTATION_LANDSCAPE) {
             layoutInflater.inflate(R.layout.keyguard_screen_password_portrait, this, true);
         } else {
             layoutInflater.inflate(R.layout.keyguard_screen_password_landscape, this, true);
         }
-
+        ViewGroup lockWallpaper = (ViewGroup) findViewById(R.id.password);
+        LockScreen.setBackground(getContext(), lockWallpaper);
         final int quality = lockPatternUtils.getKeyguardStoredPasswordQuality();
         final boolean isAlpha = DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC == quality
                 || DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC == quality;
@@ -116,6 +122,21 @@ public class PasswordUnlockScreen extends LinearLayout implements KeyguardScreen
 
         mKeyboardHelper.setVibratePattern(mLockPatternUtils.isTactileFeedbackEnabled() ?
                 com.android.internal.R.array.config_virtualKeyVibePattern : 0);
+
+        if (mQuickUnlockScreen) {
+            mPasswordEntry.setOnKeyListener(new View.OnKeyListener() {
+                @Override
+                public boolean onKey(View v, int keyCode, KeyEvent event) {
+                    mCallback.pokeWakelock();
+                    String entry = mPasswordEntry.getText().toString();
+                    if (mLockPatternUtils.checkPassword(entry)) {
+                        mCallback.keyguardDone(true);
+                        mCallback.reportSuccessfulUnlockAttempt();
+                    }
+                    return false;
+                }
+            });
+        }
     }
 
     @Override
@@ -264,4 +285,7 @@ public class PasswordUnlockScreen extends LinearLayout implements KeyguardScreen
 
     }
 
+    public void onMusicChanged() {
+
+    }
 }

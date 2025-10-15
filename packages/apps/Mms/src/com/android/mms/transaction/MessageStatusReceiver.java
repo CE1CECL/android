@@ -34,7 +34,7 @@ import com.android.mms.LogTag;
 public class MessageStatusReceiver extends BroadcastReceiver {
     public static final String MESSAGE_STATUS_RECEIVED_ACTION =
             "com.android.mms.transaction.MessageStatusReceiver.MESSAGE_STATUS_RECEIVED";
-    private static final String[] ID_PROJECTION = new String[] { Sms._ID };
+    private static final String[] ID_PROJECTION = new String[] { Sms._ID, Sms.ADDRESS };
     private static final String LOG_TAG = "MessageStatusReceiver";
     private static final Uri STATUS_URI =
             Uri.parse("content://sms/status");
@@ -81,6 +81,13 @@ public class MessageStatusReceiver extends BroadcastReceiver {
                 contentValues.put(Sms.STATUS, status);
                 SqliteWrapper.update(context, context.getContentResolver(),
                                     updateUri, contentValues, null, null);
+                // Status is only changed to STATUS_COMPLETE once. We call this every
+                // time this happens to ensure that we get a notification for each
+                // delivery and not just the latest one if several messages change
+                // status at the same time. This call is non blocking since we are in UI thread.
+                if (status == Sms.STATUS_COMPLETE) {
+                    MessagingNotification.nonBlockingShowDelivery(context, cursor.getString(1));
+                }
             } else {
                 error("Can't find message for status update: " + messageUri);
             }

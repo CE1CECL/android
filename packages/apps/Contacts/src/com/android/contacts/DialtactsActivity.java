@@ -32,6 +32,11 @@ import android.util.Log;
 import android.view.Window;
 import android.widget.TabHost;
 
+//Wysie
+import android.content.pm.ActivityInfo;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
 /**
  * The dialer activity that has one tab with the virtual 12key
  * dialer, a tab with recent calls in it, a tab with the contacts and
@@ -55,13 +60,28 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
     private static final String PREF_FAVORITES_AS_CONTACTS = "favorites_as_contacts";
     private static final boolean PREF_FAVORITES_AS_CONTACTS_DEFAULT = false;
 
+    /** Which tab to show when launching the Phone app */
+    private static final String PREF_DEFAULT_PHONE_TAB = "misc_default_phone_tab";
+    private static final int PREF_DEFAULT_PHONE_TAB_LAST_USED = 0; //Default
+    private static final int PREF_DEFAULT_PHONE_TAB_LAST_VIEWED = 1;
+    private static final int PREF_DEFAULT_PHONE_TAB_DIALER = 2;
+    private static final int PREF_DEFAULT_PHONE_TAB_CALL_LOG = 3;
+    private static final int PREF_DEFAULT_PHONE_TAB_CONTACTS = 4;
+    private static final int PREF_DEFAULT_PHONE_TAB_FAVORITES = 5;
+    private static final String PREF_DEFAULT_PHONE_TAB_DEFAULT= "0";
+
     private TabHost mTabHost;
     private String mFilterText;
     private Uri mDialUri;
+    
+    //Wysie
+    private SharedPreferences ePrefs;
 
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
+        
+        ePrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
         final Intent intent = getIntent();
 
@@ -71,8 +91,28 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
         mTabHost = getTabHost();
         mTabHost.setOnTabChangedListener(this);
 
+        String componentName = intent.getComponent().getClassName();
+
+	/* If intent is to view the Contacts List, prevent Dialer tab
+	 * from being set as current tab.
+	 *
+        if (!getClass().getName().equals(componentName) &&
+	    !FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
+            mTabHost.setAvoidFirstTabLoad(true);
+	}*/
+
         // Setup the tabs
         setupDialerTab();
+
+	/* If intent is to view the Contacts List, restore the state of mTabhost so
+	 * that the rest of the application semantics remains unchanged.
+	 *
+        if (!getClass().getName().equals(componentName) &&
+	    !FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
+	    mTabHost.setCurrentTabToZero();
+	    mTabHost.setAvoidFirstTabLoad(false);
+	} */
+
         setupCallLogTab();
         setupContactsTab();
         setupFavoritesTab();
@@ -82,6 +122,21 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
         if (intent.getAction().equals(UI.FILTER_CONTACTS_ACTION)
                 && icicle == null) {
             setupFilterText(intent);
+        }        
+
+    }
+    
+    //Wysie
+    @Override
+    protected void onResume() {
+        super.onResume();
+        
+        //Wysie: Set rotation if necessary
+        if(ePrefs.getBoolean("misc_sensor_rotation", false)) {
+            this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        }
+        else {
+        	this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
         }
     }
 
@@ -176,9 +231,39 @@ public class DialtactsActivity extends TabActivity implements TabHost.OnTabChang
                 // After a call, show the call log
                 mTabHost.setCurrentTab(TAB_INDEX_CALL_LOG);
             } else {
-                // Load the last tab used to make a phone call. default to the dialer in
-                // first launch
-                mTabHost.setCurrentTab(StickyTabs.loadTab(this, TAB_INDEX_DIALER));
+                int defaultPhoneTab = Integer.parseInt(ePrefs.getString(PREF_DEFAULT_PHONE_TAB, PREF_DEFAULT_PHONE_TAB_DEFAULT));
+                switch (defaultPhoneTab) {
+                    case PREF_DEFAULT_PHONE_TAB_LAST_USED:
+                        // Load the last tab used to make a phone call. default to the dialer in
+                        // first launch
+                        mTabHost.setCurrentTab(StickyTabs.loadTab(this, TAB_INDEX_DIALER));
+                        break;
+
+                    case PREF_DEFAULT_PHONE_TAB_LAST_VIEWED:
+                        // Load the last tab viewed
+                        // TODO: persist this
+                        break;
+
+                    case PREF_DEFAULT_PHONE_TAB_DIALER:
+                        // Load the dialer
+                        mTabHost.setCurrentTab(TAB_INDEX_DIALER);
+                        break;
+
+                    case PREF_DEFAULT_PHONE_TAB_CALL_LOG:
+                        // Load the call log
+                        mTabHost.setCurrentTab(TAB_INDEX_CALL_LOG);
+                        break;
+
+                    case PREF_DEFAULT_PHONE_TAB_CONTACTS:
+                        // Load contacts
+                        mTabHost.setCurrentTab(TAB_INDEX_CONTACTS);
+                        break;
+
+                    case PREF_DEFAULT_PHONE_TAB_FAVORITES:
+                        // Load favorites
+                        mTabHost.setCurrentTab(TAB_INDEX_FAVORITES);
+                        break;
+              }
             }
         } else if (FAVORITES_ENTRY_COMPONENT.equals(componentName)) {
             mTabHost.setCurrentTab(TAB_INDEX_FAVORITES);

@@ -98,10 +98,11 @@ class WifiDialog extends AlertDialog implements View.OnClickListener,
             // If the user adds a network manually, assume that it is hidden.
             config.hiddenSSID = true;
         } else if (mAccessPoint.networkId == -1) {
-            config.SSID = AccessPoint.convertToQuotedString(
-                    mAccessPoint.ssid);
+            config.SSID = AccessPoint.convertToQuotedString(mAccessPoint.ssid);
+            config.adhocSSID = mAccessPoint.adhoc;
         } else {
             config.networkId = mAccessPoint.networkId;
+            config.adhocSSID = mAccessPoint.adhoc;
         }
 
         switch (mSecurity) {
@@ -318,7 +319,8 @@ class WifiDialog extends AlertDialog implements View.OnClickListener,
             if (mAccessPoint != null && mAccessPoint.networkId != -1) {
                 WifiConfiguration config = mAccessPoint.getConfig();
                 setSelection(mEapMethod, config.eap.value());
-                setSelection(mPhase2, config.phase2.value());
+                setSelection(mPhase2, (config.phase2.value() == null) ? null :
+                        config.phase2.value().substring(5));
                 setCertificate(mEapCaCert, Credentials.CA_CERTIFICATE,
                         config.ca_cert.value());
                 setCertificate(mEapUserCert, Credentials.USER_PRIVATE_KEY,

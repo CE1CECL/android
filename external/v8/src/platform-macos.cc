@@ -39,6 +39,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <signal.h>
+#include <libkern/OSAtomic.h>
 #include <mach/mach.h>
 #include <mach/semaphore.h>
 #include <mach/task.h>
@@ -205,7 +206,11 @@ OS::MemoryMappedFile* OS::MemoryMappedFile::create(const char* name, int size,
     void* initial) {
   FILE* file = fopen(name, "w+");
   if (file == NULL) return NULL;
-  fwrite(initial, size, 1, file);
+  int result = fwrite(initial, size, 1, file);
+  if (result < 1) {
+    fclose(file);
+    return NULL;
+  }
   void* memory =
       mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fileno(file), 0);
   return new PosixMemoryMappedFile(file, memory, size);
@@ -244,6 +249,10 @@ void OS::LogSharedLibraryAddresses() {
 }
 
 
+void OS::SignalCodeMovingGC() {
+}
+
+
 uint64_t OS::CpuFeaturesImpliedByPlatform() {
   // MacOSX requires all these to install so we can assume they are present.
   // These constants are defined by the CPUid instructions.
@@ -256,6 +265,12 @@ int OS::ActivationFrameAlignment() {
   // OS X activation frames must be 16 byte-aligned; see "Mac OS X ABI
   // Function Call Guide".
   return 16;
+}
+
+
+void OS::ReleaseStore(volatile AtomicWord* ptr, AtomicWord value) {
+  OSMemoryBarrier();
+  *ptr = value;
 }
 
 
@@ -278,24 +293,17 @@ double OS::LocalTimeOffset() {
 
 
 int OS::StackWalk(Vector<StackFrame> frames) {
-#ifdef ANDROID
-  // For some reason the weak linkage doesn't work when building mksnapshot
-  // for android on macos. Just bail out as if we're on 10.4. We don't need
-  // stack walking for mksnapshot.
-  return 0;
-#else
   // If weak link to execinfo lib has failed, ie because we are on 10.4, abort.
   if (backtrace == NULL)
     return 0;
 
   int frames_size = frames.length();
-  void** addresses = NewArray<void*>(frames_size);
-  int frames_count = backtrace(addresses, frames_size);
+  ScopedVector<void*> addresses(frames_size);
 
-  char** symbols;
-  symbols = backtrace_symbols(addresses, frames_count);
+  int frames_count = backtrace(addresses.start(), frames_size);
+
+  char** symbols = backtrace_symbols(addresses.start(), frames_count);
   if (symbols == NULL) {
-    DeleteArray(addresses);
     return kStackWalkError;
   }
 
@@ -311,11 +319,9 @@ int OS::StackWalk(Vector<StackFrame> frames) {
     frames[i].text[kStackWalkMaxTextLen - 1] = '\0';
   }
 
-  DeleteArray(addresses);
   free(symbols);
 
   return frames_count;
-#endif // ANDROID
 }
 
 
@@ -551,13 +557,24 @@ class Sampler::PlatformData : public Malloced {
 
   // Sampler thread handler.
   void Runner() {
-    // Loop until the sampler is disengaged.
-    while (sampler_->IsActive()) {
-      TickSample sample;
+    // Loop until the sampler is disengaged, keeping the specified
+    // sampling frequency.
+    for ( ; sampler_->IsActive(); OS::Sleep(sampler_->interval_)) {
+      TickSample sample_obj;
+      TickSample* sample = CpuProfiler::TickSampleEvent();
+      if (sample == NULL) sample = &sample_obj;
+
+      // If the sampler runs in sync with the JS thread, we try to
+      // suspend it. If we fail, we skip the current sample.
+      if (sampler_->IsSynchronous()) {
+        if (KERN_SUCCESS != thread_suspend(profiled_thread_)) continue;
+      }
+
+      // We always sample the VM state.
+      sample->state = VMState::current_state();
 
       // If profiling, we record the pc and sp of the profiled thread.
-      if (sampler_->IsProfiling()
-          && KERN_SUCCESS == thread_suspend(profiled_thread_)) {
+      if (sampler_->IsProfiling()) {
 #if V8_HOST_ARCH_X64
         thread_state_flavor_t flavor = x86_THREAD_STATE64;
         x86_thread_state64_t state;
@@ -584,21 +601,19 @@ class Sampler::PlatformData : public Malloced {
                              flavor,
                              reinterpret_cast<natural_t*>(&state),
                              &count) == KERN_SUCCESS) {
-          sample.pc = reinterpret_cast<Address>(state.REGISTER_FIELD(ip));
-          sample.sp = reinterpret_cast<Address>(state.REGISTER_FIELD(sp));
-          sample.fp = reinterpret_cast<Address>(state.REGISTER_FIELD(bp));
-          sampler_->SampleStack(&sample);
+          sample->pc = reinterpret_cast<Address>(state.REGISTER_FIELD(ip));
+          sample->sp = reinterpret_cast<Address>(state.REGISTER_FIELD(sp));
+          sample->fp = reinterpret_cast<Address>(state.REGISTER_FIELD(bp));
+          sampler_->SampleStack(sample);
         }
-        thread_resume(profiled_thread_);
       }
 
-      // We always sample the VM state.
-      sample.state = Logger::state();
       // Invoke tick handler with program counter and stack pointer.
-      sampler_->Tick(&sample);
+      sampler_->Tick(sample);
 
-      // Wait until next sampling.
-      usleep(sampler_->interval_ * 1000);
+      // If the sampler runs in sync with the JS thread, we have to
+      // remember to resume it.
+      if (sampler_->IsSynchronous()) thread_resume(profiled_thread_);
     }
   }
 };
@@ -616,7 +631,11 @@ static void* SamplerEntry(void* arg) {
 
 
 Sampler::Sampler(int interval, bool profiling)
-    : interval_(interval), profiling_(profiling), active_(false) {
+    : interval_(interval),
+      profiling_(profiling),
+      synchronous_(profiling),
+      active_(false),
+      samples_taken_(0) {
   data_ = new PlatformData(this);
 }
 
@@ -627,9 +646,9 @@ Sampler::~Sampler() {
 
 
 void Sampler::Start() {
-  // If we are profiling, we need to be able to access the calling
-  // thread.
-  if (IsProfiling()) {
+  // If we are starting a synchronous sampler, we need to be able to
+  // access the calling thread.
+  if (IsSynchronous()) {
     data_->profiled_thread_ = mach_thread_self();
   }
 
@@ -658,7 +677,7 @@ void Sampler::Stop() {
   pthread_join(data_->sampler_thread_, NULL);
 
   // Deallocate Mach port for thread.
-  if (IsProfiling()) {
+  if (IsSynchronous()) {
     mach_port_deallocate(data_->task_self_, data_->profiled_thread_);
   }
 }

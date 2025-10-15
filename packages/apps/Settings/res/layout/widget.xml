@@ -22,17 +22,18 @@
     android:background="@drawable/appwidget_bg" >
 
     <LinearLayout
-        android:id="@+id/btn_wifi"
+        android:id="@+id/btn_w1"
         android:layout_width="0dip"
         android:layout_weight="1"
         android:layout_height="match_parent"
-        android:background="@drawable/appwidget_button_left"
+        android:background="@drawable/appwidget_button_center"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="gone"        
         android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/img_wifi"
+            android:id="@+id/img_w1"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="1"
@@ -40,7 +41,7 @@
             />
 
         <ImageView
-            android:id="@+id/ind_wifi"
+            android:id="@+id/ind_w1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"
@@ -48,23 +49,26 @@
         </LinearLayout>
 
     <ImageView
+        android:id="@+id/sep_w1"
         android:layout_width="1dip"
         android:layout_height="match_parent"
+        android:visibility="gone"        
         android:background="@drawable/appwidget_settings_divider"
         />
 
     <LinearLayout
-        android:id="@+id/btn_bluetooth"
+        android:id="@+id/btn_w2"
         android:layout_width="0dip"
         android:layout_weight="1"
         android:layout_height="match_parent"
         android:background="@drawable/appwidget_button_center"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="gone"        
         android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/img_bluetooth"
+            android:id="@+id/img_w2"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="1"
@@ -72,7 +76,42 @@
             />
 
         <ImageView
-            android:id="@+id/ind_bluetooth"
+            android:id="@+id/ind_w2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="fitXY"
+            />
+        </LinearLayout>
+
+    <ImageView
+        android:id="@+id/sep_w2"
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:visibility="gone"        
+        android:background="@drawable/appwidget_settings_divider"
+        />
+
+    <LinearLayout
+        android:id="@+id/btn_w3"
+        android:layout_width="0dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@drawable/appwidget_button_center"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"        
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/img_w3"
+            android:layout_width="match_parent"
+            android:layout_height="0dip"
+            android:layout_weight="1"
+            android:scaleType="center"
+            />
+
+        <ImageView
+            android:id="@+id/ind_w3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"
@@ -81,23 +120,26 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/sep_w3"
         android:layout_width="1dip"
         android:layout_height="match_parent"
+        android:visibility="gone"        
         android:background="@drawable/appwidget_settings_divider"
         />
 
     <LinearLayout
-        android:id="@+id/btn_gps"
+        android:id="@+id/btn_w4"
         android:layout_width="0dip"
         android:layout_weight="1"
         android:layout_height="match_parent"
         android:background="@drawable/appwidget_button_center"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="gone"        
         android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/img_gps"
+            android:id="@+id/img_w4"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="1"
@@ -105,7 +147,7 @@
             />
 
         <ImageView
-            android:id="@+id/ind_gps"
+            android:id="@+id/ind_w4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"
@@ -113,23 +155,26 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/sep_w4"
         android:layout_width="1dip"
         android:layout_height="match_parent"
+        android:visibility="gone"        
         android:background="@drawable/appwidget_settings_divider"
         />    
 
     <LinearLayout
-        android:id="@+id/btn_sync"
+        android:id="@+id/btn_w5"
         android:layout_width="0dip"
         android:layout_weight="1"
         android:layout_height="match_parent"
         android:background="@drawable/appwidget_button_center"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="gone"        
         android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/img_sync"
+            android:id="@+id/img_w5"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="1"
@@ -137,7 +182,78 @@
             />
 
         <ImageView
-            android:id="@+id/ind_sync"
+            android:id="@+id/ind_w5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="fitXY"
+            />
+        </LinearLayout>
+
+    <ImageView
+        android:id="@+id/sep_w5"
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:visibility="gone"        
+        android:background="@drawable/appwidget_settings_divider"
+        />    
+
+    <LinearLayout
+        android:id="@+id/btn_w6"
+        android:layout_width="0dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@drawable/appwidget_button_center"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/img_w6"
+            android:layout_width="match_parent"
+            android:layout_height="0dip"
+            android:layout_weight="1"
+            android:scaleType="center"
+            />
+
+        <ImageView
+            android:id="@+id/ind_w6"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="fitXY"
+            />
+        </LinearLayout>
+
+    <ImageView
+        android:id="@+id/sep_w6"
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:background="@drawable/appwidget_settings_divider"
+        />
+
+    <LinearLayout
+        android:id="@+id/btn_w7"
+        android:layout_width="0dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@drawable/appwidget_button_center"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"        
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/img_w7"
+            android:layout_width="match_parent"
+            android:layout_height="0dip"
+            android:layout_weight="1"
+            android:scaleType="center"
+            />
+
+        <ImageView
+            android:id="@+id/ind_w7"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"
@@ -145,23 +261,26 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/sep_w7"
         android:layout_width="1dip"
         android:layout_height="match_parent"
+        android:visibility="gone"        
         android:background="@drawable/appwidget_settings_divider"
         />
 
     <LinearLayout
-        android:id="@+id/btn_brightness"
+        android:id="@+id/btn_w8"
         android:layout_width="0dip"
         android:layout_weight="1"
         android:layout_height="match_parent"
-        android:background="@drawable/appwidget_button_right"
+        android:background="@drawable/appwidget_button_center"
         android:clickable="true"
         android:focusable="true"
+        android:visibility="gone"        
         android:orientation="vertical">
 
         <ImageView
-            android:id="@+id/img_brightness"
+            android:id="@+id/img_w8"
             android:layout_width="match_parent"
             android:layout_height="0dip"
             android:layout_weight="1"
@@ -169,7 +288,77 @@
             />
 
         <ImageView
-            android:id="@+id/ind_brightness"
+            android:id="@+id/ind_w8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="fitXY"
+            />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/sep_w8"
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:visibility="gone"        
+        android:background="@drawable/appwidget_settings_divider"
+        />
+
+    <LinearLayout
+        android:id="@+id/btn_w9"
+        android:layout_width="0dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@drawable/appwidget_button_center"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/img_w9"
+            android:layout_width="match_parent"
+            android:layout_height="0dip"
+            android:layout_weight="1"
+            android:scaleType="center"
+            />
+
+        <ImageView
+            android:id="@+id/ind_w9"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scaleType="fitXY"
+            />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/sep_w9"
+        android:layout_width="1dip"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:background="@drawable/appwidget_settings_divider"
+        />
+
+    <LinearLayout
+        android:id="@+id/btn_w10"
+        android:layout_width="0dip"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:background="@drawable/appwidget_button_center"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/img_w10"
+            android:layout_width="match_parent"
+            android:layout_height="0dip"
+            android:layout_weight="1"
+            android:scaleType="center"
+            />
+
+        <ImageView
+            android:id="@+id/ind_w10"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scaleType="fitXY"

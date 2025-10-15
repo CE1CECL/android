@@ -73,6 +73,19 @@ const kDayMask            = 0x01f;
 const kYearShift          = 9;
 const kMonthShift         = 5;
 
+# Limits for parts of the date, so that we support all the dates that
+# ECMA 262 - 15.9.1.1 requires us to, but at the same time be sure that
+# the date (days since 1970) is in SMI range.
+const kMinYear  = -1000000;
+const kMaxYear  = 1000000;
+const kMinMonth = -10000000;
+const kMaxMonth = 10000000;
+const kMinDate  = -100000000;
+const kMaxDate  = 100000000;
+
+# Native cache ids.
+const STRING_TO_REGEXP_CACHE_ID = 0;
+
 # Type query macros.
 #
 # Note: We have special support for typeof(foo) === 'bar' in the compiler.
@@ -99,9 +112,16 @@ macro IS_GLOBAL(arg)            = (%_ClassOf(arg) === 'global');
 macro IS_UNDETECTABLE(arg)      = (%_IsUndetectableObject(arg));
 macro FLOOR(arg)                = $floor(arg);
 
+# Macro for ECMAScript 5 queries of the type:
+# "Type(O) is object."
+# This is the same as being either a function or an object in V8 terminology.
+# In addition, an undetectable object is also included by this.
+macro IS_SPEC_OBJECT(arg) = (%_IsSpecObject(arg));
+
 # Inline macros. Use %IS_VAR to make sure arg is evaluated only once.
 macro NUMBER_IS_NAN(arg) = (!%_IsSmi(%IS_VAR(arg)) && !(arg == arg));
-macro TO_INTEGER(arg) = (%_IsSmi(%IS_VAR(arg)) ? arg : ToInteger(arg));
+macro TO_INTEGER(arg) = (%_IsSmi(%IS_VAR(arg)) ? arg : %NumberToInteger(ToNumber(arg)));
+macro TO_INTEGER_MAP_MINUS_ZERO(arg) = (%_IsSmi(%IS_VAR(arg)) ? arg : %NumberToIntegerMapMinusZero(ToNumber(arg)));
 macro TO_INT32(arg) = (%_IsSmi(%IS_VAR(arg)) ? arg : (arg >> 0));
 macro TO_UINT32(arg) = (arg >>> 0);
 macro TO_STRING_INLINE(arg) = (IS_STRING(%IS_VAR(arg)) ? arg : NonStringToString(arg));
@@ -118,17 +138,24 @@ const REGEXP_FIRST_CAPTURE = 3;
 # REGEXP_NUMBER_OF_CAPTURES
 macro NUMBER_OF_CAPTURES(array) = ((array)[0]);
 
+# Limit according to ECMA 262 15.9.1.1
+const MAX_TIME_MS = 8640000000000000;
+
 # Gets the value of a Date object. If arg is not a Date object
 # a type error is thrown.
 macro DATE_VALUE(arg) = (%_ClassOf(arg) === 'Date' ? %_ValueOf(arg) : ThrowDateTypeError());
 macro DAY(time) = ($floor(time / 86400000));
-macro MONTH_FROM_TIME(time) = (FromJulianDay(($floor(time / 86400000)) + 2440588).month);
-macro DATE_FROM_TIME(time) = (FromJulianDay(($floor(time / 86400000)) + 2440588).date);
-macro YEAR_FROM_TIME(time) = (FromJulianDay(($floor(time / 86400000)) + 2440588).year);
+macro MONTH_FROM_TIME(time) = (MonthFromTime(time));
+macro DATE_FROM_TIME(time) = (DateFromTime(time));
+macro NAN_OR_DATE_FROM_TIME(time) = (NUMBER_IS_NAN(time) ? time : DATE_FROM_TIME(time));
+macro YEAR_FROM_TIME(time) = (YearFromTime(time));
 macro HOUR_FROM_TIME(time) = (Modulo($floor(time / 3600000), 24));
 macro MIN_FROM_TIME(time) = (Modulo($floor(time / 60000), 60));
+macro NAN_OR_MIN_FROM_TIME(time) = (NUMBER_IS_NAN(time) ? time : MIN_FROM_TIME(time));
 macro SEC_FROM_TIME(time) = (Modulo($floor(time / 1000), 60));
+macro NAN_OR_SEC_FROM_TIME(time) = (NUMBER_IS_NAN(time) ? time : SEC_FROM_TIME(time));
 macro MS_FROM_TIME(time) = (Modulo(time, 1000));
+macro NAN_OR_MS_FROM_TIME(time) = (NUMBER_IS_NAN(time) ? time : MS_FROM_TIME(time));
 
 # Last input and last subject of regexp matches.
 macro LAST_SUBJECT(array) = ((array)[1]);
@@ -138,3 +165,13 @@ macro LAST_INPUT(array) = ((array)[2]);
 macro CAPTURE(index) = (3 + (index));
 const CAPTURE0 = 3;
 const CAPTURE1 = 4;
+
+# PropertyDescriptor return value indices - must match 
+# PropertyDescriptorIndices in runtime.cc.
+const IS_ACCESSOR_INDEX = 0;
+const VALUE_INDEX = 1;
+const GETTER_INDEX = 2;
+const SETTER_INDEX = 3;
+const WRITABLE_INDEX = 4;
+const ENUMERABLE_INDEX = 5;
+const CONFIGURABLE_INDEX = 6;

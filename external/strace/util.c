@@ -230,7 +230,7 @@ struct timeval *tv, *a;
 int n;
 {
 	tv->tv_usec = a->tv_usec * n;
-	tv->tv_sec = a->tv_sec * n + a->tv_usec / 1000000;
+	tv->tv_sec = a->tv_sec * n + tv->tv_usec / 1000000;
 	tv->tv_usec %= 1000000;
 }
 
@@ -353,6 +353,27 @@ char *fmt;
 }
 
 void
+printnum_int(tcp, addr, fmt)
+struct tcb *tcp;
+long addr;
+char *fmt;
+{
+	int num;
+
+	if (!addr) {
+		tprintf("NULL");
+		return;
+	}
+	if (umove(tcp, addr, &num) < 0) {
+		tprintf("%#lx", addr);
+		return;
+	}
+	tprintf("[");
+	tprintf(fmt, num);
+	tprintf("]");
+}
+
+void
 printuid(text, uid)
 const char *text;
 unsigned long uid;
@@ -364,103 +385,17 @@ unsigned long uid;
 static char path[MAXPATHLEN + 1];
 
 static void
-string_quote(str)
-const char *str;
+string_quote(const char *instr, char *outstr, int len, int size)
 {
-	char buf[2 * MAXPATHLEN + 1];
-	char *s;
+	const unsigned char *ustr = (const unsigned char *) instr;
+	char *s = outstr;
+	int usehex = 0, c, i;
 
-	if (!strpbrk(str, "\"\'\\")) {
-		tprintf("\"%s\"", str);
-		return;
-	}
-	for (s = buf; *str; str++) {
-		switch (*str) {
-		case '\"': case '\'': case '\\':
-			*s++ = '\\'; *s++ = *str; break;
-		default:
-			*s++ = *str; break;
-		}
-	}
-	*s = '\0';
-	tprintf("\"%s\"", buf);
-}
-
-void
-printpath(tcp, addr)
-struct tcb *tcp;
-long addr;
-{
-	if (addr == 0)
-		tprintf("NULL");
-	else if (umovestr(tcp, addr, MAXPATHLEN, path) < 0)
-		tprintf("%#lx", addr);
-	else
-		string_quote(path);
-	return;
-}
-
-void
-printpathn(tcp, addr, n)
-struct tcb *tcp;
-long addr;
-int n;
-{
-	if (addr == 0)
-		tprintf("NULL");
-	else 	if (umovestr(tcp, addr, n, path) < 0)
-		tprintf("%#lx", addr);
-	else {
-		path[n] = '\0';
-		string_quote(path);
-	}
-}
-
-void
-printstr(tcp, addr, len)
-struct tcb *tcp;
-long addr;
-int len;
-{
-	static unsigned char *str = NULL;
-	static char *outstr;
-	int i, n, c, usehex;
-	char *s, *outend;
-
-	if (!addr) {
-		tprintf("NULL");
-		return;
-	}
-	if (!str) {
-		if ((str = malloc(max_strlen)) == NULL
-		    || (outstr = malloc(2*max_strlen)) == NULL) {
-			fprintf(stderr, "out of memory\n");
-			tprintf("%#lx", addr);
-			return;
-		}
-	}
-	outend = outstr + max_strlen * 2 - 10;
-	if (len < 0) {
-		n = max_strlen;
-		if (umovestr(tcp, addr, n, (char *) str) < 0) {
-			tprintf("%#lx", addr);
-			return;
-		}
-	}
-	else {
-		n = MIN(len, max_strlen);
-		if (umoven(tcp, addr, n, (char *) str) < 0) {
-			tprintf("%#lx", addr);
-			return;
-		}
-	}
-
-	usehex = 0;
 	if (xflag > 1)
 		usehex = 1;
 	else if (xflag) {
-		for (i = 0; i < n; i++) {
-			c = str[i];
+		for (i = 0; i < size; ++i) {
+			c = ustr[i];
 			if (len < 0 && c == '\0')
 				break;
 			if (!isprint(c) && !isspace(c)) {
@@ -470,61 +405,140 @@ int len;
 		}
 	}
 
-	s = outstr;
 	*s++ = '\"';
 
 	if (usehex) {
-		for (i = 0; i < n; i++) {
-			c = str[i];
+		for (i = 0; i < size; ++i) {
+			c = ustr[i];
 			if (len < 0 && c == '\0')
 				break;
 			sprintf(s, "\\x%02x", c);
 			s += 4;
-			if (s > outend)
-				break;
 		}
-	}
-	else {
-		for (i = 0; i < n; i++) {
-			c = str[i];
+	} else {
+		for (i = 0; i < size; ++i) {
+			c = ustr[i];
 			if (len < 0 && c == '\0')
 				break;
 			switch (c) {
-			case '\"': case '\'': case '\\':
-				*s++ = '\\'; *s++ = c; break;
-			case '\f':
-				*s++ = '\\'; *s++ = 'f'; break;
-			case '\n':
-				*s++ = '\\'; *s++ = 'n'; break;
-			case '\r':
-				*s++ = '\\'; *s++ = 'r'; break;
-			case '\t':
-				*s++ = '\\'; *s++ = 't'; break;
-			case '\v':
-				*s++ = '\\'; *s++ = 'v'; break;
-			default:
-				if (isprint(c))
+				case '\"': case '\\':
+					*s++ = '\\';
 					*s++ = c;
-				else if (i < n - 1 && isdigit(str[i + 1])) {
-					sprintf(s, "\\%03o", c);
-					s += 4;
-				}
-				else {
-					sprintf(s, "\\%o", c);
-					s += strlen(s);
-				}
-				break;
+					break;
+				case '\f':
+					*s++ = '\\';
+					*s++ = 'f';
+					break;
+				case '\n':
+					*s++ = '\\';
+					*s++ = 'n';
+					break;
+				case '\r':
+					*s++ = '\\';
+					*s++ = 'r';
+					break;
+				case '\t':
+					*s++ = '\\';
+					*s++ = 't';
+					break;
+				case '\v':
+					*s++ = '\\';
+					*s++ = 'v';
+					break;
+				default:
+					if (isprint(c))
+						*s++ = c;
+					else if (i + 1 < size
+						 && isdigit(ustr[i + 1])) {
+						sprintf(s, "\\%03o", c);
+						s += 4;
+					} else {
+						sprintf(s, "\\%o", c);
+						s += strlen(s);
+					}
+					break;
 			}
-			if (s > outend)
-				break;
 		}
 	}
 
 	*s++ = '\"';
-	if (i < len || (len < 0 && (i == n || s > outend))) {
-		*s++ = '.'; *s++ = '.'; *s++ = '.';
-	}
 	*s = '\0';
+}
+
+void
+printpathn(struct tcb *tcp, long addr, int n)
+{
+	if (n > sizeof path - 1)
+		n = sizeof path - 1;
+
+	if (addr == 0) {
+		tprintf("NULL");
+		return;
+	}
+
+	path[n] = '\0';
+	if (umovestr(tcp, addr, n + 1, path) < 0)
+		tprintf("%#lx", addr);
+	else {
+		static char outstr[4*(sizeof path - 1) + sizeof "\"...\""];
+		int trunc = (path[n] != '\0');
+
+		if (trunc)
+			path[n] = '\0';
+		string_quote(path, outstr, -1, n);
+		if (trunc)
+			strcat(outstr, "...");
+		tprintf("%s", outstr);
+	}
+}
+
+void
+printpath(struct tcb *tcp, long addr)
+{
+	printpathn(tcp, addr, sizeof path - 1);
+}
+
+void
+printstr(struct tcb *tcp, long addr, int len)
+{
+	static char *str = NULL;
+	static char *outstr;
+	int size, trunc;
+
+	if (!addr) {
+		tprintf("NULL");
+		return;
+	}
+	if (!str) {
+		if ((str = malloc(max_strlen + 1)) == NULL
+		    || (outstr = malloc(4*max_strlen
+					+ sizeof "\"\"...")) == NULL) {
+			fprintf(stderr, "out of memory\n");
+			tprintf("%#lx", addr);
+			return;
+		}
+	}
+
+	if (len < 0) {
+		size = max_strlen + 1;
+		if (umovestr(tcp, addr, size, str) < 0) {
+			tprintf("%#lx", addr);
+			return;
+		}
+	}
+	else {
+		size = MIN(len, max_strlen + 1);
+		if (umoven(tcp, addr, size, str) < 0) {
+			tprintf("%#lx", addr);
+			return;
+		}
+	}
+
+	trunc = size > max_strlen && str[--size] != 0;
+	string_quote(str, outstr, len, size);
+	if (size < len || (len < 0 && trunc))
+		strcat(outstr, "...");
+
 	tprintf("%s", outstr);
 }
 
@@ -535,13 +549,33 @@ struct tcb * tcp;
 int len;
 long addr;
 {
+#if defined(LINUX) && SUPPORTED_PERSONALITIES > 1
+	union {
+		struct { u_int32_t base; u_int32_t len; } *iov32;
+		struct { u_int64_t base; u_int64_t len; } *iov64;
+	} iovu;
+#define iov iovu.iov64
+#define sizeof_iov \
+  (personality_wordsize[current_personality] == 4 \
+   ? sizeof(*iovu.iov32) : sizeof(*iovu.iov64))
+#define iov_iov_base(i) \
+  (personality_wordsize[current_personality] == 4 \
+   ? (u_int64_t) iovu.iov32[i].base : iovu.iov64[i].base)
+#define iov_iov_len(i) \
+  (personality_wordsize[current_personality] == 4 \
+   ? (u_int64_t) iovu.iov32[i].len : iovu.iov64[i].len)
+#else
 	struct iovec *iov;
+#define sizeof_iov sizeof(*iov)
+#define iov_iov_base(i) iov[i].iov_base
+#define iov_iov_len(i) iov[i].iov_len
+#endif
 	int i;
 	unsigned long size;
 
-	size = sizeof(*iov) * (unsigned long) len;
-	if (size / sizeof(*iov) != len
-	    || (iov = (struct iovec *) malloc(size)) == NULL) {
+	size = sizeof_iov * (unsigned long) len;
+	if (size / sizeof_iov != len
+	    || (iov = malloc(size)) == NULL) {
 		fprintf(stderr, "out of memory\n");
 		return;
 	}
@@ -550,13 +584,16 @@ long addr;
                         /* include the buffer number to make it easy to
                          * match up the trace with the source */
                         tprintf(" * %lu bytes in buffer %d\n",
-                                (unsigned long)iov[i].iov_len, i);
-                        dumpstr(tcp, (long) iov[i].iov_base,
-                                iov[i].iov_len);
+                                (unsigned long)iov_iov_len(i), i);
+                        dumpstr(tcp, (long) iov_iov_base(i),
+                                iov_iov_len(i));
                 }
 	}
 	free((char *) iov);
-
+#undef sizeof_iov
+#undef iov_iov_base
+#undef iov_iov_len
+#undef iov
 }
 #endif
 
@@ -651,7 +688,8 @@ char *laddr;
 				return 0;
 			}
 			/* But if not started, we had a bogus address. */
-			perror("ptrace: umoven");
+			if (addr != 0 && errno != EIO)
+				perror("ptrace: umoven");
 			return -1;
 		}
 		started = 1;
@@ -666,7 +704,7 @@ char *laddr;
 				/* Ran into 'end of memory' - stupid "printpath" */
 				return 0;
 			}
-			if (addr != 0)
+			if (addr != 0 && errno != EIO)
 				perror("ptrace: umoven");
 			return -1;
 		}
@@ -801,7 +839,8 @@ char *laddr;
 				/* Ran into 'end of memory' - stupid "printpath" */
 				return 0;
 			}
-			perror("umovestr");
+			if (addr != 0 && errno != EIO)
+				perror("umovestr");
 			return -1;
 		}
 		started = 1;
@@ -819,7 +858,8 @@ char *laddr;
 				/* Ran into 'end of memory' - stupid "printpath" */
 				return 0;
 			}
-			perror("umovestr");
+			if (addr != 0 && errno != EIO)
+				perror("umovestr");
 			return -1;
 		}
 		started = 1;

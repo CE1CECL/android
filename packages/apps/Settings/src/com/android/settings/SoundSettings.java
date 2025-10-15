@@ -16,8 +16,6 @@
 
 package com.android.settings;
 
-import static android.provider.Settings.System.SCREEN_OFF_TIMEOUT;
-
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -55,7 +53,11 @@ public class SoundSettings extends PreferenceActivity implements
     private static final String KEY_EMERGENCY_TONE = "emergency_tone";
     private static final String KEY_SOUND_SETTINGS = "sound_settings";
     private static final String KEY_NOTIFICATION_PULSE = "notification_pulse";
+    private static final String KEY_NOTIFICATION_BLINK = "notification_blink";
+    private static final String KEY_NOTIFICATION_ALWAYS_ON = "notification_always_on";
+    private static final String KEY_NOTIFICATION_CHARGING = "notification_charging";
     private static final String KEY_LOCK_SOUNDS = "lock_sounds";
+    private static final String KEY_POWER_SOUNDS = "power_sounds";
 
     private static final String VALUE_VIBRATE_NEVER = "never";
     private static final String VALUE_VIBRATE_ALWAYS = "always";
@@ -76,7 +78,11 @@ public class SoundSettings extends PreferenceActivity implements
     private CheckBoxPreference mSoundEffects;
     private CheckBoxPreference mHapticFeedback;
     private CheckBoxPreference mNotificationPulse;
+    private CheckBoxPreference mNotificationBlink;
+    private CheckBoxPreference mNotificationAlwaysOn;
+    private CheckBoxPreference mNotificationCharging;
     private CheckBoxPreference mLockSounds;
+    private CheckBoxPreference mPowerSounds;
 
     private AudioManager mAudioManager;
 
@@ -127,6 +133,10 @@ public class SoundSettings extends PreferenceActivity implements
         mLockSounds.setPersistent(false);
         mLockSounds.setChecked(Settings.System.getInt(resolver,
                 Settings.System.LOCKSCREEN_SOUNDS_ENABLED, 1) != 0);
+        mPowerSounds = (CheckBoxPreference) findPreference(KEY_POWER_SOUNDS);
+        mPowerSounds.setPersistent(false);
+        mPowerSounds.setChecked(Settings.System.getInt(resolver,
+                Settings.System.POWER_SOUNDS_ENABLED, 1) != 0);
 
         if (TelephonyManager.PHONE_TYPE_CDMA == activePhoneType) {
             ListPreference emergencyTonePreference =
@@ -139,16 +149,47 @@ public class SoundSettings extends PreferenceActivity implements
         mSoundSettings = (PreferenceGroup) findPreference(KEY_SOUND_SETTINGS);
         mNotificationPulse = (CheckBoxPreference)
                 mSoundSettings.findPreference(KEY_NOTIFICATION_PULSE);
-        if (mNotificationPulse != null &&
-                getResources().getBoolean(R.bool.has_intrusive_led) == false) {
+        mNotificationBlink = (CheckBoxPreference)
+                mSoundSettings.findPreference(KEY_NOTIFICATION_BLINK);
+        mNotificationAlwaysOn = (CheckBoxPreference)
+                mSoundSettings.findPreference(KEY_NOTIFICATION_ALWAYS_ON);
+        mNotificationCharging = (CheckBoxPreference)
+                mSoundSettings.findPreference(KEY_NOTIFICATION_CHARGING);
+
+        boolean amberGreenLight = getResources().getBoolean(
+                com.android.internal.R.bool.config_amber_green_light);
+
+        if (amberGreenLight) {
             mSoundSettings.removePreference(mNotificationPulse);
+
+            mNotificationBlink.setChecked(Settings.System.getInt(resolver,
+                    Settings.System.NOTIFICATION_LIGHT_BLINK, 1) == 1);
+            mNotificationBlink.setOnPreferenceChangeListener(this);
+
+            mNotificationAlwaysOn.setChecked(Settings.System.getInt(resolver,
+                    Settings.System.NOTIFICATION_LIGHT_ALWAYS_ON, 1) == 1);
+            mNotificationAlwaysOn.setOnPreferenceChangeListener(this);
+
+            mNotificationCharging.setChecked(Settings.System.getInt(resolver,
+                    Settings.System.NOTIFICATION_LIGHT_CHARGING, 1) == 1);
+            mNotificationCharging.setOnPreferenceChangeListener(this);
+
         } else {
-            try {
-                mNotificationPulse.setChecked(Settings.System.getInt(resolver,
-                        Settings.System.NOTIFICATION_LIGHT_PULSE) == 1);
-                mNotificationPulse.setOnPreferenceChangeListener(this);
-            } catch (SettingNotFoundException snfe) {
-                Log.e(TAG, Settings.System.NOTIFICATION_LIGHT_PULSE + " not found");
+            mSoundSettings.removePreference(mNotificationBlink);
+            mSoundSettings.removePreference(mNotificationAlwaysOn);
+            mSoundSettings.removePreference(mNotificationCharging);
+
+            if (mNotificationPulse != null &&
+                    getResources().getBoolean(R.bool.has_intrusive_led) == false) {
+                mSoundSettings.removePreference(mNotificationPulse);
+            } else {
+                try {
+                    mNotificationPulse.setChecked(Settings.System.getInt(resolver,
+                            Settings.System.NOTIFICATION_LIGHT_PULSE) == 1);
+                    mNotificationPulse.setOnPreferenceChangeListener(this);
+                } catch (SettingNotFoundException snfe) {
+                    Log.e(TAG, Settings.System.NOTIFICATION_LIGHT_PULSE + " not found");
+                }
             }
         }
 
@@ -308,20 +349,38 @@ public class SoundSettings extends PreferenceActivity implements
             Settings.System.putInt(getContentResolver(), Settings.System.LOCKSCREEN_SOUNDS_ENABLED,
                     mLockSounds.isChecked() ? 1 : 0);
 
+        } else if (preference == mPowerSounds) {
+            Settings.System.putInt(getContentResolver(), Settings.System.POWER_SOUNDS_ENABLED,
+                    mPowerSounds.isChecked() ? 1 : 0);
+
         } else if (preference == mNotificationPulse) {
             boolean value = mNotificationPulse.isChecked();
             Settings.System.putInt(getContentResolver(),
                     Settings.System.NOTIFICATION_LIGHT_PULSE, value ? 1 : 0);
-        }
 
+        } else if (preference == mNotificationBlink) {
+            boolean value = mNotificationBlink.isChecked();
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.NOTIFICATION_LIGHT_BLINK, value ? 1 : 0);
+
+        } else if (preference == mNotificationAlwaysOn) {
+            boolean value = mNotificationAlwaysOn.isChecked();
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.NOTIFICATION_LIGHT_ALWAYS_ON, value ? 1 : 0);
+
+        } else if (preference == mNotificationCharging) {
+            boolean value = mNotificationCharging.isChecked();
+            Settings.System.putInt(getContentResolver(),
+                    Settings.System.NOTIFICATION_LIGHT_CHARGING, value ? 1 : 0);
+        }
         return true;
     }
 
     public boolean onPreferenceChange(Preference preference, Object objValue) {
         final String key = preference.getKey();
         if (KEY_EMERGENCY_TONE.equals(key)) {
-            int value = Integer.parseInt((String) objValue);
             try {
+                int value = Integer.parseInt((String) objValue);
                 Settings.System.putInt(getContentResolver(),
                         Settings.System.EMERGENCY_TONE, value);
             } catch (NumberFormatException e) {

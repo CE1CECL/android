@@ -59,25 +59,45 @@
     <Row>
         <Key
             android:keyLabel="ש"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_shin"
             android:keyEdgeFlags="left" />
         <Key
-            android:keyLabel="ד" />
+            android:keyLabel="ד"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_daled" />
         <Key
-            android:keyLabel="ג" />
+            android:keyLabel="ג"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_gimel" />
         <Key
-            android:keyLabel="כ" />
+            android:keyLabel="כ"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_chaf" />
         <Key
-            android:keyLabel="ע" />
+            android:keyLabel="ע"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_ayin" />
         <Key
-            android:keyLabel="י" />
+            android:keyLabel="י"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_yud" />
         <Key
-            android:keyLabel="ח" />
+            android:keyLabel="ח"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_chet" />
         <Key
-            android:keyLabel="ל" />
+            android:keyLabel="ל"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_lamed" />
         <Key
-            android:keyLabel="ך" />
+            android:keyLabel="ך"
+            android:popupKeyboard="@xml/kbd_popup_narrow_template"
+            android:popupCharacters="@string/alternates_for_heb_final_chaf"  />
         <Key
             android:keyLabel="ף"
+            android:popupKeyboard="@xml/kbd_popup_template"
+            android:popupCharacters="@string/alternates_for_heb_final_fay"
             android:keyEdgeFlags="right" />
     </Row>
     <Row>
@@ -254,13 +274,12 @@
             android:codes="@integer/key_space"
             android:keyIcon="@drawable/sym_keyboard_space"
             android:iconPreview="@drawable/sym_keyboard_feedback_space"
-            android:keyWidth="20%p"
+            android:keyWidth="30%p"
             android:isModifier="true" />
         <Key
             android:codes="@integer/key_tab"
             android:keyIcon="@drawable/sym_keyboard_tab"
             android:iconPreview="@drawable/sym_keyboard_feedback_tab"
-            android:keyWidth="20%p"
             android:isModifier="true" />
         <Key
             android:keyLabel="."

@@ -198,6 +198,9 @@ public:
 
     // reroute a given stream type to the specified output
     virtual status_t setStreamOutput(AudioSystem::stream_type stream, audio_io_handle_t output) = 0;
+#ifdef OMAP_ENHANCEMENT
+    virtual status_t setFMRxActive(bool state)=0;
+#endif
 
     // function enabling to send proprietary informations directly from audio policy manager to audio hardware interface.
     virtual void setParameters(audio_io_handle_t ioHandle, const String8& keyValuePairs, int delayMs = 0) = 0;
@@ -217,6 +220,10 @@ public:
                                      audio_io_handle_t srcOutput,
                                      audio_io_handle_t dstOutput) = 0;
 
+#ifdef HAVE_FM_RADIO
+    // set FM volume.
+    virtual status_t setFmVolume(float volume, int delayMs = 0) { return 0; }
+#endif
 };
 
 extern "C" AudioPolicyInterface* createAudioPolicyManager(AudioPolicyClientInterface *clientInterface);

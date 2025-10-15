@@ -17,6 +17,7 @@
 package com.android.camera.ui;
 
 import android.content.Context;
+import android.hardware.Camera.Parameters;
 
 import com.android.camera.CameraSettings;
 import com.android.camera.IconListPreference;
@@ -28,6 +29,7 @@ public class CameraHeadUpDisplay extends HeadUpDisplay {
     private static final String TAG = "CamcoderHeadUpDisplay";
 
     private OtherSettingsIndicator mOtherSettings;
+    private SettingsIndicator mSettingsIndicator;
     private GpsIndicator mGpsIndicator;
     private ZoomIndicator mZoomIndicator;
     private Context mContext;
@@ -40,24 +42,29 @@ public class CameraHeadUpDisplay extends HeadUpDisplay {
     }
 
     public void initialize(Context context, PreferenceGroup group,
-            float[] initialZoomRatios, int initialOrientation) {
+            float[] initialZoomRatios, int initialOrientation, Parameters params) {
         mInitialZoomRatios = initialZoomRatios;
         mInitialOrientation = initialOrientation;
-        super.initialize(context, group);
+        super.initialize(context, group, params);
     }
 
     @Override
     protected void initializeIndicatorBar(
-            Context context, PreferenceGroup group) {
-        super.initializeIndicatorBar(context, group);
+            Context context, PreferenceGroup group, Parameters params) {
+        super.initializeIndicatorBar(context, group, params);
 
         ListPreference prefs[] = getListPreferences(group,
+                CameraSettings.KEY_CAPTURE_MODE,
                 CameraSettings.KEY_FOCUS_MODE,
                 CameraSettings.KEY_EXPOSURE,
                 CameraSettings.KEY_SCENE_MODE,
                 CameraSettings.KEY_PICTURE_SIZE,
                 CameraSettings.KEY_JPEG_QUALITY,
-                CameraSettings.KEY_COLOR_EFFECT);
+                CameraSettings.KEY_COLOR_EFFECT,
+                CameraSettings.KEY_ISO,
+                CameraSettings.KEY_LENSSHADING,
+                CameraSettings.KEY_AUTOEXPOSURE,
+                CameraSettings.KEY_ANTIBANDING);
 
         mOtherSettings = new OtherSettingsIndicator(context, prefs);
         mOtherSettings.setOnRestorePreferencesClickedRunner(new Runnable() {
@@ -68,6 +75,11 @@ public class CameraHeadUpDisplay extends HeadUpDisplay {
             }
         });
         mIndicatorBar.addComponent(mOtherSettings);
+
+        mSettingsIndicator = new SettingsIndicator(context, params);
+        if (mSettingsIndicator.isAvailable()) {
+            mIndicatorBar.addComponent(mSettingsIndicator);
+        }
 
         mGpsIndicator = new GpsIndicator(
                 context, (IconListPreference)
@@ -93,17 +105,21 @@ public class CameraHeadUpDisplay extends HeadUpDisplay {
     public void setZoomListener(ZoomControllerListener listener) {
         // The rendering thread won't access listener variable, so we don't
         // need to do concurrency protection here
-        mZoomIndicator.setZoomListener(listener);
+        if (mZoomIndicator != null) {
+            mZoomIndicator.setZoomListener(listener);
+        }
     }
 
     public void setZoomIndex(int index) {
-        GLRootView root = getGLRootView();
-        if (root != null) {
-            synchronized (root) {
+        if (mZoomIndicator != null) {
+            GLRootView root = getGLRootView();
+            if (root != null) {
+                synchronized (root) {
+                    mZoomIndicator.setZoomIndex(index);
+                }
+            } else {
                 mZoomIndicator.setZoomIndex(index);
             }
-        } else {
-            mZoomIndicator.setZoomIndex(index);
         }
     }
 

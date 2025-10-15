@@ -45,9 +45,6 @@
 #endif
 #include <linux/quota.h>
 #endif /* LINUX */
-#ifdef SUNOS4
-#include <ufs/quota.h>
-#endif /* SUNOS4 */
 #if defined(SVR4) || defined(FREEBSD)
 #include <sys/times.h>
 #include <sys/time.h>
@@ -67,47 +64,53 @@
 #endif
 
 static const struct xlat resources[] = {
-#ifdef RLIMIT_CPU
-	{ RLIMIT_CPU,	"RLIMIT_CPU"	},
-#endif
-#ifdef RLIMIT_FSIZE
-	{ RLIMIT_FSIZE,	"RLIMIT_FSIZE"	},
-#endif
-#ifdef RLIMIT_DATA
-	{ RLIMIT_DATA,	"RLIMIT_DATA"	},
-#endif
-#ifdef RLIMIT_STACK
-	{ RLIMIT_STACK,	"RLIMIT_STACK"	},
+#ifdef RLIMIT_AS
+	{ RLIMIT_AS,	"RLIMIT_AS"	},
 #endif
 #ifdef RLIMIT_CORE
 	{ RLIMIT_CORE,	"RLIMIT_CORE"	},
 #endif
-#ifdef RLIMIT_RSS
-	{ RLIMIT_RSS,	"RLIMIT_RSS"	},
+#ifdef RLIMIT_CPU
+	{ RLIMIT_CPU,	"RLIMIT_CPU"	},
 #endif
-#ifdef RLIMIT_NPROC
-	{ RLIMIT_NPROC,"RLIMIT_NPROC"	},
+#ifdef RLIMIT_DATA
+	{ RLIMIT_DATA,	"RLIMIT_DATA"	},
 #endif
-#ifdef RLIMIT_NOFILE
-	{ RLIMIT_NOFILE,"RLIMIT_NOFILE"	},
-#endif
-#ifdef RLIMIT_MEMLOCK
-	{ RLIMIT_MEMLOCK,	"RLIMIT_MEMLOCK"	},
-#endif
-#ifdef RLIMIT_VMEM
-	{ RLIMIT_VMEM,	"RLIMIT_VMEM"	},
-#endif
-#ifdef RLIMIT_AS
-	{ RLIMIT_AS,	"RLIMIT_AS"	},
+#ifdef RLIMIT_FSIZE
+	{ RLIMIT_FSIZE,	"RLIMIT_FSIZE"	},
 #endif
 #ifdef RLIMIT_LOCKS
 	{ RLIMIT_LOCKS,	"RLIMIT_LOCKS"	},
 #endif
-#ifdef RLIMIT_SIGPENDING
-	{ RLIMIT_SIGPENDING,	"RLIMIT_SIGPENDING"	},
+#ifdef RLIMIT_MEMLOCK
+	{ RLIMIT_MEMLOCK,	"RLIMIT_MEMLOCK"	},
 #endif
 #ifdef RLIMIT_MSGQUEUE
 	{ RLIMIT_MSGQUEUE,	"RLIMIT_MSGQUEUE"	},
+#endif
+#ifdef RLIMIT_NICE
+	{ RLIMIT_NICE,	"RLIMIT_NICE"	},
+#endif
+#ifdef RLIMIT_NOFILE
+	{ RLIMIT_NOFILE,	"RLIMIT_NOFILE"	},
+#endif
+#ifdef RLIMIT_NPROC
+	{ RLIMIT_NPROC,	"RLIMIT_NPROC"	},
+#endif
+#ifdef RLIMIT_RSS
+	{ RLIMIT_RSS,	"RLIMIT_RSS"	},
+#endif
+#ifdef RLIMIT_RTPRIO
+	{ RLIMIT_RTPRIO,	"RLIMIT_RTPRIO"	},
+#endif
+#ifdef RLIMIT_SIGPENDING
+	{ RLIMIT_SIGPENDING,	"RLIMIT_SIGPENDING"	},
+#endif
+#ifdef RLIMIT_STACK
+	{ RLIMIT_STACK,	"RLIMIT_STACK"	},
+#endif
+#ifdef RLIMIT_VMEM
+	{ RLIMIT_VMEM,	"RLIMIT_VMEM"	},
 #endif
 	{ 0,		NULL		},
 };
@@ -543,21 +546,29 @@ struct tcb *tcp;
 
 		if (!tcp->u_arg[3])
 			tprintf("NULL");
-               else if (!verbose(tcp) || !OLD_COMMAND(cmd))
+               else if (!verbose(tcp) ||
+#ifdef HAVE_STRUCT_DQBLK_DQB_CURBLOCKS
+			!
+#endif
+			OLD_COMMAND(cmd))
 			tprintf("%#lx", tcp->u_arg[3]);
                 else if (umoven(tcp, tcp->u_arg[3], sizeof(struct dqblk),
                     (char *) &dq) < 0)
                         tprintf("???");
 		else {
                         tprintf("{");
-			tprintf("%u, ", dq.dqb_bhardlimit);
-			tprintf("%u, ", dq.dqb_bsoftlimit);
-			tprintf("%u, ", dq.dqb_curblocks);
-			tprintf("%u, ", dq.dqb_ihardlimit);
-			tprintf("%u, ", dq.dqb_isoftlimit);
-			tprintf("%u, ", dq.dqb_curinodes);
-			tprintf("%lu, ", dq.dqb_btime);
-			tprintf("%lu", dq.dqb_itime);
+			tprintf("%llu, ", (unsigned long long) dq.dqb_bhardlimit);
+			tprintf("%llu, ", (unsigned long long) dq.dqb_bsoftlimit);
+#ifdef HAVE_STRUCT_DQBLK_DQB_CURBLOCKS
+			tprintf("%llu, ", (unsigned long long) dq.dqb_curblocks);
+#else
+			tprintf("%llu, ", (unsigned long long) dq.dqb_curspace);
+#endif
+			tprintf("%llu, ", (unsigned long long) dq.dqb_ihardlimit);
+			tprintf("%llu, ", (unsigned long long) dq.dqb_isoftlimit);
+			tprintf("%llu, ", (unsigned long long) dq.dqb_curinodes);
+			tprintf("%llu, ", (unsigned long long) dq.dqb_btime);
+			tprintf("%llu", (unsigned long long) dq.dqb_itime);
                         tprintf("}");
 		}
 

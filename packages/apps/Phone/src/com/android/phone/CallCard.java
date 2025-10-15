@@ -18,10 +18,13 @@ package com.android.phone;
 
 import android.content.ContentUris;
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.pim.ContactsAsyncHelper;
+import android.provider.ContactsContract.CommonDataKinds;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.RawContacts;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -44,7 +47,9 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.CallManager;
 
 import java.util.List;
+import java.util.ArrayList;
 
+import android.provider.ContactsContract;
 
 /**
  * "Call card" UI element: the in-call screen contains a tiled layout of call
@@ -115,6 +120,10 @@ public class CallCard extends FrameLayout
     // Cached DisplayMetrics density.
     private float mDensity;
 
+    // add by cytown
+    private CallFeaturesSetting mSettings;
+    private TextView mOrganization;
+
     public CallCard(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -130,6 +139,9 @@ public class CallCard extends FrameLayout
                 true);
 
         mApplication = PhoneApp.getInstance();
+
+        // add by cytown
+        mSettings = CallFeaturesSetting.getInstance(context);
 
         mCallTime = new CallTime(this);
 
@@ -189,6 +201,7 @@ public class CallCard extends FrameLayout
         mLabel = (TextView) findViewById(R.id.label);
         mCallTypeLabel = (TextView) findViewById(R.id.callTypeLabel);
         mSocialStatus = (TextView) findViewById(R.id.socialStatus);
+        mOrganization = (TextView) findViewById(R.id.organization);
 
         // "Other call" info area
         mSecondaryCallName = (TextView) findViewById(R.id.secondaryCallName);
@@ -674,8 +687,13 @@ public class CallCard extends FrameLayout
                         // Display the brief "Hanging up" indication.
                         setUpperTitle(cardTitle, mTextColorDefaultPrimary, state);
                     } else {  // state == Call.State.ACTIVE
-                        // Normal "ongoing call" state; don't use any "title" at all.
-                        clearUpperTitle();
+                        if (mApplication.notifier.isCallHeldRemotely(call)) {
+                            // Show indication that the call is currently waiting
+                            setUpperTitle(cardTitle, mTextColorDefaultPrimary, state);
+                        } else {
+                            // Normal "ongoing call" state; don't use any "title" at all.
+                            clearUpperTitle();
+                        }
                     }
                 }
 
@@ -773,8 +791,13 @@ public class CallCard extends FrameLayout
                     } else {
                         retVal = context.getString(R.string.card_title_in_progress);
                     }
-                } else if ((phoneType == Phone.PHONE_TYPE_GSM)
-                        || (phoneType == Phone.PHONE_TYPE_SIP)) {
+                } else if (phoneType == Phone.PHONE_TYPE_GSM) {
+                    if (mApplication.notifier.isCallHeldRemotely(call)) {
+                        retVal = context.getString(R.string.card_title_waiting_call);
+                    } else {
+                        retVal = context.getString(R.string.card_title_in_progress);
+                    }
+                } else if (phoneType == Phone.PHONE_TYPE_SIP) {
                     retVal = context.getString(R.string.card_title_in_progress);
                 } else {
                     throw new IllegalStateException("Unexpected phone type: " + phoneType);
@@ -1067,6 +1090,8 @@ public class CallCard extends FrameLayout
         String socialStatusText = null;
         Drawable socialStatusBadge = null;
 
+        boolean updateName = false;
+
         if (info != null) {
             // It appears that there is a small change in behaviour with the
             // PhoneUtils' startGetCallerInfo whereby if we query with an
@@ -1126,6 +1151,8 @@ public class CallCard extends FrameLayout
                     displayName = info.name;
                     displayNumber = number;
                     label = info.phoneLabel;
+                    // add by cytown for show organization
+                    updateName = true;
                 }
             }
             personUri = ContentUris.withAppendedId(Contacts.CONTENT_URI, info.person_id);
@@ -1137,8 +1164,15 @@ public class CallCard extends FrameLayout
 
         if (call.isGeneric()) {
             mName.setText(R.string.card_title_in_call);
+            mOrganization.setVisibility(View.GONE);
         } else {
             mName.setText(displayName);
+            if (DBG) log("show ======= " + updateName + ":" + mSettings.mShowOrgan);
+            if (updateName && mSettings.mShowOrgan) {
+                updateOrganization(info.person_id);
+            } else {
+                mOrganization.setVisibility(View.GONE);
+            }
         }
         mName.setVisibility(View.VISIBLE);
 
@@ -1184,6 +1218,48 @@ public class CallCard extends FrameLayout
         // Other text fields:
         updateCallTypeLabel(call);
         updateSocialStatus(socialStatusText, socialStatusBadge, call);  // Currently unused
+    }
+
+    private void updateOrganization(final long contactId) {
+        final String[] projection = new String[] {
+            ContactsContract.Data.MIMETYPE,
+            ContactsContract.CommonDataKinds.Organization.COMPANY,
+            ContactsContract.CommonDataKinds.Nickname.NAME
+        };
+        final String where =
+                ContactsContract.Data.CONTACT_ID + " = " + contactId + " and (" +
+                ContactsContract.Data.MIMETYPE + " = '" +
+                CommonDataKinds.Organization.CONTENT_ITEM_TYPE + "' or " +
+                ContactsContract.Data.MIMETYPE + " = '" +
+                CommonDataKinds.Nickname.CONTENT_ITEM_TYPE + "')";
+
+        String nickName = null, organization = null;
+        Cursor c = getContext().getContentResolver().query(
+                ContactsContract.Data.CONTENT_URI, projection, where, null, null);
+
+        if (c != null) {
+            for (boolean valid = c.moveToFirst(); valid; valid = c.moveToNext()) {
+                final String mimeType = c.getString(0);
+                if (TextUtils.equals(mimeType, CommonDataKinds.Organization.CONTENT_ITEM_TYPE)) {
+                    organization = c.getString(1);
+                } else {
+                    /* nickname */
+                    nickName = c.getString(2);
+                }
+            }
+            c.close();
+        }
+
+        if (DBG) log("Found organization " + organization + ", nickname " + nickName);
+        if (!TextUtils.isEmpty(organization)) {
+            mOrganization.setText(organization);
+            mOrganization.setVisibility(View.VISIBLE);
+        } else if (!TextUtils.isEmpty(nickName)) {
+            mOrganization.setText(nickName);
+            mOrganization.setVisibility(View.VISIBLE);
+        } else {
+            mOrganization.setVisibility(View.GONE);
+        }
     }
 
     private String getPresentationString(int presentation) {
@@ -1497,6 +1573,10 @@ public class CallCard extends FrameLayout
             //   mCallTypeLabel.setCompoundDrawablesWithIntrinsicBounds(
             //           callTypeSpecificBadge, null, null, null);
             //   mCallTypeLabel.setCompoundDrawablePadding((int) (mDensity * 6));
+        } else if (call != null && mApplication.notifier.isCallForwarded(call)) {
+            mCallTypeLabel.setVisibility(View.VISIBLE);
+            mCallTypeLabel.setText(R.string.incall_call_type_label_forwarded);
+            mCallTypeLabel.setTextColor(mTextColorDefaultSecondary);
         } else {
             mCallTypeLabel.setVisibility(View.GONE);
         }

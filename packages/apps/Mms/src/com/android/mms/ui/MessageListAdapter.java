@@ -24,6 +24,7 @@ import android.content.AsyncQueryHandler;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -31,6 +32,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
@@ -129,6 +131,8 @@ public class MessageListAdapter extends CursorAdapter {
     private Handler mMsgListItemHandler;
     private Pattern mHighlight;
     private Context mContext;
+    private boolean mBlackBackground;
+    private boolean mFullTimestamp;
 
     private HashMap<String, HashSet<MessageListItem>> mAddressToMessageListItems
         = new HashMap<String, HashSet<MessageListItem>>();
@@ -156,6 +160,9 @@ public class MessageListAdapter extends CursorAdapter {
         } else {
             mColumnsMap = new ColumnsMap(c);
         }
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        mBlackBackground = prefs.getBoolean(MessagingPreferenceActivity.BLACK_BACKGROUND, false);
+        mFullTimestamp = prefs.getBoolean(MessagingPreferenceActivity.FULL_TIMESTAMP, false);
 
         mAvatarCache = new AvatarCache();
     }
@@ -182,7 +189,7 @@ public class MessageListAdapter extends CursorAdapter {
                     }
                 }
 
-                mli.bind(mAvatarCache, msgItem);
+                mli.bind(mAvatarCache, msgItem, mBlackBackground);
                 mli.setMsgListItemHandler(mMsgListItemHandler);
 
                 // Add current item to mapping
@@ -221,7 +228,7 @@ public class MessageListAdapter extends CursorAdapter {
         HashSet<MessageListItem> set = mAddressToMessageListItems.get(address);
         if (set != null) {
             for (MessageListItem mli : set) {
-                mli.bind(mAvatarCache, mli.getMessageItem());
+                mli.bind(mAvatarCache, mli.getMessageItem(), mBlackBackground);
             }
         }
     }
@@ -252,14 +259,18 @@ public class MessageListAdapter extends CursorAdapter {
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return mInflater.inflate(R.layout.message_list_item, parent, false);
+        int resId = R.layout.message_list_item;
+        if(mBlackBackground) {
+          resId = R.layout.message_list_item_black;
+        }
+        return mInflater.inflate(resId, parent, false);
     }
 
     public MessageItem getCachedMessageItem(String type, long msgId, Cursor c) {
         MessageItem item = mMessageItemCache.get(getKey(type, msgId));
         if (item == null && c != null && isCursorValid(c)) {
             try {
-                item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight);
+                item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight, mFullTimestamp);
                 mMessageItemCache.put(getKey(item.mType, item.mMsgId), item);
             } catch (MmsException e) {
                 Log.e(TAG, "getCachedMessageItem: ", e);
@@ -533,7 +544,24 @@ public class MessageListAdapter extends CursorAdapter {
 
                 try {
                     byte[] photoData = c.getBlob(0);
-                    Bitmap b = BitmapFactory.decodeByteArray(photoData, 0, photoData.length, null);
+                    /* large pic fix
+                     * facebook syncing brings over some really huge pictures that cause mms to
+                     * crash out. We'll just scale pictures larger than 96x96
+                     */
+                    BitmapFactory.Options opt = new BitmapFactory.Options();
+                    opt.inJustDecodeBounds = true;
+                    BitmapFactory.decodeByteArray(photoData, 0, photoData.length, opt);
+                    if (opt.outHeight * opt.outWidth * 2 > 96*96*2) {
+                        Boolean scaleByHeight = Math.abs(opt.outHeight - 96) >= Math.abs(opt.outWidth - 96);
+                        double sampleSize = scaleByHeight
+                        ? opt.outHeight / 96
+                        : opt.outWidth / 96;
+                        opt.inSampleSize =
+                            (int)Math.pow(2d, Math.floor(
+                            Math.log(sampleSize)/Math.log(2d)));
+                    }
+                    opt.inJustDecodeBounds = false;
+                    Bitmap b = BitmapFactory.decodeByteArray(photoData, 0, photoData.length, opt);
                     mPhoto = new BitmapDrawable(mContext.getResources(), b);
                     return true;
                 } catch (Exception ex) {

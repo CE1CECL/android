@@ -29,10 +29,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Parcel;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 
 import java.util.Calendar;
-import java.text.DateFormatSymbols;
+
 
 /**
  * The Alarms provider supplies info about Alarm Clock settings
@@ -166,6 +167,11 @@ public class Alarms {
         // A null alert Uri indicates a silent alarm.
         values.put(Alarm.Columns.ALERT, alarm.alert == null ? ALARM_ALERT_SILENT
                 : alarm.alert.toString());
+
+        // A null (or blank) intent Uri indicates no app launch
+        values.put(Alarm.Columns.INTENT, TextUtils.isEmpty(alarm.intent) ? "" : alarm.intent);
+
+        values.put(Alarm.Columns.NO_DIALOG, alarm.noDialog);
 
         return values;
     }

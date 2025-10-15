@@ -33,6 +33,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.StatFs;
 import android.os.PowerManager.WakeLock;
 import android.provider.MediaStore.Images;
 import android.util.Log;
@@ -90,7 +91,7 @@ public final class Gallery extends Activity {
                     res = Res.string.no_usb_storage;
                 }
 
-                mApp.showToast(getResources().getString(res), Toast.LENGTH_LONG);
+                mApp.showToast(getResources().getString(res), Toast.LENGTH_LONG, false);
             }
             handler.sendEmptyMessageDelayed(CHECK_STORAGE, 200);
         } else {
@@ -173,6 +174,10 @@ public final class Gallery extends Activity {
         sendInitialMessage();
     }
 
+    public GridLayer getGridLayer() {
+        return mGridLayer;
+    }
+
     @Override
     public void onRestart() {
         super.onRestart();
@@ -205,6 +210,8 @@ public final class Gallery extends Activity {
                 mPicasaHandler.removeMessages(GET_PICASA_ACCOUNT_STATUS);
                 mPicasaHandler.sendEmptyMessage(UPDATE_PICASA_ACCOUNT_STATUS);
             }
+            // Stop the thumbnailer
+            CacheService.startCache(this, false);
         	mApp.onResume();
         }
     }
@@ -260,7 +267,7 @@ public final class Gallery extends Activity {
     public void onDestroy() {
         // Force GLThread to exit.
         setContentView(Res.layout.main);
-
+        mApp.shutdown();
         // Remove any post messages.
         handler.removeMessages(CHECK_STORAGE);
         handler.removeMessages(HANDLE_INTENT);
@@ -281,7 +288,6 @@ public final class Gallery extends Activity {
             mRenderView = null;
         }
         mGridLayer = null;
-        mApp.shutdown();
         super.onDestroy();
         Log.i(TAG, "onDestroy");
     }
@@ -397,7 +403,8 @@ public final class Gallery extends Activity {
                 }
                 mGridLayer.setPickIntent(true);
                 if (hasStorage) {
-                    mApp.showToast(getResources().getString(Res.string.pick_prompt), Toast.LENGTH_LONG);
+                    mApp.showToast(getResources().getString(Res.string.pick_prompt),
+                            Toast.LENGTH_LONG, false);
                 }
             }
         } else { // view intent for images and review intent for images and videos

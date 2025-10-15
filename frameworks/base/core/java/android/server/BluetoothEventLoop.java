@@ -20,6 +20,7 @@ import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHid;
 import android.bluetooth.BluetoothUuid;
 import android.content.Context;
 import android.content.Intent;
@@ -30,6 +31,8 @@ import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Set;
+import android.os.PowerManager;
+
 
 /**
  * TODO: Move this to
@@ -52,6 +55,9 @@ class BluetoothEventLoop {
     private final BluetoothService mBluetoothService;
     private final BluetoothAdapter mAdapter;
     private final Context mContext;
+    // The WakeLock is used for bringing up the LCD during a pairing request
+    // from remote device when Android is in Suspend state.
+    private PowerManager.WakeLock mWakeLock;
 
     private static final int EVENT_RESTART_BLUETOOTH = 1;
     private static final int EVENT_PAIRING_CONSENT_DELAYED_ACCEPT = 2;
@@ -107,6 +113,11 @@ class BluetoothEventLoop {
         mPasskeyAgentRequestData = new HashMap();
         mAuthorizationAgentRequestData = new HashMap<String, Integer>();
         mAdapter = adapter;
+        //WakeLock instantiation in BluetoothEventLoop class
+        PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+        mWakeLock = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP
+                | PowerManager.ON_AFTER_RELEASE, TAG);
+        mWakeLock.setReferenceCounted(false);
         initializeNativeDataNative();
     }
 
@@ -404,37 +415,46 @@ class BluetoothEventLoop {
             mHandler.sendMessageDelayed(message, 1500);
             return;
         }
-
+        // Acquire wakelock during PIN code request to bring up LCD display
+        mWakeLock.acquire();
         Intent intent = new Intent(BluetoothDevice.ACTION_PAIRING_REQUEST);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mAdapter.getRemoteDevice(address));
         intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT,
                         BluetoothDevice.PAIRING_VARIANT_CONSENT);
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
+        // Release wakelock to allow the LCD to go off after the PIN popup notifcation.
+        mWakeLock.release();
         return;
     }
 
     private void onRequestPasskeyConfirmation(String objectPath, int passkey, int nativeData) {
         String address = checkPairingRequestAndGetAddress(objectPath, nativeData);
         if (address == null) return;
-
+        // Acquire wakelock during PIN code request to bring up LCD display
+        mWakeLock.acquire();
         Intent intent = new Intent(BluetoothDevice.ACTION_PAIRING_REQUEST);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mAdapter.getRemoteDevice(address));
         intent.putExtra(BluetoothDevice.EXTRA_PASSKEY, passkey);
         intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT,
                 BluetoothDevice.PAIRING_VARIANT_PASSKEY_CONFIRMATION);
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
+        // Release wakelock to allow the LCD to go off after the PIN popup notifcation.
+        mWakeLock.release();
         return;
     }
 
     private void onRequestPasskey(String objectPath, int nativeData) {
         String address = checkPairingRequestAndGetAddress(objectPath, nativeData);
         if (address == null) return;
-
+        // Acquire wakelock during PIN code request to bring up LCD display
+        mWakeLock.acquire();
         Intent intent = new Intent(BluetoothDevice.ACTION_PAIRING_REQUEST);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mAdapter.getRemoteDevice(address));
         intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT,
                 BluetoothDevice.PAIRING_VARIANT_PASSKEY);
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
+        // Release wakelock to allow the LCD to go off after the PIN popup notifcation.
+        mWakeLock.release();
         return;
     }
 
@@ -467,10 +487,14 @@ class BluetoothEventLoop {
                 if (mBluetoothService.attemptAutoPair(address)) return;
            }
         }
+        // Acquire wakelock during PIN code request to bring up LCD display
+        mWakeLock.acquire();
         Intent intent = new Intent(BluetoothDevice.ACTION_PAIRING_REQUEST);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mAdapter.getRemoteDevice(address));
         intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, BluetoothDevice.PAIRING_VARIANT_PIN);
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
+        // Release wakelock to allow the LCD to go off after the PIN popup notifcation.
+        mWakeLock.release();
         return;
     }
 
@@ -478,12 +502,16 @@ class BluetoothEventLoop {
         String address = checkPairingRequestAndGetAddress(objectPath, nativeData);
         if (address == null) return;
 
+        // Acquire wakelock during PIN code request to bring up LCD display
+        mWakeLock.acquire();
         Intent intent = new Intent(BluetoothDevice.ACTION_PAIRING_REQUEST);
         intent.putExtra(BluetoothDevice.EXTRA_DEVICE, mAdapter.getRemoteDevice(address));
         intent.putExtra(BluetoothDevice.EXTRA_PASSKEY, passkey);
         intent.putExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT,
                         BluetoothDevice.PAIRING_VARIANT_DISPLAY_PASSKEY);
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
+        //Release wakelock to allow the LCD to go off after the PIN popup notifcation.
+        mWakeLock.release();
     }
 
     private void onRequestOobData(String objectPath , int nativeData) {
@@ -507,6 +535,7 @@ class BluetoothEventLoop {
         boolean authorized = false;
         ParcelUuid uuid = ParcelUuid.fromString(deviceUuid);
         BluetoothA2dp a2dp = new BluetoothA2dp(mContext);
+        BluetoothHid hid = new BluetoothHid(mContext);
 
         BluetoothDevice device = mAdapter.getRemoteDevice(address);
         mAuthorizationAgentRequestData.put(address, new Integer(nativeData));
@@ -532,6 +561,17 @@ class BluetoothEventLoop {
                 }
             } else {
                 Log.i(TAG, "Rejecting incoming A2DP / AVRCP connection from " + address);
+            }
+        } else if( mBluetoothService.isEnabled() && BluetoothUuid.isHid(uuid)) {
+            Log.i(TAG, "Allowing incoming HID connection from " + address);
+            authorized = hid.getHidDevicePriority(device) > BluetoothHid.PRIORITY_OFF;
+            if (authorized) {
+                Log.i(TAG, "Allowing incoming HID connection from " + address);
+                // This is not a typo. We need to tell the lower layer that we're accepting the
+                // connection and the method to do that is in BluetoothA2dp.
+                a2dp.allowIncomingConnect(device, authorized);
+            } else {
+                Log.i(TAG, "Rejecting incoming HID connection from " + address);
             }
         } else {
             Log.i(TAG, "Rejecting incoming " + deviceUuid + " connection from " + address);

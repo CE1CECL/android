@@ -51,7 +51,7 @@
     <string name="contactsSplitMessage" msgid="5253490235863170269">"אנשי קשר נפרדים"</string>
     <string name="splitConfirmation_title" msgid="6716467920283502570">"הפרדת איש קשר"</string>
     <string name="splitConfirmation" msgid="1150797297503944823">"האם אתה בטוח שברצונך להפריד איש קשר יחיד זה לאנשי קשר מרובים: אחד לכל קבוצת פרטי קשר שצורפה אליו?"</string>
-    <string name="menu_joinAggregate" msgid="5027981918265667970">"הצטרף"</string>
+    <string name="menu_joinAggregate" msgid="5027981918265667970">"שלב"</string>
     <string name="titleJoinContactDataWith" msgid="7684875775798635354">"שלב אנשי קשר"</string>
     <string name="blurbJoinContactDataWith" msgid="995870557595050304">"בחר את איש הקשר שברצונך לשלב עם <xliff:g id="NAME">%s</xliff:g>."</string>
     <string name="showAllContactsJoinItem" msgid="2189695051430392383">"הצג את כל אנשי הקשר"</string>
@@ -91,8 +91,8 @@
     <string name="photoPickerNotFoundText" msgid="431331662154342581">"אין תמונות זמינות בטלפון."</string>
     <string name="attachToContact" msgid="8820530304406066714">"סמל של איש קשר"</string>
     <string name="customLabelPickerTitle" msgid="1081475101983255212">"שם תווית מותאם אישית"</string>
-    <string name="menu_displayGroup" msgid="5655505437727616553">"הצג אפשרויות"</string>
-    <string name="displayGroups" msgid="2278964020773993336">"הצג אפשרויות"</string>
+    <string name="menu_displayGroup" msgid="5655505437727616553">"אפשרויות תצוגה"</string>
+    <string name="displayGroups" msgid="2278964020773993336">"אפשרויות תצוגה"</string>
     <string name="send_to_voicemail_checkbox" msgid="9001686764070676353">"שלח שיחות ישירות לדואר הקולי"</string>
     <string name="default_ringtone" msgid="9099988849649827972">"ברירת מחדל"</string>
     <string name="changePicture" msgid="2943329047610967714">"שנה סמל"</string>
@@ -389,4 +389,98 @@
     <string name="upgrade_out_of_memory_retry" msgid="8431289830472724609">"נסה שוב לשדרג"</string>
     <string name="search_results_for" msgid="8705490885073188513">"תוצאות חיפוש עבור: <xliff:g id="QUERY">%s</xliff:g>"</string>
     <string name="search_results_searching" msgid="7755623475227227314">"מחפש..."</string>
+    <string name="date_year_toggle" msgid="7356532842767854606">"ציין שנה"</string>
+    <string name="date_format_short_no_year">dd/MM</string>
+    <string name="date_format_full_no_year">MMMM d</string>
+  <string name="menu_preferences">העדפות</string>
+  <string name="dialer_menu_sms">SMS / MMS</string>
+  <string name="recent_calls_clear_call_log">מחק יומן שיחות</string>
+  <string name="recent_calls_clear_what">למחוק מה?</string>
+  <string name="recent_calls_clear_all">הכל</string>
+  <string name="recent_calls_clear_incoming">נכנסות</string>
+  <string name="recent_calls_clear_outgoing">יוצאות</string>
+  <string name="recent_calls_clear_missed">שלא נענו</string>
+  <string name="alert_clear_call_log_title">מחק יומן שיחות</string>
+  <string name="alert_clear_call_log_message">האם אתה בטוח שאתה רוצה למחוק את כל היומן שיחות?</string>
+  <string name="alert_clear_cl_all_incoming">האם אתה בטוח שברצונך למחוק את כל השיחות נכנסות?</string>
+  <string name="alert_clear_cl_all_outgoing">האם אתה בטוח שאתה רוצה למחוק את כל השיחות יוצאות?</string>
+  <string name="alert_clear_cl_all_missed">האם אתה בטוח שאתה רוצה למחוק את כל השיחות שלא נענו?</string>
+  <string name="fav_clear_freq">מחק שיחות שחוויגו לעיתים קרובות</string>
+  <string name="alert_clear_freq_called_msg">האם אתה בטוח שאתה רוצה למחוק את ערכי השיחות שחוייגו לעיתים קרובות?</string>
+  <string name="title_last_dialled">מאחזר הקשת מספר אחרון שחוייג</string>
+  <string name="summary_last_dialled">המספר האחרון שחויג יאוחזר אם תצוגת ספרות ריקה</string>
+  <string name="title_return_to_dialer">חזור לחייגן לאחר השיחה</string>
+  <string name="title_vm_button">פעולת הכפתור השמאלי (LAB)</string>
+  <string name="title_vm_handler">תא קולי</string>
+  <string name="title_use_1_for_reg_vm">השתמש ב1 עבור הודעה קולית רגילה</string>
+  <string name="summaryon_use_1_for_reg_vm">מקש 1 ישמש עבור הודעה קולית רגילה</string>
+  <string name="summaryoff_use_1_for_reg_vm">מקש 1 יעביר לתא קולי</string>
+  <string name="title_disable_num_check">בטל בדיקות מספר</string>
+  <string name="summaryon_disable_num_check">לחצן פעולה שמאלי (LAB) ומקש תפריט תמיד יהיו מאופשרים</string>
+  <string name="summaryoff_disable_num_check">LAB לחצן שמאלי ומקש תפריט יתאפשרו אם הזנת ספרה אחת לפחות(חוץ מתא קולי)</string>
+  <string name="title_enable_haptic_feedback">אפשר משוב המגע</string>
+  <string name="summary_enable_haptic_feedback">השתמש בלוח מקשים ליצור תבנית - כדי לסדר ראה הגדרות CyanogenMod</string>
+  <string name="title_change_digits_color">שנה צבע ספרות</string>
+  <string name="title_digits_color_pressed">צבע ספרות (הקשה)</string>
+  <string name="title_digits_color_focused">צבע ספרות (ממוקד)</string>
+  <string name="title_digits_color_unselected">צבע ספרות (לא נבחר)</string>
+  <string name="title_choose_color">בחר צבע</string>
+  <string name="instructions_choose_color">לחץ במרכז לאישור.\nלחץ חזרה כדי לבטל.</string>
+  <string name="entry_no_vm_handler">ללא (חייג מספר תא קולי)</string>
+  <string name="title_cl_exact_time">זמנים מדויקים</string>
+  <string name="summaryon_cl_exact_time">השתמש בזמנים מדויקים ביומן שיחות</string>
+  <string name="summaryoff_cl_exact_time">השתמש בזמנים יחסיים ביומן שיחות</string>
+  <string name="title_cl_show_seconds">הצג שניות</string>
+  <string name="summary_cl_show_seconds">הצג שניות בהצגת זמנים מדויקים</string>
+  <string name="title_cl_ask_before_clear">שאל לפני מחיקה</string>
+  <string name="summaryon_cl_ask_before_clear">שאל לפני מחיקת יומן השיחות</string>
+  <string name="summaryoff_cl_ask_before_clear">הרישומים ביומן יימחקו בלי לשאול</string>
+  <string name="title_contacts_show_pic">הצג תמונות אנשי קשר</string>
+  <string name="title_contacts_show_dial_button">הראה לחצן חיוג</string>
+  <string name="summary_contacts_show_dial_button">הראה לחצן חיוג עבור אנשי קשר עם מספרים</string>
+  <string name="title_contacts_show_count">הצג ספירה של אנשי קשר</string>
+  <string name="summary_contacts_show_count">מספר אנשי הקשר יוצג בחלק העליון של רשימת אנשי הקשר</string>
+  <string name="title_contacts_show_separators">הצג מפריד אלפביתי</string>
+  <string name="summaryon_contacts_show_separators">מפריד אלפבתי יוצג ברשימת אנשי הקשר</string>
+  <string name="summaryoff_contacts_show_separators">מפרידי אלפבתי יהיה מוסתר ברשימת אנשי הקשר</string>
+  <string name="title_view_contact">הצג איש קשר</string>
+  <string name="summary_view_contact">הגדרת העדפות בעת הצגת איש קשר בודד</string>
+  <string name="title_show_text_mobile_only">שליחת הודעת טקסט עבור טלפונים ניידים בלבד</string>
+  <string name="summaryon_show_text_mobile_only">רק מספרי טלפונים ניידים תומכים עבור הודעות טקסט</string>
+  <string name="summaryoff_show_text_mobile_only">כל מספרי הטלפונים תומכים בהודעות טקסט</string>
+  <string name="title_favourites_hide_freq_call">הסתר מספרים שחויגו לאחרונה</string>
+  <string name="summary_favourites_hide_freq_call">הנתונים בפועל לא נמחקו, אך מוסתרים.</string>
+  <string name="title_favs_ask_before_clear">שאל לפני מחיקה</string>
+  <string name="summaryon_favs_ask_before_clear">שאל לפני מחיקת מספרים שחויגו לאחרונה</string>
+  <string name="summaryoff_favs_ask_before_clear">מספרים שחויגו לאחרונה ימחקו ללא אישור</string>
+  <string name="title_misc_category">שונות</string>
+  <string name="title_sensor_rotation">אפשר חיישן סיבוב</string>
+  <string name="summary_sensor_rotation">אם מאופשר, הסיבוב יתבסס על הגדרות מערכת"</string>
+  <string name="title_data_font_size">גודל טקסט של מידע אנשי הקשר</string>
+  <string name="summary_data_font_size">מאפשר לך לבחור את גודל הטקסט המשמש להצגת מידע של אנשי קשר (מספר טלפון, דואר אלקטרוני, כתובת, ועוד)</string>
+  <string name="title_about">אודות</string>
+  <string name="title_about_name">שם גרסה</string>
+  <string name="summary_about_name">פורויו אנשי קשר</string>
+  <string name="title_about_version">גירסה</string>
+  <string name="summary_about_version">1.2</string>
+  <string name="title_about_credits">תודות</string>
+  <string name="summary_about_credits">Wysie, ChainsDD, geesun, niuchl, rac2030, sileht ושאר ה XDA! :)</string>
+
+    <string name="t9_map_row_2">2abcדהו</string>
+    <string name="t9_map_row_3">3defאבג</string>
+    <string name="t9_map_row_4">4ghiמםנן</string>
+    <string name="t9_map_row_5">5jklיכךל</string>
+    <string name="t9_map_row_6">6mnoזחט</string>
+    <string name="t9_map_row_7">7pqrsרשת</string>
+    <string name="t9_map_row_8">8tuvצץק</string>
+    <string name="t9_map_row_9">9wxyzסעפף</string>
+    <string name="t9_sort_title">"מצב סידור T9"</string>
+    <string name="t9_sort_summary">"בחר כיצד לסנן תוצאות T9"</string>
+    <string name="t9_add_to_contacts">"הוסף לאנשי הקשר"</string>
+    <string name="t9_dial_click_summary">"חייג לאיש הקשר שנבחר ב-T9"</string>
+    <string name="t9_dial_click_title">"חייג לאיש קשר נבחר"</string>
+    <string name="t9_sort_name">"סדר לפי שם מתאים"</string>
+    <string name="t9_sort_number">"סדר לפי מספר מתאים"</string>
+    <string name="t9_state_summary">"אפשר חיפוש T9 בחייגן"</string>
+    <string name="t9_state_title">"אפשר חייגן T9"</string>
 </resources>

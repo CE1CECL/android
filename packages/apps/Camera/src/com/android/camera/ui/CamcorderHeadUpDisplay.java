@@ -16,33 +16,42 @@
 
 package com.android.camera.ui;
 
-import android.content.Context;
-
 import com.android.camera.CameraSettings;
 import com.android.camera.ListPreference;
 import com.android.camera.PreferenceGroup;
+
+import android.content.Context;
+import android.hardware.Camera.Parameters;
+import android.util.Log;
 
 public class CamcorderHeadUpDisplay extends HeadUpDisplay {
 
     private static final String TAG = "CamcorderHeadUpDisplay";
 
     private OtherSettingsIndicator mOtherSettings;
+    private SettingsIndicator mSettingsIndicator;
     private int mInitialOrientation;
+    private BasicIndicator mVideoQualitySettings;
+    private float[] mInitialZoomRatios;
+    private ZoomIndicator mZoomIndicator;
+    private Context mContext;
 
     public CamcorderHeadUpDisplay(Context context) {
         super(context);
+        mContext = context;
     }
 
     public void initialize(Context context, PreferenceGroup group,
-            int initialOrientation) {
+            float[] initialZoomRatios, int initialOrientation, Parameters params) {
         mInitialOrientation = initialOrientation;
-        super.initialize(context, group);
+        mInitialZoomRatios = initialZoomRatios;
+        super.initialize(context, group, params);
     }
 
     @Override
     protected void initializeIndicatorBar(
-            Context context, PreferenceGroup group) {
-        super.initializeIndicatorBar(context, group);
+            Context context, PreferenceGroup group, Parameters params) {
+        super.initializeIndicatorBar(context, group, params);
 
         ListPreference[] prefs = getListPreferences(group,
                 CameraSettings.KEY_FOCUS_MODE,
@@ -62,11 +71,73 @@ public class CamcorderHeadUpDisplay extends HeadUpDisplay {
         });
         mIndicatorBar.addComponent(mOtherSettings);
 
+        mSettingsIndicator = new SettingsIndicator(context, params);
+        if (mSettingsIndicator.isAvailable()) {
+            mIndicatorBar.addComponent(mSettingsIndicator);
+        }
+
         addIndicator(context, group, CameraSettings.KEY_WHITE_BALANCE);
         addIndicator(context, group, CameraSettings.KEY_VIDEOCAMERA_FLASH_MODE);
-        addIndicator(context, group, CameraSettings.KEY_VIDEO_QUALITY);
+
+        mVideoQualitySettings = addIndicator(context, group, CameraSettings.KEY_VIDEO_QUALITY);
+
+        if (mInitialZoomRatios != null) {
+            mZoomIndicator = new ZoomIndicator(mContext);
+            mZoomIndicator.setZoomRatios(mInitialZoomRatios);
+            mIndicatorBar.addComponent(mZoomIndicator);
+        } else {
+            mZoomIndicator = null;
+        }
+
         addIndicator(context, group, CameraSettings.KEY_CAMERA_ID);
 
         mIndicatorBar.setOrientation(mInitialOrientation);
+    }
+
+    public void setZoomListener(ZoomControllerListener listener) {
+        // The rendering thread won't access listener variable, so we don't
+        // need to do concurrency protection here
+        if (mZoomIndicator != null) {
+            mZoomIndicator.setZoomListener(listener);
+        }
+    }
+
+    public void setZoomIndex(int index) {
+        if (mZoomIndicator != null) {
+            GLRootView root = getGLRootView();
+            if (root != null) {
+                synchronized (root) {
+                    mZoomIndicator.setZoomIndex(index);
+                }
+            } else {
+                mZoomIndicator.setZoomIndex(index);
+            }
+        }
+    }
+
+    /**
+     * Sets the zoom rations the camera driver provides. This methods must be
+     * called before <code>setZoomListener()</code> and
+     * <code>setZoomIndex()</code>
+     */
+    public void setZoomRatios(float[] zoomRatios) {
+        GLRootView root = getGLRootView();
+        if (root != null) {
+            synchronized(root) {
+                setZoomRatiosLocked(zoomRatios);
+            }
+        } else {
+            setZoomRatiosLocked(zoomRatios);
+        }
+    }
+
+    private void setZoomRatiosLocked(float[] zoomRatios) {
+        mZoomIndicator.setZoomRatios(zoomRatios);
+    }
+
+    public void setVideoQualityControlsEnabled(boolean enabled) {
+        if (mVideoQualitySettings != null) {
+            mVideoQualitySettings.setEnabled(enabled);
+        }
     }
 }

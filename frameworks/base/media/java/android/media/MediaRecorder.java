@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileDescriptor;
 import java.lang.ref.WeakReference;
+import android.os.SystemProperties;
 
 /**
  * Used to record audio and video. The recording control is based on a
@@ -154,6 +155,18 @@ public class MediaRecorder
          * is available.
          */
         public static final int VOICE_COMMUNICATION = 7;
+
+        /**
+         * Default FM radio source
+         * @hide
+        */
+        public static final int FM_RX = 8;
+
+        /**
+         * A2DP FM radio source
+         * @hide
+         */
+        public static final int FM_RX_A2DP = 9;
     }
 
     /**
@@ -275,6 +288,10 @@ public class MediaRecorder
     public native void setVideoSource(int video_source)
             throws IllegalStateException;
 
+    /** @hide */
+    public native void setCameraParameters(String params)
+            throws IllegalStateException;
+
     /**
      * Uses the settings from a CamcorderProfile object for recording. This method should
      * be called after the video AND audio sources are set, and before setOutputFile().
@@ -287,11 +304,24 @@ public class MediaRecorder
         setVideoFrameRate(profile.videoFrameRate);
         setVideoSize(profile.videoFrameWidth, profile.videoFrameHeight);
         setVideoEncodingBitRate(profile.videoBitRate);
-        setAudioEncodingBitRate(profile.audioBitRate);
-        setAudioChannels(profile.audioChannels);
-        setAudioSamplingRate(profile.audioSampleRate);
-        setVideoEncoder(profile.videoCodec);
-        setAudioEncoder(profile.audioCodec);
+
+        if(SystemProperties.OMAP_ENHANCEMENT) {
+            setVideoEncoder(profile.videoCodec);
+
+            if (profile.audioCodec != 0)
+            {
+                setAudioEncodingBitRate(profile.audioBitRate);
+                setAudioChannels(profile.audioChannels);
+                setAudioSamplingRate(profile.audioSampleRate);
+                setAudioEncoder(profile.audioCodec);
+            }
+        } else {
+            setAudioEncodingBitRate(profile.audioBitRate);
+            setAudioChannels(profile.audioChannels);
+            setAudioSamplingRate(profile.audioSampleRate);
+            setVideoEncoder(profile.videoCodec);
+            setAudioEncoder(profile.audioCodec);
+        }
     }
 
     /**
@@ -316,7 +346,7 @@ public class MediaRecorder
             degrees != 270) {
             throw new IllegalArgumentException("Unsupported angle: " + degrees);
         }
-        setParameter(String.format("video-param-rotation-angle-degrees=%d", degrees));
+        setParameter("video-param-rotation-angle-degrees=" + degrees);
     }
 
     /**
@@ -435,7 +465,7 @@ public class MediaRecorder
         if (samplingRate <= 0) {
             throw new IllegalArgumentException("Audio sampling rate is not positive");
         }
-        setParameter(String.format("audio-param-sampling-rate=%d", samplingRate));
+        setParameter("audio-param-sampling-rate=" + samplingRate);
     }
 
     /**
@@ -450,7 +480,7 @@ public class MediaRecorder
         if (numChannels <= 0) {
             throw new IllegalArgumentException("Number of channels is not positive");
         }
-        setParameter(String.format("audio-param-number-of-channels=%d", numChannels));
+        setParameter("audio-param-number-of-channels=" + numChannels);
     }
 
     /**
@@ -466,7 +496,7 @@ public class MediaRecorder
         if (bitRate <= 0) {
             throw new IllegalArgumentException("Audio encoding bit rate is not positive");
         }
-        setParameter(String.format("audio-param-encoding-bitrate=%d", bitRate));
+        setParameter("audio-param-encoding-bitrate=" + bitRate);
     }
 
     /**
@@ -482,7 +512,7 @@ public class MediaRecorder
         if (bitRate <= 0) {
             throw new IllegalArgumentException("Video encoding bit rate is not positive");
         }
-        setParameter(String.format("video-param-encoding-bitrate=%d", bitRate));
+        setParameter("video-param-encoding-bitrate=" + bitRate);
     }
 
     /**

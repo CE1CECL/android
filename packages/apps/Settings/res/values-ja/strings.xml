@@ -539,6 +539,7 @@
     <string name="status_up_time" msgid="7294859476816760399">"稼働時間"</string>
     <string name="status_awake_time" msgid="2393949909051183652">"端末使用時間"</string>
     <string name="internal_memory" msgid="9129595691484260784">"内部ストレージ"</string>
+    <string name="additional_memory">"追加ストレージ"</string>
     <string name="sd_memory" product="nosdcard" msgid="2510246194083052841">"USBストレージ"</string>
     <string name="sd_memory" product="default" msgid="151871913888051515">"SDカード"</string>
     <string name="memory_available" msgid="418542433817289474">"空き容量"</string>
@@ -707,6 +708,7 @@
     <string name="lockpattern_settings_enable_title" msgid="6920616873671115281">"パターン入力が必要"</string>
     <string name="lockpattern_settings_enable_summary" msgid="1165707416664252167">"画面ロックを解除するにはパターンの入力が必要"</string>
     <string name="lockpattern_settings_enable_visible_pattern_title" msgid="104851667540971729">"指の軌跡を線で表示"</string>
+    <string name="lockpattern_settings_enable_error_path_title">エラー軌跡を表示</string>
     <string name="lockpattern_settings_enable_tactile_feedback_title" msgid="972174133075372341">"入力時バイブレーション"</string>
     <string name="lockpattern_settings_choose_lock_pattern" msgid="1652352830005653447">"ロック解除パターン設定"</string>
     <string name="lockpattern_settings_change_lock_pattern" msgid="1123908306116495545">"パターンの変更"</string>
@@ -879,8 +881,15 @@
     <string name="builtin_keyboard_settings_summary" msgid="7990296351888096836">"端末内蔵物理キーボードの設定"</string>
     <string name="development_settings_title" msgid="6719732334835420989">"開発"</string>
     <string name="development_settings_summary" msgid="2151320488701538355">"アプリケーション開発オプション"</string>
-    <string name="enable_adb" msgid="7982306934419797485">"USBデバッグ"</string>
-    <string name="enable_adb_summary" msgid="4881186971746056635">"USB接続時はデバッグモードにする"</string>
+    <string name="enable_adb" msgid="7982306934419797485">"Androidデバッグ"</string>
+    <string name="enable_adb_summary" msgid="4881186971746056635">"Androidデバッグモードを許可する (ADB)"</string>
+    <string name="adb_over_network">"ネットワークADB"</string>
+    <!-- Setting checkbox summary for Whether to enable network debugging support -->
+    <string name="adb_over_network_summary">"USB以外のネットワークデバッグを利用 (Wi-Fiなど) この設定は再起動毎にリセットされます。"</string>
+    <!-- Warning for Adb over Network -->
+    <string name="adb_over_network_warning">"警告: ネットワークADBを有効にすると、電話機はGSM網を含めたあらゆるネットワークにさらされることになります！\n\nこの機能は信頼できるネットワークに接続中の場合のみ使用してください。\n\n有効にしてもよろしいですか？"</string>
+    <string name="adb_notify">"デバッグを通知する"</string>
+    <string name="adb_notify_summary">"デバッグが接続されたら通知を表示する"</string>
     <string name="keep_screen_on" msgid="1146389631208760344">"スリープモードにしない"</string>
     <string name="keep_screen_on_summary" msgid="2173114350754293009">"充電中に画面をスリープにしない"</string>
     <string name="allow_mock_location" msgid="2787962564578664888">"擬似ロケーションを許可"</string>
@@ -908,7 +917,7 @@
     <string name="accessibility_service_security_warning" msgid="4066258132331302670">"このユーザー補助サービスを選択すると、入力する全テキストの収集をアプリケーション（<xliff:g id="ACCESSIBILITY_SERVICE_NAME">%1$s</xliff:g>）に許可することになります。これにはクレジットカード番号などの個人情報（パスワードを除く）も含まれます。また、ユーザーインターフェースでのやり取りも記録されます。このユーザー補助サービスを使用しますか？"</string>
     <string name="accessibility_service_disable_warning" msgid="8930591383312775132">"ユーザー補助サービスを無効にしますか？"</string>
     <string name="accessibility_service_no_apps_title" msgid="898893674114288531">"ユーザー補助アプリケーションが見つかりません"</string>
-    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"ユーザー補助アプリケーションをインストールしていません。"\n\n"携帯電話用のスクリーンリーダーをAndroidマーケットからダウンロードできます。"\n\n"スクリーンリーダーをインストールするには[OK]をタップします。"</string>
+    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"ユーザー補助アプリケーションをインストールしていません。"\n\n"携帯電話用のスクリーンリーダーをGoogleプレイからダウンロードできます。"\n\n"スクリーンリーダーをインストールするには[OK]をタップします。"</string>
     <string name="accessibility_power_button_category" msgid="8545885236482339928">"電源ボタン"</string>
     <string name="accessibility_power_button_ends_call" msgid="7698764194501089533">"電源ボタンで通話を終了する"</string>
     <string name="accessibility_power_button_ends_call_summary" msgid="8878097632186291462">"画面をOFFにするのではなく電源ボタンを押して通話を終了する"</string>
@@ -1169,8 +1178,290 @@
     <string name="sound_category_calls_title" msgid="3688531959256239012">"着信"</string>
     <string name="sound_category_notification_title" msgid="3502115998790286943">"通知"</string>
     <string name="sound_category_feedback_title" msgid="4399742321363475393">"フィードバック"</string>
+    <!-- Added for CM -->
+    <string name="mod_version">"Modバージョン"</string>
+    <string name="mod_version_default">"不明"</string>
+    <string name="build_date">ビルド日付</string>
+    <string name="cm_settings_title">CyanogenMod設定</string>
+    <string name="cpu_info">CPU情報</string>
+    <string name="mem_info">メモリ情報(空き/トータル)</string>
+    <string name="kill_app_longpress_back">"長押しでアプリを終了"</string>
+    <string name="kill_app_longpress_back_summary">"戻るボタンを長押しすることでフォアグラウンドアプリケーションを終了させる"</string>
+    <string name="launcher_settings_title">ADWLauncher</string>
+
+    <!-- Display settings screen, notification light repeat blinking title -->
+    <string name="notification_blink_title">"通知ライトを点滅させる"</string>
+    <!-- Display settings screen, notification light repeat blinking summary -->
+    <string name="notification_blink_summary">"緑の通知ライトを繰り返し点滅させる"</string>
+    <!-- Display settings screen, notification light always on title -->
+    <string name="notification_always_on_title">"常に通知ライトを有効にする"</string>
+    <!-- Display settings screen, notification light always on summary -->
+    <string name="notification_always_on_summary">"スクリーンオン時のみ通知ライトを有効にする"</string>
+    <!-- Display settings screen, notification light while charging title -->
+    <string name="notification_charging_title">"充電ライト"</string>
+    <!-- Display settings screen, notification light while charging summary -->
+    <string name="notification_charging_summary">"充電中はアンバーのライトを点灯する"</string>
+
+    <string name="possibleButtons">"可能なボタン"</string>
+    <string name="toggleWifi">"Wi-Fiトグル"</string>
+    <string name="toggleWifiAp">"ポータブルアクセスポイントトグル"</string>
+    <string name="toggleBluetooth">"Bluetoothトグル"</string>
+    <string name="toggleGPS">"GPSトグル"</string>
+    <string name="toggleData">"モバイルデータトグル"</string>
+    <string name="toggleSync">"データ同期トグル"</string>
+    <string name="toggle2g3g">"2G/3Gトグル"</string>
+    <string name="toggleSound">"サウンドトグル"</string>
+    <string name="toggleBrightness">"明るさトグル"</string>
+    <string name="toggleAutoRotate">"回転トグル"</string>
+    <string name="toggleScreenTimeout">"スクリーンタイムアウト"</string>
+    <string name="toggleAirplane">"機内モードトグル"</string>
+    <string name="toggleFlashlight">"フラッシュライトトグル"</string>
+    <string name="toggleLockScreen">"ロックスクリーントグル"</string>
+    <string name="toggleWimax">"WiMAXトグル"</string>
+
+    <string name="toggleWifiDescription">"Wi-Fi有効/無効"</string>
+    <string name="toggleWifiApDescription">"ポータブルアクセスポイント有効/無効"</string>
+    <string name="toggleBluetoothDescription">"Bluetooth有効/無効"</string>
+    <string name="toggleGPSDescription">"GPS有効/無効"</string>
+    <string name="toggleDataDescription">"モバイルデータ通信有効/無効"</string>
+    <string name="toggleSyncDescription">"データ同期有効/無効"</string>
+    <string name="toggle2g3gDescription">"2Gと3Gの切り替え"</string>
+    <string name="toggleSoundDescription">"サウンド/振動モードの切替"</string>
+    <string name="toggleBrightnessDescription">"明るさレベルの切替"</string>
+    <string name="toggleAutoRotateDescription">"回転センサ有効/無効"</string>
+    <string name="toggleScreenTimeoutDescription">"異なるスクリーンタイムアウトをセット"</string>
+    <string name="toggleAirplaneDescription">"機内モードの切替"</string>
+    <string name="toggleFlashlightDescription">"フラッシュライトモードの切替"</string>
+    <string name="toggleLockScreenDescription">"ロックスクリーンの有効/無効"</string>
+    <string name="toggleWimaxDescription">"WiMAXの有効/無効"</string>
+
+    <string name="widgetSettings">"ウィジェット設定"</string>
+    <string name="wifiSettings">"Wi-Fiイベント"</string>
+    <string name="dataSettings">"データイベント"</string>
+    <string name="powerSettings">"電源イベント"</string>
+    <string name="generalSettings">"一般設定"</string>
+
+    <string name="autoDisable3G">"3Gの自動無効"</string>
+    <string name="autoEnable3G">"3Gの自動有効"</string>
+    <string name="useRoundCorners">"角を丸くする"</string>
+    <string name="useVertical">"縦配置を使用"</string>
+    <string name="useTransparent">"透明なウィジェット"</string>
+    <string name="autoEnableSyncWithWifi">"同期の自動有効"</string>
+    <string name="autoDisableSyncWithWifi">"同期の自動無効"</string>
+    <string name="autoDisable3GWithWifi">"Wi-Fi接続時は3G無効"</string>
+    <string name="autoEnable3GWithWifi">"Wi-Fi切断時は3G有効"</string>
+    <string name="ringModeVibrateAsOn">"振動モードをONとする"</string>
+    <string name="monitorDataRoaming">"データローミングのモニタ"</string>
+    <string name="autoEnableBluetoothWithPower">"外部電源接続時にBluetooth有効"</string>
+    <string name="autoDisableBluetoothWithPower">"外部電源切断時にBluetooth無効"</string>
+    <string name="autoEnableWifiWithPower">"外部電源接続時にWi-Fi有効"</string>
+    <string name="autoDisableWifiWithPower">"外部電源切断時にWi-Fi無効"</string>
+
+    <string name="autoDisable3GDescription">"モバイルデータ通信無効時は2G"</string>
+    <string name="autoEnable3GDescription">"モバイルデータ通信有効時は3G"</string>
+    <string name="useRoundCornersDescription">"ウィジェットの角を丸くする"</string>
+    <string name="useTransparentDescription">"ウィジェット背景を透明にする"</string>
+    <string name="useVerticalDescription">"縦向きの配置で表示する"</string>
+
+    <string name="autoEnableSyncWithWifiDescription">"Wi-Fi接続時にデータ同期を有効にする"</string>
+    <string name="autoDisableSyncWithWifiDescription">"Wi-Fi切断時にデータ同期を無効にする"</string>
+    <string name="autoDisable3GWithWifiDescription">"Wi-Fiに接続したら2Gにする"</string>
+    <string name="autoEnable3GWithWifiDescription">"Wi-Fiを切断したら3Gにする"</string>
+    <string name="ringModeVibrateAsOnDescription">"振動モードのときトグルON表示にする"</string>
+    <string name="monitorDataRoamingDescription">"データローミング時に、ステータスを赤くする"</string>
+    <string name="autoEnableBluetoothWithPowerDescription">"外部電源に接続したらBluetoothを有効にする"</string>
+    <string name="autoDisableBluetoothWithPowerDescription">"外部電源から切断したらBluetoothを無効にする"</string>
+    <string name="autoEnableWifiWithPowerDescription">"外部電源に接続したらWi-Fiを有効にする"</string>
+    <string name="autoDisableWifiWithPowerDescription">"外部電源から切断したらWi-Fiを無効にする"</string>
+
+    <!-- OpenVPN settings -->
+    <string name="vpn_openvpn_port">"サーバポート番号"</string>
+    <string name="vpn_openvpn_protocol">"使用するプロトコル"</string>
+    <string name="vpn_openvpn_device">"使用するデバイス"</string>
+    <string name="vpn_openvpn_userauth">"ユーザ認証"</string>
+    <string name="vpn_openvpn_userauth_summary">"追加のユーザ認証が必要な場合設定する"</string>
+    <string name="vpn_openvpn_advanced_titlebar">"追加のOpenVPN設定"</string>
+    <string name="vpn_openvpn_comp_lzo">"LZO圧縮"</string>
+    <string name="vpn_openvpn_comp_lzo_summary">"LZO圧縮を有効にする"</string>
+    <string name="vpn_openvpn_redirect_gateway_title">"リダイレクトゲートウェイ"</string>
+    <string name="vpn_openvpn_redirect_gateway_summary">"すべてのトラフィックをOpenVPN経由にする"</string>
+    <string name="vpn_openvpn_set_addr">"リモートによるアドレス設定"</string>
+    <string name="vpn_openvpn_set_addr_summary">"トンネルアドレスを手動で設定す>るにはチェックを外す"</string>
+    <string name="vpn_openvpn_set_local_addr">"ローカルIPアドレス"</string>
+    <string name="vpn_openvpn_set_remote_addr">"リモートIPアドレス"</string>
+    <string name="vpn_openvpn_set_cipher">"暗号化アルゴリズム"</string>
+    <string name="vpn_openvpn_set_cipher_message">"デフォルトを使うには空にしてください"</string>
+    <string name="vpn_openvpn_set_keysize">"暗号キーのサイズ"</string>
+    <string name="vpn_openvpn_set_keysize_message">"デフォルトを使うには空にしてください"</string>
+    <string name="vpn_openvpn_set_extra">"追加引数"</string>
+    <string name="vpn_openvpn_set_extra_message">"追加のコマンドライン引数を入力してください"</string>
+
+    <string name="networkModeSpinner">"ネットワークモードの選択"</string>
+    <string name="brightnessSpinner">"明るさレベルの選択"</string>
+    <string name="ringModeSpinner">"着信音モードの選択"</string>
+    <string name="screenTimeoutSpinner">"スクリーンタイムアウトの選択"</string>
+    <string name="backgroundImageSpinner">"背景を選択"</string>
+
+    <string name="notConfigured">"未設定 もう一度追加してください"</string>
+    <string name="ok">OK</string>
+
+    <!-- Widget Picker -->
+    <string name="widget_count">"(%d個のウィジェット)"</string>
+
+    <!-- device hostname -->
+    <string name="device_hostname">端末のホスト名</string>
+    <!-- Button when saving a device hostname -->
+    <string name="hostname_save">保存</string>
+    <!-- Button when cancelling hostname change -->
+    <string name="hostname_cancel">キャンセル</string>
+
+    <string name="bluetooth_profile_hid">HID</string>
+    <string name="bluetooth_summary_connected_to_hid">HIDデバイスに接続</string>
+
+    <!-- Profile settings -->
+    <string name="profile_settings_title">プロファイル</string>
+    <string name="soundtone_title">通知音</string>
+    <string name="profile_title">プロファイル設定</string>
+    <string name="profile_appgroup_list_title">アプリグループ設定</string>
+    <string name="sound_mode">通知モード</string>
+    <string name="ringer_mode">着信音モード</string>
+    <string name="lights_mode">ライトモード</string>
+    <string name="vibrate_mode">振動モード</string>
+    <string name="choose_soundtone">通知音を選択</string>
+    <string name="choose_ringtone">着信音を選択</string>
+    <string name="profile_settings">プロファイル設定</string>
+    <string name="profile_name">プロファイル名</string>
+    <string name="profile_summary">タッチしてプロファイルを設定</string>
+    <string name="profile_appgroup_title">アプリグループ: %s</string>
+    <string name="profile_appgroups_title">アプリグループ</string>
+    <string name="profile_applist_title">アプリ - クリックしてグループから削除</string>
+    <string name="profile_appgroup_name_prompt">アプリグループの名前を入力してください</string>
+    <string name="profile_delete">プロファイルの削除</string>
+    <string name="profile_delete_confirm">このプロファイルを削除してもよろしいですか？</string>
+    <string name="profile_app_delete_confirm">このアプリをグループから削除してもよろしいですか？</string>
+    <string name="profile_choose_app">アプリ選択</string>
+    <string name="profile_settings_header">プロファイル設定: %s</string>
+    <string name="profile_group_header">プロファイル: %1$s カテゴリ: %2$s</string>
+    <string name="menu_appgroups">アプリグループの管理</string>
+    <string name="menu_new_profile">新規プロファイル</string>
+    <string name="menu_new_profile_summary">新しいプロファイルを追加して設定する</string>
+    <string name="profile_menu_delete">削除</string>
+    <string name="profile_new_appgroup">新規アプリグループ</string>
+    <string name="profile_delete_appgroup">このグループを削除する</string>
+    <string name="profile_add_app">アプリを追加</string>
+    <string name="profile_manage">プロファイルの管理</string>
+    <string name="profile_appgroups_manage">アプリグループの管理</string>
+    <string name="profile_applist_manage">アプリリストの管理</string>
+    <string name="profile_reset_title">リセット</string>
+    <string name="profile_reset_all_title">全てリセット</string>
+    <string name="profile_reset_all_summary">全てのプロファイル・アプリケーショングループを削除して初期設定に戻します。</string>
+    <string name="profile_reset_all_message">全てのプロファイルとアプリケーショングループを削除してそれらを初期設定に戻しますか?</string>
+    <string name="new_profile_name">&lt;新規プロファイル&gt;</string>
+    <string name="profile_cannot_delete">アクティブなプロファイルを削除することはできません</string>
     <string name="wimax_settings" msgid="1574837328738396794">"4G設定"</string>
     <string name="wimax_settings_summary" msgid="3207355006084135453">"4Gネットワークとモデムの設定と管理"</string>
     <string name="status_wimax_mac_address" msgid="8390791848661413416">"4G MACアドレス"</string>
+    <string name="power_sounds_enable_title">低バッテリー音</string>
+    <string name="power_sounds_enable_summary">バッテリー残量が少なくなった場合に警告音を再生する</string>
+    <string name="profile_connectionoverrides_title">コネクションオーバーライド</string>
+    <string name="profile_connectionoverrides_summary">タッチして有効/無効を設定</string>
+    <string name="profile_volumeoverrides_title">ボリュームオーバーライド</string>
+    <string name="profile_volumeoverrides_summary">タッチして音量をセット</string>
+    <string name="bluetooth_hid_profile_summary_connected">HIDデバイスに接続</string>
+    <string name="bluetooth_hid_profile_summary_use_for">HIDデバイスのために使用する</string>
+    <string name="bluetooth_profile_network">ネットワーク</string>
+    <string name="profile_statusbar">ステータスバーインジケータ</string>
+
+    <!-- About phone settings, CM Legal information setting option name and title of dialog box holding license info -->
+    <string name="settings_cmlicense_activity_title">CyanogenMod ライセンス</string>
+
+
     <string name="additional_system_update_settings_list_item_title" msgid="214987609894661992">"その他のシステムアップデート"</string>
+
+    <!-- Summary for PreferenceScreen to launch picker for security method when there is none -->
+    <string name="lockfinger_unlock_set_unlock_launch_picker_summary">パターン、指、PIN、またはパスワードで画面をロックする</string>
+
+    <!-- Summary for PreferenceScreen to change security method: None/Pattern/Finger/PIN/Password -->
+    <string name="lockfinger_unlock_set_unlock_launch_picker_change_summary">パターン、指、PIN、またはパスワードによるセキュリティを変更または無効にする</string>
+
+    <!--  Title and summary for preference that guides the user through creating an unlock finger -->
+    <string name="lockfinger_unlock_set_unlock_finger_title">指</string>
+    <string name="lockfinger_unlock_set_unlock_finger_summary">画面のロックを解除するには指を滑らせてください</string>
+
+    <!-- Title for unlock finger settings screen -->
+    <string name="lockfinger_finger_settings_title">画面のロック解除用の指紋</string>
+
+    <!-- Title for preference that sets or changes unlock finger -->
+    <string name="lockfinger_set_finger_unlock_title">指紋によるロック解除の設定</string>
+    <string name="lockfinger_change_finger_unlock_title">指紋によるロック解除の変更</string>
+
+    <!-- Title and summary for preference that toggles the finger unlock -->
+    <string name="lockfinger_toggle_unlock_finger_title">常に指紋を使用</string>
+    <string name="lockfinger_toggle_unlock_finger_summary">画面のロック解除に常に指紋を使用する</string>
+
+    <!-- Title for preference that start True Suite Administration -->
+    <string name="lockfinger_dbadmin_title">TrueSuite の管理</string>
+
+    <!-- Summary shown under unlock_disable_lock_title when finger is in use and can be removed -->
+    <string name="lockfinger_unlock_disable_lock_finger_summary">ロック解除用の指紋の削除</string>
+
+    <!-- Title shown on security settings to allow the user to change their lockscreen finger -->
+    <string name="unlock_change_lock_finger_title">ロック解除用の指紋の変更</string>
+
+    <!-- Toast shown if setting finger was successful -->
+    <string name="lockpassword_finger_set_toast">指が設定されています</string>
+
+    <!-- Security & location settings screen, setting option name for finger -->
+    <string name="lockpattern_change_lock_finger_label">ロック解除用の指紋の変更</string>
+
+    <!-- Unlock finger settings screen, Toast shown if there is a semaphore failure. -->
+    <string name="lockfinger_semaphore_failure_toast">セマフォエラー</string>
+
+    <!-- Unlock finger settings screen, Toast shown a successful enrollment. -->
+    <string name="lockfinger_enrollment_succeeded_toast">登録に成功しました。</string>
+
+    <!-- Unlock finger settings screen, Toast shown the TSM library is not available. -->
+    <string name="lockfinger_tsm_library_not_available_toast">TSM ライブラリをロードできませんでした... 続行できません!</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the user canneled the enrollment. -->
+    <string name="lockfinger_enrollment_canceled_toast">登録がキャンセルされました。</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the enrollment runs timeout. -->
+    <string name="lockfinger_enrollment_timeout_toast">登録がタイムアウトしました。</string>
+
+    <!-- Unlock finger settings screen, Toast shown an unknow error happened. -->
+    <string name="lockfinger_enrollment_unknown_error_toast">不明なエラーが発生しました。\n接続できなかった可能性があります。</string>
+
+    <!-- Unlock finger settings screen, Toast shown other errors returned by the enrollment. -->
+    <string name="lockfinger_enrollment_failure_default_toast">登録できませんでした。エラー = %d.</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the database has been full. -->
+    <string name="lockfinger_enrollment_database_full">登録できませんでした。 データベースがいっぱいです。</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after UI timeout -->
+    <string name="lockfinger_dbadmin_failure_default_toast">データベース管理操作エラー: %d.</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after UI timeout -->
+    <string name="lockfinger_ui_timeout_header">UI がタイムアウトしました!</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after too many bad swipes -->
+    <string name="lockfinger_too_many_bad_swipes_header">読み取りの失敗が多すぎます!</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen countdown hint on bottom of screen when the screen is locked out -->
+    <string name="lockfinger_lockout_countdown_footer">%d 秒後に再試行してください。</string>
+
+    <string name="increasing_ring_title">ステップ着信音量</string>
+    <!-- Sound settings screen, the caption of the checkbox for making incoming calls increas in volume -->
+    <string name="checkbox_increasing_ring">ステップ着信音量を有効にする</string>
+    <!-- Sound settings screen, the title of the volume bar to adjust the minimum increasing ring volume -->
+    <string name="increasing_ring_min_volume_title">鳴り始めの音量</string>
+    <string name="increasing_ring_volume_notice">注意:\n設定した音量が着信音量より大きい場合、着信音量の設定に従います。</string>
+    <string name="increasing_ring_interval_title">音量が上がる間隔</string>
+    <string name="increasing_ring_interval_eachring">着信音毎</string>
+    <string name="increasing_ring_interval_half_second">0.5 秒</string>
+    <string name="increasing_ring_interval_1second">1 秒</string>
+    <string name="increasing_ring_interval_2seconds">2 秒</string>
+    <string name="increasing_ring_interval_3seconds">3 秒</string>
+    <string name="increasing_ring_interval_5seconds">5 秒</string>
+    <string name="increasing_ring_interval_10seconds">10 秒</string>
 </resources>

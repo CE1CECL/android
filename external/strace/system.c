@@ -61,6 +61,7 @@
 #define MS_POSIXACL	(1<<16)	/* VFS does not apply the umask */
 #define MS_ACTIVE	(1<<30)
 #define MS_NOUSER	(1<<31)
+#define MS_MGC_VAL	0xc0ed0000	/* Magic flag number */
 #endif /* HAVE_ANDROID_OS */
 
 #include <sys/socket.h>
@@ -88,6 +89,7 @@
 #include <linux/sysctl.h>
 
 static const struct xlat mount_flags[] = {
+	{ MS_MGC_VAL,	"MS_MGC_VAL"	},
 	{ MS_RDONLY,	"MS_RDONLY"	},
 	{ MS_NOSUID,	"MS_NOSUID"	},
 	{ MS_NODEV,	"MS_NODEV"	},
@@ -122,22 +124,33 @@ struct tcb *tcp;
 			tprintf("%#lx", tcp->u_arg[2]);
 		tprintf(", ");
 		printflags(mount_flags, tcp->u_arg[3], "MS_???");
-		tprintf(", %#lx", tcp->u_arg[4]);
+		tprintf(", ");
+		if ((tcp->u_arg[3] & (MS_BIND|MS_MOVE)) == 0)
+			printstr(tcp, tcp->u_arg[4], -1);
+		else
+			tprintf("%#lx", tcp->u_arg[4]);
 	}
 	return 0;
 }
 
+#define MNT_FORCE	0x00000001	/* Attempt to forcibily umount */
+#define MNT_DETACH	0x00000002	/* Just detach from the tree */
+#define MNT_EXPIRE	0x00000004	/* Mark for expiry */
+
+static const struct xlat umount_flags[] = {
+	{ MNT_FORCE,	"MNT_FORCE"	},
+	{ MNT_DETACH,	"MNT_DETACH"	},
+	{ MNT_EXPIRE,	"MNT_EXPIRE"	},
+	{ 0,		NULL		},
+};
+
 int
-sys_umount2(tcp)
-struct tcb *tcp;
+sys_umount2(struct tcb *tcp)
 {
 	if (entering(tcp)) {
 		printstr(tcp, tcp->u_arg[0], -1);
 		tprintf(", ");
-		if (tcp->u_arg[1] & 1)
-			tprintf("MNT_FORCE");
-		else
-			tprintf("0");
+		printflags(umount_flags, tcp->u_arg[1], "MNT_???");
 	}
 	return 0;
 }
@@ -1577,6 +1590,9 @@ struct tcb *tcp;
 #endif
 
 #ifdef LINUX
+/* Linux 2.6.18+ headers removed CTL_PROC enum.  */
+# define CTL_PROC 4
+# define CTL_CPU 10		/* older headers lack */
 static const struct xlat sysctl_root[] = {
 	{ CTL_KERN, "CTL_KERN" },
 	{ CTL_VM, "CTL_VM" },
@@ -1585,6 +1601,9 @@ static const struct xlat sysctl_root[] = {
 	{ CTL_FS, "CTL_FS" },
 	{ CTL_DEBUG, "CTL_DEBUG" },
 	{ CTL_DEV, "CTL_DEV" },
+	{ CTL_BUS, "CTL_BUS" },
+	{ CTL_ABI, "CTL_ABI" },
+	{ CTL_CPU, "CTL_CPU" },
 	{ 0, NULL }
 };
 
@@ -1930,7 +1949,9 @@ struct tcb *tcp;
 			goto out;
 		}
 	out:
-		max_cnt = abbrev(tcp) ? max_strlen : info.nlen;
+		max_cnt = info.nlen;
+		if (abbrev(tcp) && max_cnt > max_strlen)
+			max_cnt = max_strlen;
 		while (cnt < max_cnt)
 			tprintf(", %x", name[cnt++]);
 		if (cnt < info.nlen)

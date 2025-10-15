@@ -1,5 +1,6 @@
 /*
  * Copyright 2006, The Android Open Source Project
+ * Copyright (C) 2010-2011, Code Aurora Forum. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -188,6 +189,7 @@ struct WebFrame::JavaBrowserFrame
     jmethodID   mDensity;
     jmethodID   mGetFileSize;
     jmethodID   mGetFile;
+    jmethodID   mResolveDns;
     AutoJObject frame(JNIEnv* env) {
         return getRealObject(env, mObj);
     }
@@ -210,7 +212,7 @@ WebFrame::WebFrame(JNIEnv* env, jobject obj, jobject historyList, WebCore::Page*
     mJavaFrame->mObj = env->NewWeakGlobalRef(obj);
     mJavaFrame->mHistoryList = env->NewWeakGlobalRef(historyList);
     mJavaFrame->mStartLoadingResource = env->GetMethodID(clazz, "startLoadingResource",
-            "(ILjava/lang/String;Ljava/lang/String;Ljava/util/HashMap;[BJIZZZLjava/lang/String;Ljava/lang/String;)Landroid/webkit/LoadListener;");
+            "(ILjava/lang/String;Ljava/lang/String;Ljava/util/HashMap;[BJIZZZLjava/lang/String;Ljava/lang/String;IZ)Landroid/webkit/LoadListener;");
     mJavaFrame->mLoadStarted = env->GetMethodID(clazz, "loadStarted",
             "(Ljava/lang/String;Landroid/graphics/Bitmap;IZ)V");
     mJavaFrame->mTransitionToCommitted = env->GetMethodID(clazz, "transitionToCommitted",
@@ -246,6 +248,7 @@ WebFrame::WebFrame(JNIEnv* env, jobject obj, jobject historyList, WebCore::Page*
     mJavaFrame->mDensity = env->GetMethodID(clazz, "density","()F");
     mJavaFrame->mGetFileSize = env->GetMethodID(clazz, "getFileSize", "(Ljava/lang/String;)I");
     mJavaFrame->mGetFile = env->GetMethodID(clazz, "getFile", "(Ljava/lang/String;[BII)I");
+    mJavaFrame->mResolveDns = env->GetMethodID(clazz, "resolveDnsForHost","(Ljava/lang/String;)V");
 
     LOG_ASSERT(mJavaFrame->mStartLoadingResource, "Could not find method startLoadingResource");
     LOG_ASSERT(mJavaFrame->mLoadStarted, "Could not find method loadStarted");
@@ -267,9 +270,16 @@ WebFrame::WebFrame(JNIEnv* env, jobject obj, jobject historyList, WebCore::Page*
     LOG_ASSERT(mJavaFrame->mDensity, "Could not find method density");
     LOG_ASSERT(mJavaFrame->mGetFileSize, "Could not find method getFileSize");
     LOG_ASSERT(mJavaFrame->mGetFile, "Could not find method getFile");
+    LOG_ASSERT(mJavaFrame->mResolveDns, "Could not find method resolveDnsForHost");
 
     mUserAgent = WebCore::String();
     mUserInitiatedClick = false;
+
+#if USE(V8)
+      mIdleTimeActivityTimer = new IdleGCTimerHelper(this);
+#else
+      mIdleTimeActivityTimer = new WebFrameTimerHelper(this);
+#endif // USE(V8)
 }
 
 WebFrame::~WebFrame()
@@ -281,6 +291,7 @@ WebFrame::~WebFrame()
         mJavaFrame->mObj = 0;
     }
     delete mJavaFrame;
+    delete mIdleTimeActivityTimer;
 }
 
 WebFrame* WebFrame::getWebFrame(const WebCore::Frame* frame)
@@ -362,9 +373,9 @@ private:
 
 PassRefPtr<WebCore::ResourceLoaderAndroid>
 WebFrame::startLoadingResource(WebCore::ResourceHandle* loader,
-                                  const WebCore::ResourceRequest& request,
-                                  bool mainResource,
-                                  bool synchronous)
+                               const WebCore::ResourceRequest& request,
+                               bool mainResource,
+                               bool synchronous)
 {
 #ifdef ANDROID_INSTRUMENT
     TimeCounterAuto counter(TimeCounter::JavaCallbackTimeCounter);
@@ -473,6 +484,8 @@ WebFrame::startLoadingResource(WebCore::ResourceHandle* loader,
         default:
             break;
     }
+    int priority = request.priority();
+    bool shouldCommit = request.shouldCommit();
 
     LOGV("::WebCore:: startLoadingResource %s with cacheMode %d", urlStr.ascii().data(), cacheMode);
 
@@ -487,7 +500,8 @@ WebFrame::startLoadingResource(WebCore::ResourceHandle* loader,
                 (int)loader, jUrlStr, jMethodStr, jHeaderMap,
                 jPostDataStr, formdata ? formdata->identifier(): 0,
                 cacheMode, mainResource, request.getUserGesture(),
-                synchronous, jUsernameString, jPasswordString);
+                synchronous, jUsernameString, jPasswordString,
+                priority, shouldCommit);
 
     env->DeleteLocalRef(jUrlStr);
     env->DeleteLocalRef(jMethodStr);
@@ -529,12 +543,19 @@ WebFrame::loadStarted(WebCore::Frame* frame)
 #ifdef ANDROID_INSTRUMENT
     TimeCounterAuto counter(TimeCounter::JavaCallbackTimeCounter);
 #endif
-    const WebCore::KURL& url = frame->loader()->activeDocumentLoader()->url();
+    stopIdleGCTimer();
+    // activeDocumentLoader() can return null.
+    DocumentLoader* documentLoader = frame->loader()->activeDocumentLoader();
+    if (documentLoader == NULL)
+        return;
+
+    const WebCore::KURL& url = documentLoader->url();
     if (url.isEmpty())
         return;
     LOGV("::WebCore:: loadStarted %s", url.string().ascii().data());
 
     bool isMainFrame = (!frame->tree() || !frame->tree()->parent());
+
     WebCore::FrameLoadType loadType = frame->loader()->loadType();
 
     if (loadType == WebCore::FrameLoadTypeReplace ||
@@ -595,8 +616,14 @@ WebFrame::didFinishLoad(WebCore::Frame* frame)
     TimeCounterAuto counter(TimeCounter::JavaCallbackTimeCounter);
 #endif
     JNIEnv* env = getJNIEnv();
+
+    // activeDocumentLoader() can return null.
     WebCore::FrameLoader* loader = frame->loader();
-    const WebCore::KURL& url = loader->activeDocumentLoader()->url();
+    DocumentLoader* documentLoader = loader->activeDocumentLoader();
+    if (documentLoader == NULL)
+      return;
+
+    const WebCore::KURL& url = documentLoader->url();
     if (url.isEmpty())
         return;
     LOGV("::WebCore:: didFinishLoad %s", url.string().ascii().data());
@@ -609,6 +636,11 @@ WebFrame::didFinishLoad(WebCore::Frame* frame)
             (int)loadType, isMainFrame);
     checkException(env);
     env->DeleteLocalRef(urlStr);
+
+    if (isMainFrame) {
+        if (loadType == FrameLoadTypeStandard)
+            mIdleTimeActivityTimer->start();
+    }
 }
 
 void
@@ -840,6 +872,54 @@ WebFrame::density() const
     jfloat dpi = env->CallFloatMethod(mJavaFrame->frame(env).get(), mJavaFrame->mDensity);
     checkException(env);
     return dpi;
+}
+
+void WebFrame::resolveDnsForHost(const WebCore::String& host)
+{
+    JNIEnv* env = JSC::Bindings::getJNIEnv();
+    AutoJObject obj = mJavaFrame->frame(env);
+    if (!obj.get())
+        return;
+    jstring jHostNameStr = env->NewString(host.characters(), host.length());
+    env->CallVoidMethod(obj.get(), mJavaFrame->mResolveDns, jHostNameStr);
+    env->DeleteLocalRef(jHostNameStr);
+}
+
+IdleGCTimerHelper::IdleGCTimerHelper(WebFrame *frame)
+            : mFrame(frame),
+              mIdleGCTimer(this, &IdleGCTimerHelper::TimerFired)
+{
+}
+
+void
+IdleGCTimerHelper::start()
+{
+    const double idleGCStartupDelay = 4.0;
+    mIdleGCFired = 0;
+    mIdleGCTimer.startOneShot(idleGCStartupDelay);
+}
+
+void
+IdleGCTimerHelper::stop()
+{
+    if (mIdleGCTimer.isActive())
+        mIdleGCTimer.stop();
+}
+
+void
+IdleGCTimerHelper::TimerFired(WebCore::Timer<IdleGCTimerHelper>*)
+{
+#if USE(V8)
+    const int maxIdleGCFired = 10;
+    const float idleGCInterval = 1.0;
+    mIdleGCFired++;
+    WebCore::Page* page = mFrame->page();
+    if (page && mIdleGCFired < maxIdleGCFired) {
+        Frame* mainFrame = page->mainFrame();
+        if (mainFrame && !mainFrame->script()->idleNotification())
+            mIdleGCTimer.startOneShot(idleGCInterval);
+    }
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -1583,6 +1663,105 @@ static void OrientationChanged(JNIEnv *env, jobject obj, int orientation)
     pFrame->sendOrientationChangeEvent(orientation);
 }
 
+static bool isInsideViewPort(WebCore::Element *pElem, const WebCore::IntRect & origRect)
+{
+    RenderObject * pRenderer = pElem->renderer();
+    if(!pRenderer)
+        return false;
+
+    FloatPoint absLoc = pRenderer->localToAbsolute();
+    FrameView * pView = pElem->document()->view();
+    return pView && origRect.contains(absLoc.x(), absLoc.y());
+}
+
+static void traverseDOMForViewPort(WebCore::Element* pElem, const WebCore::IntRect & origRect,const KURL& mainURL, WTF::HashMap<WebCore::String, String>& list, int maxHostCount)
+{
+    KURL url;
+    if(!pElem)
+        return;
+    const WebCore::Element *parentElement = pElem;
+
+    if (parentElement->hasAttribute(HTMLNames::hrefAttr)) {
+
+        const AtomicString& attr = parentElement->getAttribute(HTMLNames::hrefAttr);
+        if(attr.startsWith("/")) {
+            url = mainURL;
+        }
+        else {
+            url = KURL(ParsedURLString, attr.string());
+        }
+        if(!url.isEmpty() && url.host().length() > 0){
+           if(isInsideViewPort(pElem, origRect))
+               list.add(url.host(),"1");
+           else
+               list.add(url.host(),"0");
+        }
+    }
+
+    for (WebCore::Element * childElement = parentElement->firstElementChild(); childElement && (list.size() < maxHostCount); childElement = childElement->nextElementSibling())
+        traverseDOMForViewPort(childElement, origRect,mainURL,list,maxHostCount);
+}
+
+static void traverseFrameForViewPort(WebCore::Frame* pFrame, const IntRect& origRect, WTF::HashMap<WebCore::String, String>& hostList,int maxHostCount)
+{
+    const KURL& mainURL = pFrame->loader()->url();
+
+    if((hostList.size() < maxHostCount) && pFrame->document()->isDNSPrefetchEnabled()) {
+        WebCore::Element *parentElement = pFrame->document()->documentElement();
+        traverseDOMForViewPort(parentElement, origRect, mainURL, hostList,maxHostCount);
+    }
+
+    for (Frame* child = pFrame->tree()->firstChild(); child && (hostList.size() < maxHostCount); child = child->tree()->nextSibling())
+        traverseFrameForViewPort(child, origRect, hostList,maxHostCount);
+}
+
+static jobject createJavaMapFromHTTPHosts(JNIEnv* env, const WTF::HashMap<WebCore::String, String>& map)
+{
+    jclass mapClass = env->FindClass("java/util/HashMap");
+    LOG_ASSERT(mapClass, "Could not find HashMap class!");
+
+    jmethodID init = env->GetMethodID(mapClass, "<init>", "(I)V");
+    LOG_ASSERT(ctor, "Could not find constructor for HashMap");
+
+    jobject hashMap = env->NewObject(mapClass, init,map.size());
+    LOG_ASSERT(hashMap, "Could not create a new HashMap");
+
+    jmethodID put = env->GetMethodID(mapClass, "put",
+             "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    LOG_ASSERT(put, "Could not find put method on HashMap");
+
+    WTF::HashMap<WebCore::String, String>::const_iterator end = map.end();
+    for (WTF::HashMap<WebCore::String, String>::const_iterator i = map.begin(); i != end; ++i) {
+        if (i->first.length() == 0 )
+            continue;
+        jstring key = env->NewString((jchar *)i->first.characters(), i->first.length());
+        jstring val = env->NewString((jchar *)i->second.characters(), i->second.length());
+        if (key && val) {
+            env->CallObjectMethod(hashMap, put, key, val);
+        }
+        if(key)
+            env->DeleteLocalRef(key);
+        if(val)
+            env->DeleteLocalRef(val);
+    }
+
+    env->DeleteLocalRef(mapClass);
+
+    return hashMap;
+}
+
+static jobject getEmbeddedHostNames(JNIEnv *env, jobject obj, jint maxHostCount)
+{
+    WebCore::Frame* pFrame = GET_NATIVE_FRAME(env, obj);
+    WTF::HashMap<WebCore::String, String> hostList;
+    jobject hashmap = NULL;
+
+    const WebCore::IntRect & origRect = pFrame->view()->platformWidget()->getWindowBounds();
+    traverseFrameForViewPort(pFrame,origRect,hostList,maxHostCount);
+    hashmap = createJavaMapFromHTTPHosts(env,hostList);
+    return hashmap;
+}
+
 // ----------------------------------------------------------------------------
 
 /*
@@ -1634,7 +1813,9 @@ static JNINativeMethod gBrowserFrameNativeMethods[] = {
     { "getFormTextData", "()Ljava/util/HashMap;",
         (void*) GetFormTextData },
     { "nativeOrientationChanged", "(I)V",
-        (void*) OrientationChanged }
+        (void*) OrientationChanged },
+    { "nativeGetEmbeddedHostNames", "(I)Ljava/util/HashMap;",
+        (void*) getEmbeddedHostNames }
 };
 
 int register_webframe(JNIEnv* env)

@@ -21,7 +21,7 @@
 
     <!-- Do not translate. These are all of the drawable resources that should be preloaded by
          the zygote process before it starts forking application processes. -->
-    <array name="preloaded_drawables">
+    <array name="preloaded_drawables" translatable="false">
         <item>@drawable/sym_def_app_icon</item>
         <item>@drawable/arrow_down_float</item>
         <item>@drawable/btn_check</item>
@@ -74,11 +74,14 @@
         <item>@drawable/indicator_code_lock_point_area_default</item>
         <item>@drawable/indicator_code_lock_point_area_green</item>
         <item>@drawable/indicator_code_lock_point_area_red</item>
+        <!-- overscroll -->
+        <item>@drawable/overscroll_glow</item>
+        <item>@drawable/overscroll_edge</item>
     </array>
 
     <!-- Do not translate. These are all of the color state list resources that should be
          preloaded by the zygote process before it starts forking application processes. -->
-    <array name="preloaded_color_state_lists">
+    <array name="preloaded_color_state_lists" translatable="false">
         <item>@color/hint_foreground_dark</item>
         <item>@color/hint_foreground_light</item>
         <item>@color/primary_text_dark</item>
@@ -97,13 +100,43 @@
     </array>
 
     <!-- Do not translate. -->
-    <integer-array name="maps_starting_lat_lng">
+    <integer-array name="maps_starting_lat_lng" translatable="false">
         <item>36149777</item>
         <item>-95993398</item>
     </integer-array>
     <!-- Do not translate. -->
-    <integer-array name="maps_starting_zoom">
+    <integer-array name="maps_starting_zoom" translatable="false">
         <item>3</item>
     </integer-array>
+
+    <!-- Defines the shutdown options shown in the reboot dialog. -->
+    <array name="shutdown_reboot_options" translatable="false">
+        <item>@string/reboot_reboot</item>
+        <item>@string/reboot_recovery</item>
+        <item>@string/reboot_bootloader</item>
+    </array>
+
+    <!-- Do not translate. Defines the shutdown actions passed to the kernel.
+         The first item should be empty for regular reboot. -->
+    <string-array name="shutdown_reboot_actions" translatable="false">
+        <item></item>
+        <item>recovery</item>
+        <item>bootloader</item>
+    </string-array>
+
+    <!-- Defines the set of colors used for selecting a random
+          notification color. -->
+    <string-array name="notification_led_random_color_set" translatable="false">
+        <item>green</item>
+        <item>white</item>
+        <item>red</item>
+        <item>blue</item>
+        <item>yellow</item>
+        <item>cyan</item>
+        <item>#800080</item>
+        <item>#ffc0cb</item>
+        <item>#ffa500</item>
+        <item>#add8e6</item>
+    </string-array>
 
 </resources>

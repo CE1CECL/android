@@ -28,6 +28,8 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.net.sip.SipManager;
 import android.net.sip.SipProfile;
@@ -63,6 +65,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import android.preference.PreferenceManager;
+import android.preference.PreferenceCategory;
+import android.preference.Preference.OnPreferenceClickListener;
+import java.util.HashSet;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class CallFeaturesSetting extends PreferenceActivity
         implements DialogInterface.OnClickListener,
@@ -122,11 +132,23 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_VOICEMAIL_PROVIDER_KEY = "button_voicemail_provider_key";
     private static final String BUTTON_VOICEMAIL_SETTING_KEY = "button_voicemail_setting_key";
     private static final String BUTTON_FDN_KEY   = "button_fdn_key";
+    private static final String BUTTON_VOICE_QUALITY_KEY = "button_voice_quality_key";
+    private static String mVoiceQuality;
+
+    /**
+     * @hide
+     */
+    public static final String BUTTON_VOICEMAIL_NOTIFICATION_KEY =
+            "button_voicemail_notification";
 
     private static final String BUTTON_DTMF_KEY   = "button_dtmf_settings";
     private static final String BUTTON_RETRY_KEY  = "button_auto_retry_key";
     private static final String BUTTON_TTY_KEY    = "button_tty_mode_key";
     private static final String BUTTON_HAC_KEY    = "button_hac_key";
+
+    private static final String BUTTON_CALLFORWARD = "button_cf_expand_key";
+    private static final String BUTTON_GSM_UMTS_MORE = "button_more_expand_key";
+    private static final String BUTTON_CDMA_PRIVACY = "button_voice_privacy_key";
 
     private static final String BUTTON_GSM_UMTS_OPTIONS = "button_gsm_more_expand_key";
     private static final String BUTTON_CDMA_OPTIONS = "button_cdma_more_expand_key";
@@ -192,12 +214,14 @@ public class CallFeaturesSetting extends PreferenceActivity
 
     private EditPhoneNumberPreference mSubMenuVoicemailSettings;
 
+    private CheckBoxPreference mButtonNotifications;
     private CheckBoxPreference mButtonAutoRetry;
     private CheckBoxPreference mButtonHAC;
     private ListPreference mButtonDTMF;
     private ListPreference mButtonTTY;
     private ListPreference mButtonSipCallOptions;
     private ListPreference mVoicemailProviders;
+    private ListPreference mButtonVoiceQuality;
     private PreferenceScreen mVoicemailSettings;
     private SipSharedPreferences mSipSharedPreferences;
 
@@ -379,6 +403,98 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CallForwardInfo[] mNewFwdSettings;
     String mNewVMNumber;
 
+    // add by cytown for vibrate
+    private static final String CATEGORY_ADVANCED = "pref_advanced_settings";
+    private static CallFeaturesSetting mInstance = null;
+
+    private static final String BUTTON_VIBRATE_OUTGOING = "button_vibrate_outgoing";
+    private CheckBoxPreference mButtonVibOutgoing;
+    static boolean mVibOutgoing;
+
+    private static final String BUTTON_VIBRATE_45       = "button_vibrate_45";
+    private CheckBoxPreference mButtonVib45;
+    static boolean mVib45;
+
+    private static final String BUTTON_VIBRATE_HANGUP   = "button_vibrate_hangup";
+    private CheckBoxPreference mButtonVibHangup;
+    static boolean mVibHangup;
+
+    private static final String BUTTON_SCREEN_AWAKE     = "button_screen_awake";
+    private CheckBoxPreference mButtonScreenAwake;
+    static boolean mScreenAwake;
+
+    private static final String BUTTON_ALWAYS_PROXIMITY = "button_always_proximity";
+    private CheckBoxPreference mButtonAlwaysProximity;
+    static boolean mAlwaysProximity;
+
+    private static final String BUTTON_RETURN_HOME     = "button_return_home";
+    private CheckBoxPreference mButtonReturnHome;
+    static boolean mReturnHome;
+
+    private static final String BUTTON_LED_NOTIFY       = "button_led_notify";
+    private CheckBoxPreference mButtonLedNotify;
+    static boolean mLedNotify;
+
+    private static final String BUTTON_SHOW_ORGAN       = "button_show_organ";
+    private CheckBoxPreference mButtonShowOrgan;
+    static boolean mShowOrgan;
+
+    private static final String BUTTON_FORCE_TOUCH      = "button_force_touch";
+    private CheckBoxPreference mButtonForceTouch;
+    static boolean mForceTouch;
+
+    private static final String ROTATE_INCALL_SCREEN      = "rotate_incall_screen";
+    private CheckBoxPreference mRotateIncallScreen;
+    static boolean mRotateIncall;
+
+    private static final String BG_INCALL_SCREEN = "bg_incall_screen";
+    private CheckBoxPreference mBgIncallScreen;
+    static boolean mBgIncall;
+
+    private static final String BUTTON_BLACK_REGEX = "button_black_regex";
+    private CheckBoxPreference mButtonBlackRegex;
+    static boolean mBlackRegex;
+
+    private static final String BUTTON_VIBRATE_CALL_WAITING = "button_vibrate_call_waiting";
+    private CheckBoxPreference mButtonVibCallWaiting;
+    static boolean mVibCallWaiting;
+    // static boolean mTurnSilence;
+    // Hide this option until it is fixed.
+    // private static final String BUTTON_TURN_SILENCE     = "button_turn_silence";
+    // private CheckBoxPreference mButtonTurnSilence;
+    static boolean mLeftHand;
+
+    private static final String BUTTON_LEFT_HAND        = "button_left_hand";
+    private CheckBoxPreference mButtonLeftHand;
+
+    private static final String BUTTON_ADD_BLACK = "button_add_black";
+    private static final String CATEGORY_BLACK   = "cat_black_list";
+    private static final String BLFILE           = "blacklist.dat";
+    private static final int BLFILE_VER          = 1;
+    private EditPhoneNumberPreference mButtonAddBlack;
+    private PreferenceCategory mCatBlackList;
+    private static HashSet<PhoneNo> setBlackList = new HashSet<PhoneNo>();
+    private static final int ADD_BLACK_LIST_ID = 3;
+
+    //Trackball Answer
+    private static final String BUTTON_TRACKBALL_ANSWER = "button_trackball_answer_timed";
+    private ListPreference mTrackballAnswer;
+    static String mTrackAnswer;
+    //Trackball Hangup
+    private static final String BUTTON_TRACKBALL_HANGUP = "button_trackball_hangup_timed";
+    private ListPreference mTrackballHangup;
+    static String mTrackHangup;
+
+    //Hide Hold button
+    private static final String BUTTON_HIDE_HOLD_BUTTON = "button_hide_hold_button";
+    private CheckBoxPreference mButtonHideHoldButton;
+    static boolean mHideHoldButton;
+
+    //Mark rejected calls as missed
+    private static final String BUTTON_REJECTED_AS_MISSED = "button_rejected_as_missed";
+    private CheckBoxPreference mButtonRejectedAsMissed;
+    static boolean mRejectedAsMissed;
+
     private boolean mForeground;
 
     @Override
@@ -404,9 +520,13 @@ public class CallFeaturesSetting extends PreferenceActivity
     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
         if (preference == mSubMenuVoicemailSettings) {
             return true;
+        } else if (preference == mButtonVoiceQuality) {
+            return true;
         } else if (preference == mButtonDTMF) {
             return true;
         } else if (preference == mButtonTTY) {
+            return true;
+        } else if (preference == mButtonNotifications) {
             return true;
         } else if (preference == mButtonAutoRetry) {
             android.provider.Settings.System.putInt(mPhone.getContext().getContentResolver(),
@@ -445,6 +565,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                     Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, index);
         } else if (preference == mButtonTTY) {
             handleTTYChange(preference, objValue);
+        } else if (preference == mButtonVoiceQuality) {
+            mVoiceQuality = (String) objValue;
+        } else if (preference == mButtonNotifications) {
+            handleNotificationChange(objValue);
         } else if (preference == mVoicemailProviders) {
             final String currentProviderKey = getCurrentVoicemailProviderKey();
             final String newProviderKey = (String)objValue;
@@ -485,6 +609,22 @@ public class CallFeaturesSetting extends PreferenceActivity
         return true;
     }
 
+    public String getVoiceQuality() {
+        return mVoiceQuality;
+    }
+
+    private void handleNotificationChange(Object objValue) {
+        boolean newValue = Boolean.parseBoolean(objValue.toString());
+
+        Editor editor = mButtonNotifications.getEditor();
+        editor.putBoolean(BUTTON_VOICEMAIL_NOTIFICATION_KEY, newValue);
+        editor.commit();
+
+        // if the new value is true and there's a message, show the notification
+        boolean visible = mPhone.getMessageWaitingIndicator() && newValue;
+        NotificationMgr.getDefault().updateMwi(visible);
+    }
+
     // Preference click listener invoked on OnDialogClosed for EditPhoneNumberPreference.
     public void onDialogClosed(EditPhoneNumberPreference preference, int buttonClicked) {
         if (DBG) log("onPreferenceClick: request preference click on dialog close: " +
@@ -497,8 +637,52 @@ public class CallFeaturesSetting extends PreferenceActivity
 
             if (epn == mSubMenuVoicemailSettings) {
                 handleVMBtnClickRequest();
+            } else if (epn == mButtonAddBlack) {
+                // Obtain phone number stripped of separator chars except '.'
+                String number = stripSeparators((epn.getRawPhoneNumber()));
+                if (number != null && !number.equals("")) {
+                    if (addBlackList(number))
+                        initPrefBlackList();
+                    epn.setPhoneNumber("");
+                }
             }
         }
+    }
+
+    /**
+     * Custom stripSeparators() method identical to
+     * PhoneNumberUtils.stripSeparators(), to retain '.'s
+     * for blacklist regex parsing.
+     * There is no difference between the two, this is only
+     * done to use the custom isNonSeparator() method below.
+     */
+    private String stripSeparators(String phoneNumber) {
+        if (phoneNumber == null) {
+            return null;
+        }
+        int len = phoneNumber.length();
+        StringBuilder ret = new StringBuilder(len);
+        for (int i = 0; i < len; i++) {
+            char c = phoneNumber.charAt(i);
+            if (isNonSeparator(c)) {
+                ret.append(c);
+            }
+        }
+
+        return ret.toString();
+    }
+
+    /**
+     * Custom isNonSeparator() method identical to
+     * PhoneNumberUtils.isNonSeparator(), to retain '.'s
+     * for blacklist regex parsing.
+     * The only difference between the two is that this
+     * custom one allows '.'s.
+     */
+    private boolean isNonSeparator(char c) {
+        return (c >= '0' && c <= '9') || c == '*' || c == '#' || c == '+'
+                    || c == PhoneNumberUtils.WILD || c == PhoneNumberUtils.WAIT
+                    || c == PhoneNumberUtils.PAUSE || c == '.';
     }
 
     /**
@@ -512,6 +696,11 @@ public class CallFeaturesSetting extends PreferenceActivity
             // mSubMenuVoicemailSettings itself, so we should return null.
             if (DBG) log("updating default for voicemail dialog");
             updateVoiceNumberField();
+            return null;
+        }
+
+        if (preference == mButtonAddBlack) {
+            // add by cytown
             return null;
         }
 
@@ -557,7 +746,7 @@ public class CallFeaturesSetting extends PreferenceActivity
                             mNewVMNumber,
                             Message.obtain(mRevertOptionComplete, EVENT_VOICEMAIL_CHANGED));
                 }
-                if (mFwdChangesRequireRollback) {
+                if (mFwdChangesRequireRollback && prevSettings != null) {
                     if (DBG) log("have to revert fwd");
                     final CallForwardInfo[] prevFwdSettings =
                         prevSettings.forwardingSettings;
@@ -687,6 +876,10 @@ public class CallFeaturesSetting extends PreferenceActivity
         switch (requestCode) {
             case VOICEMAIL_PREF_ID:
                 mSubMenuVoicemailSettings.onPickActivityResult(cursor.getString(0));
+                break;
+            // add by cytown
+            case ADD_BLACK_LIST_ID:
+                mButtonAddBlack.onPickActivityResult(cursor.getString(0));
                 break;
             default:
                 // TODO: may need exception here.
@@ -1360,16 +1553,37 @@ public class CallFeaturesSetting extends PreferenceActivity
             mSubMenuVoicemailSettings.setDialogTitle(R.string.voicemail_settings_number_label);
         }
 
+        mButtonNotifications = (CheckBoxPreference) findPreference(BUTTON_VOICEMAIL_NOTIFICATION_KEY);
         mButtonDTMF = (ListPreference) findPreference(BUTTON_DTMF_KEY);
         mButtonAutoRetry = (CheckBoxPreference) findPreference(BUTTON_RETRY_KEY);
         mButtonHAC = (CheckBoxPreference) findPreference(BUTTON_HAC_KEY);
         mButtonTTY = (ListPreference) findPreference(BUTTON_TTY_KEY);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
+        mButtonVoiceQuality = (ListPreference) findPreference(BUTTON_VOICE_QUALITY_KEY);
+
+        if (mButtonVoiceQuality != null) {
+            if (TextUtils.isEmpty(getResources().getString(R.string.voice_quality_param))) {
+                prefSet.removePreference(mButtonVoiceQuality);
+                mButtonVoiceQuality = null;
+            } else {
+                mButtonVoiceQuality.setOnPreferenceChangeListener(this);
+            }
+        }
+
         if (mVoicemailProviders != null) {
             mVoicemailProviders.setOnPreferenceChangeListener(this);
             mVoicemailSettings = (PreferenceScreen)findPreference(BUTTON_VOICEMAIL_SETTING_KEY);
 
             initVoiceMailProviders();
+        }
+
+        if (mButtonNotifications != null) {
+            if (getResources().getBoolean(R.bool.voicemail_notification_enabled)) {
+                mButtonNotifications.setOnPreferenceChangeListener(this);
+            } else {
+                prefSet.removePreference(mButtonNotifications);
+                mButtonNotifications = null;
+            }
         }
 
         if (mButtonDTMF != null) {
@@ -1455,6 +1669,85 @@ public class CallFeaturesSetting extends PreferenceActivity
         updateVoiceNumberField();
         mVMProviderSettingsForced = false;
         createSipCallSettings();
+
+        // add by cytown for vibrate
+        init(getApplicationContext(), PreferenceManager.getDefaultSharedPreferences(getApplicationContext()));
+        mButtonVibOutgoing = (CheckBoxPreference) prefSet.findPreference(BUTTON_VIBRATE_OUTGOING);
+        mButtonVibOutgoing.setChecked(mVibOutgoing);
+        mButtonVib45 = (CheckBoxPreference) prefSet.findPreference(BUTTON_VIBRATE_45);
+        mButtonVib45.setChecked(mVib45);
+        mButtonVibHangup = (CheckBoxPreference) prefSet.findPreference(BUTTON_VIBRATE_HANGUP);
+        mButtonVibHangup.setChecked(mVibHangup);
+        mButtonScreenAwake = (CheckBoxPreference) prefSet.findPreference(BUTTON_SCREEN_AWAKE);
+        mButtonScreenAwake.setChecked(mScreenAwake);
+        mButtonAlwaysProximity = (CheckBoxPreference) prefSet
+                .findPreference(BUTTON_ALWAYS_PROXIMITY);
+        mButtonAlwaysProximity.setChecked(mAlwaysProximity);
+        mButtonReturnHome = (CheckBoxPreference) prefSet.findPreference(BUTTON_RETURN_HOME);
+        mButtonReturnHome.setChecked(mReturnHome);
+        mButtonLedNotify = (CheckBoxPreference) prefSet.findPreference(BUTTON_LED_NOTIFY);
+        mButtonLedNotify.setChecked(mLedNotify);
+        mButtonShowOrgan = (CheckBoxPreference) prefSet.findPreference(BUTTON_SHOW_ORGAN);
+        mButtonShowOrgan.setChecked(mShowOrgan);
+        // mButtonTurnSilence = (CheckBoxPreference) prefSet.findPreference(BUTTON_TURN_SILENCE);
+        // mButtonTurnSilence.setChecked(mTurnSilence);
+        mButtonLeftHand = (CheckBoxPreference) prefSet.findPreference(BUTTON_LEFT_HAND);
+        mButtonLeftHand.setChecked(mLeftHand);
+        mButtonVibCallWaiting = (CheckBoxPreference) prefSet
+                .findPreference(BUTTON_VIBRATE_CALL_WAITING);
+        mButtonVibCallWaiting.setChecked(mVibCallWaiting);
+        mButtonForceTouch = (CheckBoxPreference) prefSet.findPreference(BUTTON_FORCE_TOUCH);
+        if (getResources().getBoolean(R.bool.allow_in_call_touch_ui)) {
+            ((PreferenceCategory) prefSet.findPreference(CATEGORY_ADVANCED))
+                    .removePreference(mButtonForceTouch);
+        } else {
+            mButtonForceTouch.setChecked(mForceTouch);
+        }
+        mRotateIncallScreen = (CheckBoxPreference) prefSet.findPreference(ROTATE_INCALL_SCREEN);
+        mRotateIncallScreen.setChecked(mRotateIncall);
+        mBgIncallScreen = (CheckBoxPreference) prefSet.findPreference(BG_INCALL_SCREEN);
+        mBgIncallScreen.setChecked(mBgIncall);
+        mButtonAddBlack = (EditPhoneNumberPreference) prefSet.findPreference(BUTTON_ADD_BLACK);
+        mButtonAddBlack.setParentActivity(this, ADD_BLACK_LIST_ID, this);
+        mButtonAddBlack.setDialogOnClosedListener(this);
+        mButtonBlackRegex = (CheckBoxPreference) prefSet.findPreference(BUTTON_BLACK_REGEX);
+        mButtonBlackRegex.setChecked(mBlackRegex);
+        mCatBlackList = (PreferenceCategory) prefSet.findPreference(CATEGORY_BLACK);
+        initPrefBlackList();
+
+        mTrackballAnswer = (ListPreference) prefSet.findPreference(BUTTON_TRACKBALL_ANSWER);
+        mTrackballAnswer.setValue(mTrackAnswer);
+        mTrackballHangup = (ListPreference) prefSet.findPreference(BUTTON_TRACKBALL_HANGUP);
+        mTrackballHangup.setValue(mTrackHangup);
+
+        if (mButtonVoiceQuality != null) {
+            mButtonVoiceQuality.setValue(mVoiceQuality);
+        }
+
+        // No reason to show Trackball Answer & Hangup if it doesn't have a
+        // Trackball.
+        if (getResources().getConfiguration().navigation != 3) {
+            ((PreferenceCategory) prefSet.findPreference(CATEGORY_ADVANCED))
+                    .removePreference(mTrackballAnswer);
+            ((PreferenceCategory) prefSet.findPreference(CATEGORY_ADVANCED))
+                    .removePreference(mTrackballHangup);
+        }
+        // No reason to show this if no proximity sensor on device
+        if (((SensorManager) getSystemService(SENSOR_SERVICE))
+                .getDefaultSensor(Sensor.TYPE_PROXIMITY) == null) {
+            ((PreferenceCategory) prefSet.findPreference(CATEGORY_ADVANCED))
+                    .removePreference(mButtonAlwaysProximity);
+        }
+//====
+        mButtonHideHoldButton = (CheckBoxPreference) prefSet.findPreference(BUTTON_HIDE_HOLD_BUTTON);
+        mButtonHideHoldButton.setChecked(mHideHoldButton);
+        // No reason to show this if the phone cannot hold
+        if (!TelephonyCapabilities.supportsHoldAndUnhold(mPhone)) {
+            ((PreferenceCategory) prefSet.findPreference(CATEGORY_ADVANCED))
+                    .removePreference(mButtonHideHoldButton);
+        }
+        mButtonRejectedAsMissed = (CheckBoxPreference) prefSet.findPreference(BUTTON_REJECTED_AS_MISSED);
+        mButtonRejectedAsMissed.setChecked(mRejectedAsMissed);
     }
 
     private void createSipCallSettings() {
@@ -1496,14 +1789,27 @@ public class CallFeaturesSetting extends PreferenceActivity
         mForeground = true;
 
         if (isAirplaneModeOn()) {
-            Preference sipSettings = findPreference(SIP_SETTINGS_CATEGORY_KEY);
-            PreferenceScreen screen = getPreferenceScreen();
-            int count = screen.getPreferenceCount();
-            for (int i = 0 ; i < count ; ++i) {
-                Preference pref = screen.getPreference(i);
-                if (pref != sipSettings) pref.setEnabled(false);
-            }
-            return;
+            Preference button = findPreference(BUTTON_FDN_KEY);
+            if (button != null) button.setEnabled(false);
+            if (mVoicemailProviders != null) mVoicemailProviders.setEnabled(false);
+            if (mVoicemailSettings != null) mVoicemailSettings.setEnabled(false);
+            if (mButtonDTMF != null) mButtonDTMF.setEnabled(false);
+            button = findPreference(BUTTON_CALLFORWARD);
+            if (button != null) button.setEnabled(false);
+            button = findPreference(BUTTON_GSM_UMTS_MORE);
+            if (button != null) button.setEnabled(false);
+            button = findPreference(BUTTON_CDMA_PRIVACY);
+            if (button != null) button.setEnabled(false);
+            button = findPreference(BUTTON_GSM_UMTS_OPTIONS);
+            if (button != null) button.setEnabled(false);
+            button = findPreference(BUTTON_CDMA_OPTIONS);
+            if (button != null) button.setEnabled(false);
+        }
+        if (mButtonNotifications != null) {
+            boolean notification =
+                mButtonNotifications.getSharedPreferences()
+                  .getBoolean(BUTTON_VOICEMAIL_NOTIFICATION_KEY, true);
+            mButtonNotifications.setChecked(notification);
         }
 
         if (mButtonDTMF != null) {
@@ -1828,5 +2134,263 @@ public class CallFeaturesSetting extends PreferenceActivity
     private String getCurrentVoicemailProviderKey() {
         final String key = mVoicemailProviders.getValue();
         return (key != null) ? key : DEFAULT_VM_PROVIDER_KEY;
+    }
+
+    // add by cytown
+    public static CallFeaturesSetting getInstance(Context context) {
+        if (mInstance == null) {
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+            mInstance = new CallFeaturesSetting();
+            mInstance.init(context, pref);
+        }
+        return mInstance;
+    }
+
+    private void init(Context context, SharedPreferences pref) {
+        mVibOutgoing = pref.getBoolean(BUTTON_VIBRATE_OUTGOING, true);
+        mVib45 = pref.getBoolean(BUTTON_VIBRATE_45, false);
+        mVibHangup = pref.getBoolean(BUTTON_VIBRATE_HANGUP, true);
+        mScreenAwake = pref.getBoolean(BUTTON_SCREEN_AWAKE, false);
+        mAlwaysProximity = pref.getBoolean(BUTTON_ALWAYS_PROXIMITY, false);
+        mReturnHome = pref.getBoolean(BUTTON_RETURN_HOME, true);
+        mLedNotify = pref.getBoolean(BUTTON_LED_NOTIFY, true);
+        mShowOrgan = pref.getBoolean(BUTTON_SHOW_ORGAN, false);
+        //mTurnSilence = pref.getBoolean(BUTTON_TURN_SILENCE, false);
+        mLeftHand = pref.getBoolean(BUTTON_LEFT_HAND, false);
+        mVibCallWaiting = pref.getBoolean(BUTTON_VIBRATE_CALL_WAITING, false);
+        mForceTouch = pref.getBoolean(BUTTON_FORCE_TOUCH,
+                PhoneUtils.isProximitySensorAvailable(PhoneApp.getInstance()));
+        // Trackball Answer & Hangup
+        mRotateIncall = pref.getBoolean(ROTATE_INCALL_SCREEN, false);
+        mBgIncall = pref.getBoolean(BG_INCALL_SCREEN, false);
+        mTrackAnswer = pref.getString(BUTTON_TRACKBALL_ANSWER, "-1");
+        mTrackHangup = pref.getString(BUTTON_TRACKBALL_HANGUP, "-1");
+        mHideHoldButton = pref.getBoolean(BUTTON_HIDE_HOLD_BUTTON, false);
+        mRejectedAsMissed = pref.getBoolean(BUTTON_REJECTED_AS_MISSED, false);
+        mBlackRegex = pref.getBoolean(BUTTON_BLACK_REGEX, false);
+        if (TextUtils.isEmpty(context.getResources().getString(R.string.voice_quality_param))) {
+            mVoiceQuality = null;
+        } else {
+            mVoiceQuality = pref.getString(BUTTON_VOICE_QUALITY_KEY, null);
+            if (mVoiceQuality == null) {
+                /* use first value of entry list */
+                String[] values = context.getResources().getStringArray(R.array.voice_quality_values);
+                if (values.length > 0) {
+                    mVoiceQuality = values[0];
+                }
+            }
+        }
+        ObjectInputStream ois = null;
+        boolean correctVer = false;
+        try {
+            ois = new ObjectInputStream(PhoneApp.getInstance().openFileInput(BLFILE));
+            Object o = ois.readObject();
+            if (o != null) {
+                if (DBG)
+                    log("first object is: " + o);
+                if (o instanceof Integer) {
+                    // check the version
+                    Integer ii = (Integer) o;
+                    if (ii == BLFILE_VER) {
+                        correctVer = true;
+                    }
+                    Object o2 = ois.readObject();
+                    setBlackList = (HashSet<PhoneNo>) o2;
+                } else {
+                    HashSet<String> set = (HashSet<String>) o;
+                    setBlackList = new HashSet<PhoneNo>();
+                    for (String s : set) {
+                        setBlackList.add(new PhoneNo(s));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log("exception is " + e);
+            // ignore
+        } finally {
+            if (ois != null)
+                try {
+                    ois.close();
+                } catch (Exception e) {
+                }
+        }
+        if (setBlackList == null)
+            setBlackList = new HashSet<PhoneNo>();
+        // make save if not correctVer
+        if (!correctVer)
+            saveBLFile();
+        // System.out.println("BL: " + setBlackList);
+    }
+
+    public boolean addBlackList(String s) {
+        if (s == null || s.equals("") || isBlackList(s))
+            return false;
+        setBlackList.add(new PhoneNo(s));
+        saveBLFile();
+        return true;
+    }
+
+    public void deleteBlackList(String s) {
+        setBlackList.remove(new PhoneNo(s));
+        saveBLFile();
+    }
+
+    public boolean isBlackList(String s) {
+        // System.out.println(setBlackList + ":" + s);
+        if (setBlackList.contains(new PhoneNo(s)))
+            return true;
+        if (!mBlackRegex) return false;
+        String str = new String(s);
+        for (PhoneNo num : setBlackList) {
+            // Check for null (technically can't happen but wateva)
+            // and make sure it doesn't begin with '*' to prevent FC's
+            if (num.phone == null || num.phone.startsWith("*")) continue;
+            // Escape all +'s. Other regex special chars
+            // don't need to be checked for since the phone number
+            // is already stripped of separator chars.
+            String phone = num.phone.replaceAll("\\+", "\\\\+");
+            if (str.matches(phone)) return true;
+        }
+        return false;
+    }
+
+    private void saveBLFile() {
+        ObjectOutputStream oos = null;
+        try {
+            oos = new ObjectOutputStream(PhoneApp.getInstance().openFileOutput(BLFILE,
+                    Context.MODE_PRIVATE));
+            oos.writeObject(new Integer(BLFILE_VER));
+            oos.writeObject(setBlackList);
+        } catch (Exception e) {
+            log(e.toString());
+            // ignore
+        } finally {
+            if (oos != null)
+                try {
+                    oos.close();
+                } catch (Exception e) {
+                }
+        }
+    }
+
+    private OnPreferenceClickListener blackPreferenceListener = new OnPreferenceClickListener() {
+        public boolean onPreferenceClick(Preference p) {
+            final String phone = p.getTitle().toString();
+            final String title = CallFeaturesSetting.this.getString(R.string.remove_black, phone);
+            AlertDialog dialog = new AlertDialog.Builder(CallFeaturesSetting.this).setTitle(title)
+                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            deleteBlackList(phone);
+                            initPrefBlackList();
+                            // mCatBlackList.notifyHierarchyChanged();
+                        }
+                    }).setNegativeButton(R.string.cancel, null).create();
+            dialog.show();
+            return true;
+        }
+    };
+
+    private void initPrefBlackList() {
+        mCatBlackList.removeAll();
+        if (setBlackList == null || setBlackList.size() == 0)
+            return;
+        ArrayList<PhoneNo> al = new ArrayList<PhoneNo>(setBlackList);
+        Collections.sort(al);
+        for (PhoneNo s : al) {
+            Preference pref = new Preference(this);
+            pref.setTitle(s.phone);
+            pref.setOnPreferenceClickListener(blackPreferenceListener);
+            mCatBlackList.addPreference(pref);
+        }
+        // ====
+    }
+
+    @Override
+    protected void onStop() {
+        Context context = getApplicationContext();
+        // System.out.println("save please!");
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
+        Editor outState = pref.edit();
+        outState.putBoolean(BUTTON_VIBRATE_OUTGOING, mButtonVibOutgoing.isChecked());
+        outState.putBoolean(BUTTON_VIBRATE_45, mButtonVib45.isChecked());
+        outState.putBoolean(BUTTON_VIBRATE_HANGUP, mButtonVibHangup.isChecked());
+        outState.putBoolean(BUTTON_SCREEN_AWAKE, mButtonScreenAwake.isChecked());
+        outState.putBoolean(BUTTON_ALWAYS_PROXIMITY, mButtonAlwaysProximity.isChecked());
+        outState.putBoolean(BUTTON_RETURN_HOME, mButtonReturnHome.isChecked());
+        outState.putBoolean(BUTTON_LED_NOTIFY, mButtonLedNotify.isChecked());
+        outState.putBoolean(BUTTON_SHOW_ORGAN, mButtonShowOrgan.isChecked());
+        // outState.putBoolean(BUTTON_TURN_SILENCE, mButtonTurnSilence.isChecked());
+        outState.putBoolean(BUTTON_LEFT_HAND, mButtonLeftHand.isChecked());
+        outState.putBoolean(BUTTON_VIBRATE_CALL_WAITING, mButtonVibCallWaiting.isChecked());
+        outState.putBoolean(BUTTON_FORCE_TOUCH,
+                mButtonForceTouch == null || mButtonForceTouch.isChecked());
+        outState.putBoolean(ROTATE_INCALL_SCREEN, mRotateIncallScreen.isChecked());
+        outState.putBoolean(BG_INCALL_SCREEN, mBgIncallScreen.isChecked());
+        outState.putBoolean(BUTTON_BLACK_REGEX, mButtonBlackRegex.isChecked());
+        // Trackball Answer & Hangup
+        outState.putString(BUTTON_TRACKBALL_ANSWER, mTrackballAnswer.getValue());
+        outState.putString(BUTTON_TRACKBALL_HANGUP, mTrackballHangup.getValue());
+        outState.putBoolean(BUTTON_HIDE_HOLD_BUTTON, mButtonHideHoldButton.isChecked());
+        outState.putBoolean(BUTTON_REJECTED_AS_MISSED, mButtonRejectedAsMissed.isChecked());
+        if (mButtonVoiceQuality != null) {
+            outState.putString(BUTTON_VOICE_QUALITY_KEY, mButtonVoiceQuality.getValue());
+        }
+        outState.commit();
+        init(context, pref);
+        super.onStop();
+    }
+
+    static class PhoneNo implements Comparable<PhoneNo>, java.io.Externalizable,
+            java.io.Serializable {
+        static final long serialVersionUID = 32847013274L;
+
+        String phone;
+
+        public PhoneNo() {
+            phone = null;
+        }
+
+        public PhoneNo(String s) {
+            phone = s;
+        }
+
+        public int compareTo(PhoneNo bp) {
+            if (bp == null || bp.phone == null)
+                return 1;
+            if (phone == null)
+                return -1;
+            // System.out.println("compare : " + phone + " & " + bp.phone +
+            // " == " + PhoneNumberUtils.compare(phone, bp.phone));
+            return PhoneNumberUtils.compare(phone, bp.phone) ? 0 : phone.compareTo(bp.phone);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o instanceof PhoneNo)
+                return compareTo((PhoneNo) o) == 0;
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            if (phone == null)
+                return 0;
+            int len = phone.length();
+            return len > 5 ? phone.substring(len - 5).hashCode() : phone.hashCode();
+        }
+
+        public void writeExternal(java.io.ObjectOutput out) throws java.io.IOException {
+            out.writeObject(phone);
+        }
+
+        public void readExternal(java.io.ObjectInput in) throws java.io.IOException,
+                ClassNotFoundException {
+            phone = (String) in.readObject();
+        }
+
+        public String toString() {
+            return "PhoneNo: " + phone;
+        }
+
     }
 }

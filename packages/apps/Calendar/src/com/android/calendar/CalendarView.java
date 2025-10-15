@@ -121,14 +121,7 @@ public class CalendarView extends View
     };
     private static final int CALENDARS_INDEX_ACCESS_LEVEL = 1;
     private static final int CALENDARS_INDEX_OWNER_ACCOUNT = 2;
-    private static final String CALENDARS_WHERE = Calendars._ID + "=%d";
-
-    private static final String[] ATTENDEES_PROJECTION = new String[] {
-        Attendees._ID,                      // 0
-        Attendees.ATTENDEE_RELATIONSHIP,    // 1
-    };
-    private static final int ATTENDEES_INDEX_RELATIONSHIP = 1;
-    private static final String ATTENDEES_WHERE = Attendees.EVENT_ID + "=%d";
+    private static final String CALENDARS_WHERE = Calendars._ID + "=?";
 
     private static float SMALL_ROUND_RADIUS = 3.0F;
 
@@ -446,7 +439,7 @@ public class CalendarView extends View
         setClickable(true);
         setOnCreateContextMenuListener(this);
 
-        mStartDay = Utils.getFirstDayOfWeek();
+        mStartDay = Utils.getFirstDayOfWeek(context);
 
         mTimeZone = TimeZone.getTimeZone(Utils.getTimeZone(context, mUpdateTZ));
 
@@ -3070,7 +3063,6 @@ public class CalendarView extends View
         ContentResolver cr = context.getContentResolver();
 
         int visibility = Calendars.NO_ACCESS;
-        int relationship = Attendees.RELATIONSHIP_ORGANIZER;
 
         // Get the calendar id for this event
         Cursor cursor = cr.query(ContentUris.withAppendedId(Events.CONTENT_URI, e.id),
@@ -3093,8 +3085,8 @@ public class CalendarView extends View
         cursor.close();
 
         Uri uri = Calendars.CONTENT_URI;
-        String where = String.format(CALENDARS_WHERE, calId);
-        cursor = cr.query(uri, CALENDARS_PROJECTION, where, null, null);
+        String[] whereArgs = new String[] { String.valueOf(calId) };
+        cursor = cr.query(uri, CALENDARS_PROJECTION, CALENDARS_WHERE, whereArgs, null);
 
         String calendarOwnerAccount = null;
         if (cursor != null) {

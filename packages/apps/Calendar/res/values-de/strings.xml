@@ -82,6 +82,7 @@
     <string name="edit_event_show_all" msgid="6107214899021208078">"Alle anzeigen &gt;"</string>
     <string name="description_label" msgid="7193475046717505855">"Beschreibung"</string>
     <string name="presence_label" msgid="6169724148441175862">"Mich anzeigen als"</string>
+    <string name="status_label">Termin ist</string>
     <string name="privacy_label" msgid="9215031965259597335">"Datenschutz"</string>
     <string name="reminders_label" msgid="8345054160145333166">"Erinnerungen"</string>
     <string name="no_syncable_calendars" msgid="7019488867045436129">"Keine Kalender"</string>
@@ -108,7 +109,11 @@
     <string name="discard_label" msgid="4510607554910139220">"Rückgängig"</string>
     <string name="import_label" msgid="6993796574741477222">"Import"</string>
     <string name="snooze_all_label" msgid="4994488813124409077">"Später erinnern"</string>
+    <string name="snooze_all_by_label">"Später erinnern in\u2026"</string>
     <string name="dismiss_all_label" msgid="1834400025868091301">"Alle schließen"</string>
+    <string name="menu_item_info">Anzeigen</string>
+    <string name="menu_item_snooze">Später erinnern in\u2026</string>
+    <string name="title_snooze_for">Erinnern in\u2026</string>
     <string name="does_not_repeat" msgid="1877681921029738999">"Einmaliger Termin"</string>
     <string name="daily" msgid="560350706808680448">"Täglich"</string>
     <string name="every_weekday" msgid="5896574838353902978">"Jeden Werktag (Mo. - Fr.)"</string>
@@ -129,6 +134,11 @@
     <string name="preferences_general_title" msgid="2069075513760573117">"Einstellung für Kalenderansicht"</string>
     <string name="preferences_alerts_title" msgid="6511227171114210908">"Erinnerungseinstellungen"</string>
     <string name="preferences_hide_declined_title" msgid="1849295943669890034">"Abgel. Termine ausbl."</string>
+
+    <string name="preferences_week_start_day_title">Wochenstart</string>
+    <string name="preferences_week_start_day_descrip">Kalender neu starten, um Änderungen anzuwenden.</string>
+    <string name="preferences_week_start_day_dialog">Woche startet am</string>
+
     <string name="preferences_alerts_type_title" msgid="6934441966757833908">"Benachr. &amp; Hinweise"</string>
     <string name="preferences_alerts_type_dialog" msgid="2195667763429994271">"Benachrichtigungen &amp; Hinweise"</string>
     <string name="preferences_alerts_vibrateWhen_title" msgid="8731372580674292759">"Vibration"</string>

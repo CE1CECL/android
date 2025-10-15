@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Designs</string>
+    <string name="app_title">Designs</string>
+    <string name="apply">Anwenden</string>
+
+    <string name="menu_header">Designoptionen</string>
+    <string name="menu_uninstall">Deinstallieren</string>
+    <string name="theme_current">%s (aktuell)</string>
+    <string name="theme_change_dialog_title">Wende an…</string>
+    <string name="switching_to_theme">Wechsle zu <xliff:g id="theme">%s</xliff:g>…</string>
+    <string name="item_count">%1$d/%2$d</string>
+
+    <string name="dialog_theme_error_title">Fehler</string>
+    <string name="dialog_missing_host_density_msg">Diesem Design fehlen leider Inhalte für Ihre Bildschirmgröße.</string>
+    <string name="dialog_missing_theme_package_scope_msg">Dieses Design wurde falsch zusammengestellt und kann nicht angewendet werden. Bitte melden Sie dies dem Autor des Designs.</string>
+    <string name="dialog_apply_anyway_btn">Trotzdem anwenden</string>
+    <string name="dialog_bummer_btn">Abbrechen</string>
+</resources>

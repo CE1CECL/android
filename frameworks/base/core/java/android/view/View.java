@@ -66,6 +66,8 @@ import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ScrollBarDrawable;
 
+import android.provider.Settings;
+
 import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -1593,6 +1595,19 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
     protected ViewParent mParent;
 
     /**
+     * @hide
+     */
+    public static final int OVER_SCROLL_SETTING_EDGEGLOW = 1;
+    /**
+     * @hide
+     */
+    public static final int OVER_SCROLL_SETTING_BOUNCEGLOW = 2;
+    /**
+     * @hide
+     */
+    public static final int OVER_SCROLL_SETTING_BOUNCE = 3;
+
+    /**
      * {@hide}
      */
     AttachInfo mAttachInfo;
@@ -1618,6 +1633,11 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
      * Count of how many windows this view has been attached to.
      */
     int mWindowAttachCount;
+
+    /**
+     * Count of how many transparency requests have been made on this view
+     */
+    int mTransparentRequests = 0;
 
     /**
      * The layout parameters associated with this view and used by the parent
@@ -1876,6 +1896,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
         // Used for debug only
         //++sInstanceCount;
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+
         setOverScrollMode(OVER_SCROLL_IF_CONTENT_SCROLLS);
     }
 
@@ -3944,6 +3965,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
                 imm.focusOut(this);
             }
             removeLongPressCallback();
+            removeTapCallback();
             onFocusLost();
         } else if (imm != null && (mPrivateFlags & FOCUSED) != 0) {
             imm.focusIn(this);
@@ -8834,7 +8856,7 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
             int scrollRangeX, int scrollRangeY,
             int maxOverScrollX, int maxOverScrollY,
             boolean isTouchEvent) {
-        final int overScrollMode = mOverScrollMode;
+        final int overScrollMode = getOverScrollMode();
         final boolean canScrollHorizontal =
                 computeHorizontalScrollRange() > computeHorizontalScrollExtent();
         final boolean canScrollVertical =
@@ -8906,6 +8928,16 @@ public class View implements Drawable.Callback, KeyEvent.Callback, Accessibility
      * @return This view's over-scroll mode.
      */
     public int getOverScrollMode() {
+        final int overScrollEffect = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.OVERSCROLL_EFFECT, OVER_SCROLL_SETTING_EDGEGLOW);
+        if (overScrollEffect <= 0) {
+            /* Disabled */
+            return OVER_SCROLL_NEVER;
+        } else if ( mOverScrollMode != OVER_SCROLL_ALWAYS &&
+                    (mViewFlags & (SCROLLBARS_VERTICAL|SCROLLBARS_HORIZONTAL)) == 0) {
+            /* Don't overscroll items without scrollbars */
+            return OVER_SCROLL_NEVER;
+        }
         return mOverScrollMode;
     }
 

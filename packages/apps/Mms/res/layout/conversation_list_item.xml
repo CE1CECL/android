@@ -54,7 +54,7 @@
         android:layout_toRightOf="@id/avatar"
         android:layout_toLeftOf="@id/presence"
         android:layout_alignWithParentIfMissing="true"
-        android:ellipsize="marquee"  />
+        android:ellipsize="marquee" />
 
     <TextView android:id="@+id/date"
         android:layout_marginTop="2dip"

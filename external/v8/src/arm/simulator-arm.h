@@ -38,11 +38,23 @@
 
 #include "allocation.h"
 
-#if defined(__arm__)
+#if !defined(USE_SIMULATOR)
+// Running without a simulator on a native arm platform.
+
+namespace v8 {
+namespace internal {
 
 // When running without a simulator we call the entry directly.
 #define CALL_GENERATED_CODE(entry, p0, p1, p2, p3, p4) \
   (entry(p0, p1, p2, p3, p4))
+
+// Call the generated regexp code directly. The entry function pointer should
+// expect seven int/pointer sized arguments and return an int.
+#define CALL_GENERATED_REGEXP_CODE(entry, p0, p1, p2, p3, p4, p5, p6) \
+  (entry(p0, p1, p2, p3, p4, p5, p6))
+
+#define TRY_CATCH_FROM_ADDRESS(try_catch_address) \
+  (reinterpret_cast<TryCatch*>(try_catch_address))
 
 // The stack limit beyond which we will throw stack overflow errors in
 // generated code. Because generated code on arm uses the C stack, we
@@ -60,39 +72,47 @@ class SimulatorStack : public v8::internal::AllStatic {
   static inline void UnregisterCTryCatch() { }
 };
 
+} }  // namespace v8::internal
 
-// Call the generated regexp code directly. The entry function pointer should
-// expect eight int/pointer sized arguments and return an int.
-#define CALL_GENERATED_REGEXP_CODE(entry, p0, p1, p2, p3, p4, p5, p6) \
-  entry(p0, p1, p2, p3, p4, p5, p6)
-
-#define TRY_CATCH_FROM_ADDRESS(try_catch_address) \
-  reinterpret_cast<TryCatch*>(try_catch_address)
-
-
-#else  // defined(__arm__)
-
-// When running with the simulator transition into simulated execution at this
-// point.
-#define CALL_GENERATED_CODE(entry, p0, p1, p2, p3, p4) \
-  reinterpret_cast<Object*>( \
-      assembler::arm::Simulator::current()->Call(FUNCTION_ADDR(entry), 5, \
-                                                 p0, p1, p2, p3, p4))
-
-#define CALL_GENERATED_REGEXP_CODE(entry, p0, p1, p2, p3, p4, p5, p6) \
-  assembler::arm::Simulator::current()->Call( \
-    FUNCTION_ADDR(entry), 7, p0, p1, p2, p3, p4, p5, p6)
-
-#define TRY_CATCH_FROM_ADDRESS(try_catch_address) \
-  try_catch_address == NULL ? \
-      NULL : *(reinterpret_cast<TryCatch**>(try_catch_address))
-
+#else  // !defined(USE_SIMULATOR)
+// Running with a simulator.
 
 #include "constants-arm.h"
-
+#include "hashmap.h"
 
 namespace assembler {
 namespace arm {
+
+class CachePage {
+ public:
+  static const int LINE_VALID = 0;
+  static const int LINE_INVALID = 1;
+
+  static const int kPageShift = 12;
+  static const int kPageSize = 1 << kPageShift;
+  static const int kPageMask = kPageSize - 1;
+  static const int kLineShift = 2;  // The cache line is only 4 bytes right now.
+  static const int kLineLength = 1 << kLineShift;
+  static const int kLineMask = kLineLength - 1;
+
+  CachePage() {
+    memset(&validity_map_, LINE_INVALID, sizeof(validity_map_));
+  }
+
+  char* ValidityByte(int offset) {
+    return &validity_map_[offset >> kLineShift];
+  }
+
+  char* CachedData(int offset) {
+    return &data_[offset];
+  }
+
+ private:
+  char data_[kPageSize];   // The cached data.
+  static const int kValidityMapSize = kPageSize >> kLineShift;
+  char validity_map_[kValidityMapSize];  // One byte per line.
+};
+
 
 class Simulator {
  public:
@@ -127,6 +147,7 @@ class Simulator {
   // instruction.
   void set_register(int reg, int32_t value);
   int32_t get_register(int reg) const;
+  void set_dw_register(int dreg, const int* dbl);
 
   // Support for VFP.
   void set_s_register(int reg, unsigned int value);
@@ -161,6 +182,9 @@ class Simulator {
 
   // Pop an address from the JS stack.
   uintptr_t PopAddress();
+
+  // ICache checking.
+  static void FlushICache(void* start, size_t size);
 
  private:
   enum special_values {
@@ -202,6 +226,15 @@ class Simulator {
   void HandleRList(Instr* instr, bool load);
   void SoftwareInterrupt(Instr* instr);
 
+  // Stop helper functions.
+  inline bool isStopInstruction(Instr* instr);
+  inline bool isWatchedStop(uint32_t bkpt_code);
+  inline bool isEnabledStop(uint32_t bkpt_code);
+  inline void EnableStop(uint32_t bkpt_code);
+  inline void DisableStop(uint32_t bkpt_code);
+  inline void IncreaseStopCounter(uint32_t bkpt_code);
+  void PrintStopInfo(uint32_t code);
+
   // Read and write memory.
   inline uint8_t ReadBU(int32_t addr);
   inline int8_t ReadB(int32_t addr);
@@ -217,6 +250,9 @@ class Simulator {
   inline int ReadW(int32_t addr, Instr* instr);
   inline void WriteW(int32_t addr, int value, Instr* instr);
 
+  int32_t* ReadDW(int32_t addr);
+  void WriteDW(int32_t addr, int32_t value1, int32_t value2);
+
   // Executing is handled based on the instruction type.
   void DecodeType01(Instr* instr);  // both type 0 and type 1 rolled into one
   void DecodeType2(Instr* instr);
@@ -225,14 +261,23 @@ class Simulator {
   void DecodeType5(Instr* instr);
   void DecodeType6(Instr* instr);
   void DecodeType7(Instr* instr);
-  void DecodeUnconditional(Instr* instr);
 
   // Support for VFP.
   void DecodeTypeVFP(Instr* instr);
   void DecodeType6CoprocessorIns(Instr* instr);
 
+  void DecodeVMOVBetweenCoreAndSinglePrecisionRegisters(Instr* instr);
+  void DecodeVCMP(Instr* instr);
+  void DecodeVCVTBetweenDoubleAndSingle(Instr* instr);
+  void DecodeVCVTBetweenFloatingPointAndInteger(Instr* instr);
+
   // Executes one instruction.
   void InstructionDecode(Instr* instr);
+
+  // ICache.
+  static void CheckICache(Instr* instr);
+  static void FlushOnePage(intptr_t start, int size);
+  static CachePage* GetCachePage(void* page);
 
   // Runtime call support.
   static void* RedirectExternalReference(void* external_function,
@@ -245,6 +290,9 @@ class Simulator {
   void TrashCallerSaveRegisters();
 
   // Architecture state.
+  // Saturating instructions require a Q flag to indicate saturation.
+  // There is currently no way to read the CPSR directly, and thus read the Q
+  // flag, so this is left unimplemented.
   int32_t registers_[16];
   bool n_flag_;
   bool z_flag_;
@@ -257,6 +305,9 @@ class Simulator {
   bool z_flag_FPSCR_;
   bool c_flag_FPSCR_;
   bool v_flag_FPSCR_;
+
+  // VFP rounding mode. See ARM DDI 0406B Page A2-29.
+  FPSCRRoundingModes FPSCR_rounding_mode_;
 
   // VFP FP exception flags architecture state.
   bool inv_op_vfp_flag_;
@@ -271,12 +322,50 @@ class Simulator {
   int icount_;
   static bool initialized_;
 
+  // Icache simulation
+  static v8::internal::HashMap* i_cache_;
+
   // Registered breakpoints.
   Instr* break_pc_;
   instr_t break_instr_;
+
+  // A stop is watched if its code is less than kNumOfWatchedStops.
+  // Only watched stops support enabling/disabling and the counter feature.
+  static const uint32_t kNumOfWatchedStops = 256;
+
+  // Breakpoint is disabled if bit 31 is set.
+  static const uint32_t kStopDisabledBit = 1 << 31;
+
+  // A stop is enabled, meaning the simulator will stop when meeting the
+  // instruction, if bit 31 of watched_stops[code].count is unset.
+  // The value watched_stops[code].count & ~(1 << 31) indicates how many times
+  // the breakpoint was hit or gone through.
+  struct StopCoundAndDesc {
+    uint32_t count;
+    char* desc;
+  };
+  StopCoundAndDesc watched_stops[kNumOfWatchedStops];
 };
 
 } }  // namespace assembler::arm
+
+
+namespace v8 {
+namespace internal {
+
+// When running with the simulator transition into simulated execution at this
+// point.
+#define CALL_GENERATED_CODE(entry, p0, p1, p2, p3, p4) \
+  reinterpret_cast<Object*>(assembler::arm::Simulator::current()->Call( \
+      FUNCTION_ADDR(entry), 5, p0, p1, p2, p3, p4))
+
+#define CALL_GENERATED_REGEXP_CODE(entry, p0, p1, p2, p3, p4, p5, p6) \
+  assembler::arm::Simulator::current()->Call( \
+      FUNCTION_ADDR(entry), 7, p0, p1, p2, p3, p4, p5, p6)
+
+#define TRY_CATCH_FROM_ADDRESS(try_catch_address) \
+  try_catch_address == \
+      NULL ? NULL : *(reinterpret_cast<TryCatch**>(try_catch_address))
 
 
 // The simulator has its own stack. Thus it has a different stack limit from
@@ -300,7 +389,7 @@ class SimulatorStack : public v8::internal::AllStatic {
   }
 };
 
+} }  // namespace v8::internal
 
-#endif  // defined(__arm__)
-
+#endif  // !defined(USE_SIMULATOR)
 #endif  // V8_ARM_SIMULATOR_ARM_H_

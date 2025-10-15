@@ -192,6 +192,22 @@ public final class CookieSyncManager extends WebSyncManager {
         }
     }
 
+   /**
+    * Used by Incognito mode
+    *
+    * @hide
+    */
+    public void clearRamCache(long fromTime){
+        ArrayList<Cookie> cookieList = CookieManager.getInstance()
+                .getUpdatedCookiesSince(fromTime);
+        Iterator<Cookie> it = cookieList.iterator();
+        while (it.hasNext()){
+            Cookie c = it.next();
+            c.mode = Cookie.MODE_DELETED;
+            CookieManager.getInstance().deleteACookie(c);
+        }
+    }
+
     private void syncFromRamToFlash(ArrayList<Cookie> list) {
         Iterator<Cookie> iter = list.iterator();
         while (iter.hasNext()) {

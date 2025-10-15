@@ -32,6 +32,7 @@
 #include "serialize.h"
 #include "simulator.h"
 #include "stub-cache.h"
+#include "heap-profiler.h"
 #include "oprofile-agent.h"
 #include "log.h"
 
@@ -43,7 +44,8 @@ bool V8::has_been_setup_ = false;
 bool V8::has_been_disposed_ = false;
 bool V8::has_fatal_error_ = false;
 
-bool V8::Initialize(Deserializer *des) {
+
+bool V8::Initialize(Deserializer* des) {
   bool create_heap_objects = des == NULL;
   if (has_been_disposed_ || has_fatal_error_) return false;
   if (IsRunning()) return true;
@@ -60,12 +62,19 @@ bool V8::Initialize(Deserializer *des) {
   // Enable logging before setting up the heap
   Logger::Setup();
 
+  CpuProfiler::Setup();
+  HeapProfiler::Setup();
+
   // Setup the platform OS support.
   OS::Setup();
 
   // Initialize other runtime facilities
-#if !V8_HOST_ARCH_ARM && V8_TARGET_ARCH_ARM
+#if defined(USE_SIMULATOR)
+#if defined(V8_TARGET_ARCH_ARM)
   ::assembler::arm::Simulator::Initialize();
+#elif defined(V8_TARGET_ARCH_MIPS)
+  ::assembler::mips::Simulator::Initialize();
+#endif
 #endif
 
   { // NOLINT
@@ -147,7 +156,12 @@ void V8::TearDown() {
 
   Top::TearDown();
 
+  HeapProfiler::TearDown();
+
+  CpuProfiler::TearDown();
+
   Heap::TearDown();
+
   Logger::TearDown();
 
   is_running_ = false;
@@ -155,22 +169,49 @@ void V8::TearDown() {
 }
 
 
-uint32_t V8::Random() {
-  // Random number generator using George Marsaglia's MWC algorithm.
-  static uint32_t hi = 0;
-  static uint32_t lo = 0;
+static uint32_t random_seed() {
+  if (FLAG_random_seed == 0) {
+    return random();
+  }
+  return FLAG_random_seed;
+}
 
+
+typedef struct {
+  uint32_t hi;
+  uint32_t lo;
+} random_state;
+
+
+// Random number generator using George Marsaglia's MWC algorithm.
+static uint32_t random_base(random_state *state) {
   // Initialize seed using the system random(). If one of the seeds
   // should ever become zero again, or if random() returns zero, we
   // avoid getting stuck with zero bits in hi or lo by re-initializing
   // them on demand.
-  if (hi == 0) hi = random();
-  if (lo == 0) lo = random();
+  if (state->hi == 0) state->hi = random_seed();
+  if (state->lo == 0) state->lo = random_seed();
 
   // Mix the bits.
-  hi = 36969 * (hi & 0xFFFF) + (hi >> 16);
-  lo = 18273 * (lo & 0xFFFF) + (lo >> 16);
-  return (hi << 16) + (lo & 0xFFFF);
+  state->hi = 36969 * (state->hi & 0xFFFF) + (state->hi >> 16);
+  state->lo = 18273 * (state->lo & 0xFFFF) + (state->lo >> 16);
+  return (state->hi << 16) + (state->lo & 0xFFFF);
+}
+
+
+// Used by JavaScript APIs
+uint32_t V8::Random() {
+  static random_state state = {0, 0};
+  return random_base(&state);
+}
+
+
+// Used internally by the JIT and memory allocator for security
+// purposes. So, we keep a different state to prevent informations
+// leaks that could be used in an exploit.
+uint32_t V8::RandomPrivate() {
+  static random_state state = {0, 0};
+  return random_base(&state);
 }
 
 
@@ -183,14 +224,29 @@ bool V8::IdleNotification() {
   return Heap::IdleNotification();
 }
 
-static const uint32_t kRandomPositiveSmiMax = 0x3fffffff;
 
-Smi* V8::RandomPositiveSmi() {
-  uint32_t random = Random();
-  ASSERT(static_cast<uint32_t>(Smi::kMaxValue) >= kRandomPositiveSmiMax);
-  // kRandomPositiveSmiMax must match the value being divided
-  // by in math.js.
-  return Smi::FromInt(random & kRandomPositiveSmiMax);
+// Use a union type to avoid type-aliasing optimizations in GCC.
+typedef union {
+  double double_value;
+  uint64_t uint64_t_value;
+} double_int_union;
+
+
+Object* V8::FillHeapNumberWithRandom(Object* heap_number) {
+  uint64_t random_bits = Random();
+  // Make a double* from address (heap_number + sizeof(double)).
+  double_int_union* r = reinterpret_cast<double_int_union*>(
+      reinterpret_cast<char*>(heap_number) +
+      HeapNumber::kValueOffset - kHeapObjectTag);
+  // Convert 32 random bits to 0.(32 random bits) in a double
+  // by computing:
+  // ( 1.(20 0s)(32 random bits) x 2^20 ) - (1.0 x 2^20)).
+  const double binary_million = 1048576.0;
+  r->double_value = binary_million;
+  r->uint64_t_value |=  random_bits;
+  r->double_value -= binary_million;
+
+  return heap_number;
 }
 
 } }  // namespace v8::internal

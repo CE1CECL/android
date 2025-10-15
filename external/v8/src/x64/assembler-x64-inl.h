@@ -29,19 +29,15 @@
 #define V8_X64_ASSEMBLER_X64_INL_H_
 
 #include "cpu.h"
+#include "debug.h"
 #include "memory.h"
 
 namespace v8 {
 namespace internal {
 
-Condition NegateCondition(Condition cc) {
-  return static_cast<Condition>(cc ^ 1);
-}
-
 
 // -----------------------------------------------------------------------------
 // Implementation of Assembler
-
 
 
 void Assembler::emitl(uint32_t x) {
@@ -85,6 +81,11 @@ void Assembler::emit_rex_64(Register reg, Register rm_reg) {
 
 
 void Assembler::emit_rex_64(XMMRegister reg, Register rm_reg) {
+  emit(0x48 | (reg.code() & 0x8) >> 1 | rm_reg.code() >> 3);
+}
+
+
+void Assembler::emit_rex_64(Register reg, XMMRegister rm_reg) {
   emit(0x48 | (reg.code() & 0x8) >> 1 | rm_reg.code() >> 3);
 }
 
@@ -160,6 +161,12 @@ void Assembler::emit_optional_rex_32(XMMRegister reg, Register base) {
 }
 
 
+void Assembler::emit_optional_rex_32(Register reg, XMMRegister base) {
+  byte rex_bits =  (reg.code() & 0x8) >> 1 | (base.code() & 0x8) >> 3;
+  if (rex_bits != 0) emit(0x40 | rex_bits);
+}
+
+
 void Assembler::emit_optional_rex_32(Register rm_reg) {
   if (rm_reg.high_bit()) emit(0x41);
 }
@@ -194,10 +201,6 @@ void RelocInfo::apply(intptr_t delta) {
     Memory::Address_at(pc_) += static_cast<int32_t>(delta);
   } else if (IsCodeTarget(rmode_)) {
     Memory::int32_at(pc_) -= static_cast<int32_t>(delta);
-  } else if (rmode_ == JS_RETURN && IsPatchedReturnSequence()) {
-    // Special handling of js_return when a break point is set (call
-    // instruction has been inserted).
-    Memory::int32_at(pc_ + 1) -= static_cast<int32_t>(delta);  // relocate entry
   }
 }
 
@@ -215,6 +218,15 @@ Address RelocInfo::target_address() {
 Address RelocInfo::target_address_address() {
   ASSERT(IsCodeTarget(rmode_) || rmode_ == RUNTIME_ENTRY);
   return reinterpret_cast<Address>(pc_);
+}
+
+
+int RelocInfo::target_address_size() {
+  if (IsCodedSpecially()) {
+    return Assembler::kCallTargetSize;
+  } else {
+    return Assembler::kExternalTargetSize;
+  }
 }
 
 
@@ -277,37 +289,89 @@ bool RelocInfo::IsPatchedReturnSequence() {
 }
 
 
+bool RelocInfo::IsPatchedDebugBreakSlotSequence() {
+  return !Assembler::IsNop(pc());
+}
+
+
 Address RelocInfo::call_address() {
-  ASSERT(IsPatchedReturnSequence());
+  ASSERT((IsJSReturn(rmode()) && IsPatchedReturnSequence()) ||
+         (IsDebugBreakSlot(rmode()) && IsPatchedDebugBreakSlotSequence()));
   return Memory::Address_at(
       pc_ + Assembler::kRealPatchReturnSequenceAddressOffset);
 }
 
 
 void RelocInfo::set_call_address(Address target) {
-  ASSERT(IsPatchedReturnSequence());
+  ASSERT((IsJSReturn(rmode()) && IsPatchedReturnSequence()) ||
+         (IsDebugBreakSlot(rmode()) && IsPatchedDebugBreakSlotSequence()));
   Memory::Address_at(pc_ + Assembler::kRealPatchReturnSequenceAddressOffset) =
       target;
 }
 
 
 Object* RelocInfo::call_object() {
-  ASSERT(IsPatchedReturnSequence());
   return *call_object_address();
 }
 
 
 void RelocInfo::set_call_object(Object* target) {
-  ASSERT(IsPatchedReturnSequence());
   *call_object_address() = target;
 }
 
 
 Object** RelocInfo::call_object_address() {
-  ASSERT(IsPatchedReturnSequence());
+  ASSERT((IsJSReturn(rmode()) && IsPatchedReturnSequence()) ||
+         (IsDebugBreakSlot(rmode()) && IsPatchedDebugBreakSlotSequence()));
   return reinterpret_cast<Object**>(
       pc_ + Assembler::kPatchReturnSequenceAddressOffset);
 }
+
+
+void RelocInfo::Visit(ObjectVisitor* visitor) {
+  RelocInfo::Mode mode = rmode();
+  if (mode == RelocInfo::EMBEDDED_OBJECT) {
+    visitor->VisitPointer(target_object_address());
+  } else if (RelocInfo::IsCodeTarget(mode)) {
+    visitor->VisitCodeTarget(this);
+  } else if (mode == RelocInfo::EXTERNAL_REFERENCE) {
+    visitor->VisitExternalReference(target_reference_address());
+#ifdef ENABLE_DEBUGGER_SUPPORT
+  } else if (Debug::has_break_points() &&
+             ((RelocInfo::IsJSReturn(mode) &&
+              IsPatchedReturnSequence()) ||
+             (RelocInfo::IsDebugBreakSlot(mode) &&
+              IsPatchedDebugBreakSlotSequence()))) {
+    visitor->VisitDebugTarget(this);
+#endif
+  } else if (mode == RelocInfo::RUNTIME_ENTRY) {
+    visitor->VisitRuntimeEntry(this);
+  }
+}
+
+
+template<typename StaticVisitor>
+void RelocInfo::Visit() {
+  RelocInfo::Mode mode = rmode();
+  if (mode == RelocInfo::EMBEDDED_OBJECT) {
+    StaticVisitor::VisitPointer(target_object_address());
+  } else if (RelocInfo::IsCodeTarget(mode)) {
+    StaticVisitor::VisitCodeTarget(this);
+  } else if (mode == RelocInfo::EXTERNAL_REFERENCE) {
+    StaticVisitor::VisitExternalReference(target_reference_address());
+#ifdef ENABLE_DEBUGGER_SUPPORT
+  } else if (Debug::has_break_points() &&
+             ((RelocInfo::IsJSReturn(mode) &&
+              IsPatchedReturnSequence()) ||
+             (RelocInfo::IsDebugBreakSlot(mode) &&
+              IsPatchedDebugBreakSlotSequence()))) {
+    StaticVisitor::VisitDebugTarget(this);
+#endif
+  } else if (mode == RelocInfo::RUNTIME_ENTRY) {
+    StaticVisitor::VisitRuntimeEntry(this);
+  }
+}
+
 
 // -----------------------------------------------------------------------------
 // Implementation of Operand

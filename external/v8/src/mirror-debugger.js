@@ -67,7 +67,7 @@ function MakeMirror(value, opt_transient) {
       }
     }
   }
-  
+
   if (IS_UNDEFINED(value)) {
     mirror = new UndefinedMirror();
   } else if (IS_NULL(value)) {
@@ -110,7 +110,7 @@ function LookupMirror(handle) {
   return mirror_cache_[handle];
 }
 
-  
+
 /**
  * Returns the mirror for the undefined value.
  *
@@ -622,7 +622,7 @@ ObjectMirror.prototype.propertyNames = function(kind, limit) {
   var propertyNames;
   var elementNames;
   var total = 0;
-  
+
   // Find all the named properties.
   if (kind & PropertyKind.Named) {
     // Get the local property names.
@@ -1223,7 +1223,7 @@ PropertyMirror.prototype.setter = function() {
 /**
  * Returns whether this property is natively implemented by the host or a set
  * through JavaScript code.
- * @return {boolean} True if the property is 
+ * @return {boolean} True if the property is
  *     UndefinedMirror if there is no setter for this property
  */
 PropertyMirror.prototype.isNative = function() {
@@ -1240,8 +1240,9 @@ const kFrameDetailsArgumentCountIndex = 3;
 const kFrameDetailsLocalCountIndex = 4;
 const kFrameDetailsSourcePositionIndex = 5;
 const kFrameDetailsConstructCallIndex = 6;
-const kFrameDetailsDebuggerFrameIndex = 7;
-const kFrameDetailsFirstDynamicIndex = 8;
+const kFrameDetailsAtReturnIndex = 7;
+const kFrameDetailsDebuggerFrameIndex = 8;
+const kFrameDetailsFirstDynamicIndex = 9;
 
 const kFrameDetailsNameIndex = 0;
 const kFrameDetailsValueIndex = 1;
@@ -1258,8 +1259,11 @@ const kFrameDetailsNameValueSize = 2;
  *     4: Local count
  *     5: Source position
  *     6: Construct call
+ *     7: Is at return
+ *     8: Debugger frame
  *     Arguments name, value
  *     Locals name, value
+ *     Return value if any
  * @param {number} break_id Current break id
  * @param {number} index Frame number
  * @constructor
@@ -1291,6 +1295,12 @@ FrameDetails.prototype.func = function() {
 FrameDetails.prototype.isConstructCall = function() {
   %CheckExecutionState(this.break_id_);
   return this.details_[kFrameDetailsConstructCallIndex];
+}
+
+
+FrameDetails.prototype.isAtReturn = function() {
+  %CheckExecutionState(this.break_id_);
+  return this.details_[kFrameDetailsAtReturnIndex];
 }
 
 
@@ -1341,7 +1351,8 @@ FrameDetails.prototype.sourcePosition = function() {
 FrameDetails.prototype.localName = function(index) {
   %CheckExecutionState(this.break_id_);
   if (index >= 0 && index < this.localCount()) {
-    var locals_offset = kFrameDetailsFirstDynamicIndex + this.argumentCount() * kFrameDetailsNameValueSize
+    var locals_offset = kFrameDetailsFirstDynamicIndex +
+                        this.argumentCount() * kFrameDetailsNameValueSize
     return this.details_[locals_offset +
                          index * kFrameDetailsNameValueSize +
                          kFrameDetailsNameIndex]
@@ -1352,10 +1363,22 @@ FrameDetails.prototype.localName = function(index) {
 FrameDetails.prototype.localValue = function(index) {
   %CheckExecutionState(this.break_id_);
   if (index >= 0 && index < this.localCount()) {
-    var locals_offset = kFrameDetailsFirstDynamicIndex + this.argumentCount() * kFrameDetailsNameValueSize
+    var locals_offset = kFrameDetailsFirstDynamicIndex +
+                        this.argumentCount() * kFrameDetailsNameValueSize
     return this.details_[locals_offset +
                          index * kFrameDetailsNameValueSize +
                          kFrameDetailsValueIndex]
+  }
+}
+
+
+FrameDetails.prototype.returnValue = function() {
+  %CheckExecutionState(this.break_id_);
+  var return_value_offset =
+      kFrameDetailsFirstDynamicIndex +
+      (this.argumentCount() + this.localCount()) * kFrameDetailsNameValueSize;
+  if (this.details_[kFrameDetailsAtReturnIndex]) {
+    return this.details_[return_value_offset];
   }
 }
 
@@ -1390,7 +1413,7 @@ FrameMirror.prototype.index = function() {
 FrameMirror.prototype.func = function() {
   // Get the function for this frame from the VM.
   var f = this.details_.func();
-  
+
   // Create a function mirror. NOTE: MakeMirror cannot be used here as the
   // value returned from the VM might be a string if the function for the
   // frame is unresolved.
@@ -1409,6 +1432,11 @@ FrameMirror.prototype.receiver = function() {
 
 FrameMirror.prototype.isConstructCall = function() {
   return this.details_.isConstructCall();
+};
+
+
+FrameMirror.prototype.isAtReturn = function() {
+  return this.details_.isAtReturn();
 };
 
 
@@ -1444,6 +1472,11 @@ FrameMirror.prototype.localName = function(index) {
 
 FrameMirror.prototype.localValue = function(index) {
   return MakeMirror(this.details_.localValue(index));
+};
+
+
+FrameMirror.prototype.returnValue = function() {
+  return MakeMirror(this.details_.returnValue());
 };
 
 
@@ -1572,6 +1605,11 @@ FrameMirror.prototype.invocationText = function() {
       result += this.argumentValue(i).toText();
     }
     result += ')';
+  }
+
+  if (this.isAtReturn()) {
+    result += ' returning ';
+    result += this.returnValue().toText();
   }
 
   return result;
@@ -1728,8 +1766,7 @@ ScriptMirror.prototype.value = function() {
 
 
 ScriptMirror.prototype.name = function() {
-  // If we have name, we trust it more than sourceURL from comments
-  return this.script_.name || this.sourceUrlFromComment_();
+  return this.script_.name || this.script_.nameOrSourceURL();
 };
 
 
@@ -1825,29 +1862,6 @@ ScriptMirror.prototype.toText = function() {
 
 
 /**
- * Returns a suggested script URL from comments in script code (if found), 
- * undefined otherwise. Used primarily by debuggers for identifying eval()'ed
- * scripts. See 
- * http://fbug.googlecode.com/svn/branches/firebug1.1/docs/ReleaseNotes_1.1.txt
- * for details.
- * 
- * @return {?string} value for //@ sourceURL comment
- */
-ScriptMirror.prototype.sourceUrlFromComment_ = function() {
-  if (!('sourceUrl_' in this) && this.source()) {
-    // TODO(608): the spaces in a regexp below had to be escaped as \040 
-    // because this file is being processed by js2c whose handling of spaces
-    // in regexps is broken.
-    // We're not using \s here to prevent \n from matching.
-    var sourceUrlPattern = /\/\/@[\040\t]sourceURL=[\040\t]*(\S+)[\040\t]*$/m;
-    var match = sourceUrlPattern.exec(this.source());
-    this.sourceUrl_ = match ? match[1] : undefined;
-  }
-  return this.sourceUrl_;
-};
-
-
-/**
  * Mirror object for context.
  * @param {Object} data The context data
  * @constructor
@@ -1928,10 +1942,10 @@ JSONProtocolSerializer.prototype.serializeValue = function(mirror) {
 JSONProtocolSerializer.prototype.serializeReferencedObjects = function() {
   // Collect the protocol representation of the referenced objects in an array.
   var content = [];
-  
+
   // Get the number of referenced objects.
   var count = this.mirrors_.length;
-  
+
   for (var i = 0; i < count; i++) {
     content.push(this.serialize_(this.mirrors_[i], false, false));
   }
@@ -1966,7 +1980,7 @@ JSONProtocolSerializer.prototype.add_ = function(mirror) {
       return;
     }
   }
-  
+
   // Add the mirror to the list of mirrors to be serialized.
   this.mirrors_.push(mirror);
 }
@@ -1978,7 +1992,7 @@ JSONProtocolSerializer.prototype.add_ = function(mirror) {
  * @param {Mirror} mirror Mirror to serialize.
  * @return {Object} Protocol reference object.
  */
-JSONProtocolSerializer.prototype.serializeReferenceWithDisplayData_ = 
+JSONProtocolSerializer.prototype.serializeReferenceWithDisplayData_ =
     function(mirror) {
   var o = {};
   o.ref = mirror.handle();
@@ -2025,7 +2039,7 @@ JSONProtocolSerializer.prototype.serialize_ = function(mirror, reference,
       return {'ref' : mirror.handle()};
     }
   }
-  
+
   // Collect the JSON property/value pairs.
   var content = {};
 
@@ -2137,7 +2151,7 @@ JSONProtocolSerializer.prototype.serialize_ = function(mirror, reference,
 
   // Always add the text representation.
   content.text = mirror.toText();
-  
+
   // Create and return the JSON string.
   return content;
 }
@@ -2170,7 +2184,7 @@ JSONProtocolSerializer.prototype.serializeObject_ = function(mirror, content,
   if (mirror.hasIndexedInterceptor()) {
     content.indexedInterceptor = true;
   }
-  
+
   // Add function specific properties.
   if (mirror.isFunction()) {
     // Add function specific properties.
@@ -2185,7 +2199,7 @@ JSONProtocolSerializer.prototype.serializeObject_ = function(mirror, content,
     if (mirror.script()) {
       content.script = this.serializeReference(mirror.script());
       content.scriptId = mirror.script().id();
-      
+
       serializeLocationFields(mirror.sourceLocation(), content);
     }
   }
@@ -2224,13 +2238,13 @@ JSONProtocolSerializer.prototype.serializeObject_ = function(mirror, content,
  *   "position":"<position>",
  *   "line":"<line>",
  *   "column":"<column>",
- * 
+ *
  * @param {SourceLocation} location The location to serialize, may be undefined.
  */
 function serializeLocationFields (location, content) {
   if (!location) {
     return;
-  }                                                                     
+  }
   content.position = location.position;
   var line = location.line;
   if (!IS_UNDEFINED(line)) {
@@ -2264,7 +2278,7 @@ function serializeLocationFields (location, content) {
  */
 JSONProtocolSerializer.prototype.serializeProperty_ = function(propertyMirror) {
   var result = {};
-  
+
   result.name = propertyMirror.name();
   var propertyValue = propertyMirror.value();
   if (this.inlineRefs_() && propertyValue.isValue()) {
@@ -2291,6 +2305,10 @@ JSONProtocolSerializer.prototype.serializeFrame_ = function(mirror, content) {
     content.script = this.serializeReference(func.script());
   }
   content.constructCall = mirror.isConstructCall();
+  content.atReturn = mirror.isAtReturn();
+  if (mirror.isAtReturn()) {
+    content.returnValue = this.serializeReference(mirror.returnValue());
+  }
   content.debuggerFrame = mirror.isDebuggerFrame();
   var x = new Array(mirror.argumentCount());
   for (var i = 0; i < mirror.argumentCount(); i++) {
@@ -2316,7 +2334,7 @@ JSONProtocolSerializer.prototype.serializeFrame_ = function(mirror, content) {
   if (!IS_UNDEFINED(source_line_text)) {
     content.sourceLineText = source_line_text;
   }
-  
+
   content.scopes = [];
   for (var i = 0; i < mirror.scopeCount(); i++) {
     var scope = mirror.scope(i);
@@ -2358,5 +2376,5 @@ function NumberToJSON_(value) {
       return '-Infinity';
     }
   }
-  return value; 
+  return value;
 }

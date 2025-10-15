@@ -28,6 +28,9 @@
 #ifndef V8_CONTEXTS_H_
 #define V8_CONTEXTS_H_
 
+#include "heap.h"
+#include "objects.h"
+
 namespace v8 {
 namespace internal {
 
@@ -50,18 +53,13 @@ enum ContextLookupFlags {
 // must always be allocated via Heap::AllocateContext() or
 // Factory::NewContext.
 
-// Comment for special_function_table:
-// Table for providing optimized/specialized functions.
-// The array contains triplets [object, general_function, optimized_function].
-// Primarily added to support built-in optimized variants of
-// Array.prototype.{push,pop}.
-
 #define GLOBAL_CONTEXT_FIELDS(V) \
   V(GLOBAL_PROXY_INDEX, JSObject, global_proxy_object) \
   V(SECURITY_TOKEN_INDEX, Object, security_token) \
   V(BOOLEAN_FUNCTION_INDEX, JSFunction, boolean_function) \
   V(NUMBER_FUNCTION_INDEX, JSFunction, number_function) \
   V(STRING_FUNCTION_INDEX, JSFunction, string_function) \
+  V(STRING_FUNCTION_PROTOTYPE_MAP_INDEX, Map, string_function_prototype_map) \
   V(OBJECT_FUNCTION_INDEX, JSFunction, object_function) \
   V(ARRAY_FUNCTION_INDEX, JSFunction, array_function) \
   V(DATE_FUNCTION_INDEX, JSFunction, date_function) \
@@ -80,20 +78,24 @@ enum ContextLookupFlags {
   V(INSTANTIATE_FUN_INDEX, JSFunction, instantiate_fun) \
   V(CONFIGURE_INSTANCE_FUN_INDEX, JSFunction, configure_instance_fun) \
   V(FUNCTION_MAP_INDEX, Map, function_map) \
+  V(FUNCTION_WITHOUT_PROTOTYPE_MAP_INDEX, Map, function_without_prototype_map) \
   V(FUNCTION_INSTANCE_MAP_INDEX, Map, function_instance_map) \
   V(JS_ARRAY_MAP_INDEX, Map, js_array_map)\
-  V(SPECIAL_FUNCTION_TABLE_INDEX, FixedArray, special_function_table) \
+  V(REGEXP_RESULT_MAP_INDEX, Map, regexp_result_map)\
   V(ARGUMENTS_BOILERPLATE_INDEX, JSObject, arguments_boilerplate) \
   V(MESSAGE_LISTENERS_INDEX, JSObject, message_listeners) \
   V(MAKE_MESSAGE_FUN_INDEX, JSFunction, make_message_fun) \
   V(GET_STACK_TRACE_LINE_INDEX, JSFunction, get_stack_trace_line_fun) \
   V(CONFIGURE_GLOBAL_INDEX, JSFunction, configure_global_fun) \
   V(FUNCTION_CACHE_INDEX, JSObject, function_cache) \
+  V(JSFUNCTION_RESULT_CACHES_INDEX, FixedArray, jsfunction_result_caches) \
+  V(NORMALIZED_MAP_CACHE_INDEX, NormalizedMapCache, normalized_map_cache) \
   V(RUNTIME_CONTEXT_INDEX, Context, runtime_context) \
   V(CALL_AS_FUNCTION_DELEGATE_INDEX, JSFunction, call_as_function_delegate) \
   V(CALL_AS_CONSTRUCTOR_DELEGATE_INDEX, JSFunction, \
     call_as_constructor_delegate) \
   V(SCRIPT_FUNCTION_INDEX, JSFunction, script_function) \
+  V(OPAQUE_REFERENCE_FUNCTION_INDEX, JSFunction, opaque_reference_function) \
   V(CONTEXT_EXTENSION_FUNCTION_INDEX, JSFunction, context_extension_function) \
   V(OUT_OF_MEMORY_INDEX, Object, out_of_memory) \
   V(MAP_CACHE_INDEX, Object, map_cache) \
@@ -181,12 +183,15 @@ class Context: public FixedArray {
     SECURITY_TOKEN_INDEX,
     ARGUMENTS_BOILERPLATE_INDEX,
     JS_ARRAY_MAP_INDEX,
+    REGEXP_RESULT_MAP_INDEX,
     FUNCTION_MAP_INDEX,
+    FUNCTION_WITHOUT_PROTOTYPE_MAP_INDEX,
     FUNCTION_INSTANCE_MAP_INDEX,
     INITIAL_OBJECT_PROTOTYPE_INDEX,
     BOOLEAN_FUNCTION_INDEX,
     NUMBER_FUNCTION_INDEX,
     STRING_FUNCTION_INDEX,
+    STRING_FUNCTION_PROTOTYPE_MAP_INDEX,
     OBJECT_FUNCTION_INDEX,
     ARRAY_FUNCTION_INDEX,
     DATE_FUNCTION_INDEX,
@@ -204,21 +209,31 @@ class Context: public FixedArray {
     GLOBAL_EVAL_FUN_INDEX,
     INSTANTIATE_FUN_INDEX,
     CONFIGURE_INSTANCE_FUN_INDEX,
-    SPECIAL_FUNCTION_TABLE_INDEX,
     MESSAGE_LISTENERS_INDEX,
     MAKE_MESSAGE_FUN_INDEX,
     GET_STACK_TRACE_LINE_INDEX,
     CONFIGURE_GLOBAL_INDEX,
     FUNCTION_CACHE_INDEX,
+    JSFUNCTION_RESULT_CACHES_INDEX,
+    NORMALIZED_MAP_CACHE_INDEX,
     RUNTIME_CONTEXT_INDEX,
     CALL_AS_FUNCTION_DELEGATE_INDEX,
     CALL_AS_CONSTRUCTOR_DELEGATE_INDEX,
     SCRIPT_FUNCTION_INDEX,
+    OPAQUE_REFERENCE_FUNCTION_INDEX,
     CONTEXT_EXTENSION_FUNCTION_INDEX,
     OUT_OF_MEMORY_INDEX,
     MAP_CACHE_INDEX,
     CONTEXT_DATA_INDEX,
-    GLOBAL_CONTEXT_SLOTS
+
+    // Properties from here are treated as weak references by the full GC.
+    // Scavenge treats them as strong references.
+    NEXT_CONTEXT_LINK,
+
+    // Total number of slots.
+    GLOBAL_CONTEXT_SLOTS,
+
+    FIRST_WEAK_SLOT = NEXT_CONTEXT_LINK
   };
 
   // Direct slot access.
@@ -241,7 +256,8 @@ class Context: public FixedArray {
 
   GlobalObject* global() {
     Object* result = get(GLOBAL_INDEX);
-    ASSERT(IsBootstrappingOrGlobalObject(result));
+    ASSERT(Heap::gc_state() != Heap::NOT_IN_GC ||
+           IsBootstrappingOrGlobalObject(result));
     return reinterpret_cast<GlobalObject*>(result);
   }
   void set_global(GlobalObject* global) { set(GLOBAL_INDEX, global); }
@@ -324,6 +340,17 @@ class Context: public FixedArray {
   static int SlotOffset(int index) {
     return kHeaderSize + index * kPointerSize - kHeapObjectTag;
   }
+
+  static const int kSize = kHeaderSize + GLOBAL_CONTEXT_SLOTS * kPointerSize;
+
+  // GC support.
+  typedef FixedBodyDescriptor<
+      kHeaderSize, kSize, kSize> ScavengeBodyDescriptor;
+
+  typedef FixedBodyDescriptor<
+      kHeaderSize,
+      kHeaderSize + FIRST_WEAK_SLOT * kPointerSize,
+      kSize> MarkCompactBodyDescriptor;
 
  private:
   // Unchecked access to the slots.

@@ -25,6 +25,8 @@
 
 #include <linux/kdev_t.h>
 
+#include <cutils/properties.h>
+
 #define LOG_TAG "Vold"
 
 #include <openssl/md5.h>
@@ -55,13 +57,19 @@ VolumeManager::VolumeManager() {
     mVolumes = new VolumeCollection();
     mActiveContainers = new AsecIdCollection();
     mBroadcaster = NULL;
-    mUsbMassStorageEnabled = false;
-    mUsbConnected = false;
     mUmsSharingCount = 0;
     mSavedDirtyRatio = -1;
     // set dirty ratio to 0 when UMS is active
-    mUmsDirtyRatio = 0;
+    char dirtyratio[PROPERTY_VALUE_MAX];
+    property_get("ro.vold.umsdirtyratio", dirtyratio, "0");
+    mUmsDirtyRatio = atoi(dirtyratio);
 
+
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    mUsbMassStorageConnected = false;
+#else
+    mUsbConnected = false;
+    mUsbMassStorageEnabled = false;
     readInitialState();
 }
 
@@ -96,6 +104,7 @@ void VolumeManager::readInitialState() {
     } else {
         SLOGD("usb_configuration switch is not enabled in the kernel");
     }
+#endif
 }
 
 VolumeManager::~VolumeManager() {
@@ -152,16 +161,43 @@ int VolumeManager::stop() {
 }
 
 int VolumeManager::addVolume(Volume *v) {
-    mVolumes->push_back(v);
+    VolumeCollection::iterator it;
+    int myLen = strlen(v->getMountpoint());
+    for (it = mVolumes->begin(); it != mVolumes->end(); ++it) {
+	    if (strlen((*it)->getMountpoint()) >= myLen)
+            break;
+    }
+    mVolumes->insert(it, v);
+    if (mDebug) {
+        SLOGD("VolumeManager::addVolume completed");
+        SLOGD("VOLUMES DUMP BEGIN");
+        for (it = mVolumes->begin(); it != mVolumes->end(); ++it)
+            SLOGD("%c%s", *it == v ? '*' : ' ', (*it)->getMountpoint());
+        SLOGD("VOLUMES DUMP END");
+    }
     return 0;
 }
 
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+void VolumeManager::notifyUmsConnected(bool connected) {
+#else
 void VolumeManager::notifyUmsAvailable(bool available) {
+#endif
     char msg[255];
 
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    if (connected) {
+        mUsbMassStorageConnected = true;
+    } else {
+        mUsbMassStorageConnected = false;
+    }
+    snprintf(msg, sizeof(msg), "Share method ums now %s",
+             (connected ? "available" : "unavailable"));
+#else
     snprintf(msg, sizeof(msg), "Share method ums now %s",
              (available ? "available" : "unavailable"));
     SLOGD(msg);
+#endif
     getBroadcaster()->sendBroadcast(ResponseCode::ShareAvailabilityChange,
                                     msg, false);
 }
@@ -176,6 +212,13 @@ void VolumeManager::handleSwitchEvent(NetlinkEvent *evt) {
         return;
     }
 
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    if (!strcmp(name, "usb_mass_storage")) {
+        if (!strcmp(state, "online"))  {
+            notifyUmsConnected(true);
+        } else {
+            notifyUmsConnected(false);
+#else
     bool oldAvailable = massStorageAvailable();
     if (!strcmp(name, "usb_configuration")) {
         mUsbConnected = !strcmp(state, "1");
@@ -184,10 +227,19 @@ void VolumeManager::handleSwitchEvent(NetlinkEvent *evt) {
         if (newAvailable != oldAvailable) {
             notifyUmsAvailable(newAvailable);
         }
+    } else if (!strcmp(name, "usb_connected")) {
+        mUsbConnected = !strcmp(state, "1");
+        SLOGD("USB %s", mUsbConnected ? "connected" : "disconnected");
+        bool newAvailable = massStorageAvailable();
+        if (newAvailable != oldAvailable) {
+            notifyUmsAvailable(newAvailable);
+#endif
+        }
     } else {
         SLOGW("Ignoring unknown switch '%s'", name);
     }
 }
+#ifndef USE_USB_MASS_STORAGE_SWITCH
 void VolumeManager::handleUsbCompositeEvent(NetlinkEvent *evt) {
     const char *function = evt->findParam("FUNCTION");
     const char *enabled = evt->findParam("ENABLED");
@@ -207,6 +259,7 @@ void VolumeManager::handleUsbCompositeEvent(NetlinkEvent *evt) {
         }
     }
 }
+#endif
 
 void VolumeManager::handleBlockEvent(NetlinkEvent *evt) {
     const char *devpath = evt->findParam("DEVPATH");
@@ -908,10 +961,26 @@ int VolumeManager::mountObb(const char *img, const char *key, int ownerUid) {
 
 int VolumeManager::mountVolume(const char *label) {
     Volume *v = lookupVolume(label);
+    VolumeCollection::iterator it;
 
     if (!v) {
         errno = ENOENT;
         return -1;
+    }
+
+    if (mDebug) SLOGD("Mounting %s", v->getMountpoint());
+    for (it = mVolumes->begin(); it != mVolumes->end(); ++it) {
+
+        Volume *cur = *it;
+        const char *mountpoint = cur->getMountpoint();
+        if (mDebug) SLOGD("checking mountpoint %s", mountpoint);
+        if (!strcmp(v->getMountpoint(), mountpoint)) continue;
+        if (cur->isPrefixOf(v) && cur->getState() != Volume::State_Mounted)
+        {
+            int tmp_ret = cur->mountVol();
+            if (tmp_ret < 0)
+                return tmp_ret;
+        }
     }
 
     return v->mountVol();
@@ -969,7 +1038,14 @@ int VolumeManager::shareAvailable(const char *method, bool *avail) {
         return -1;
     }
 
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    if (mUsbMassStorageConnected)
+        *avail = true;
+    else
+        *avail = false;
+#else
     *avail = massStorageAvailable();
+#endif
     return 0;
 }
 
@@ -998,9 +1074,18 @@ int VolumeManager::simulate(const char *cmd, const char *arg) {
 
     if (!strcmp(cmd, "ums")) {
         if (!strcmp(arg, "connect")) {
+
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+            notifyUmsConnected(true);
+#else
             notifyUmsAvailable(true);
+#endif
         } else if (!strcmp(arg, "disconnect")) {
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+            notifyUmsConnected(false);
+#else
             notifyUmsAvailable(false);
+#endif
         } else {
             errno = EINVAL;
             return -1;
@@ -1010,6 +1095,35 @@ int VolumeManager::simulate(const char *cmd, const char *arg) {
         return -1;
     }
     return 0;
+}
+
+int VolumeManager::openLun(int number) {
+static const char *LUN_FILES[] = {
+#ifdef CUSTOM_LUN_FILE
+	CUSTOM_LUN_FILE,
+#endif
+	"/sys/devices/platform/usb_mass_storage/lun%d/file",
+	"/sys/devices/platform/msm_hsusb/gadget/lun%d/file",
+	NULL
+};
+
+    const char **iterator = LUN_FILES;
+    char qualified_lun[255];
+    while (*iterator) {
+	bzero(qualified_lun, 255);
+	snprintf(qualified_lun, 254, *iterator, number);
+        int fd = open(qualified_lun, O_WRONLY);
+        if (fd >= 0) {
+            SLOGD("Opened lunfile %s", qualified_lun);
+            return fd;
+        }
+        SLOGE("Unable to open ums lunfile %s (%s)", qualified_lun, strerror(errno));
+        iterator++;
+    }
+
+    errno = EINVAL;
+    SLOGE("Unable to find ums lunfile for LUN %d", number);
+    return -1;
 }
 
 int VolumeManager::shareVolume(const char *label, const char *method) {
@@ -1036,7 +1150,7 @@ int VolumeManager::shareVolume(const char *label, const char *method) {
     }
 
     if (v->getState() != Volume::State_Idle) {
-        // You need to unmount manually befoe sharing
+        // You need to unmount manually before sharing
         errno = EBUSY;
         return -1;
     }
@@ -1048,15 +1162,32 @@ int VolumeManager::shareVolume(const char *label, const char *method) {
         return -1;
     }
 
-    int fd;
+#ifdef VOLD_EMMC_SHARES_DEV_MAJOR
+    // If emmc and sdcard share dev major number, vold may pick
+    // incorrectly based on partition nodes alone. Use device nodes instead.
+    v->getDeviceNodes((dev_t *) &d, 1);
+    if ((MAJOR(d) == 0) && (MINOR(d) == 0)) {
+        // This volume does not support raw disk access
+        errno = EINVAL;
+        return -1;
+    }
+#endif
+
+    int fd, lun_number;
     char nodepath[255];
     snprintf(nodepath,
              sizeof(nodepath), "/dev/block/vold/%d:%d",
              MAJOR(d), MINOR(d));
 
-    if ((fd = open("/sys/devices/platform/usb_mass_storage/lun0/file",
-                   O_WRONLY)) < 0) {
-        SLOGE("Unable to open ums lunfile (%s)", strerror(errno));
+    // TODO: Currently only two mounts are supported, defaulting
+    // /mnt/sdcard to lun0 and anything else to lun1. Fix this.
+    if (0 == strcmp(label, "/mnt/sdcard")) {
+        lun_number = 0;
+    } else {
+        lun_number = SECOND_LUN_NUM;
+    }
+
+    if ((fd = openLun(lun_number)) < 0) {
         return -1;
     }
 
@@ -1065,6 +1196,7 @@ int VolumeManager::shareVolume(const char *label, const char *method) {
         close(fd);
         return -1;
     }
+    SLOGD("Wrote %s", nodepath);
 
     close(fd);
     v->handleVolumeShared();
@@ -1105,8 +1237,16 @@ int VolumeManager::unshareVolume(const char *label, const char *method) {
     }
 
     int fd;
-    if ((fd = open("/sys/devices/platform/usb_mass_storage/lun0/file", O_WRONLY)) < 0) {
-        SLOGE("Unable to open ums lunfile (%s)", strerror(errno));
+    int lun_number;
+
+    // /mnt/sdcard to lun0 and anything else to lun1. Fix this.
+    if (0 == strcmp(label, "/mnt/sdcard")) {
+        lun_number = 0;
+    } else {
+        lun_number = SECOND_LUN_NUM;
+    }
+
+    if ((fd = openLun(lun_number)) < 0) {
         return -1;
     }
 
@@ -1134,6 +1274,7 @@ int VolumeManager::unshareVolume(const char *label, const char *method) {
 
 int VolumeManager::unmountVolume(const char *label, bool force) {
     Volume *v = lookupVolume(label);
+    VolumeCollection::iterator it;
 
     if (!v) {
         errno = ENOENT;
@@ -1150,6 +1291,21 @@ int VolumeManager::unmountVolume(const char *label, bool force) {
              v->getState());
         errno = EBUSY;
         return -1;
+    }
+
+    if (mDebug) SLOGD("Unmounting %s", v->getMountpoint());
+    for (it = --(mVolumes->end()); it != mVolumes->end(); it--) {
+        Volume *cur = *it;
+        const char *mountpoint = cur->getMountpoint();
+        if (mDebug) SLOGD("checking mountpoint %s", mountpoint);
+        if (!strcmp(v->getMountpoint(), mountpoint)) continue;
+        if (v->isPrefixOf(cur) && cur->getState() == Volume::State_Mounted)
+        {
+            cleanupAsec(cur, force);
+            int tmp_ret = cur->unmountVol(force);
+            if (tmp_ret < 0)
+                return tmp_ret;
+        }
     }
 
     cleanupAsec(v, force);
@@ -1202,6 +1358,11 @@ bool VolumeManager::isMountpointMounted(const char *mp)
 }
 
 int VolumeManager::cleanupAsec(Volume *v, bool force) {
+    /* Only EXTERNAL_STORAGE needs ASEC cleanup. */
+    const char *externalPath = getenv("EXTERNAL_STORAGE") ?: "/mnt/sdcard";
+    if (0 != strcmp(v->getMountpoint(), externalPath))
+        return 0;
+
     while(mActiveContainers->size()) {
         AsecIdCollection::iterator it = mActiveContainers->begin();
         ContainerData* cd = *it;

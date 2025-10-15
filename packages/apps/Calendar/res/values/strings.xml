@@ -216,6 +216,8 @@
     <!-- Label for the 'Presence' of an event, which can be either 'busy' (the default)
          or 'available' -->
     <string name="presence_label">Show me as</string>
+    <!-- Label for the 'Status' of an event, which can be either 'confirmed' or 'tentative' -->
+    <string name="status_label">Event status</string>
     <!-- Label for the 'Privacy' of an event, which can be either 'private'
          or 'public' -->
     <string name="privacy_label">Privacy</string>
@@ -238,7 +240,7 @@
     <!-- The content description for the widget for removing a reminder from an event. [CHAR LIMIT=NONE] -->
     <string name="content_description_edit_event_remove_reminder">Remove reminder</string>
 <!-- DO NOT TRANSLATE the domain to use for auto-completing email addresses-->
-    <string name="google_email_domain">gmail.com</string>
+    <string name="google_email_domain" translatable="false">gmail.com</string>
 
     <!-- View Event -->
     <skip />
@@ -291,9 +293,18 @@
     <!-- The button label for making the reminder alarms go away temporarily.
          The reminder alarms will fire off again in 5 minutes. -->
     <string name="snooze_all_label">"Snooze all"</string>
+    <!-- The button label for making the reminder alarms go away temporarily
+         with a custom timeout. -->
+    <string name="snooze_all_by_label">"Snooze all by\u2026"</string>
     <!-- The button label for dismissing all the current reminder alarms. This
          causes them to disappear from the notification screen. -->
     <string name="dismiss_all_label">"Dismiss all"</string>
+    <!-- Context menu item for opening item info -->
+    <string name="menu_item_info">Show information</string>
+    <!-- Context menu item for snoozing the item -->
+    <string name="menu_item_snooze">Snooze\u2026</string>
+    <!-- Snooze dialog title -->
+    <string name="title_snooze_for">Snooze for\u2026</string>
 
     <!-- Repetition dialog options: -->
     <skip />
@@ -368,6 +379,15 @@
     <string name="preferences_alerts_title">Reminder settings</string>
     <!-- Settings check box label to hide events that the user has declined to attend -->
     <string name="preferences_hide_declined_title">Hide declined events</string>
+
+    <string name="preferences_week_start_day_title">Set week start day</string>
+    <string name="preferences_week_start_day_descrip">Restart Calendar to take effect.</string>
+    <string name="preferences_week_start_day_dialog">Week starts on</string>
+    <!-- Settings option to set week start day. Can be translated to provide
+        different defaults for different countries/cultures.
+        7 = Saturday, 1 = Sunday, 2 = Monday -->
+    <string name="preferences_week_start_day_default">1</string>
+
     <!-- Settings option to bring up a dialog that lets the user choose how
          reminder notifications should occur. -->
     <string name="preferences_alerts_type_title">Set alerts &amp; notifications</string>
@@ -375,7 +395,7 @@
          reminder notifications should occur. -->
     <string name="preferences_alerts_type_dialog">Alerts &amp; notifications</string>
     <!-- DO NOT TRANSLATE -->
-    <string name="preferences_alerts_type_default">1</string>
+    <string name="preferences_alerts_type_default" translatable="false">1</string>
     <!-- Settings dialog label that specifies when the phone should vibrate -->
     <string name="preferences_alerts_vibrateWhen_title">Vibrate</string>
     <!-- Settings screen, setting summary text -->
@@ -396,7 +416,7 @@
     <!-- Settings title for selecting a 'home' time zone to display Calendar in [CHAR LIMIT = 18] -->
     <string name="preferences_home_tz_title">Home time zone</string>
     <!-- DO NOT TRANSLATE -->
-    <string name="preferences_home_tz_default">America/Los_Angeles</string>
+    <string name="preferences_home_tz_default" translatable="false">America/Los_Angeles</string>
 
     <!-- This is the title of a section in the Settings screen for "About" this application -->
     <string name="preferences_about_title">About</string>

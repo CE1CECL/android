@@ -194,9 +194,12 @@ extern int ptrace();
 #ifdef LINUXSPARC
 #include <linux/a.out.h>
 #include <asm/psr.h>
+#define PERSONALITY0_WORDSIZE 4
+#define PERSONALITY1_WORDSIZE 4
 #undef  SUPPORTED_PERSONALITIES
 #if defined(SPARC64)
 #define SUPPORTED_PERSONALITIES 3
+#define PERSONALITY2_WORDSIZE 8
 #else
 #define SUPPORTED_PERSONALITIES 2
 #endif /* SPARC64 */
@@ -205,6 +208,8 @@ extern int ptrace();
 #ifdef X86_64
 #undef SUPPORTED_PERSONALITIES
 #define SUPPORTED_PERSONALITIES 2
+#define PERSONALITY0_WORDSIZE 8
+#define PERSONALITY1_WORDSIZE 4
 #endif
 
 #ifdef SVR4
@@ -335,6 +340,8 @@ struct tcb {
 #   define __NR_exit_group 405
 #  elif defined I386
 #   define __NR_exit_group 252
+#  elif defined X86_64
+#   define __NR_exit_group 231
 #  elif defined IA64
 #   define __NR_exit_group 1236
 #  elif defined POWERPC
@@ -397,7 +404,7 @@ struct xlat {
 #define TRACE_SIGNAL	020	/* Trace signal-related syscalls. */
 
 extern struct tcb **tcbtab;
-extern int qual_flags[];
+extern int *qual_flags;
 extern int debug, followfork, followvfork;
 extern int rflag, tflag, dtime, cflag, xflag, qflag;
 extern int acolumn;
@@ -411,6 +418,8 @@ extern struct tcb *tcp_last;
 #else
 #define P(args) ()
 #endif
+
+enum bitness_t { BITNESS_CURRENT = 0, BITNESS_32 };
 
 extern int set_personality P((int personality));
 extern char *xlookup P((const struct xlat *, int));
@@ -437,9 +446,11 @@ extern void dumpiov P((struct tcb *, int, long));
 extern void dumpstr P((struct tcb *, long, int));
 extern void printstr P((struct tcb *, long, int));
 extern void printnum P((struct tcb *, long, char *));
+extern void printnum_int P((struct tcb *, long, char *));
 extern void printpath P((struct tcb *, long));
 extern void printpathn P((struct tcb *, long, int));
-extern void printtv P((struct tcb *, long));
+extern void printtv_bitness P((struct tcb *, long, enum bitness_t));
+extern void sprinttv P((struct tcb *, long, enum bitness_t, char *));
 #ifdef HAVE_SIGINFO_T
 extern void printsiginfo P((siginfo_t *, int));
 #endif
@@ -452,13 +463,14 @@ extern int setbpt P((struct tcb *));
 extern int sigishandled P((struct tcb *, int));
 extern void printcall P((struct tcb *));
 extern const char *signame P((int));
+extern void print_sigset P((struct tcb *, long, int));
 extern void printsignal P((int));
 extern void printleader P((struct tcb *));
 extern void printtrailer P((struct tcb *));
 extern void tabto P((int));
 extern void call_summary P((FILE *));
-extern void printtv32 P((struct tcb*, long));
 extern void tprint_iov P((struct tcb *, unsigned long, unsigned long));
+extern void tprint_open_modes P((struct tcb *, mode_t));
 
 #ifdef LINUX
 extern int internal_clone P((struct tcb *));
@@ -501,6 +513,9 @@ extern int proc_open P((struct tcb *tcp, int attaching));
 #define umove(pid, addr, objp)	\
 	umoven((pid), (addr), sizeof *(objp), (char *) (objp))
 
+#define printtv(tcp, addr)	\
+	printtv_bitness((tcp), (addr), BITNESS_CURRENT)
+
 #ifdef __STDC__
 #ifdef __GNUC__
 extern void tprintf(const char *fmt, ...)
@@ -520,6 +535,7 @@ const char *strsignal P((int));
 #endif
 
 extern int current_personality;
+extern const int personality_wordsize[];
 
 struct sysent {
 	int	nargs;

@@ -117,7 +117,6 @@
 
 #  include <sys/types.h>
 #  include "config_types.h"
-#  include <endian.h>
 
 #endif
 

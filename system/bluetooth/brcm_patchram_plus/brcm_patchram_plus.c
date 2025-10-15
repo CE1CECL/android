@@ -322,6 +322,9 @@ parse_cmd_line(int argc, char **argv)
 void
 init_uart()
 {
+#ifdef BCM_SEMC
+	usleep(150*1000);
+#endif
 	tcflush(uart_fd, TCIOFLUSH);
 	tcgetattr(uart_fd, &termios);
 
@@ -433,7 +436,9 @@ proc_patchram()
 
 	read_event(uart_fd, buffer);
 
-	read(uart_fd, &buffer[0], 2);
+#ifndef BOARD_HAS_BCM4330
+    read(uart_fd, &buffer[0], 2);
+#endif
 
 	usleep(50000);
 
@@ -574,6 +579,5 @@ main (int argc, char **argv)
 			sleep(UINT_MAX);
 		}
 	}
-
 	exit(0);
 }

@@ -19,19 +19,24 @@ package com.android.internal.widget;
 import android.app.admin.DevicePolicyManager;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.FileObserver;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemClock;
+import android.provider.Calendar;
 import android.provider.Settings;
 import android.security.MessageDigest;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.widget.Button;
 
 import com.android.internal.R;
 import com.android.internal.telephony.ITelephony;
+
 import com.google.android.collect.Lists;
 
 import java.io.File;
@@ -40,9 +45,12 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.TimeZone;
 
 /**
  * Utilities for the lock patten and its settings.
@@ -93,8 +101,9 @@ public class LockPatternUtils {
     private final static String LOCKOUT_PERMANENT_KEY = "lockscreen.lockedoutpermanently";
     private final static String LOCKOUT_ATTEMPT_DEADLINE = "lockscreen.lockoutattemptdeadline";
     private final static String PATTERN_EVER_CHOSEN_KEY = "lockscreen.patterneverchosen";
-    public final static String PASSWORD_TYPE_KEY = "lockscreen.password_type";
     private final static String LOCK_PASSWORD_SALT_KEY = "lockscreen.password_salt";
+    private final static String LOCK_FINGER_ENABLED = "lockscreen.lockfingerenabled";
+    public final static String PASSWORD_TYPE_KEY = "lockscreen.password_type";
 
     private final Context mContext;
     private final ContentResolver mContentResolver;
@@ -243,6 +252,14 @@ public class LockPatternUtils {
     }
 
     /**
+     * Check to see if the user has stored a finger.
+     * @return Whether a saved finger exists.
+     */
+    public boolean savedFingerExists() {
+        return true;
+    }
+
+    /**
      * Return true if the user has ever chosen a pattern.  This is true even if the pattern is
      * currently cleared.
      *
@@ -277,6 +294,11 @@ public class LockPatternUtils {
             case DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC:
                 if (isLockPasswordEnabled()) {
                     activePasswordQuality = DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC;
+                }
+                break;
+            case DevicePolicyManager.PASSWORD_QUALITY_FINGER:
+                if (isLockFingerEnabled()) {
+                    activePasswordQuality = DevicePolicyManager.PASSWORD_QUALITY_FINGER;
                 }
                 break;
         }
@@ -506,21 +528,29 @@ public class LockPatternUtils {
             byte[] saltedPassword = (password + getSalt()).getBytes();
             byte[] sha1 = MessageDigest.getInstance(algo = "SHA-1").digest(saltedPassword);
             byte[] md5 = MessageDigest.getInstance(algo = "MD5").digest(saltedPassword);
-            hashed = (toHex(sha1) + toHex(md5)).getBytes();
+            hashed = toHex(sha1, md5);
         } catch (NoSuchAlgorithmException e) {
             Log.w(TAG, "Failed to encode string because of missing algorithm: " + algo);
         }
         return hashed;
     }
 
-    private static String toHex(byte[] ary) {
-        final String hex = "0123456789ABCDEF";
-        String ret = "";
-        for (int i = 0; i < ary.length; i++) {
-            ret += hex.charAt((ary[i] >> 4) & 0xf);
-            ret += hex.charAt(ary[i] & 0xf);
+    private static final byte[] HEX_CHARS = new byte[]{
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+    };
+
+    private static byte[] toHex(final byte[] array1, final byte[] array2) {
+        final byte[] result = new byte[(array1.length + array2.length) * 2];
+        int i = 0;
+        for (final byte b : array1) {
+            result[i++] = HEX_CHARS[(b >> 4) & 0xf];
+            result[i++] = HEX_CHARS[b & 0xf];
         }
-        return ret;
+        for (final byte b : array2) {
+            result[i++] = HEX_CHARS[(b >> 4) & 0xf];
+            result[i++] = HEX_CHARS[b & 0xf];
+        }
+        return result;
     }
 
     /**
@@ -544,10 +574,31 @@ public class LockPatternUtils {
     }
 
     /**
+     * @return Whether the lock finger is enabled.
+     */
+    public boolean isLockFingerEnabled() {
+        return getBoolean(LOCK_FINGER_ENABLED)
+                && getLong(PASSWORD_TYPE_KEY, 0)
+                        == DevicePolicyManager.PASSWORD_QUALITY_FINGER;
+    }
+
+    /**
      * Set whether the lock pattern is enabled.
      */
     public void setLockPatternEnabled(boolean enabled) {
         setBoolean(Settings.Secure.LOCK_PATTERN_ENABLED, enabled);
+    }
+
+    /**
+     * Set whether the lock finger is enabled.
+     */
+    public void setLockFingerEnabled(boolean enabled) {
+        setBoolean(LOCK_FINGER_ENABLED, enabled);
+        if (enabled) {
+            setLong(PASSWORD_TYPE_KEY, DevicePolicyManager.PASSWORD_QUALITY_FINGER);
+        } else {
+            setLong(PASSWORD_TYPE_KEY, DevicePolicyManager.PASSWORD_QUALITY_SOMETHING);
+        }
     }
 
     /**
@@ -576,6 +627,62 @@ public class LockPatternUtils {
      */
     public void setTactileFeedbackEnabled(boolean enabled) {
         setBoolean(Settings.Secure.LOCK_PATTERN_TACTILE_FEEDBACK_ENABLED, enabled);
+    }
+
+    public void setVisibleDotsEnabled(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, enabled);
+    }
+
+    public boolean isVisibleDotsEnabled() {
+        return getBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, true);
+    }
+
+    public void setShowErrorPath(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, enabled);
+    }
+
+    public boolean isShowErrorPath() {
+        return getBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, true);
+    }
+
+    public void setShowCustomMsg(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_SHOW_CUSTOM_MSG, enabled);
+    }
+
+    public boolean isShowCustomMsg() {
+        return getBoolean(Settings.Secure.LOCK_SHOW_CUSTOM_MSG, false);
+    }
+
+    public void setCustomMsg(String msg) {
+        setString(Settings.Secure.LOCK_CUSTOM_MSG, msg);
+    }
+
+    public String getCustomMsg() {
+        return getString(Settings.Secure.LOCK_CUSTOM_MSG);
+    }
+
+    public int getIncorrectDelay() {
+        return getInt(Settings.Secure.LOCK_INCORRECT_DELAY, 2000);
+    }
+
+    public void setIncorrectDelay(int delay) {
+        setInt(Settings.Secure.LOCK_INCORRECT_DELAY, delay);
+    }
+
+    public void setShowUnlockMsg(boolean enabled) {
+        setBoolean(Settings.Secure.SHOW_UNLOCK_TEXT, enabled);
+    }
+
+    public boolean isShowUnlockMsg() {
+        return getBoolean(Settings.Secure.SHOW_UNLOCK_TEXT, true);
+    }
+
+    public void setShowUnlockErrMsg(boolean enabled) {
+        setBoolean(Settings.Secure.SHOW_UNLOCK_ERR_TEXT, enabled);
+    }
+
+    public boolean isShowUnlockErrMsg() {
+        return getBoolean(Settings.Secure.SHOW_UNLOCK_ERR_TEXT, true);
     }
 
     /**
@@ -637,9 +744,155 @@ public class LockPatternUtils {
         return nextAlarm;
     }
 
+    /**
+     * @return A formatted string of the next calendar event with a reminder
+     * (for showing on the lock screen), or null if there is no next event
+     * within a certain look-ahead time.
+     */
+    public String getNextCalendarAlarm(long lookahead, String[] calendars,
+            boolean remindersOnly) {
+        long now = System.currentTimeMillis();
+        long later = now + lookahead;
+
+        StringBuilder where = new StringBuilder();
+        if (remindersOnly) {
+            where.append(Calendar.EventsColumns.HAS_ALARM + "=1");
+        }
+        if (calendars != null && calendars.length > 0) {
+            if (remindersOnly) {
+                where.append(" AND ");
+            }
+            where.append(Calendar.EventsColumns.CALENDAR_ID + " in (");
+            for (int i = 0; i < calendars.length; i++) {
+                where.append(calendars[i]);
+                if (i != calendars.length - 1) {
+                    where.append(",");
+                }
+            }
+            where.append(") ");
+        }
+
+        String[] projection = new String[] {
+            Calendar.EventsColumns.TITLE,
+            Calendar.Instances.BEGIN,
+            Calendar.EventsColumns.DESCRIPTION,
+            Calendar.EventsColumns.EVENT_LOCATION,
+            Calendar.EventsColumns.ALL_DAY
+        };
+
+        Uri uri = Uri.withAppendedPath(Calendar.Instances.CONTENT_URI,
+                String.format("%d/%d", now, later));
+        String nextCalendarAlarm = null;
+        Cursor cursor = null;
+
+        try {
+            cursor = mContentResolver.query(uri,
+                    projection, where.toString(), null,
+                    Calendar.Instances.DEFAULT_SORT_ORDER);
+
+            if (cursor != null && cursor.moveToFirst()) {
+
+                String title = cursor.getString(0);
+                long begin = cursor.getLong(1);
+                String description = cursor.getString(2);
+                String location = cursor.getString(3);
+                boolean allDay = cursor.getInt(4) != 0;
+
+                // Check the next event in the case of allday event. As UTC is used for allday
+                // events, the next event may be the one that actually starts sooner
+                if (allDay && !cursor.isLast()) {
+                    cursor.moveToNext();
+                    long nextBegin = cursor.getLong(1);
+                    if (nextBegin < begin + TimeZone.getDefault().getOffset(begin)) {
+                        title = cursor.getString(0);
+                        begin = nextBegin;
+                        description = cursor.getString(2);
+                        location = cursor.getString(3);
+                        allDay = cursor.getInt(4) != 0;
+                    }
+                }
+
+                Date start = new Date(begin);
+                StringBuilder sb = new StringBuilder();
+
+                if (allDay) {
+                    SimpleDateFormat sdf = new SimpleDateFormat(
+                            mContext.getString(R.string.abbrev_wday_month_day_no_year));
+                    // Calendar stores all-day events in UTC -- setting the timezone ensures
+                    // the correct date is shown.
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    sb.append(sdf.format(start));
+                } else {
+                    sb.append(DateFormat.format("E", start));
+                    sb.append(" ");
+                    sb.append(DateFormat.getTimeFormat(mContext).format(start));
+                }
+
+                sb.append(" ");
+                sb.append(title);
+
+                int showLocation = Settings.System.getInt(mContext.getContentResolver(),
+                            Settings.System.LOCKSCREEN_CALENDAR_SHOW_LOCATION, 0);
+
+                if (showLocation != 0 && !TextUtils.isEmpty(location)) {
+                    switch(showLocation) {
+                        case 1:
+                            // Show first line
+                            int end = location.indexOf('\n');
+                            if(end == -1) {
+                                sb.append("\n" + location);
+                            } else {
+                                sb.append("\n" + location.substring(0, end));
+                            }
+                            break;
+                        case 2:
+                            // Show all
+                            sb.append("\n" + location);
+                            break;
+                    }
+                }
+
+                int showDescription = Settings.System.getInt(mContext.getContentResolver(),
+                            Settings.System.LOCKSCREEN_CALENDAR_SHOW_DESCRIPTION, 0);
+
+                if (showDescription != 0 && !TextUtils.isEmpty(description)) {
+                    switch(showDescription) {
+                        case 1:
+                            // Show first line
+                            int end = description.indexOf('\n');
+                            if(end == -1) {
+                                sb.append("\n" + description);
+                            } else {
+                                sb.append("\n" + description.substring(0, end));
+                            }
+                            break;
+                        case 2:
+                            // Show all
+                            sb.append("\n" + description);
+                            break;
+                    }
+                }
+
+                nextCalendarAlarm = sb.toString();
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+        return nextCalendarAlarm;
+    }
+
     private boolean getBoolean(String secureSettingKey) {
         return 1 ==
                 android.provider.Settings.Secure.getInt(mContentResolver, secureSettingKey, 0);
+    }
+
+    private boolean getBoolean(String systemSettingKey, boolean defaultValue) {
+        return 1 ==
+                android.provider.Settings.Secure.getInt(
+                        mContentResolver,
+                        systemSettingKey, defaultValue ? 1 : 0);
     }
 
     private void setBoolean(String secureSettingKey, boolean enabled) {
@@ -655,13 +908,36 @@ public class LockPatternUtils {
         android.provider.Settings.Secure.putLong(mContentResolver, secureSettingKey, value);
     }
 
+    private int getInt(String systemSettingKey, int def) {
+        return android.provider.Settings.Secure.getInt(mContentResolver, systemSettingKey, def);
+    }
+
+    private void setInt(String systemSettingKey, int value) {
+        android.provider.Settings.Secure.putInt(mContentResolver, systemSettingKey, value);
+    }
+
+    private String getString(String systemSettingKey) {
+        String s = android.provider.Settings.Secure.getString(mContentResolver, systemSettingKey);
+
+        if (s == null)
+            return "";
+
+        return s;
+    }
+
+    private void setString(String systemSettingKey, String value) {
+        android.provider.Settings.Secure.putString(mContentResolver, systemSettingKey, value);
+    }
+
     public boolean isSecure() {
         long mode = getKeyguardStoredPasswordQuality();
         final boolean isPattern = mode == DevicePolicyManager.PASSWORD_QUALITY_SOMETHING;
+        final boolean isFinger = mode == DevicePolicyManager.PASSWORD_QUALITY_FINGER;
         final boolean isPassword = mode == DevicePolicyManager.PASSWORD_QUALITY_NUMERIC
                 || mode == DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC
                 || mode == DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC;
         final boolean secure = isPattern && isLockPatternEnabled() && savedPatternExists()
+                || isFinger && isLockFingerEnabled() && savedFingerExists()
                 || isPassword && savedPasswordExists();
         return secure;
     }

@@ -465,6 +465,13 @@ DEFAULT_MMAP_THRESHOLD       default: 256K
 
 */
 
+#ifdef ANDROID
+#define USE_BUILTIN_FFS 1
+#ifdef __arm__
+#include <machine/cpu-features.h>
+#endif
+#endif  /* ANDROID */
+
 #ifndef WIN32
 #ifdef _WIN32
 #define WIN32 1
@@ -2394,6 +2401,17 @@ static size_t traverse_and_check(mstate m);
 }
 
 #else /* GNUC */
+#if defined(__ARM_ARCH__) && __ARM_ARCH__ >= 7
+#define compute_bit2idx(X, I) \
+{ \
+  unsigned int J; \
+  __asm__ ("rbit %0, %1\n" \
+           "clz %0, %0" \
+           : "=r" (J) : "r" (X)); \
+  I = (bindex_t) J; \
+}
+
+#else /* ARM_ARCH */
 #if  USE_BUILTIN_FFS
 #define compute_bit2idx(X, I) I = ffs(X)-1
 
@@ -2409,6 +2427,7 @@ static size_t traverse_and_check(mstate m);
   N += K = Y >> (1-0) &  1;  Y >>= K;\
   I = (bindex_t)(N + Y);\
 }
+#endif /* ARM_ARCH */
 #endif /* USE_BUILTIN_FFS */
 #endif /* GNUC */
 
@@ -4542,8 +4561,25 @@ void dlmalloc_stats() {
 size_t dlmalloc_usable_size(void* mem) {
   if (mem != 0) {
     mchunkptr p = mem2chunk(mem);
-    if (cinuse(p))
-      return chunksize(p) - overhead_for(p);
+
+#if FOOTERS
+    mstate fm = get_mstate_for(p);
+    if (!ok_magic(fm)) {
+      USAGE_ERROR_ACTION(fm, p);
+      return;
+    }
+#else /* FOOTERS */
+#define fm gm
+#endif
+
+    if (!PREACTION(fm)) {
+      if (cinuse(p)) {
+        size_t ret = chunksize(p) - overhead_for(p);
+        POSTACTION(fm);
+        return ret;
+      }
+      POSTACTION(fm);
+    }
   }
   return 0;
 }
@@ -5147,32 +5183,35 @@ void dlmalloc_walk_heap(void(*handler)(const void *chunkptr, size_t chunklen,
   mstate m = (mstate)gm;
 #endif
 
-  s = &m->seg;
-  while (s != 0) {
-    mchunkptr p = align_as_chunk(s->base);
-    while (segment_holds(s, p) &&
-           p != m->top && p->head != FENCEPOST_HEAD) {
-      void *chunkptr, *userptr;
-      size_t chunklen, userlen;
-      chunkptr = p;
-      chunklen = chunksize(p);
-      if (cinuse(p)) {
-        userptr = chunk2mem(p);
-        userlen = chunklen - overhead_for(p);
+  if (!PREACTION(m)) {
+    s = &m->seg;
+    while (s != 0) {
+      mchunkptr p = align_as_chunk(s->base);
+      while (segment_holds(s, p) &&
+             p != m->top && p->head != FENCEPOST_HEAD) {
+        void *chunkptr, *userptr;
+        size_t chunklen, userlen;
+        chunkptr = p;
+        chunklen = chunksize(p);
+        if (cinuse(p)) {
+          userptr = chunk2mem(p);
+          userlen = chunklen - overhead_for(p);
+        }
+        else {
+          userptr = NULL;
+          userlen = 0;
+        }
+        handler(chunkptr, chunklen, userptr, userlen, harg);
+        p = next_chunk(p);
       }
-      else {
-        userptr = NULL;
-        userlen = 0;
+      if (p == m->top) {
+        /* The top chunk is just a big free chunk for our purposes.
+         */
+        handler(m->top, m->topsize, NULL, 0, harg);
       }
-      handler(chunkptr, chunklen, userptr, userlen, harg);
-      p = next_chunk(p);
+      s = s->next;
     }
-    if (p == m->top) {
-      /* The top chunk is just a big free chunk for our purposes.
-       */
-      handler(m->top, m->topsize, NULL, 0, harg);
-    }
-    s = s->next;
+    POSTACTION(m);
   }
 }
 

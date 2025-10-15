@@ -33,6 +33,8 @@
 
     <!-- Menu item for starting a new conversation -->
     <string name="menu_compose_new">Compose</string>
+    <!-- Menu item for Mark all threads read -->
+    <string name="menu_mark_all_read">Mark All Read</string>
     <!-- Menu item for accessing application settings -->
     <string name="menu_preferences">Settings</string>
     <string name="menu_add_address_to_contacts">Add <xliff:g id="name">%s</xliff:g> to Contacts</string>
@@ -216,6 +218,8 @@
     <string name="cannot_send_message_reason">Your message has no valid recipients.</string>
     <!-- Error message displayed when the user attempts to forward a message with DRM-locked contents -->
     <string name="cannot_forward_drm_obj">The DRM object included in the message cannot be forwarded.</string>
+    <!-- Error message displayed when the user attempts to attach a contact whose ID could not be resolved -->
+    <string name="cannot_find_contact">The contact you selected could not be attached.</string>
 
     <!-- Brief message that appears when converting a message from SMS to MMS. -->
     <string name="converting_to_picture_message">Converting to multimedia message\u2026</string>
@@ -335,6 +339,18 @@
     <string name="pref_summary_mms_read_reports">Request a read report for each message you send</string>
     <!-- Settings item description for boolean SMS delivery report setting -->
     <string name="pref_summary_sms_delivery_reports">Request a delivery report for each message you send</string>
+    <!-- Settings item for max SMS length setting -->
+    <string name="pref_title_max_sms_length">Max SMS text length</string>
+    <!-- Settings item description for max SMS length setting -->
+    <string name="pref_summary_max_sms_length">The maximum length allowed for composed messages</string>
+    <!-- Settings item for SMS Split 160 characters setting -->
+    <string name="pref_title_sms_split_160">SMS split</string>
+    <!-- Settings item description for boolean SMS Split 160 characters setting -->
+    <string name="pref_summary_sms_split_160">Split messages every 160 characters</string>
+    <!-- Settings item for boolean option for SMS Split Counter -->
+    <string name="pref_title_sms_split_counter">Split counter</string>
+    <!-- Settings item description for boolean SMS Split 160 characters setting -->
+    <string name="pref_summary_sms_split_counter">Adds counter to message ex. (1/2)</string>
     <!-- Settings item description for boolean auto-delete messages setting -->
     <string name="pref_summary_auto_delete">Delete old messages as limits are reached</string>
     <!-- Settings item description for integer auto-delete sms message limit -->
@@ -401,6 +417,10 @@
     <string name="pref_title_mms_retrieval_during_roaming">Roaming auto-retrieve</string>
     <!-- Settings item description for boolean MMS auto-retrieve while roaming option -->
     <string name="pref_summary_mms_retrieval_during_roaming">Automatically retrieve messages while roaming</string>
+
+    <!-- Setting item for folder to save MMS Attachments to -->
+    <string name="pref_title_save_location">Attachment save folder</string>
+    <string name="pref_summary_save_location">Folder where to save message attachments</string>
 
     <!-- Label prepended to recipient's name in Undelivered Messages screen -->
     <string name="to_label">"To "</string>
@@ -538,6 +558,8 @@
     <string name="attach_record_sound">Record audio</string>
     <!-- Attachment Type Selector Adapter. This string is an option in the "Attach" dialog, "Add music" dialog -->
     <string name="attach_slideshow">Slideshow</string>
+    <!-- Attachment Type Selector Adapter. This string is an option in the "Attach" dialog, "Add music" dialog -->
+    <string name="attach_contact_info">Contact Information</string>
 
     <!-- Layout Selector Adapter. Slideshow layout dialog option for aligning an icon. -->
     <string name="select_bottom_text">Text on bottom</string>
@@ -762,6 +784,105 @@
     <!-- For debugging: Dialog box text indicating there's a situation where data has unexpectedly
          changed -->
     <string name="error_state_text">The state of threads and recipients is inconsistent. Please capture a bug report and send it to android-sms-bugs@google.com</string>
+    <string name="label_mms_push">MMS Push</string>
+    <string name="desc_mms_push">Pushes MMS from outbox to the network</string>
+    <!-- Extra Settings: -->
+    <string name="pref_extra_settings">Extra settings</string>
 
+    <!-- Strip unicode -->
+    <string name="pref_title_strip_unicode">Strip unicode</string>
+    <string name="pref_summary_strip_unicode">Substitute common characters that are not supported in 160 character SMS messages</string>
+
+    <!-- Back to all threads -->
+    <string name="pref_title_mms_back_to_all_threads">Back to all threads</string>
+    <string name="pref_summary_mms_back_to_all_threads">Always go to all-threads when back button is pressed</string>
+
+    <!-- Toggle setting for enable/disable Black Background -->
+    <string name="pref_title_mms_black_background">Black Background</string>
+    <string name="pref_summary_mms_black_background">Enable/disable black background\n(Restart Mms)</string>
+
+    <!-- Toggle setting for always show character counter -->
+    <string name="pref_title_show_counter_always">Always show character counter</string>
+    <string name="pref_summary_show_counter_always">Always show the character counter when composing messages</string>
+
+    <!-- Custom user-agent -->
+    <string name="pref_mms_custom_option">Custom..</string>
+    <string name="pref_title_mms_user_agent">Custom User-Agent</string>
+    <string name="pref_summary_mms_user_agent">Spoof phone as a different model for MMS</string>
+    <string name="pref_mms_user_agent_custom_set">Custom User Agent set to:\n</string>
+
+    <!-- Full timestamps -->
+    <string name="pref_title_mms_full_timestamp">Full timestamps</string>
+    <string name="pref_summary_mms_full_timestamp">Enable to show both date and time in message timestamps</string>
+
+    <!-- Which timestamps -->
+    <string name="pref_title_mms_use_sent_timestamp">Use sent timestamps</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Show operator\'s sent date instead of received date for received messages</string>
+
+    <!-- Timestamp GMT Corection -->
+    <string name="pref_title_mms_use_sent_timestamp_gmt_correction">Sent timestamp GMT</string>
+    <string name="pref_summary_mms_use_sent_timestamp_gmt_correction">Enable if operator\'s sent timestamp is not already GMT offset</string>
+
+    <!-- Only mobile numbers -->
+    <string name="pref_title_only_mobile_numbers">Only mobile numbers</string>
+    <string name="pref_summary_only_mobile_numbers">Enable to only show mobile numbers in recipient field</string>
+
+    <!-- Email address completion -->
+    <string name="pref_title_mms_email_addr_completion">Email address completion</string>
+    <string name="pref_summary_mms_email_addr_completion">Enable/disable email address auto-completion into recipient field</string>
+
+    <!-- Message Font size -->
+    <string name="pref_title_mms_message_font_size">Message font size</string>
+    <string name="pref_summary_mms_message_font_size">Change font size of message view</string>
+    <string name="pref_dialogtitle_mms_message_font_size">Select font size</string>
+
+    <!-- Change Vibrate pattern/method for message notification -->
+    <string name="pref_title_mms_notification_vibrate_settings">Vibrate settings</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Vibrate pattern</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Change vibrate pattern</string>
+    <string name="pref_title_mms_notification_vibrate_call">Vibrate on Call</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Allow vibrate while on a call</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Custom vibrate pattern</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Format off/on in milliseconds: off, on, off, on\u2026</string>
+
+    <!-- Send on enter -->
+    <string name="pref_title_mms_send_on_enter">Send on Enter</string>
+    <string name="pref_summary_mms_send_on_enter">Enable/disable send message when Enter key pressed</string>
+
+    <!-- Sms templates -->
+    <string name="prefs_templates_settings">Sms templates</string>
+    <string name="pref_title_templates_manage">Templates</string>
+    <string name="pref_summary_templates_manage">Manage your sms templates</string>
+    <string name="pref_title_templates_show_gesture">Gesture</string>
+    <string name="pref_summary_templates_show_gesture">Show gesture trace</string>
+    <string name="pref_title_template_gestures_sensitivity">Gesture sensitivity</string>
+    <string name="template_save">Save</string>
+    <string name="template_insert_hint">Insert here the template text</string>
+    <string name="template_empty_text">Text field cannot be empty</string>
+    <string name="template_explanation">Insert or modify the template text and optionally draw a gesture to associate it</string>
+    <string name="template_edit">Edit</string>
+    <string name="template_delete">Delete</string>
+    <string name="template_ctx_menu_title">Actions</string>
+    <string name="template_list_title">Templates</string>
+    <string name="template_edit_title">Edit template</string>
+    <string name="template_new_title">New template</string>
+    <string name="template_insert">Insert template</string>
+    <string name="template_insert_ctx_menu_title">Edit text</string>
+    <string name="template_gesture_draw">Draw the gesture in the space below</string>
+    <string name="template_not_present_error">You have not defined any template</string>
+    <string name="template_not_present_error_title">Error</string>
+    <string name="template_select">Select a template</string>
+    <string name="template_cancel_confirm_title">Warning</string>
+    <string name="template_cancel_confirm_text">Would you like to cancel?</string>
+    <string name="gestures_already_present">Warning: A similar gesture is associated to another template!</string>
+
+    <!-- Phone goggles -->
+    <string name="toast_phone_goggles">You are not allowed to send SMS at this time. Please try again later.</string>
+    <string name="dialog_phone_goggles_title">SMS blocked</string>
+    <string name="dialog_phone_goggles_title_unlocked">SMS authorized</string>
+    <string name="dialog_phone_goggles_content">Sending a SMS may not be wise at this time. Are you sure you want to continue?</string>
+    <string name="dialog_phone_goggles_unauthorized">Sending a SMS may not be wise at this time.</string>
+    <string name="dialog_phone_goggles_ok">Send</string>
+    <string name="dialog_phone_goggles_cancel">Save draft</string>
 </resources>
 

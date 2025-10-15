@@ -1,4 +1,5 @@
 /*
+ * Patched by Sven Dawitz; Copyright (C) 2011 CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +34,7 @@ import com.android.internal.view.menu.SubMenuBuilder;
 import android.app.KeyguardManager;
 import android.app.SearchManager;
 import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -42,11 +44,13 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
+import android.media.AudioSystem;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.AndroidRuntimeException;
 import android.util.Config;
@@ -78,6 +82,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import java.net.URISyntaxException;
 
 /**
  * Android-specific Window.
@@ -164,7 +170,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     private SearchManager mSearchManager = null;
 
     private TelephonyManager mTelephonyManager = null;
-    
+
     public PhoneWindow(Context context) {
         super(context);
         mLayoutInflater = LayoutInflater.from(context);
@@ -553,7 +559,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
      */
     public final boolean onKeyDownPanel(int featureId, KeyEvent event) {
         final int keyCode = event.getKeyCode();
-        
+
         if (event.getRepeatCount() == 0) {
             // The panel key was pushed, so set the chording key
             mPanelChordingKey = keyCode;
@@ -561,10 +567,7 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             
             PanelFeatureState st = getPanelState(featureId, true);
             if (!st.isOpen) {
-                if (getContext().getResources().getConfiguration().keyboard
-                        == Configuration.KEYBOARD_NOKEYS) {
-                    mPanelMayLongPress = true;
-                }
+                mPanelMayLongPress = true;
                 return preparePanel(st, event);
             }
             
@@ -574,15 +577,41 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
             // should be executed...  do it!
             mPanelChordingKey = 0;
             mPanelMayLongPress = false;
-            InputMethodManager imm = (InputMethodManager)
-                    getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                mDecor.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
-                imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+            int mCustomLongMenuApp = (Settings.System.getInt(getContext().getContentResolver(),
+            Settings.System.USE_CUSTOM_LONG_MENU, -1));
+            if (mCustomLongMenuApp == -1){
+                if (getContext().getResources().getConfiguration().keyboard ==
+                Configuration.KEYBOARD_NOKEYS) {
+                        mCustomLongMenuApp = 1;
+                } else {
+                        mCustomLongMenuApp = 0;
+                }
             }
-            
+            switch (mCustomLongMenuApp){
+                case 1:
+                    InputMethodManager imm = (InputMethodManager)
+                    getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        mDecor.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                        imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+                    }
+                    break;
+                case 2:
+                    launchDefaultSearch();
+                    break;
+                case 3:
+                    runCustomApp(Settings.System.getString(getContext().getContentResolver(),
+                    Settings.System.USE_CUSTOM_LONG_MENU_APP_ACTIVITY));
+                    break;
+                case 4:
+                    if ((getAttributes().flags | FLAG_FULLSCREEN)!=getAttributes().flags){
+                        PhoneWindow.this.addFlags(FLAG_FULLSCREEN);
+                    }else{
+                        PhoneWindow.this.clearFlags(FLAG_FULLSCREEN);
+                    }
+                    break;
+            }
         }
-
         return false;
     }
 
@@ -1149,15 +1178,25 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                         Context.AUDIO_SERVICE);
                 if (audioManager != null) {
                     /*
-                     * Adjust the volume in on key down since it is more
-                     * responsive to the user.
+                     * Adjust the volume in on key down
+                     * since it is more responsive to the user.
+                     * (if volume key lock condition unsatisfied)
                      */
-                    audioManager.adjustSuggestedStreamVolume(
-                            keyCode == KeyEvent.KEYCODE_VOLUME_UP
-                                    ? AudioManager.ADJUST_RAISE
-                                    : AudioManager.ADJUST_LOWER,
-                            mVolumeControlStreamType,
-                            AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_VIBRATE);
+                    if (shouldSuppressVolumeKey(audioManager)) {
+                        //Show volume popup to acknowledge button press and
+                        //show that volume did not change
+                        audioManager.adjustSuggestedStreamVolume(
+                                AudioManager.ADJUST_SAME,
+                                mVolumeControlStreamType,
+                                AudioManager.FLAG_SHOW_UI);
+                    } else {
+                        audioManager.adjustSuggestedStreamVolume(
+                                keyCode == KeyEvent.KEYCODE_VOLUME_UP
+                                        ? AudioManager.ADJUST_RAISE
+                                        : AudioManager.ADJUST_LOWER,
+                                mVolumeControlStreamType,
+                                AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_VIBRATE);
+                    }
                 }
                 return true;
             }
@@ -1250,6 +1289,17 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                 if (event.getRepeatCount() == 0) {
                     dispatcher.startTracking(event, this);
                 } else if (event.isLongPress() && dispatcher.isTracking(event)) {
+                    // start custom app
+                    boolean mCustomLongSearchAppToggle=(Settings.System.getInt(getContext().getContentResolver(),
+                            Settings.System.USE_CUSTOM_LONG_SEARCH_APP_TOGGLE, 0) == 1);
+
+                    if(mCustomLongSearchAppToggle){
+                        runCustomApp(Settings.System.getString(getContext().getContentResolver(),
+                            Settings.System.USE_CUSTOM_LONG_SEARCH_APP_ACTIVITY));
+                        break;
+                    }
+
+                    // default behavior
                     Configuration config = getContext().getResources().getConfiguration(); 
                     if (config.keyboard == Configuration.KEYBOARD_NOKEYS
                             || config.hardKeyboardHidden
@@ -1277,6 +1327,44 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
         }
 
         return false;
+    }
+
+    private boolean shouldSuppressVolumeKey(AudioManager audioManager) {
+        boolean lockVolumeKeys = Settings.System.getInt(
+                getContext().getContentResolver(), Settings.System.LOCK_VOLUME_KEYS, 0) == 1;
+
+        if (!lockVolumeKeys) {
+            /* don't suppress if the user doesn't want it */
+            return false;
+        }
+        if (audioManager.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
+            /* only suppress in silent mode */
+            return false;
+        }
+        if (mVolumeControlStreamType != AudioManager.USE_DEFAULT_STREAM_TYPE &&
+                mVolumeControlStreamType != AudioManager.STREAM_RING) {
+            /* only suppress ringtone volume changes */
+            return false;
+        }
+        if (AudioSystem.getForceUse(AudioSystem.FOR_COMMUNICATION) == AudioSystem.FORCE_BT_SCO) {
+            /* don't suppress BT volume changes */
+            return false;
+        }
+        if (AudioSystem.isStreamActive(AudioSystem.STREAM_MUSIC)) {
+            /* don't suppress music volume keys */
+            return false;
+        }
+        if (mTelephonyManager == null) {
+            mTelephonyManager = (TelephonyManager)
+                    getContext().getSystemService(Context.TELEPHONY_SERVICE);
+        }
+        if (AudioSystem.isStreamActive(AudioSystem.STREAM_VOICE_CALL) ||
+                mTelephonyManager.getCallState() == TelephonyManager.CALL_STATE_OFFHOOK) {
+            /* don't suppress call volume changes */
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1401,7 +1489,14 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
                     break;
                 }
                 if (event.isTracking() && !event.isCanceled()) {
-                    launchDefaultSearch();
+                    boolean mCustomSearchAppToggle=(Settings.System.getInt(getContext().getContentResolver(),
+                            Settings.System.USE_CUSTOM_SEARCH_APP_TOGGLE, 0) == 1);
+
+                    if(mCustomSearchAppToggle)
+                        runCustomApp(Settings.System.getString(getContext().getContentResolver(),
+                            Settings.System.USE_CUSTOM_SEARCH_APP_ACTIVITY));
+                    else
+                        launchDefaultSearch();
                 }
                 return true;
             }
@@ -2801,10 +2896,27 @@ public class PhoneWindow extends Window implements MenuBuilder.Callback {
     }
 
     void sendCloseSystemWindows() {
-        PhoneWindowManager.sendCloseSystemWindows(getContext(), null);
+        CmPhoneWindowManager.sendCloseSystemWindows(getContext(), null);
     }
 
     void sendCloseSystemWindows(String reason) {
-        PhoneWindowManager.sendCloseSystemWindows(getContext(), reason);
+        CmPhoneWindowManager.sendCloseSystemWindows(getContext(), reason);
     }
+
+    void runCustomApp(String uri) {
+        if (uri != null) {
+            try {
+                Intent i = Intent.parseUri(uri, 0);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                getContext().startActivity(i);
+            } catch (URISyntaxException e) {
+
+            } catch (ActivityNotFoundException e) {
+
+            }
+        }
+    }
+
+
 }

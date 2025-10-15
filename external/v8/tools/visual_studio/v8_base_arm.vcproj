@@ -122,30 +122,6 @@
 	</References>
 	<Files>
 		<Filter
-			Name="dtoa"
-			>
-			<File
-				RelativePath="..\..\src\dtoa-config.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						DisableSpecificWarnings="4018;4244"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						DisableSpecificWarnings="4018;4244"
-					/>
-				</FileConfiguration>
-			</File>
-		</Filter>
-		<Filter
 			Name="src"
 			>
 			<File
@@ -205,6 +181,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\ast-inl.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\ast.cc"
 				>
 			</File>
@@ -225,6 +205,22 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\bignum.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\bignum.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\bignum-dtoa.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\bignum-dtoa.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\builtins.cc"
 				>
 			</File>
@@ -234,6 +230,14 @@
 			</File>
 			<File
 				RelativePath="..\..\src\bytecodes-irregexp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\cached-powers.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\cached-powers.h"
 				>
 			</File>
 			<File
@@ -253,11 +257,31 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\circular-queue-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\circular-queue.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\circular-queue.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\code-stubs.cc"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\code-stubs.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\arm\code-stubs-arm.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\arm\code-stubs-arm.h"
 				>
 			</File>
 			<File
@@ -345,6 +369,18 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\cpu-profiler.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\cpu-profiler.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\cpu-profiler-inl.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\data-flow.cc"
 				>
 			</File>
@@ -389,6 +425,26 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\diy-fp.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\diy-fp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\double.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\dtoa.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\dtoa.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\execution.cc"
 				>
 			</File>
@@ -404,24 +460,36 @@
 				RelativePath="..\..\src\factory.h"
 				>
 			</File>
-                        <File
-                                RelativePath="..\..\src\arm\fast-codegen-arm.cc"
-                                >
-                        </File>
-                        <File
-                                RelativePath="..\..\src\fast-codegen.cc"
-                                >
-                        </File>
-                        <File
-                                RelativePath="..\..\src\fast-codegen.h"
-                                >
-                        </File>
+			<File
+				RelativePath="..\..\src\fast-dtoa.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\fast-dtoa.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\fixed-dtoa.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\fixed-dtoa.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\src\flags.cc"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\flags.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\flow-graph.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\flow-graph.h"
 				>
 			</File>
 			<File
@@ -557,11 +625,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\jump-target-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\jump-target-light-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\jump-target-light.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\jump-target.cc"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\arm\jump-target-arm.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\jump-target-light.cc"
 				>
 			</File>
 			<File
@@ -645,10 +729,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\number-info.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\objects-debug.cc"
 				>
 				<FileConfiguration
@@ -664,6 +744,13 @@
 				RelativePath="..\..\src\objects-inl.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\objects-visiting.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\objects-visiting.h"
+				>
 			<File
 				RelativePath="..\..\src\objects.cc"
 				>
@@ -686,6 +773,18 @@
 			</File>
 			<File
 				RelativePath="..\..\src\parser.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\profile-generator.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\profile-generator.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\profile-generator-inl.h"
 				>
 			</File>
 			<File
@@ -849,11 +948,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\string-search.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\string-search.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\string-stream.cc"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\string-stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\strtod.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\strtod.h"
 				>
 			</File>
 			<File
@@ -885,19 +1000,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\type-info.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\type-info.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\unbound-queue-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\unbound-queue.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\unicode-inl.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\unicode.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\usage-analyzer.cc"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\usage-analyzer.h"
 				>
 			</File>
 			<File
@@ -949,7 +1072,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\virtual-frame-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\virtual-frame-light-inl.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\virtual-frame.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\arm\virtual-frame-arm-inl.h"
 				>
 			</File>
 			<File
@@ -962,6 +1097,18 @@
 			</File>
 			<File
 				RelativePath="..\..\src\arm\virtual-frame-arm.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\virtual-frame-light.cc"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\vm-state-inl.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\vm-state.h"
 				>
 			</File>
 			<File
@@ -1002,6 +1149,10 @@
 			>
 			<File
 				RelativePath="..\..\include\v8-debug.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\v8-profiler.h"
 				>
 			</File>
 			<File

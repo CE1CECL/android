@@ -1,10 +1,12 @@
 /*
- * parse_num.c		- Parse the number of blocks 
+ * parse_num.c		- Parse the number of blocks
  *
  * Copyright (C) 2004,2005  Theodore Ts'o <tytso@mit.edu>
- * 
- * This file can be redistributed under the terms of the GNU Library General
- * Public License
+ *
+ * %Begin-Header%
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
+ * %End-Header%
  */
 
 #include "e2p.h"
@@ -18,25 +20,25 @@ unsigned long parse_num_blocks(const char *arg, int log_block_size)
 
 	num = strtoull(arg, &p, 0);
 
-	if (p[0] && p[1]) 
+	if (p[0] && p[1])
 		return 0;
 
 	switch (*p) {		/* Using fall-through logic */
-	case 'T': case 't': 
+	case 'T': case 't':
 		num <<= 10;
-	case 'G': case 'g': 
+	case 'G': case 'g':
 		num <<= 10;
-	case 'M': case 'm': 
+	case 'M': case 'm':
 		num <<= 10;
-	case 'K': case 'k': 
-		num >>= log_block_size; 
+	case 'K': case 'k':
+		num >>= log_block_size;
 		break;
-	case 's': 
+	case 's':
 		num >>= (1+log_block_size);
 		break;
 	case '\0':
 		break;
-	default: 
+	default:
 		return 0;
 	}
 	return num;

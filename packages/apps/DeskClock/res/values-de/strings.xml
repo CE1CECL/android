@@ -25,10 +25,22 @@
     <string name="enable_alarm" msgid="1834599140632142536">"Wecker einschalten"</string>
     <string name="disable_alarm" msgid="5889378670229554109">"Wecker ausschalten"</string>
     <string name="delete_alarm_confirm" msgid="4237696873219106907">"Dieser Wecker wird gelöscht."</string>
-    <string name="show_clock" msgid="8358759982675616915">"Uhr anzeigen"</string>
-    <string name="hide_clock" msgid="3217727306480505694">"Uhr ausblenden"</string>
     <string name="label" msgid="162189613902857319">"Label"</string>
     <string name="default_label" msgid="5590025289805630372">"Wecker"</string>
+
+    <!-- Setting label on Set alarm screen: Application to launch -->
+    <string name="application">Anwendung</string>
+    <!-- Title on the application picker -->
+    <string name="application_title">Diese App starten</string>
+    <!-- Option to not launch an application -->
+    <string name="application_none">Keine</string>
+    <!-- Setting label on Set alarm screen: Show dialog -->
+    <string name="no_dialog">Dialog verbergen</string>
+    <!-- Summary when dialog is hidden -->
+    <string name="no_dialog_on">Kein Snooze/Verwerfen-Dialog</string>
+    <!-- Summary when dialog will be shown -->
+    <string name="no_dialog_off">Zeige Snooze/Verwerfen-Dialog</string>
+
     <string name="set_alarm" msgid="9148359866152726808">"Wecker einstellen"</string>
     <string name="alarm_vibrate" msgid="3476686921490362230">"Vibrieren"</string>
     <string name="alarm_repeat" msgid="7242985466344233206">"Wiederholen"</string>
@@ -36,7 +48,11 @@
     <string name="time" msgid="8067216534232296518">"Uhrzeit"</string>
     <string name="alarm_alert_dismiss_text" msgid="4942914605480888820">"Ausschalten"</string>
     <string name="alarm_alert_alert_silenced" msgid="7918075929961104202">"Der Wecker verstummte nach <xliff:g id="MINUTES">%d</xliff:g> Minuten"</string>
-    <string name="alarm_alert_snooze_text" msgid="1774416052207651584">"Snooze-Funktion"</string>
+    <string name="alarm_alert_snooze_text" msgid="1774416052207651584">"Snooze"</string>
+
+    <!-- Button labels on the alarm dialog: Snooze & dismiss (when dual-mode button enabled) -->
+    <string name="alarm_alert_snooze_text_dual_mode">Snooze (Halten zum Verwerfen)</string>
+
     <string name="alarm_alert_snooze_set" msgid="656470966696912087">"Snooze-Funktion aktiviert für <xliff:g id="MINUTES">%d</xliff:g> Minuten"</string>
   <string-array name="alarm_set">
     <item msgid="5163476010406761625">"Dieser Wecker klingelt in weniger als 1 Minute."</item>
@@ -57,7 +73,6 @@
     <string name="every_day" msgid="1058994798884544691">"Täglich"</string>
     <string name="never" msgid="54104287800571769">"Nie"</string>
     <string name="day_concat" msgid="971998564991636532">", "</string>
-    <string name="clock_instructions" msgid="3118560284915857690">"Wählen Sie die anzuzeigende Uhr aus."</string>
     <string name="analog_gadget" msgid="1670505720837152766">"Analoguhr"</string>
     <string name="settings" msgid="5849739030579520686">"Einstellungen"</string>
     <string name="alarm_in_silent_mode_title" msgid="3892612644543516705">"Auch im Lautlosmodus"</string>
@@ -70,14 +85,6 @@
     <item msgid="7248236967714374250">"20 Minuten"</item>
     <item msgid="738394723625179423">"25 Minuten"</item>
     <item msgid="1180222611308391616">"30 Minuten"</item>
-  </string-array>
-  <string-array name="snooze_duration_values">
-    <item msgid="3655014754453084122">"5"</item>
-    <item msgid="8939029597449573449">"10"</item>
-    <item msgid="3922647341176353315">"15"</item>
-    <item msgid="5821804105985044459">"20"</item>
-    <item msgid="6048861883552402852">"25"</item>
-    <item msgid="2740866721232379791">"30"</item>
   </string-array>
     <string name="done" msgid="6509722361933858451">"Fertig"</string>
     <string name="revert" msgid="9100911171235162926">"Zurücksetz."</string>
@@ -96,11 +103,6 @@
     <item msgid="7111908302622811168">"Snooze-Funktion"</item>
     <item msgid="8573552194573068996">"Beenden"</item>
   </string-array>
-  <string-array name="volume_button_setting_values">
-    <item msgid="4851033050639608752">"0"</item>
-    <item msgid="3204893476515513084">"1"</item>
-    <item msgid="7687709558968154577">"2"</item>
-  </string-array>
     <string name="alarm_button_description" msgid="740283647046258651">"Wecker"</string>
     <string name="gallery_button_description" msgid="1151743663255257668">"Galerie"</string>
     <string name="music_button_description" msgid="1626593420810117999">"Musik"</string>
@@ -111,4 +113,55 @@
     <string name="weather_fetch_failure" msgid="7517010911981312358">"Wetterinformationen derzeit nicht verfügbar"</string>
     <string name="menu_item_dock_settings" msgid="3524235151132971114">"Dock-Einstellungen"</string>
     <string name="alarm_klaxon_service_desc" msgid="2153290655559916468">"Tonwiedergabedienst für in DeskClock eingestellte Alarme"</string>
+
+    <!-- Setting title for setting alarm time limit -->
+    <string name="alarm_limit_title">Maximale Alarmdauer</string>
+
+    <!-- Entries listed in the ListPreference when invoking the max alarm duration
+         preference. -->
+    <string-array name="alarm_limit_entries">
+      <item>5 Minuten</item>
+      <item>15 Minuten</item>
+      <item>30 Minuten</item>
+      <item>60 Minuten</item>
+      <item>90 Minuten</item>
+      <item>120 Minuten</item>
+      <item>Unendlich</item>
+    </string-array>
+
+    <!-- Setting title for setting alarm time limit -->
+    <string name="screensaver_timeout_title">Screensaver timeout</string>
+
+    <!-- Entries listed in the ListPreference when invoking the max alarm duration
+         preference. -->
+    <string-array name="screensaver_timeout_entries">
+      <item>1 Minute</item>
+      <item>5 Minuten</item>
+      <item>10 Minuten</item>
+      <item>15 Minuten</item>
+      <item>30 Minuten</item>
+      <item>60 Minuten</item>
+      <item>@string/never</item>
+    </string-array>
+
+    <!-- Setting title for screensaver time color picker general title-->
+    <string name="color_picker">Farbe: Zeit</string>
+    <!-- Setting title for screensaver time color picker -->
+    <string name="color_picker_title">Farbe der Uhrzeit (Bildschirmschoner)</string>
+    <!-- Setting title for screensaver time color picker -->
+    <string name="color_picker_summary">Die Farbe der Zeitanzeige beim Bildschirmschoner ändern</string>
+
+    <!-- Sample time used in color picker -->
+    <string name="color_picker_sample">11:45</string>
+
+    <!-- Labels for colors in color picker -->
+    <string name="color_picker_alpha">Transparenz (nur gedimmt)</string>
+    <string name="color_picker_red">Rot</string>
+    <string name="color_picker_green">Grün</string>
+    <string name="color_picker_blue">Blau</string>
+
+    <!-- Settings strings for dual-mode button -->
+    <string name="use_dual_mode_button">Dual-Mode Snooze</string>
+    <string name="use_dual_mode_button_on">Snooze-Taste gedrückt halten um den Wecker zu beenden</string>
+    <string name="use_dual_mode_button_off">Separate Tasten für Snooze und Verwerfen</string>
 </resources>

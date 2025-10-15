@@ -35,6 +35,24 @@
     <string name="defaultMsisdnAlphaTag" msgid="2850889754919584674">"MSISDN1"</string>
     <string name="mmiError" msgid="5154499457739052907">"Problema di connessione o codice MMI non valido."</string>
     <string name="mmiFdnError" msgid="5224398216385316471">"Operazione limitata solo ai numeri di selezione fissa."</string>
+
+    <!-- Names of default profiles. -->
+    <string name="profileNameDefault">Default</string>
+    <string name="profileNameWork">Lavoro</string>
+    <string name="profileNameHome">Casa</string>
+    <string name="profileNameSilent">Silenzioso</string>
+    <string name="profileNameNight">Notte</string>
+
+    <!-- Names of application groups. -->
+    <string name="profileGroupPhone">Telefono</string>
+    <string name="profileGroupCalendar">Calendario</string>
+    <string name="profileGroupGmail">Gmail</string>
+    <string name="profileGroupEmail">Email</string>
+    <string name="profileGroupSMS">SMS</string>
+
+    <!-- Name of wildcard profile. -->
+    <string name="wildcardProfile">Altro</string>
+
     <string name="serviceEnabled" msgid="8147278346414714315">"Il servizio è stato attivato."</string>
     <string name="serviceEnabledFor" msgid="6856228140453471041">"Il servizio è stato attivato per:"</string>
     <string name="serviceDisabled" msgid="1937553226592516411">"Il servizio è stato disattivato."</string>
@@ -133,19 +151,36 @@
     <string name="turn_off_radio" msgid="8198784949987062346">"Disattiva wireless"</string>
     <string name="screen_lock" msgid="799094655496098153">"Blocco schermo"</string>
     <string name="power_off" msgid="4266614107412865048">"Spegni"</string>
+    <string name="reboot_system">Riavvia</string>
+    <string name="reboot_reboot">Riavvia</string>
     <string name="shutdown_progress" msgid="2281079257329981203">"Spegnimento..."</string>
+    <string name="reboot_progress">Riavvio in corso\u2026</string>
     <string name="shutdown_confirm" msgid="649792175242821353">"Il telefono verrà spento."</string>
+    <string name="reboot_confirm">Il telefono verrà riavviato.</string>
     <string name="recent_tasks_title" msgid="3691764623638127888">"Recenti"</string>
     <string name="no_recent_tasks" msgid="279702952298056674">"Nessuna applicazione recente."</string>
     <string name="global_actions" msgid="2406416831541615258">"Opzioni telefono"</string>
+
+    <!-- label for item that emulates the hardware button: home -->
+    <string name="global_action_home">Home</string>
+
+    <!-- label for item that emulates the hardware button: menu -->
+    <string name="global_action_menu">Menu</string>
+
+    <!-- label for item that emulates the hardware button: back -->
+    <string name="global_action_back">Indietro</string>
+
     <string name="global_action_lock" msgid="2844945191792119712">"Blocco schermo"</string>
     <string name="global_action_power_off" msgid="4471879440839879722">"Spegni"</string>
+    <string name="global_action_reboot">Riavvia</string>
+    <string name="global_action_choose_profile">Seleziona profilo</string>
     <string name="global_action_toggle_silent_mode" msgid="8219525344246810925">"Modalità silenziosa"</string>
     <string name="global_action_silent_mode_on_status" msgid="3289841937003758806">"Audio non attivo"</string>
     <string name="global_action_silent_mode_off_status" msgid="1506046579177066419">"Audio attivo"</string>
     <string name="global_actions_toggle_airplane_mode" msgid="5884330306926307456">"Modalità aereo"</string>
     <string name="global_actions_airplane_mode_on_status" msgid="2719557982608919750">"Modalità aereo attiva"</string>
     <string name="global_actions_airplane_mode_off_status" msgid="5075070442854490296">"Modalità aereo non attiva"</string>
+    <string name="global_action_screenshot">Cattura schermata</string>
     <string name="safeMode" msgid="2788228061547930246">"Modalità provvisoria"</string>
     <string name="android_system_label" msgid="6577375335728551336">"Sistema Android"</string>
     <string name="permgrouplab_costMoney" msgid="5429808217861460401">"Servizi che prevedono un costo"</string>
@@ -271,6 +306,8 @@
     <string name="permdesc_movePackage" msgid="6323049291923925277">"Consente a un\'applicazione di spostare risorse applicative da supporti interni a esterni e viceversa."</string>
     <string name="permlab_readLogs" msgid="6615778543198967614">"Lettura dati di registro sensibili"</string>
     <string name="permdesc_readLogs" msgid="8896449437464867766">"Consente a un\'applicazione di leggere vari file di registro del sistema per trovare informazioni generali sulle operazioni effettuate con il telefono. Tali file potrebbero contenere informazioni personali o riservate."</string>
+    <string name="permlab_preventpower">usa tasto accensione</string>
+    <string name="permdesc_preventpower">Permette ad un\'applicazione di associare una funzione al tasto accensione</string>
     <string name="permlab_diagnostic" msgid="8076743953908000342">"lettura/scrittura risorse di proprietà di diag"</string>
     <string name="permdesc_diagnostic" msgid="3121238373951637049">"Consente a un\'applicazione di leggere le risorse del gruppo diag e scrivere a esse, per esempio i file in /dev. Questa capacità potrebbe influire sulla stabilità e sicurezza del sistema. Dovrebbe essere utilizzata SOLTANTO per diagnostiche specifiche dell\'hardware effettuate dal produttore o dall\'operatore."</string>
     <string name="permlab_changeComponentState" msgid="79425198834329406">"attivazione/disattivazione componenti applicazioni"</string>
@@ -315,6 +352,10 @@
     <string name="permdesc_recordAudio" msgid="6493228261176552356">"Consente l\'accesso dell\'applicazione al percorso di registrazione dell\'audio."</string>
     <string name="permlab_camera" msgid="3616391919559751192">"acquisizione di foto e video"</string>
     <string name="permdesc_camera" msgid="6004878235852154239">"Consente di scattare foto e riprendere video nell\'applicazione con la fotocamera. L\'applicazione può acquisire in qualsiasi momento le immagini rilevate dalla fotocamera."</string>
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_rawAudio">accesso audio di basso livello</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_rawAudio">Consente all\'applicazione di avere accesso completo all\'hardware audio.</string>
     <string name="permlab_brick" msgid="8337817093326370537">"disattivazione telefono"</string>
     <string name="permdesc_brick" msgid="5569526552607599221">"Consente all\'applicazione di disattivare l\'intero telefono in modo definitivo. Questa autorizzazione è molto pericolosa."</string>
     <string name="permlab_reboot" msgid="2898560872462638242">"riavvio forzato del telefono"</string>
@@ -559,9 +600,10 @@
     <string name="lockscreen_pattern_correct" msgid="9039008650362261237">"Corretta."</string>
     <string name="lockscreen_pattern_wrong" msgid="4817583279053112312">"Riprova"</string>
     <string name="lockscreen_plugged_in" msgid="613343852842944435">"In carica (<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>)"</string>
+    <string name="lockscreen_discharging">In uso (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)</string>
     <string name="lockscreen_charged" msgid="4938930459620989972">"Carico."</string>
     <string name="lockscreen_battery_short" msgid="3617549178603354656">"<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
-    <string name="lockscreen_low_battery" msgid="1482873981919249740">"Collegare il caricabatterie."</string>
+    <string name="lockscreen_low_battery" msgid="1482873981919249740">"Collegare il caricabatterie (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)"</string>
     <string name="lockscreen_missing_sim_message_short" msgid="7381499217732227295">"Nessuna SIM presente."</string>
     <string name="lockscreen_missing_sim_message" msgid="2186920585695169078">"Nessuna SIM presente nel telefono."</string>
     <string name="lockscreen_missing_sim_instructions" msgid="8874620818937719067">"Inserisci una SIM."</string>
@@ -586,6 +628,8 @@
     <string name="lockscreen_unlock_label" msgid="737440483220667054">"Sblocca"</string>
     <string name="lockscreen_sound_on_label" msgid="9068877576513425970">"Audio attivato"</string>
     <string name="lockscreen_sound_off_label" msgid="996822825154319026">"Audio disattivato"</string>
+    <!-- Displayed on lock screen's extra left tab - phone -->
+    <string name="lockscreen_phone_label">Telefono</string>
     <string name="password_keyboard_label_symbol_key" msgid="992280756256536042">"?123"</string>
     <string name="password_keyboard_label_alpha_key" msgid="8001096175167485649">"ABC"</string>
     <string name="password_keyboard_label_alt_key" msgid="1284820942620288678">"ALT"</string>
@@ -718,6 +762,7 @@
     <string name="elapsed_time_short_format_mm_ss" msgid="4431555943828711473">"<xliff:g id="MINUTES">%1$02d</xliff:g>:<xliff:g id="SECONDS">%2$02d</xliff:g>"</string>
     <string name="elapsed_time_short_format_h_mm_ss" msgid="1846071997616654124">"<xliff:g id="HOURS">%1$d</xliff:g>:<xliff:g id="MINUTES">%2$02d</xliff:g>:<xliff:g id="SECONDS">%3$02d</xliff:g>"</string>
     <string name="selectAll" msgid="6876518925844129331">"Seleziona tutto"</string>
+    <string name="copyAll">Copia tutto</string>
     <string name="selectText" msgid="4862359311088898878">"Seleziona parola"</string>
     <string name="cut" msgid="3092569408438626261">"Taglia"</string>
     <string name="copy" msgid="2681946229533511987">"Copia"</string>
@@ -744,6 +789,10 @@
     <string name="aerr_title" msgid="653922989522758100">"Spiacenti."</string>
     <string name="aerr_application" msgid="4683614104336409186">"Interruzione imprevista dell\'applicazione <xliff:g id="APPLICATION">%1$s</xliff:g> (processo <xliff:g id="PROCESS">%2$s</xliff:g>). Riprova."</string>
     <string name="aerr_process" msgid="1551785535966089511">"Interruzione imprevista del processo <xliff:g id="PROCESS">%1$s</xliff:g>. Riprova."</string>
+    <!-- Title of the alert when an application is not responding. -->
+    <string name="aerr_revoked_application">Interruzione imprevista dell\'applicazione <xliff:g id="application">%1$s</xliff:g> (processo <xliff:g id="process">%2$s</xliff:g>).\nATTENZIONE!\nA questa applicazione sono state REVOCATE una o più autorizzazioni. Concedi le dovute autorizzazioni e riprova.</string>
+    <!-- Text of the alert that is displayed when an application has crashed. -->
+    <string name="aerr_revoked_process">Interruzione imprevista del processo <xliff:g id="process">%1$s</xliff:g>.\nATTENZIONE!\nA questo processo sono state REVOCATE una o più autorizzazioni. Concedi le dovute autorizzazioni e riprova.</string>
     <string name="anr_title" msgid="3100070910664756057">"Spiacenti."</string>
     <string name="anr_activity_application" msgid="3538242413112507636">"L\'attività <xliff:g id="ACTIVITY">%1$s</xliff:g> (nell\'applicazione <xliff:g id="APPLICATION">%2$s</xliff:g>) non risponde."</string>
     <string name="anr_activity_process" msgid="5420826626009561014">"L\'attività <xliff:g id="ACTIVITY">%1$s</xliff:g> (nel processo <xliff:g id="PROCESS">%2$s</xliff:g>) non risponde."</string>
@@ -751,6 +800,10 @@
     <string name="anr_process" msgid="1246866008169975783">"Il processo <xliff:g id="PROCESS">%1$s</xliff:g> non risponde."</string>
     <string name="force_close" msgid="3653416315450806396">"Termina"</string>
     <string name="report" msgid="4060218260984795706">"Segnala"</string>
+    <!-- Button allowing the user to open the application settings screen to edit permissions. -->
+    <string name="edit_perms">Modifica autorizzazioni</string>
+    <!-- Button allowing the user reset the revoked permissions for application which has encountered an error. -->
+    <string name="reset_perms">Ripristina autorizzazioni</string>
     <string name="wait" msgid="7147118217226317732">"Attendi"</string>
     <string name="launch_warning_title" msgid="8323761616052121936">"Applicazione reindirizzata"</string>
     <string name="launch_warning_replace" msgid="6202498949970281412">"<xliff:g id="APP_NAME">%1$s</xliff:g> è ora in esecuzione."</string>
@@ -911,4 +964,21 @@
     <string name="media_shared" product="nosdcard" msgid="5830814349250834225">"L\'archivio USB è attualmente utilizzato da un computer."</string>
     <string name="media_shared" product="default" msgid="5706130568133540435">"La scheda SD è attualmente utilizzata da un computer."</string>
     <string name="media_unknown_state" msgid="729192782197290385">"Stato dei supporti esterni sconosciuto."</string>
+
+    <!--Application killed toast -->
+    <string name="app_killed_message">Applicazione terminata</string>
+
+    <!-- Phone goggles -->
+    <string name="phone_goggles_problem_count">Problema #%1$d: </string>
+    <string name="phone_goggles_description">Risolvi i seguenti %1$d problemi matematici in meno di %2$d secondi per poter effettuare la comunicazione.</string>
+    <plurals name="phone_goggles_countdown">
+        <item quantity="one">%d secondo rimasto</item>
+        <item quantity="other">%d secondi rimasti</item>
+    </plurals>
+
+    <!-- Title of an application permission that lets an application view/edit revoked permissions. -->
+    <string name="permlab_revokePermissions">Permette la visione e la modifica delle autorizzazioni revocate. Non destinata all\'uso da parte delle normali applicazioni.</string>
+    <!-- Description of an application permission that lets lets an application view/edit revoked permissions. -->
+    <string name="permdesc_revokePermissions">Permette la lettura e la scrittura delle autorizzazioni revocate. Non destinata all\'uso da parte delle normali applicazioni.</string>
+
 </resources>

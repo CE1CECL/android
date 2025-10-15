@@ -47,11 +47,27 @@ ifneq ($(TARGET_SIMULATOR),true)
 LOCAL_SHARED_LIBRARIES += libdl
 endif
 
+ifeq ($(BOARD_USE_KINETO_COMPATIBILITY),true)
+LOCAL_CFLAGS += -DUSE_KINETO_COMPATIBILITY
+endif
+
+ifeq ($(BOARD_USES_SAMSUNG_SEPARATED_STREAM),true)
+LOCAL_CFLAGS += -DUSES_SAMSUNG_SEPARATED_STREAM
+endif
+
 LOCAL_C_INCLUDES := \
     $(JNI_H_INCLUDE) \
     $(call include-path-for, graphics corecg) \
     $(TOP)/frameworks/base/include/media/stagefright/openmax \
     external/icu4c/common \
     external/expat/lib
+
+ifeq ($(OMAP_ENHANCEMENT),true)
+
+LOCAL_SRC_FILES += OverlayRenderer.cpp
+
+LOCAL_C_INCLUDES += $(TOP)/hardware/ti/omap3/liboverlay
+
+endif
 
 include $(BUILD_SHARED_LIBRARY)

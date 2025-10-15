@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import javax.microedition.khronos.opengles.GL11;
 
 import android.graphics.Typeface;
+import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 
 import com.cooliris.app.App;
@@ -238,7 +239,8 @@ public final class PathBarLayer extends Layer {
                     float iconWidth = component.getIconWidth();
                     if (texture.computeTextWidth() <= (width - iconWidth)) {
                         float textOffset = (iconWidth == 0) ? 8 * App.PIXEL_DENSITY : iconWidth;
-                        view.draw2D(texture, x + textOffset, y + 5);
+                        int yOffset = App.PIXEL_DENSITY_DPI >= DisplayMetrics.DENSITY_HIGH ? 5 : 0;
+                        view.draw2D(texture, x + textOffset, y + yOffset);
                     }
                 }
                 x += (int) (width + (21 * App.PIXEL_DENSITY + 0.5f));
@@ -290,8 +292,10 @@ public final class PathBarLayer extends Layer {
             int numComponents = mComponents.size();
             for (int i = 0; i < numComponents; i++) {
                 Component component = mComponents.get(i);
-                width -= (component.getIconWidth() + 20.0f * App.PIXEL_DENSITY);
-                component.computeLabel(width);
+                if (component != null) {
+                    width -= (component.getIconWidth() + 20.0f * App.PIXEL_DENSITY);
+                    component.computeLabel(width);
+                }
             }
         }
     }

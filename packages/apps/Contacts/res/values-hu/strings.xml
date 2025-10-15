@@ -17,7 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="sharedUserLabel" msgid="7965035505237135241">"Alap Android-alkalmazások"</string>
-    <string name="contactsList" msgid="8661624236494819731">"Címtár"</string>
+    <string name="contactsList" msgid="8661624236494819731">"Névjegyek"</string>
     <string name="launcherDialer" msgid="8636288196618486553">"Telefon"</string>
     <string name="shortcutContact" msgid="749243779392912958">"Névjegy"</string>
     <string name="shortcutDialContact" msgid="746622101599186779">"Közvetlen tárcsázás"</string>
@@ -132,7 +132,7 @@
     <item quantity="one" msgid="916648718690661777">"1 névjegy"</item>
     <item quantity="other" msgid="5660384247071761844">"<xliff:g id="COUNT">%d</xliff:g> névjegy"</item>
   </plurals>
-    <string name="contactsIconLabel" msgid="7666609097606552806">"Címtár"</string>
+    <string name="contactsIconLabel" msgid="7666609097606552806">"Névjegyek"</string>
     <string name="contactsFavoritesLabel" msgid="8417039765586853670">"Kedvencek"</string>
     <string name="dialerIconLabel" msgid="6500826552823403796">"Telefon"</string>
     <string name="recentCallsIconLabel" msgid="1419116422359067949">"Híváslista"</string>
@@ -164,7 +164,7 @@
     <string name="noContactsHelpTextWithSync" msgid="3734101165712848179">"Nincsenek megjeleníthető névjegyei. (Ha a fiókot csak most adta hozzá, a névjegyek szinkronizálása néhány percig is eltarthat.)"\n\n"Névjegyek hozzáadásához nyomja meg a "<font fgcolor="#ffffffff"><b>"Menü"</b></font>" gombot, és érintse meg a(z):"\n" "\n<li><font fgcolor="#ffffffff"><b>"Fiókok"</b></font>" lehetőséget a telefonjával szinkronizálható, névjegyekkel rendelkező fiók hozzáadásához vagy beállításához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Megjelenítési beállítások"</b></font>" lehetőséget a látható névjegyek módosításához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Új névjegy"</b></font>" lehetőséget teljesen új névjegy létrehozásához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Importálás/exportálás"</b></font>\n</li></string>
     <string name="noContactsNoSimHelpText" msgid="6553845386917463292">"Nincsenek megjeleníthető névjegyei."\n\n"Névjegy hozzáadásához nyomja meg a "<font fgcolor="#ffffffff"><b>"Menü"</b></font>" gombot, majd érintse meg a(z):"\n" "\n<li><font fgcolor="#ffffffff"><b>"Fiókok"</b></font>" lehetőséget a telefonjával szinkronizálható, névjegyekkel rendelkező fiók hozzáadásához vagy beállításához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Új névjegy"</b></font>"  lehetőséget teljesen új névjegy létrehozásához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Importálás/exportálás"</b></font>\n</li></string>
     <string name="noContactsNoSimHelpTextWithSync" msgid="1122296298361373488">"Nincsenek megjeleníthető névjegyei. (Ha a fiókot csak most adta hozzá, a névjegyek szinkronizálása néhány percig is eltarthat.)"\n\n"Névjegyek hozzáadásához nyomja meg a "<font fgcolor="#ffffffff"><b>"Menü"</b></font>" gombot, és érintse meg a(z):"\n" "\n<li><font fgcolor="#ffffffff"><b>"Fiókok"</b></font>" lehetőséget a telefonjával szinkronizálható, névjegyekkel rendelkező fiók hozzáadásához vagy beállításához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Megjelenítési beállítások"</b></font>" lehetőséget a látható névjegyek módosításához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Új névjegy"</b></font>" lehetőséget teljesen új névjegy létrehozásához"\n</li>" "\n<li><font fgcolor="#ffffffff"><b>"Importálás/exportálás"</b></font>\n</li></string>
-    <string name="noFavoritesHelpText" msgid="3744655776704833277">"Nincsenek kedvencei."\n\n"Így adhat hozzá névjegyet a kedvencek listájához:"\n\n"        "<li>"Érintse meg a "<b>"Címtár"</b>" lapot"\n</li>" "\n<li>"Érintse meg a kedvencekhez hozzáadni kívánt névjegyet"\n</li>" "\n<li>"Érintse meg az ismerős neve melletti csillagot"\n</li></string>
+    <string name="noFavoritesHelpText" msgid="3744655776704833277">"Nincsenek kedvencei."\n\n"Így adhat hozzá névjegyet a kedvencek listájához:"\n\n"        "<li>"Érintse meg a "<b>"Névjegyek"</b>" lapot"\n</li>" "\n<li>"Érintse meg a kedvencekhez hozzáadni kívánt névjegyet"\n</li>" "\n<li>"Érintse meg az ismerős neve melletti csillagot"\n</li></string>
     <string name="liveFolder_all_label" msgid="5961411940473276616">"Összes névjegy"</string>
     <string name="liveFolder_favorites_label" msgid="2674341514070517105">"Csillaggal megjelölt"</string>
     <string name="liveFolder_phones_label" msgid="1709786878793436245">"Telefonszámok"</string>
@@ -389,4 +389,104 @@
     <string name="upgrade_out_of_memory_retry" msgid="8431289830472724609">"Verziófrissítés újrapróbálása"</string>
     <string name="search_results_for" msgid="8705490885073188513">"Találatok a következőre: <xliff:g id="QUERY">%s</xliff:g>"</string>
     <string name="search_results_searching" msgid="7755623475227227314">"Keresés..."</string>
+    <string name="date_year_toggle" msgid="7356532842767854606">"Születési év megadása"</string>
+    <string name="date_format_short_no_year">MM.dd.</string>
+    <string name="date_format_full_no_year">MMMM d</string>
+    <string name="menu_shareNumber">Szám megosztása</string>
+    <string name="menu_shareEmail">E-mail megosztása</string>
+    <string name="menu_shareAddress">Cím megosztása</string>
+    <string name="clearConfirmation_title">Hívásnapló törlése</string>
+    <string name="clearLogConfirmation">Az bejegyzés törölve lesz a hívásnaplóból.</string>
+    <string name="recentCalls_addToBlacklist">Feketelistához adás</string>
+    <string name="quickcontact_no_data">Nincs adat</string>
+    <string name="menu_preferences">Beállítások</string>
+    <string name="dialer_menu_sms">SMS / MMS</string>
+    <string name="recent_calls_clear_call_log">Hívásnapló ürítése</string>
+    <string name="recent_calls_clear_what">Mit töröl?</string>
+    <string name="recent_calls_clear_all">Összes</string>
+    <string name="recent_calls_clear_incoming">Bejövő</string>
+    <string name="recent_calls_clear_outgoing">Kimenő</string>
+    <string name="recent_calls_clear_missed">Nem fogadott</string>
+    <string name="alert_clear_call_log_title">Hívásnapló törlése</string>
+    <string name="alert_clear_call_log_message">Biztosan törölni kívánja az összes hívás feljegyzést?</string>
+    <string name="alert_clear_cl_all_incoming">Biztosan törölni kívánja az összes bejövő hívás feljegyzést?</string>
+    <string name="alert_clear_cl_all_outgoing">Biztosan törölni kívánja az összes kimenő hívás feljegyzést?</string>
+    <string name="alert_clear_cl_all_missed">Biztosan törölni kívánja az összes nem fogadott hívás feljegyzést?</string>
+    <string name="fav_clear_freq">Törölje a gyakran hívottakat</string>
+    <string name="alert_clear_freq_called_msg">Biztosan törölni kívánja az összes gyakran hívott bejegyzést?</string>
+    <string name="title_last_dialled">Hívás gomb megjeleníti az utoljára hívott számot</string>
+    <string name="summary_last_dialled">Utoljára hívott szám kerül beolvasásra, ha számjegyek üresek</string>
+    <string name="title_return_to_dialer">Vissza a tárcsázóba hívás után</string>
+    <string name="title_vm_button">Bal akciógombbal (LAB)</string>
+    <string name="title_vm_handler">Hangposta kezelő</string>
+    <string name="title_use_1_for_reg_vm">1-es használata szokásos hangpostaként</string>
+    <string name="summaryon_use_1_for_reg_vm">1-es gomb használata hangpostára</string>
+    <string name="summaryoff_use_1_for_reg_vm">Hangposta: 1-es gomb</string>
+    <string name="title_disable_num_check">Szám ellenőrzések letiltása</string>
+    <string name="summaryon_disable_num_check">Bal akciógomb és menügomb engedélyezése</string>
+    <string name="summaryoff_disable_num_check">Bal akciógomb és menügomb engedélyezése csak ha legalább egy szám be van ütve (kivéve hangposta)</string>
+    <string name="title_enable_haptic_feedback">Rezgő visszajelzés engedélyezése</string>
+    <string name="summary_enable_haptic_feedback">A billentyűzet használatát lásd a CyanogenMod beállításokban</string>
+    <string name="title_change_digits_color">Számjegyek színének megváltoztatása</string>
+    <string name="title_digits_color_pressed">Számjegy szín (lenyomott)</string>
+    <string name="title_digits_color_focused">Számjegy szín (kijelölt)</string>
+    <string name="title_digits_color_unselected">Számjegy szín (nincs kijelölve)</string>
+    <string name="title_choose_color">Válasszon egy színt</string>
+    <string name="instructions_choose_color">Érintsd meg középen a színt a megerősítéshez / Nyomd meg a "Vissza" gombot az elutasításhoz.</string>
+    <string name="entry_no_vm_handler">Nincs (hangposta szám hívása)</string>
+    <string name="title_cl_exact_time">Pontos idő</string>
+    <string name="summaryon_cl_exact_time">Pontos idő használata a hivásnaplóban</string>
+    <string name="summaryoff_cl_exact_time">Saját idő használata a hívásnaplóban</string>
+    <string name="title_cl_show_seconds">Másodpercek mutatása</string>
+    <string name="summary_cl_show_seconds">Másodpercek mutatása pontos idő használatakor</string>
+    <string name="title_cl_ask_before_clear">Rákérdezés törlés előtt</string>
+    <string name="summaryon_cl_ask_before_clear">Rákérdezés a híváslista törlése előtt</string>
+    <string name="summaryoff_cl_ask_before_clear">Híváslista törlése kérdezés nélkül</string>
+    <string name="title_contacts_show_pic">Kapcsolat képeinek mutatása</string>
+    <string name="title_contacts_show_dial_button">Hívógomb megjelenítése</string>
+    <string name="summary_contacts_show_dial_button">Hívógomb megjelenítése számokkal</string>
+    <string name="title_contacts_show_count">Kapcsolatok számának mutatása</string>
+    <string name="summary_contacts_show_count">Kapcsolatok számának mutatása a névjegyzék tetején</string>
+    <string name="title_contacts_show_separators">ABC elválasztók megjelenítése</string>
+    <string name="summaryon_contacts_show_separators">ABC elválasztók megjelenítése a névjegyzékben</string>
+    <string name="summaryoff_contacts_show_separators">ABC elválasztók elrejtése a névjegyzékben</string>
+    <string name="title_view_contact">Kapcsolat megtekintése</string>
+    <string name="summary_view_contact">Egyéni kapcsolat megtekintésének beállításai</string>
+    <string name="title_show_text_mobile_only">szöveg hozzáférés kizárólag mobilszámok részére</string>
+    <string name="summaryon_show_text_mobile_only">Csak a mobil számok fognak rendelkezni szöveg/sms hozzáféréssel</string>
+    <string name="summaryoff_show_text_mobile_only">Minden szám rendelkezni fog szöveg/sms hozzáféréssel</string>
+    <string name="title_favourites_hide_freq_call">Gyakran hívottak elrejtése</string>
+    <string name="summary_favourites_hide_freq_call">Az adatok nem törlődtek csak rejtve vannak.</string>
+    <string name="title_favs_ask_before_clear">Rákérdezés törlés előtt</string>
+    <string name="summaryon_favs_ask_before_clear">Rákérdezés a gyakran hívottak törlése előtt</string>
+    <string name="summaryoff_favs_ask_before_clear">Gyakran hívottak törlése kérdezés nélkül</string>
+    <string name="title_misc_category">Egyéb</string>
+    <string name="title_sensor_rotation">Automatikus tájolás engedélyezése</string>
+    <string name="summary_sensor_rotation">Ha engedélyezve, akkor tájolás a rendszerbeállítások szerint</string>
+    <string name="title_data_font_size">Kapcsolat infó betűmérete</string>
+    <string name="summary_data_font_size">Megválaszhatod a kapcsolat információ betűméretét (telefonszám, e-mail, cím, stb.)</string>
+    <string name="title_default_phone_tab">Alapértelmezett fül</string>
+    <string name="default_phone_tab_last_used">Hívás előtt használt (Alapértelmezett)</string>
+    <string name="default_phone_tab_last_viewed">Utoljára megtekintett</string>
+    <string name="default_phone_tab_phone">Telefon</string>
+    <string name="default_phone_tab_call_log">Híváslista</string>
+    <string name="default_phone_tab_contacts">Névjegyek</string>
+    <string name="default_phone_tab_favorites">Kedvencek</string>
+
+    <string name="title_about">Névjegy</string>
+    <string name="title_about_name">Mod Neve</string>
+    <string name="summary_about_name">WyContacts Froyo</string>
+    <string name="title_about_version">Verzió</string>
+    <string name="summary_about_version">1.2</string>
+    <string name="title_about_credits">Közreműködők</string>
+    <string name="summary_about_credits">Wysie, ChainsDD, geesun, niuchl, rac2030, sileht and the rest of XDA! :)\nFordítás: Google, gross76, petikeke, Knife, tothmarcell97 és sok más samdroid.net fórumozó</string>
+
+    <string name="t9_sort_title">T9 Rendezési mód</string>
+    <string name="t9_sort_summary">Keresés eredményeinek szűrése</string>
+    <string name="t9_sort_name">Először nevekre</string>
+    <string name="t9_sort_number">Először számokra</string>
+    <string name="t9_state_title">T9 tárcsázó</string>
+    <string name="t9_state_summary">T9 szerinti keresés a tárcsázóban</string>
+    <string name="t9_dial_click_title">Névjegy tárcsázása</string>
+    <string name="t9_dial_click_summary">Tárcsázza a T9 szerint kiválaszott Névjegyet</string>
 </resources>

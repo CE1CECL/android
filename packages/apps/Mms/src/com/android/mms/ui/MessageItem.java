@@ -93,13 +93,15 @@ public class MessageItem {
     int mMessageSize;
     int mErrorType;
     int mErrorCode;
+    boolean mFullTimestamp;
 
     MessageItem(Context context, String type, Cursor cursor,
-            ColumnsMap columnsMap, Pattern highlight) throws MmsException {
+            ColumnsMap columnsMap, Pattern highlight, boolean fullTimestamp) throws MmsException {
         mContext = context;
         mMsgId = cursor.getLong(columnsMap.mColumnMsgId);
         mHighlight = highlight;
         mType = type;
+        mFullTimestamp = fullTimestamp;
 
         if ("sms".equals(type)) {
             mReadReport = false; // No read reports in sms
@@ -138,7 +140,7 @@ public class MessageItem {
                 // Set "sent" time stamp
                 long date = cursor.getLong(columnsMap.mColumnSmsDate);
                 mTimestamp = String.format(context.getString(R.string.sent_on),
-                        MessageUtils.formatTimeStampString(context, date));
+                        MessageUtils.formatTimeStampString(context, date, mFullTimestamp));
             }
 
             mLocked = cursor.getInt(columnsMap.mColumnSmsLocked) != 0;
@@ -233,7 +235,7 @@ public class MessageItem {
 
             if (!isOutgoingMessage()) {
                 mTimestamp = context.getString(getTimestampStrId(),
-                        MessageUtils.formatTimeStampString(context, timestamp));
+                        MessageUtils.formatTimeStampString(context, timestamp, mFullTimestamp));
             }
         } else {
             throw new MmsException("Unknown type of the message: " + type);

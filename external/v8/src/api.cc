@@ -1,4 +1,4 @@
-// Copyright 2009 the V8 project authors. All rights reserved.
+// Copyright 2010 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -28,24 +28,29 @@
 #include "v8.h"
 
 #include "api.h"
+
 #include "arguments.h"
 #include "bootstrapper.h"
 #include "compiler.h"
 #include "debug.h"
 #include "execution.h"
 #include "global-handles.h"
-#include "globals.h"
+#include "heap-profiler.h"
+#include "messages.h"
+#include "parser.h"
 #include "platform.h"
+#include "profile-generator-inl.h"
 #include "serialize.h"
 #include "snapshot.h"
-#include "utils.h"
+#include "top.h"
 #include "v8threads.h"
 #include "version.h"
 
+#include "../include/v8-profiler.h"
 
 #define LOG_API(expr) LOG(ApiEntryCall(expr))
 
-#ifdef ENABLE_HEAP_PROTECTION
+#ifdef ENABLE_VMSTATE_TRACKING
 #define ENTER_V8 i::VMState __state__(i::OTHER)
 #define LEAVE_V8 i::VMState __state__(i::EXTERNAL)
 #else
@@ -55,11 +60,10 @@
 
 namespace v8 {
 
-
-#define ON_BAILOUT(location, code)              \
-  if (IsDeadCheck(location)) {                  \
-    code;                                       \
-    UNREACHABLE();                              \
+#define ON_BAILOUT(location, code)                                 \
+  if (IsDeadCheck(location) || v8::V8::IsExecutionTerminating()) { \
+    code;                                                          \
+    UNREACHABLE();                                                 \
   }
 
 
@@ -103,16 +107,12 @@ static i::HandleScopeImplementer thread_local;
 
 
 static FatalErrorCallback exception_behavior = NULL;
-int i::Internals::kJSObjectType = JS_OBJECT_TYPE;
-int i::Internals::kFirstNonstringType = FIRST_NONSTRING_TYPE;
-int i::Internals::kProxyType = PROXY_TYPE;
 
 static void DefaultFatalErrorHandler(const char* location,
                                      const char* message) {
   ENTER_V8;
   API_Fatal(location, message);
 }
-
 
 
 static FatalErrorCallback& GetFatalErrorHandler() {
@@ -123,10 +123,14 @@ static FatalErrorCallback& GetFatalErrorHandler() {
 }
 
 
+void i::FatalProcessOutOfMemory(const char* location) {
+  i::V8::FatalProcessOutOfMemory(location, false);
+}
+
 
 // When V8 cannot allocated memory FatalProcessOutOfMemory is called.
 // The default fatal error handler is called and execution is stopped.
-void i::V8::FatalProcessOutOfMemory(const char* location) {
+void i::V8::FatalProcessOutOfMemory(const char* location, bool take_snapshot) {
   i::HeapStats heap_stats;
   int start_marker;
   heap_stats.start_marker = &start_marker;
@@ -134,27 +138,27 @@ void i::V8::FatalProcessOutOfMemory(const char* location) {
   heap_stats.new_space_size = &new_space_size;
   int new_space_capacity;
   heap_stats.new_space_capacity = &new_space_capacity;
-  int old_pointer_space_size;
+  intptr_t old_pointer_space_size;
   heap_stats.old_pointer_space_size = &old_pointer_space_size;
-  int old_pointer_space_capacity;
+  intptr_t old_pointer_space_capacity;
   heap_stats.old_pointer_space_capacity = &old_pointer_space_capacity;
-  int old_data_space_size;
+  intptr_t old_data_space_size;
   heap_stats.old_data_space_size = &old_data_space_size;
-  int old_data_space_capacity;
+  intptr_t old_data_space_capacity;
   heap_stats.old_data_space_capacity = &old_data_space_capacity;
-  int code_space_size;
+  intptr_t code_space_size;
   heap_stats.code_space_size = &code_space_size;
-  int code_space_capacity;
+  intptr_t code_space_capacity;
   heap_stats.code_space_capacity = &code_space_capacity;
-  int map_space_size;
+  intptr_t map_space_size;
   heap_stats.map_space_size = &map_space_size;
-  int map_space_capacity;
+  intptr_t map_space_capacity;
   heap_stats.map_space_capacity = &map_space_capacity;
-  int cell_space_size;
+  intptr_t cell_space_size;
   heap_stats.cell_space_size = &cell_space_size;
-  int cell_space_capacity;
+  intptr_t cell_space_capacity;
   heap_stats.cell_space_capacity = &cell_space_capacity;
-  int lo_space_size;
+  intptr_t lo_space_size;
   heap_stats.lo_space_size = &lo_space_size;
   int global_handle_count;
   heap_stats.global_handle_count = &global_handle_count;
@@ -166,9 +170,19 @@ void i::V8::FatalProcessOutOfMemory(const char* location) {
   heap_stats.near_death_global_handle_count = &near_death_global_handle_count;
   int destroyed_global_handle_count;
   heap_stats.destroyed_global_handle_count = &destroyed_global_handle_count;
+  intptr_t memory_allocator_size;
+  heap_stats.memory_allocator_size = &memory_allocator_size;
+  intptr_t memory_allocator_capacity;
+  heap_stats.memory_allocator_capacity = &memory_allocator_capacity;
+  int objects_per_type[LAST_TYPE + 1] = {0};
+  heap_stats.objects_per_type = objects_per_type;
+  int size_per_type[LAST_TYPE + 1] = {0};
+  heap_stats.size_per_type = size_per_type;
+  int os_error;
+  heap_stats.os_error = &os_error;
   int end_marker;
   heap_stats.end_marker = &end_marker;
-  i::Heap::RecordStats(&heap_stats);
+  i::Heap::RecordStats(&heap_stats, take_snapshot);
   i::V8::SetFatalError();
   FatalErrorCallback callback = GetFatalErrorHandler();
   {
@@ -382,14 +396,18 @@ v8::Handle<Boolean> False() {
 ResourceConstraints::ResourceConstraints()
   : max_young_space_size_(0),
     max_old_space_size_(0),
+    max_executable_size_(0),
     stack_limit_(NULL) { }
 
 
 bool SetResourceConstraints(ResourceConstraints* constraints) {
   int young_space_size = constraints->max_young_space_size();
   int old_gen_size = constraints->max_old_space_size();
-  if (young_space_size != 0 || old_gen_size != 0) {
-    bool result = i::Heap::ConfigureHeap(young_space_size / 2, old_gen_size);
+  int max_executable_size = constraints->max_executable_size();
+  if (young_space_size != 0 || old_gen_size != 0 || max_executable_size != 0) {
+    bool result = i::Heap::ConfigureHeap(young_space_size / 2,
+                                         old_gen_size,
+                                         max_executable_size);
     if (!result) return false;
   }
   if (constraints->stack_limit() != NULL) {
@@ -439,23 +457,40 @@ bool V8::IsGlobalWeak(i::Object** obj) {
 void V8::DisposeGlobal(i::Object** obj) {
   LOG_API("DisposeGlobal");
   if (!i::V8::IsRunning()) return;
-  if ((*obj)->IsGlobalContext()) i::Heap::NotifyContextDisposed();
   i::GlobalHandles::Destroy(obj);
 }
 
 // --- H a n d l e s ---
 
 
-HandleScope::HandleScope() : is_closed_(false) {
+HandleScope::HandleScope()
+    : prev_next_(i::HandleScope::current_.next),
+      prev_limit_(i::HandleScope::current_.limit),
+      is_closed_(false) {
   API_ENTRY_CHECK("HandleScope::HandleScope");
-  i::HandleScope::Enter(&previous_);
+  i::HandleScope::current_.level++;
 }
 
 
 HandleScope::~HandleScope() {
   if (!is_closed_) {
-    i::HandleScope::Leave(&previous_);
+    Leave();
   }
+}
+
+
+void HandleScope::Leave() {
+  i::HandleScope::current_.level--;
+  ASSERT(i::HandleScope::current_.level >= 0);
+  i::HandleScope::current_.next = prev_next_;
+  if (i::HandleScope::current_.limit != prev_limit_) {
+    i::HandleScope::current_.limit = prev_limit_;
+    i::HandleScope::DeleteExtensions();
+  }
+
+#ifdef DEBUG
+  i::HandleScope::ZapRange(prev_next_, prev_limit_);
+#endif
 }
 
 
@@ -537,9 +572,16 @@ i::Object** v8::HandleScope::RawClose(i::Object** value) {
   LOG_API("CloseHandleScope");
 
   // Read the result before popping the handle block.
-  i::Object* result = *value;
+  i::Object* result = NULL;
+  if (value != NULL) {
+    result = *value;
+  }
   is_closed_ = true;
-  i::HandleScope::Leave(&previous_);
+  Leave();
+
+  if (value == NULL) {
+    return NULL;
+  }
 
   // Allocate a new handle on the previous handle block.
   i::Handle<i::Object> handle(result);
@@ -751,6 +793,12 @@ int TypeSwitch::match(v8::Handle<Value> value) {
 }
 
 
+#define SET_FIELD_WRAPPED(obj, setter, cdata) do {  \
+    i::Handle<i::Object> proxy = FromCData(cdata);  \
+    (obj)->setter(*proxy);                          \
+  } while (false)
+
+
 void FunctionTemplate::SetCallHandler(InvocationCallback callback,
                                       v8::Handle<Value> data) {
   if (IsDeadCheck("v8::FunctionTemplate::SetCallHandler()")) return;
@@ -760,10 +808,32 @@ void FunctionTemplate::SetCallHandler(InvocationCallback callback,
       i::Factory::NewStruct(i::CALL_HANDLER_INFO_TYPE);
   i::Handle<i::CallHandlerInfo> obj =
       i::Handle<i::CallHandlerInfo>::cast(struct_obj);
-  obj->set_callback(*FromCData(callback));
+  SET_FIELD_WRAPPED(obj, set_callback, callback);
   if (data.IsEmpty()) data = v8::Undefined();
   obj->set_data(*Utils::OpenHandle(*data));
   Utils::OpenHandle(this)->set_call_code(*obj);
+}
+
+
+static i::Handle<i::AccessorInfo> MakeAccessorInfo(
+      v8::Handle<String> name,
+      AccessorGetter getter,
+      AccessorSetter setter,
+      v8::Handle<Value> data,
+      v8::AccessControl settings,
+      v8::PropertyAttribute attributes) {
+  i::Handle<i::AccessorInfo> obj = i::Factory::NewAccessorInfo();
+  ASSERT(getter != NULL);
+  SET_FIELD_WRAPPED(obj, set_getter, getter);
+  SET_FIELD_WRAPPED(obj, set_setter, setter);
+  if (data.IsEmpty()) data = v8::Undefined();
+  obj->set_data(*Utils::OpenHandle(*data));
+  obj->set_name(*Utils::OpenHandle(*name));
+  if (settings & ALL_CAN_READ) obj->set_all_can_read(true);
+  if (settings & ALL_CAN_WRITE) obj->set_all_can_write(true);
+  if (settings & PROHIBITS_OVERWRITING) obj->set_prohibits_overwriting(true);
+  obj->set_property_attributes(static_cast<PropertyAttributes>(attributes));
+  return obj;
 }
 
 
@@ -779,18 +849,10 @@ void FunctionTemplate::AddInstancePropertyAccessor(
   }
   ENTER_V8;
   HandleScope scope;
-  i::Handle<i::AccessorInfo> obj = i::Factory::NewAccessorInfo();
-  ASSERT(getter != NULL);
-  obj->set_getter(*FromCData(getter));
-  obj->set_setter(*FromCData(setter));
-  if (data.IsEmpty()) data = v8::Undefined();
-  obj->set_data(*Utils::OpenHandle(*data));
-  obj->set_name(*Utils::OpenHandle(*name));
-  if (settings & ALL_CAN_READ) obj->set_all_can_read(true);
-  if (settings & ALL_CAN_WRITE) obj->set_all_can_write(true);
-  if (settings & PROHIBITS_OVERWRITING) obj->set_prohibits_overwriting(true);
-  obj->set_property_attributes(static_cast<PropertyAttributes>(attributes));
 
+  i::Handle<i::AccessorInfo> obj = MakeAccessorInfo(name,
+                                                    getter, setter, data,
+                                                    settings, attributes);
   i::Handle<i::Object> list(Utils::OpenHandle(this)->property_accessors());
   if (list->IsUndefined()) {
     list = NeanderArray().value();
@@ -847,11 +909,13 @@ void FunctionTemplate::SetNamedInstancePropertyHandler(
       i::Factory::NewStruct(i::INTERCEPTOR_INFO_TYPE);
   i::Handle<i::InterceptorInfo> obj =
       i::Handle<i::InterceptorInfo>::cast(struct_obj);
-  if (getter != 0) obj->set_getter(*FromCData(getter));
-  if (setter != 0) obj->set_setter(*FromCData(setter));
-  if (query != 0) obj->set_query(*FromCData(query));
-  if (remover != 0) obj->set_deleter(*FromCData(remover));
-  if (enumerator != 0) obj->set_enumerator(*FromCData(enumerator));
+
+  if (getter != 0) SET_FIELD_WRAPPED(obj, set_getter, getter);
+  if (setter != 0) SET_FIELD_WRAPPED(obj, set_setter, setter);
+  if (query != 0) SET_FIELD_WRAPPED(obj, set_query, query);
+  if (remover != 0) SET_FIELD_WRAPPED(obj, set_deleter, remover);
+  if (enumerator != 0) SET_FIELD_WRAPPED(obj, set_enumerator, enumerator);
+
   if (data.IsEmpty()) data = v8::Undefined();
   obj->set_data(*Utils::OpenHandle(*data));
   Utils::OpenHandle(this)->set_named_property_handler(*obj);
@@ -875,11 +939,13 @@ void FunctionTemplate::SetIndexedInstancePropertyHandler(
       i::Factory::NewStruct(i::INTERCEPTOR_INFO_TYPE);
   i::Handle<i::InterceptorInfo> obj =
       i::Handle<i::InterceptorInfo>::cast(struct_obj);
-  if (getter != 0) obj->set_getter(*FromCData(getter));
-  if (setter != 0) obj->set_setter(*FromCData(setter));
-  if (query != 0) obj->set_query(*FromCData(query));
-  if (remover != 0) obj->set_deleter(*FromCData(remover));
-  if (enumerator != 0) obj->set_enumerator(*FromCData(enumerator));
+
+  if (getter != 0) SET_FIELD_WRAPPED(obj, set_getter, getter);
+  if (setter != 0) SET_FIELD_WRAPPED(obj, set_setter, setter);
+  if (query != 0) SET_FIELD_WRAPPED(obj, set_query, query);
+  if (remover != 0) SET_FIELD_WRAPPED(obj, set_deleter, remover);
+  if (enumerator != 0) SET_FIELD_WRAPPED(obj, set_enumerator, enumerator);
+
   if (data.IsEmpty()) data = v8::Undefined();
   obj->set_data(*Utils::OpenHandle(*data));
   Utils::OpenHandle(this)->set_indexed_property_handler(*obj);
@@ -898,7 +964,7 @@ void FunctionTemplate::SetInstanceCallAsFunctionHandler(
       i::Factory::NewStruct(i::CALL_HANDLER_INFO_TYPE);
   i::Handle<i::CallHandlerInfo> obj =
       i::Handle<i::CallHandlerInfo>::cast(struct_obj);
-  obj->set_callback(*FromCData(callback));
+  SET_FIELD_WRAPPED(obj, set_callback, callback);
   if (data.IsEmpty()) data = v8::Undefined();
   obj->set_data(*Utils::OpenHandle(*data));
   Utils::OpenHandle(this)->set_instance_call_handler(*obj);
@@ -1013,8 +1079,10 @@ void ObjectTemplate::SetAccessCheckCallbacks(
       i::Factory::NewStruct(i::ACCESS_CHECK_INFO_TYPE);
   i::Handle<i::AccessCheckInfo> info =
       i::Handle<i::AccessCheckInfo>::cast(struct_info);
-  info->set_named_callback(*FromCData(named_callback));
-  info->set_indexed_callback(*FromCData(indexed_callback));
+
+  SET_FIELD_WRAPPED(info, set_named_callback, named_callback);
+  SET_FIELD_WRAPPED(info, set_indexed_callback, indexed_callback);
+
   if (data.IsEmpty()) data = v8::Undefined();
   info->set_data(*Utils::OpenHandle(*data));
 
@@ -1093,12 +1161,34 @@ void ObjectTemplate::SetInternalFieldCount(int value) {
 
 ScriptData* ScriptData::PreCompile(const char* input, int length) {
   unibrow::Utf8InputBuffer<> buf(input, length);
-  return i::PreParse(i::Handle<i::String>(), &buf, NULL);
+  return i::ParserApi::PreParse(i::Handle<i::String>(), &buf, NULL);
 }
 
 
-ScriptData* ScriptData::New(unsigned* data, int length) {
-  return new i::ScriptDataImpl(i::Vector<unsigned>(data, length));
+ScriptData* ScriptData::PreCompile(v8::Handle<String> source) {
+  i::Handle<i::String> str = Utils::OpenHandle(*source);
+  return i::ParserApi::PreParse(str, NULL, NULL);
+}
+
+
+ScriptData* ScriptData::New(const char* data, int length) {
+  // Return an empty ScriptData if the length is obviously invalid.
+  if (length % sizeof(unsigned) != 0) {
+    return new i::ScriptDataImpl();
+  }
+
+  // Copy the data to ensure it is properly aligned.
+  int deserialized_data_length = length / sizeof(unsigned);
+  // If aligned, don't create a copy of the data.
+  if (reinterpret_cast<intptr_t>(data) % sizeof(unsigned) == 0) {
+    return new i::ScriptDataImpl(data, length);
+  }
+  // Copy the data to align it.
+  unsigned* deserialized_data = i::NewArray<unsigned>(deserialized_data_length);
+  i::MemCopy(deserialized_data, data, length);
+
+  return new i::ScriptDataImpl(
+      i::Vector<unsigned>(deserialized_data, deserialized_data_length));
 }
 
 
@@ -1136,7 +1226,7 @@ Local<Script> Script::New(v8::Handle<String> source,
   if (pre_data_impl != NULL && !pre_data_impl->SanityCheck()) {
     pre_data_impl = NULL;
   }
-  i::Handle<i::JSFunction> boilerplate =
+  i::Handle<i::SharedFunctionInfo> result =
       i::Compiler::Compile(str,
                            name_obj,
                            line_offset,
@@ -1145,9 +1235,9 @@ Local<Script> Script::New(v8::Handle<String> source,
                            pre_data_impl,
                            Utils::OpenHandle(*script_data),
                            i::NOT_NATIVES_CODE);
-  has_pending_exception = boilerplate.is_null();
+  has_pending_exception = result.is_null();
   EXCEPTION_BAILOUT_CHECK(Local<Script>());
-  return Local<Script>(ToApi<Script>(boilerplate));
+  return Local<Script>(ToApi<Script>(result));
 }
 
 
@@ -1168,10 +1258,12 @@ Local<Script> Script::Compile(v8::Handle<String> source,
   Local<Script> generic = New(source, origin, pre_data, script_data);
   if (generic.IsEmpty())
     return generic;
-  i::Handle<i::JSFunction> boilerplate = Utils::OpenHandle(*generic);
+  i::Handle<i::Object> obj = Utils::OpenHandle(*generic);
+  i::Handle<i::SharedFunctionInfo> function =
+      i::Handle<i::SharedFunctionInfo>(i::SharedFunctionInfo::cast(*obj));
   i::Handle<i::JSFunction> result =
-      i::Factory::NewFunctionFromBoilerplate(boilerplate,
-                                             i::Top::global_context());
+      i::Factory::NewFunctionFromSharedFunctionInfo(function,
+                                                    i::Top::global_context());
   return Local<Script>(ToApi<Script>(result));
 }
 
@@ -1191,10 +1283,15 @@ Local<Value> Script::Run() {
   i::Object* raw_result = NULL;
   {
     HandleScope scope;
-    i::Handle<i::JSFunction> fun = Utils::OpenHandle(this);
-    if (fun->IsBoilerplate()) {
-      fun = i::Factory::NewFunctionFromBoilerplate(fun,
-                                                   i::Top::global_context());
+    i::Handle<i::Object> obj = Utils::OpenHandle(this);
+    i::Handle<i::JSFunction> fun;
+    if (obj->IsSharedFunctionInfo()) {
+      i::Handle<i::SharedFunctionInfo>
+          function_info(i::SharedFunctionInfo::cast(*obj));
+      fun = i::Factory::NewFunctionFromSharedFunctionInfo(
+          function_info, i::Top::global_context());
+    } else {
+      fun = i::Handle<i::JSFunction>(i::JSFunction::cast(*obj));
     }
     EXCEPTION_PREAMBLE();
     i::Handle<i::Object> receiver(i::Top::context()->global_proxy());
@@ -1208,14 +1305,28 @@ Local<Value> Script::Run() {
 }
 
 
+static i::Handle<i::SharedFunctionInfo> OpenScript(Script* script) {
+  i::Handle<i::Object> obj = Utils::OpenHandle(script);
+  i::Handle<i::SharedFunctionInfo> result;
+  if (obj->IsSharedFunctionInfo()) {
+    result =
+        i::Handle<i::SharedFunctionInfo>(i::SharedFunctionInfo::cast(*obj));
+  } else {
+    result =
+        i::Handle<i::SharedFunctionInfo>(i::JSFunction::cast(*obj)->shared());
+  }
+  return result;
+}
+
+
 Local<Value> Script::Id() {
   ON_BAILOUT("v8::Script::Id()", return Local<Value>());
   LOG_API("Script::Id");
   i::Object* raw_id = NULL;
   {
     HandleScope scope;
-    i::Handle<i::JSFunction> fun = Utils::OpenHandle(this);
-    i::Handle<i::Script> script(i::Script::cast(fun->shared()->script()));
+    i::Handle<i::SharedFunctionInfo> function_info = OpenScript(this);
+    i::Handle<i::Script> script(i::Script::cast(function_info->script()));
     i::Handle<i::Object> id(script->id());
     raw_id = *id;
   }
@@ -1229,9 +1340,9 @@ void Script::SetData(v8::Handle<String> data) {
   LOG_API("Script::SetData");
   {
     HandleScope scope;
-    i::Handle<i::JSFunction> fun = Utils::OpenHandle(this);
+    i::Handle<i::SharedFunctionInfo> function_info = OpenScript(this);
     i::Handle<i::Object> raw_data = Utils::OpenHandle(*data);
-    i::Handle<i::Script> script(i::Script::cast(fun->shared()->script()));
+    i::Handle<i::Script> script(i::Script::cast(function_info->script()));
     script->set_data(*raw_data);
   }
 }
@@ -1380,13 +1491,30 @@ v8::Handle<Value> Message::GetScriptData() const {
 }
 
 
+v8::Handle<v8::StackTrace> Message::GetStackTrace() const {
+  if (IsDeadCheck("v8::Message::GetStackTrace()")) {
+    return Local<v8::StackTrace>();
+  }
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSObject> obj =
+      i::Handle<i::JSObject>::cast(Utils::OpenHandle(this));
+  i::Handle<i::Object> stackFramesObj = GetProperty(obj, "stackFrames");
+  if (!stackFramesObj->IsJSArray()) return v8::Handle<v8::StackTrace>();
+  i::Handle<i::JSArray> stackTrace =
+      i::Handle<i::JSArray>::cast(stackFramesObj);
+  return scope.Close(Utils::StackTraceToLocal(stackTrace));
+}
+
+
 static i::Handle<i::Object> CallV8HeapFunction(const char* name,
                                                i::Handle<i::Object> recv,
                                                int argc,
                                                i::Object** argv[],
                                                bool* has_pending_exception) {
   i::Handle<i::String> fmt_str = i::Factory::LookupAsciiSymbol(name);
-  i::Object* object_fun = i::Top::builtins()->GetProperty(*fmt_str);
+  i::Object* object_fun =
+      i::Top::builtins()->GetPropertyNoExceptionThrown(*fmt_str);
   i::Handle<i::JSFunction> fun =
       i::Handle<i::JSFunction>(i::JSFunction::cast(object_fun));
   i::Handle<i::Object> value =
@@ -1408,7 +1536,7 @@ static i::Handle<i::Object> CallV8HeapFunction(const char* name,
 
 
 int Message::GetLineNumber() const {
-  ON_BAILOUT("v8::Message::GetLineNumber()", return -1);
+  ON_BAILOUT("v8::Message::GetLineNumber()", return kNoLineNumberInfo);
   ENTER_V8;
   HandleScope scope;
   EXCEPTION_PREAMBLE();
@@ -1440,7 +1568,7 @@ int Message::GetEndPosition() const {
 
 
 int Message::GetStartColumn() const {
-  if (IsDeadCheck("v8::Message::GetStartColumn()")) return 0;
+  if (IsDeadCheck("v8::Message::GetStartColumn()")) return kNoColumnInfo;
   ENTER_V8;
   HandleScope scope;
   i::Handle<i::JSObject> data_obj = Utils::OpenHandle(this);
@@ -1455,7 +1583,7 @@ int Message::GetStartColumn() const {
 
 
 int Message::GetEndColumn() const {
-  if (IsDeadCheck("v8::Message::GetEndColumn()")) return 0;
+  if (IsDeadCheck("v8::Message::GetEndColumn()")) return kNoColumnInfo;
   ENTER_V8;
   HandleScope scope;
   i::Handle<i::JSObject> data_obj = Utils::OpenHandle(this);
@@ -1492,6 +1620,136 @@ void Message::PrintCurrentStackTrace(FILE* out) {
   if (IsDeadCheck("v8::Message::PrintCurrentStackTrace()")) return;
   ENTER_V8;
   i::Top::PrintCurrentStackTrace(out);
+}
+
+
+// --- S t a c k T r a c e ---
+
+Local<StackFrame> StackTrace::GetFrame(uint32_t index) const {
+  if (IsDeadCheck("v8::StackTrace::GetFrame()")) return Local<StackFrame>();
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSArray> self = Utils::OpenHandle(this);
+  i::Object* raw_object = self->GetElementNoExceptionThrown(index);
+  i::Handle<i::JSObject> obj(i::JSObject::cast(raw_object));
+  return scope.Close(Utils::StackFrameToLocal(obj));
+}
+
+
+int StackTrace::GetFrameCount() const {
+  if (IsDeadCheck("v8::StackTrace::GetFrameCount()")) return -1;
+  ENTER_V8;
+  return i::Smi::cast(Utils::OpenHandle(this)->length())->value();
+}
+
+
+Local<Array> StackTrace::AsArray() {
+  if (IsDeadCheck("v8::StackTrace::AsArray()")) Local<Array>();
+  ENTER_V8;
+  return Utils::ToLocal(Utils::OpenHandle(this));
+}
+
+
+Local<StackTrace> StackTrace::CurrentStackTrace(int frame_limit,
+    StackTraceOptions options) {
+  if (IsDeadCheck("v8::StackTrace::CurrentStackTrace()")) Local<StackTrace>();
+  ENTER_V8;
+  i::Handle<i::JSArray> stackTrace =
+      i::Top::CaptureCurrentStackTrace(frame_limit, options);
+  return Utils::StackTraceToLocal(stackTrace);
+}
+
+
+// --- S t a c k F r a m e ---
+
+int StackFrame::GetLineNumber() const {
+  if (IsDeadCheck("v8::StackFrame::GetLineNumber()")) {
+    return Message::kNoLineNumberInfo;
+  }
+  ENTER_V8;
+  i::HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> line = GetProperty(self, "lineNumber");
+  if (!line->IsSmi()) {
+    return Message::kNoLineNumberInfo;
+  }
+  return i::Smi::cast(*line)->value();
+}
+
+
+int StackFrame::GetColumn() const {
+  if (IsDeadCheck("v8::StackFrame::GetColumn()")) {
+    return Message::kNoColumnInfo;
+  }
+  ENTER_V8;
+  i::HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> column = GetProperty(self, "column");
+  if (!column->IsSmi()) {
+    return Message::kNoColumnInfo;
+  }
+  return i::Smi::cast(*column)->value();
+}
+
+
+Local<String> StackFrame::GetScriptName() const {
+  if (IsDeadCheck("v8::StackFrame::GetScriptName()")) return Local<String>();
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> name = GetProperty(self, "scriptName");
+  if (!name->IsString()) {
+    return Local<String>();
+  }
+  return scope.Close(Local<String>::Cast(Utils::ToLocal(name)));
+}
+
+
+Local<String> StackFrame::GetScriptNameOrSourceURL() const {
+  if (IsDeadCheck("v8::StackFrame::GetScriptNameOrSourceURL()")) {
+    return Local<String>();
+  }
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> name = GetProperty(self, "scriptNameOrSourceURL");
+  if (!name->IsString()) {
+    return Local<String>();
+  }
+  return scope.Close(Local<String>::Cast(Utils::ToLocal(name)));
+}
+
+
+Local<String> StackFrame::GetFunctionName() const {
+  if (IsDeadCheck("v8::StackFrame::GetFunctionName()")) return Local<String>();
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> name = GetProperty(self, "functionName");
+  if (!name->IsString()) {
+    return Local<String>();
+  }
+  return scope.Close(Local<String>::Cast(Utils::ToLocal(name)));
+}
+
+
+bool StackFrame::IsEval() const {
+  if (IsDeadCheck("v8::StackFrame::IsEval()")) return false;
+  ENTER_V8;
+  i::HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> is_eval = GetProperty(self, "isEval");
+  return is_eval->IsTrue();
+}
+
+
+bool StackFrame::IsConstructor() const {
+  if (IsDeadCheck("v8::StackFrame::IsConstructor()")) return false;
+  ENTER_V8;
+  i::HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> is_constructor = GetProperty(self, "isConstructor");
+  return is_constructor->IsTrue();
 }
 
 
@@ -1577,10 +1835,29 @@ bool Value::IsInt32() const {
 }
 
 
+bool Value::IsUint32() const {
+  if (IsDeadCheck("v8::Value::IsUint32()")) return false;
+  i::Handle<i::Object> obj = Utils::OpenHandle(this);
+  if (obj->IsSmi()) return i::Smi::cast(*obj)->value() >= 0;
+  if (obj->IsNumber()) {
+    double value = obj->Number();
+    return i::FastUI2D(i::FastD2UI(value)) == value;
+  }
+  return false;
+}
+
+
 bool Value::IsDate() const {
   if (IsDeadCheck("v8::Value::IsDate()")) return false;
   i::Handle<i::Object> obj = Utils::OpenHandle(this);
   return obj->HasSpecificClassOf(i::Heap::Date_symbol());
+}
+
+
+bool Value::IsRegExp() const {
+  if (IsDeadCheck("v8::Value::IsRegExp()")) return false;
+  i::Handle<i::Object> obj = Utils::OpenHandle(this);
+  return obj->IsJSRegExp();
 }
 
 
@@ -1752,6 +2029,15 @@ void v8::Date::CheckCast(v8::Value* that) {
   ApiCheck(obj->HasSpecificClassOf(i::Heap::Date_symbol()),
            "v8::Date::Cast()",
            "Could not convert to date");
+}
+
+
+void v8::RegExp::CheckCast(v8::Value* that) {
+  if (IsDeadCheck("v8::RegExp::Cast()")) return;
+  i::Handle<i::Object> obj = Utils::OpenHandle(that);
+  ApiCheck(obj->IsJSRegExp(),
+           "v8::RegExp::Cast()",
+           "Could not convert to regular expression");
 }
 
 
@@ -1982,6 +2268,23 @@ bool v8::Object::Set(v8::Handle<Value> key, v8::Handle<Value> value,
 }
 
 
+bool v8::Object::Set(uint32_t index, v8::Handle<Value> value) {
+  ON_BAILOUT("v8::Object::Set()", return false);
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::Object> value_obj = Utils::OpenHandle(*value);
+  EXCEPTION_PREAMBLE();
+  i::Handle<i::Object> obj = i::SetElement(
+      self,
+      index,
+      value_obj);
+  has_pending_exception = obj.is_null();
+  EXCEPTION_BAILOUT_CHECK(false);
+  return true;
+}
+
+
 bool v8::Object::ForceSet(v8::Handle<Value> key,
                           v8::Handle<Value> value,
                           v8::PropertyAttribute attribs) {
@@ -2024,6 +2327,18 @@ Local<Value> v8::Object::Get(v8::Handle<Value> key) {
   i::Handle<i::Object> key_obj = Utils::OpenHandle(*key);
   EXCEPTION_PREAMBLE();
   i::Handle<i::Object> result = i::GetProperty(self, key_obj);
+  has_pending_exception = result.is_null();
+  EXCEPTION_BAILOUT_CHECK(Local<Value>());
+  return Utils::ToLocal(result);
+}
+
+
+Local<Value> v8::Object::Get(uint32_t index) {
+  ON_BAILOUT("v8::Object::Get()", return Local<v8::Value>());
+  ENTER_V8;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  EXCEPTION_PREAMBLE();
+  i::Handle<i::Object> result = i::GetElement(self, index);
   has_pending_exception = result.is_null();
   EXCEPTION_BAILOUT_CHECK(Local<Value>());
   return Utils::ToLocal(result);
@@ -2114,26 +2429,34 @@ Local<String> v8::Object::ObjectProtoToString() {
       int postfix_len = i::StrLength(postfix);
 
       int buf_len = prefix_len + str_len + postfix_len;
-      char* buf = i::NewArray<char>(buf_len);
+      i::ScopedVector<char> buf(buf_len);
 
       // Write prefix.
-      char* ptr = buf;
+      char* ptr = buf.start();
       memcpy(ptr, prefix, prefix_len * v8::internal::kCharSize);
       ptr += prefix_len;
 
       // Write real content.
-      str->WriteAscii(ptr, 0, str_len);
+      str->WriteAscii(ptr, 0, str_len, static_cast<v8::String::WriteHints>(0));
       ptr += str_len;
 
       // Write postfix.
       memcpy(ptr, postfix, postfix_len * v8::internal::kCharSize);
 
       // Copy the buffer into a heap-allocated string and return it.
-      Local<String> result = v8::String::New(buf, buf_len);
-      i::DeleteArray(buf);
+      Local<String> result = v8::String::New(buf.start(), buf_len);
       return result;
     }
   }
+}
+
+
+Local<String> v8::Object::GetConstructorName() {
+  ON_BAILOUT("v8::Object::GetConstructorName()", return Local<v8::String>());
+  ENTER_V8;
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  i::Handle<i::String> name(self->constructor_name());
+  return Utils::ToLocal(name);
 }
 
 
@@ -2169,6 +2492,23 @@ bool v8::Object::Has(uint32_t index) {
   ON_BAILOUT("v8::Object::HasProperty()", return false);
   i::Handle<i::JSObject> self = Utils::OpenHandle(this);
   return self->HasElement(index);
+}
+
+
+bool Object::SetAccessor(Handle<String> name,
+                         AccessorGetter getter,
+                         AccessorSetter setter,
+                         v8::Handle<Value> data,
+                         AccessControl settings,
+                         PropertyAttribute attributes) {
+  ON_BAILOUT("v8::Object::SetAccessor()", return false);
+  ENTER_V8;
+  HandleScope scope;
+  i::Handle<i::AccessorInfo> info = MakeAccessorInfo(name,
+                                                     getter, setter, data,
+                                                     settings, attributes);
+  i::Handle<i::Object> result = i::SetAccessor(Utils::OpenHandle(this), info);
+  return !result.is_null() && !result->IsUndefined();
 }
 
 
@@ -2216,10 +2556,12 @@ Local<Value> v8::Object::GetRealNamedPropertyInPrototypeChain(
   self_obj->LookupRealNamedPropertyInPrototypes(*key_obj, &lookup);
   if (lookup.IsProperty()) {
     PropertyAttributes attributes;
-    i::Handle<i::Object> result(self_obj->GetProperty(*self_obj,
-                                                      &lookup,
-                                                      *key_obj,
-                                                      &attributes));
+    i::Object* property =
+        self_obj->GetProperty(*self_obj,
+                              &lookup,
+                              *key_obj,
+                              &attributes)->ToObjectUnchecked();
+    i::Handle<i::Object> result(property);
     return Utils::ToLocal(result);
   }
   return Local<Value>();  // No real property was found in prototype chain.
@@ -2235,10 +2577,12 @@ Local<Value> v8::Object::GetRealNamedProperty(Handle<String> key) {
   self_obj->LookupRealNamedProperty(*key_obj, &lookup);
   if (lookup.IsProperty()) {
     PropertyAttributes attributes;
-    i::Handle<i::Object> result(self_obj->GetProperty(*self_obj,
-                                                      &lookup,
-                                                      *key_obj,
-                                                      &attributes));
+    i::Object* property =
+        self_obj->GetProperty(*self_obj,
+                              &lookup,
+                              *key_obj,
+                              &attributes)->ToObjectUnchecked();
+    i::Handle<i::Object> result(property);
     return Utils::ToLocal(result);
   }
   return Local<Value>();  // No real property was found in prototype chain.
@@ -2379,7 +2723,39 @@ void v8::Object::SetIndexedPropertiesToPixelData(uint8_t* data, int length) {
     return;
   }
   i::Handle<i::PixelArray> pixels = i::Factory::NewPixelArray(length, data);
+  i::Handle<i::Map> slow_map =
+      i::Factory::GetSlowElementsMap(i::Handle<i::Map>(self->map()));
+  self->set_map(*slow_map);
   self->set_elements(*pixels);
+}
+
+
+bool v8::Object::HasIndexedPropertiesInPixelData() {
+  ON_BAILOUT("v8::HasIndexedPropertiesInPixelData()", return false);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  return self->HasPixelElements();
+}
+
+
+uint8_t* v8::Object::GetIndexedPropertiesPixelData() {
+  ON_BAILOUT("v8::GetIndexedPropertiesPixelData()", return NULL);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  if (self->HasPixelElements()) {
+    return i::PixelArray::cast(self->elements())->external_pointer();
+  } else {
+    return NULL;
+  }
+}
+
+
+int v8::Object::GetIndexedPropertiesPixelDataLength() {
+  ON_BAILOUT("v8::GetIndexedPropertiesPixelDataLength()", return -1);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  if (self->HasPixelElements()) {
+    return i::PixelArray::cast(self->elements())->length();
+  } else {
+    return -1;
+  }
 }
 
 
@@ -2403,7 +2779,64 @@ void v8::Object::SetIndexedPropertiesToExternalArrayData(
   }
   i::Handle<i::ExternalArray> array =
       i::Factory::NewExternalArray(length, array_type, data);
+  i::Handle<i::Map> slow_map =
+      i::Factory::GetSlowElementsMap(i::Handle<i::Map>(self->map()));
+  self->set_map(*slow_map);
   self->set_elements(*array);
+}
+
+
+bool v8::Object::HasIndexedPropertiesInExternalArrayData() {
+  ON_BAILOUT("v8::HasIndexedPropertiesInExternalArrayData()", return false);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  return self->HasExternalArrayElements();
+}
+
+
+void* v8::Object::GetIndexedPropertiesExternalArrayData() {
+  ON_BAILOUT("v8::GetIndexedPropertiesExternalArrayData()", return NULL);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  if (self->HasExternalArrayElements()) {
+    return i::ExternalArray::cast(self->elements())->external_pointer();
+  } else {
+    return NULL;
+  }
+}
+
+
+ExternalArrayType v8::Object::GetIndexedPropertiesExternalArrayDataType() {
+  ON_BAILOUT("v8::GetIndexedPropertiesExternalArrayDataType()",
+             return static_cast<ExternalArrayType>(-1));
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  switch (self->elements()->map()->instance_type()) {
+    case i::EXTERNAL_BYTE_ARRAY_TYPE:
+      return kExternalByteArray;
+    case i::EXTERNAL_UNSIGNED_BYTE_ARRAY_TYPE:
+      return kExternalUnsignedByteArray;
+    case i::EXTERNAL_SHORT_ARRAY_TYPE:
+      return kExternalShortArray;
+    case i::EXTERNAL_UNSIGNED_SHORT_ARRAY_TYPE:
+      return kExternalUnsignedShortArray;
+    case i::EXTERNAL_INT_ARRAY_TYPE:
+      return kExternalIntArray;
+    case i::EXTERNAL_UNSIGNED_INT_ARRAY_TYPE:
+      return kExternalUnsignedIntArray;
+    case i::EXTERNAL_FLOAT_ARRAY_TYPE:
+      return kExternalFloatArray;
+    default:
+      return static_cast<ExternalArrayType>(-1);
+  }
+}
+
+
+int v8::Object::GetIndexedPropertiesExternalArrayDataLength() {
+  ON_BAILOUT("v8::GetIndexedPropertiesExternalArrayDataLength()", return 0);
+  i::Handle<i::JSObject> self = Utils::OpenHandle(this);
+  if (self->HasExternalArrayElements()) {
+    return i::ExternalArray::cast(self->elements())->length();
+  } else {
+    return -1;
+  }
 }
 
 
@@ -2570,12 +3003,20 @@ int String::Utf8Length() const {
 }
 
 
-int String::WriteUtf8(char* buffer, int capacity) const {
+int String::WriteUtf8(char* buffer,
+                      int capacity,
+                      int* nchars_ref,
+                      WriteHints hints) const {
   if (IsDeadCheck("v8::String::WriteUtf8()")) return 0;
   LOG_API("String::WriteUtf8");
   ENTER_V8;
   i::Handle<i::String> str = Utils::OpenHandle(this);
   StringTracker::RecordWrite(str);
+  if (hints & HINT_MANY_WRITES_EXPECTED) {
+    // Flatten the string for efficiency.  This applies whether we are
+    // using StringInputBuffer or Get(i) to access the characters.
+    str->TryFlatten();
+  }
   write_input_buffer.Reset(0, *str);
   int len = str->length();
   // Encode the first K - 3 bytes directly into the buffer since we
@@ -2584,10 +3025,12 @@ int String::WriteUtf8(char* buffer, int capacity) const {
   int fast_end = capacity - (unibrow::Utf8::kMaxEncodedSize - 1);
   int i;
   int pos = 0;
+  int nchars = 0;
   for (i = 0; i < len && (capacity == -1 || pos < fast_end); i++) {
     i::uc32 c = write_input_buffer.GetNext();
     int written = unibrow::Utf8::Encode(buffer + pos, c);
     pos += written;
+    nchars++;
   }
   if (i < len) {
     // For the last characters we need to check the length for each one
@@ -2601,28 +3044,34 @@ int String::WriteUtf8(char* buffer, int capacity) const {
         for (int j = 0; j < written; j++)
           buffer[pos + j] = intermediate[j];
         pos += written;
+        nchars++;
       } else {
         // We've reached the end of the buffer
         break;
       }
     }
   }
+  if (nchars_ref != NULL) *nchars_ref = nchars;
   if (i == len && (capacity == -1 || pos < capacity))
     buffer[pos++] = '\0';
   return pos;
 }
 
-
-int String::WriteAscii(char* buffer, int start, int length) const {
+int String::WriteAscii(char* buffer,
+                       int start,
+                       int length,
+                       WriteHints hints) const {
   if (IsDeadCheck("v8::String::WriteAscii()")) return 0;
   LOG_API("String::WriteAscii");
   ENTER_V8;
   ASSERT(start >= 0 && length >= -1);
   i::Handle<i::String> str = Utils::OpenHandle(this);
   StringTracker::RecordWrite(str);
-  // Flatten the string for efficiency.  This applies whether we are
-  // using StringInputBuffer or Get(i) to access the characters.
-  str->TryFlattenIfNotFlat();
+  if (hints & HINT_MANY_WRITES_EXPECTED) {
+    // Flatten the string for efficiency.  This applies whether we are
+    // using StringInputBuffer or Get(i) to access the characters.
+    str->TryFlatten();
+  }
   int end = length;
   if ( (length == -1) || (length > str->length() - start) )
     end = str->length() - start;
@@ -2639,14 +3088,21 @@ int String::WriteAscii(char* buffer, int start, int length) const {
   return i;
 }
 
-
-int String::Write(uint16_t* buffer, int start, int length) const {
+int String::Write(uint16_t* buffer,
+                  int start,
+                  int length,
+                  WriteHints hints) const {
   if (IsDeadCheck("v8::String::Write()")) return 0;
   LOG_API("String::Write");
   ENTER_V8;
   ASSERT(start >= 0 && length >= -1);
   i::Handle<i::String> str = Utils::OpenHandle(this);
   StringTracker::RecordWrite(str);
+  if (hints & HINT_MANY_WRITES_EXPECTED) {
+    // Flatten the string for efficiency.  This applies whether we are
+    // using StringInputBuffer or Get(i) to access the characters.
+    str->TryFlatten();
+  }
   int end = length;
   if ( (length == -1) || (length > str->length() - start) )
     end = str->length() - start;
@@ -2735,6 +3191,17 @@ int32_t Int32::Value() const {
 }
 
 
+uint32_t Uint32::Value() const {
+  if (IsDeadCheck("v8::Uint32::Value()")) return 0;
+  i::Handle<i::Object> obj = Utils::OpenHandle(this);
+  if (obj->IsSmi()) {
+    return i::Smi::cast(*obj)->value();
+  } else {
+    return static_cast<uint32_t>(obj->Number());
+  }
+}
+
+
 int v8::Object::InternalFieldCount() {
   if (IsDeadCheck("v8::Object::InternalFieldCount()")) return 0;
   i::Handle<i::JSObject> obj = Utils::OpenHandle(this);
@@ -2774,17 +3241,35 @@ void v8::Object::SetInternalField(int index, v8::Handle<Value> value) {
 }
 
 
+static bool CanBeEncodedAsSmi(void* ptr) {
+  const uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+  return ((address & i::kEncodablePointerMask) == 0);
+}
+
+
+static i::Smi* EncodeAsSmi(void* ptr) {
+  ASSERT(CanBeEncodedAsSmi(ptr));
+  const uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+  i::Smi* result = reinterpret_cast<i::Smi*>(address << i::kPointerToSmiShift);
+  ASSERT(i::Internals::HasSmiTag(result));
+  ASSERT_EQ(result, i::Smi::FromInt(result->value()));
+  ASSERT_EQ(ptr, i::Internals::GetExternalPointerFromSmi(result));
+  return result;
+}
+
+
 void v8::Object::SetPointerInInternalField(int index, void* value) {
-  i::Object* as_object = reinterpret_cast<i::Object*>(value);
-  if (as_object->IsSmi()) {
-    Utils::OpenHandle(this)->SetInternalField(index, as_object);
-    return;
+  ENTER_V8;
+  if (CanBeEncodedAsSmi(value)) {
+    Utils::OpenHandle(this)->SetInternalField(index, EncodeAsSmi(value));
+  } else {
+    HandleScope scope;
+    i::Handle<i::Proxy> proxy =
+        i::Factory::NewProxy(reinterpret_cast<i::Address>(value), i::TENURED);
+    if (!proxy.is_null())
+        Utils::OpenHandle(this)->SetInternalField(index, *proxy);
   }
-  HandleScope scope;
-  i::Handle<i::Proxy> proxy =
-      i::Factory::NewProxy(reinterpret_cast<i::Address>(value), i::TENURED);
-  if (!proxy.is_null())
-      Utils::OpenHandle(this)->SetInternalField(index, *proxy);
+  ASSERT_EQ(value, GetPointerFromInternalField(index));
 }
 
 
@@ -2805,11 +3290,15 @@ bool v8::V8::Dispose() {
 }
 
 
-HeapStatistics::HeapStatistics(): total_heap_size_(0), used_heap_size_(0) { }
+HeapStatistics::HeapStatistics(): total_heap_size_(0),
+                                  total_heap_size_executable_(0),
+                                  used_heap_size_(0) { }
 
 
 void v8::V8::GetHeapStatistics(HeapStatistics* heap_statistics) {
   heap_statistics->set_total_heap_size(i::Heap::CommittedMemory());
+  heap_statistics->set_total_heap_size_executable(
+      i::Heap::CommittedMemoryExecutable());
   heap_statistics->set_used_heap_size(i::Heap::SizeOfObjects());
 }
 
@@ -2825,6 +3314,17 @@ bool v8::V8::IdleNotification() {
 void v8::V8::LowMemoryNotification() {
   if (!i::V8::IsRunning()) return;
   i::Heap::CollectAllGarbage(true);
+}
+
+void v8::V8::LowIntensityGC() {
+  // New API to perform a light GC attempt.
+  if (!i::V8::IsRunning()) return;
+  i::Heap::CollectGarbage(i::NEW_SPACE);
+}
+
+int v8::V8::ContextDisposedNotification() {
+  if (!i::V8::IsRunning()) return 0;
+  return i::Heap::NotifyContextDisposed();
 }
 
 
@@ -2854,14 +3354,6 @@ Persistent<Context> v8::Context::New(
   EnsureInitialized("v8::Context::New()");
   LOG_API("Context::New");
   ON_BAILOUT("v8::Context::New()", return Persistent<Context>());
-
-#if defined(ANDROID)
-  // On mobile device, full GC is expensive, leave it to the system to
-  // decide when should make a full GC.
-#else
-  // Give the heap a chance to cleanup if we've disposed contexts.
-  i::Heap::CollectAllGarbageIfContextDisposed();
-#endif
 
   // Enter V8 via an ENTER_V8 scope.
   i::Handle<i::Context> env;
@@ -3065,11 +3557,13 @@ Local<Value> v8::External::Wrap(void* data) {
   LOG_API("External::Wrap");
   EnsureInitialized("v8::External::Wrap()");
   ENTER_V8;
-  i::Object* as_object = reinterpret_cast<i::Object*>(data);
-  if (as_object->IsSmi()) {
-    return Utils::ToLocal(i::Handle<i::Object>(as_object));
-  }
-  return ExternalNewImpl(data);
+
+  v8::Local<v8::Value> result = CanBeEncodedAsSmi(data)
+      ? Utils::ToLocal(i::Handle<i::Object>(EncodeAsSmi(data)))
+      : v8::Local<v8::Value>(ExternalNewImpl(data));
+
+  ASSERT_EQ(data, Unwrap(result));
+  return result;
 }
 
 
@@ -3077,7 +3571,7 @@ void* v8::Object::SlowGetPointerFromInternalField(int index) {
   i::Handle<i::JSObject> obj = Utils::OpenHandle(this);
   i::Object* value = obj->GetInternalField(index);
   if (value->IsSmi()) {
-    return value;
+    return i::Internals::GetExternalPointerFromSmi(value);
   } else if (value->IsProxy()) {
     return reinterpret_cast<void*>(i::Proxy::cast(value)->proxy());
   } else {
@@ -3091,8 +3585,7 @@ void* v8::External::FullUnwrap(v8::Handle<v8::Value> wrapper) {
   i::Handle<i::Object> obj = Utils::OpenHandle(*wrapper);
   void* result;
   if (obj->IsSmi()) {
-    // The external value was an aligned pointer.
-    result = *obj;
+    result = i::Internals::GetExternalPointerFromSmi(*obj);
   } else if (obj->IsProxy()) {
     result = ExternalValueImpl(obj);
   } else {
@@ -3307,6 +3800,57 @@ double v8::Date::NumberValue() const {
 }
 
 
+static i::Handle<i::String> RegExpFlagsToString(RegExp::Flags flags) {
+  char flags_buf[3];
+  int num_flags = 0;
+  if ((flags & RegExp::kGlobal) != 0) flags_buf[num_flags++] = 'g';
+  if ((flags & RegExp::kMultiline) != 0) flags_buf[num_flags++] = 'm';
+  if ((flags & RegExp::kIgnoreCase) != 0) flags_buf[num_flags++] = 'i';
+  ASSERT(num_flags <= static_cast<int>(ARRAY_SIZE(flags_buf)));
+  return i::Factory::LookupSymbol(
+      i::Vector<const char>(flags_buf, num_flags));
+}
+
+
+Local<v8::RegExp> v8::RegExp::New(Handle<String> pattern,
+                                  Flags flags) {
+  EnsureInitialized("v8::RegExp::New()");
+  LOG_API("RegExp::New");
+  ENTER_V8;
+  EXCEPTION_PREAMBLE();
+  i::Handle<i::JSRegExp> obj = i::Execution::NewJSRegExp(
+      Utils::OpenHandle(*pattern),
+      RegExpFlagsToString(flags),
+      &has_pending_exception);
+  EXCEPTION_BAILOUT_CHECK(Local<v8::RegExp>());
+  return Utils::ToLocal(i::Handle<i::JSRegExp>::cast(obj));
+}
+
+
+Local<v8::String> v8::RegExp::GetSource() const {
+  if (IsDeadCheck("v8::RegExp::GetSource()")) return Local<v8::String>();
+  i::Handle<i::JSRegExp> obj = Utils::OpenHandle(this);
+  return Utils::ToLocal(i::Handle<i::String>(obj->Pattern()));
+}
+
+
+// Assert that the static flags cast in GetFlags is valid.
+#define REGEXP_FLAG_ASSERT_EQ(api_flag, internal_flag)        \
+  STATIC_ASSERT(static_cast<int>(v8::RegExp::api_flag) ==     \
+                static_cast<int>(i::JSRegExp::internal_flag))
+REGEXP_FLAG_ASSERT_EQ(kNone, NONE);
+REGEXP_FLAG_ASSERT_EQ(kGlobal, GLOBAL);
+REGEXP_FLAG_ASSERT_EQ(kIgnoreCase, IGNORE_CASE);
+REGEXP_FLAG_ASSERT_EQ(kMultiline, MULTILINE);
+#undef REGEXP_FLAG_ASSERT_EQ
+
+v8::RegExp::Flags v8::RegExp::GetFlags() const {
+  if (IsDeadCheck("v8::RegExp::GetFlags()")) return v8::RegExp::kNone;
+  i::Handle<i::JSRegExp> obj = Utils::OpenHandle(this);
+  return static_cast<RegExp::Flags>(obj->GetFlags().value());
+}
+
+
 Local<v8::Array> v8::Array::New(int length) {
   EnsureInitialized("v8::Array::New()");
   LOG_API("Array::New");
@@ -3341,6 +3885,7 @@ Local<Object> Array::CloneElementAt(uint32_t index) {
   }
   i::Handle<i::JSObject> paragon_handle(i::JSObject::cast(paragon));
   EXCEPTION_PREAMBLE();
+  ENTER_V8;
   i::Handle<i::JSObject> result = i::Copy(paragon_handle);
   has_pending_exception = result.is_null();
   EXCEPTION_BAILOUT_CHECK(Local<Object>());
@@ -3432,6 +3977,17 @@ void V8::RemoveMessageListeners(MessageCallback that) {
 }
 
 
+void V8::SetCaptureStackTraceForUncaughtExceptions(
+      bool capture,
+      int frame_limit,
+      StackTrace::StackTraceOptions options) {
+  i::Top::SetCaptureStackTraceForUncaughtExceptions(
+      capture,
+      frame_limit,
+      options);
+}
+
+
 void V8::SetCounterFunction(CounterLookupCallback callback) {
   if (IsDeadCheck("v8::V8::SetCounterFunction()")) return;
   i::StatsTable::SetCounterFunction(callback);
@@ -3485,6 +4041,46 @@ void V8::SetGlobalGCEpilogueCallback(GCCallback callback) {
 }
 
 
+void V8::AddGCPrologueCallback(GCPrologueCallback callback, GCType gc_type) {
+  if (IsDeadCheck("v8::V8::AddGCPrologueCallback()")) return;
+  i::Heap::AddGCPrologueCallback(callback, gc_type);
+}
+
+
+void V8::RemoveGCPrologueCallback(GCPrologueCallback callback) {
+  if (IsDeadCheck("v8::V8::RemoveGCPrologueCallback()")) return;
+  i::Heap::RemoveGCPrologueCallback(callback);
+}
+
+
+void V8::AddGCEpilogueCallback(GCEpilogueCallback callback, GCType gc_type) {
+  if (IsDeadCheck("v8::V8::AddGCEpilogueCallback()")) return;
+  i::Heap::AddGCEpilogueCallback(callback, gc_type);
+}
+
+
+void V8::RemoveGCEpilogueCallback(GCEpilogueCallback callback) {
+  if (IsDeadCheck("v8::V8::RemoveGCEpilogueCallback()")) return;
+  i::Heap::RemoveGCEpilogueCallback(callback);
+}
+
+
+void V8::AddMemoryAllocationCallback(MemoryAllocationCallback callback,
+                                     ObjectSpace space,
+                                     AllocationAction action) {
+  if (IsDeadCheck("v8::V8::AddMemoryAllocationCallback()")) return;
+  i::MemoryAllocator::AddMemoryAllocationCallback(callback,
+                                                  space,
+                                                  action);
+}
+
+
+void V8::RemoveMemoryAllocationCallback(MemoryAllocationCallback callback) {
+  if (IsDeadCheck("v8::V8::RemoveMemoryAllocationCallback()")) return;
+  i::MemoryAllocator::RemoveMemoryAllocationCallback(callback);
+}
+
+
 void V8::PauseProfiler() {
 #ifdef ENABLE_LOGGING_AND_PROFILING
   PauseProfilerEx(PROFILER_MODULE_CPU);
@@ -3515,6 +4111,8 @@ void V8::ResumeProfilerEx(int flags, int tag) {
     // those modules which haven't been started prior to making a
     // snapshot.
 
+    // Make a GC prior to taking a snapshot.
+    i::Heap::CollectAllGarbage(false);
     // Reset snapshot flag and CPU module flags.
     flags &= ~(PROFILER_MODULE_HEAP_SNAPSHOT | PROFILER_MODULE_CPU);
     const int current_flags = i::Logger::GetActiveProfilerModules();
@@ -3546,6 +4144,7 @@ int V8::GetActiveProfilerModules() {
 
 int V8::GetLogLines(int from_pos, char* dest_buf, int max_size) {
 #ifdef ENABLE_LOGGING_AND_PROFILING
+  ASSERT(max_size >= kMinimumSizeForLogLinesBuffer);
   return i::Logger::GetLogLines(from_pos, dest_buf, max_size);
 #endif
   return 0;
@@ -3579,6 +4178,15 @@ void V8::TerminateExecution() {
 }
 
 
+bool V8::IsExecutionTerminating() {
+  if (!i::V8::IsRunning()) return false;
+  if (i::Top::has_scheduled_exception()) {
+    return i::Top::scheduled_exception() == i::Heap::termination_exception();
+  }
+  return false;
+}
+
+
 String::Utf8Value::Utf8Value(v8::Handle<v8::Value> obj) {
   EnsureInitialized("v8::String::Utf8Value::Utf8Value()");
   if (obj.IsEmpty()) {
@@ -3596,7 +4204,7 @@ String::Utf8Value::Utf8Value(v8::Handle<v8::Value> obj) {
   } else {
     length_ = str->Utf8Length();
     str_ = i::NewArray<char>(length_ + 1);
-    str->WriteUtf8(str_);
+    str->WriteUtf8(str_, -1, NULL, NO_HINTS);
   }
 }
 
@@ -3623,7 +4231,7 @@ String::AsciiValue::AsciiValue(v8::Handle<v8::Value> obj) {
   } else {
     length_ = str->Length();
     str_ = i::NewArray<char>(length_ + 1);
-    str->WriteAscii(str_);
+    str->WriteAscii(str_,-1,NULL,NO_HINTS);
   }
 }
 
@@ -3650,7 +4258,7 @@ String::Value::Value(v8::Handle<v8::Value> obj) {
   } else {
     length_ = str->Length();
     str_ = i::NewArray<uint16_t>(length_ + 1);
-    str->Write(str_);
+    str->Write(str_,-1, NULL, NO_HINTS);
   }
 }
 
@@ -3738,9 +4346,39 @@ Local<Value> Exception::Error(v8::Handle<v8::String> raw_message) {
 // --- D e b u g   S u p p o r t ---
 
 #ifdef ENABLE_DEBUGGER_SUPPORT
+
+static v8::Debug::EventCallback event_callback = NULL;
+
+static void EventCallbackWrapper(const v8::Debug::EventDetails& event_details) {
+  if (event_callback) {
+    event_callback(event_details.GetEvent(),
+                   event_details.GetExecutionState(),
+                   event_details.GetEventData(),
+                   event_details.GetCallbackData());
+  }
+}
+
+
 bool Debug::SetDebugEventListener(EventCallback that, Handle<Value> data) {
   EnsureInitialized("v8::Debug::SetDebugEventListener()");
   ON_BAILOUT("v8::Debug::SetDebugEventListener()", return false);
+  ENTER_V8;
+
+  event_callback = that;
+
+  HandleScope scope;
+  i::Handle<i::Object> proxy = i::Factory::undefined_value();
+  if (that != NULL) {
+    proxy = i::Factory::NewProxy(FUNCTION_ADDR(EventCallbackWrapper));
+  }
+  i::Debugger::SetEventListener(proxy, Utils::OpenHandle(*data));
+  return true;
+}
+
+
+bool Debug::SetDebugEventListener2(EventCallback2 that, Handle<Value> data) {
+  EnsureInitialized("v8::Debug::SetDebugEventListener2()");
+  ON_BAILOUT("v8::Debug::SetDebugEventListener2()", return false);
   ENTER_V8;
   HandleScope scope;
   i::Handle<i::Object> proxy = i::Factory::undefined_value();
@@ -3765,6 +4403,17 @@ bool Debug::SetDebugEventListener(v8::Handle<v8::Object> that,
 void Debug::DebugBreak() {
   if (!i::V8::IsRunning()) return;
   i::StackGuard::DebugBreak();
+}
+
+
+void Debug::CancelDebugBreak() {
+  i::StackGuard::Continue(i::DEBUGBREAK);
+}
+
+
+void Debug::DebugBreakForCommand(ClientData* data) {
+  if (!i::V8::IsRunning()) return;
+  i::Debugger::EnqueueDebugCommand(data);
 }
 
 
@@ -3878,7 +4527,437 @@ void Debug::ProcessDebugMessages() {
   i::Execution::ProcessDebugMesssages(true);
 }
 
+Local<Context> Debug::GetDebugContext() {
+  EnsureInitialized("v8::Debug::GetDebugContext()");
+  ENTER_V8;
+  return Utils::ToLocal(i::Debugger::GetDebugContext());
+}
+
 #endif  // ENABLE_DEBUGGER_SUPPORT
+
+
+#ifdef ENABLE_LOGGING_AND_PROFILING
+
+Handle<String> CpuProfileNode::GetFunctionName() const {
+  IsDeadCheck("v8::CpuProfileNode::GetFunctionName");
+  const i::ProfileNode* node = reinterpret_cast<const i::ProfileNode*>(this);
+  const i::CodeEntry* entry = node->entry();
+  if (!entry->has_name_prefix()) {
+    return Handle<String>(ToApi<String>(
+        i::Factory::LookupAsciiSymbol(entry->name())));
+  } else {
+    return Handle<String>(ToApi<String>(i::Factory::NewConsString(
+        i::Factory::LookupAsciiSymbol(entry->name_prefix()),
+        i::Factory::LookupAsciiSymbol(entry->name()))));
+  }
+}
+
+
+Handle<String> CpuProfileNode::GetScriptResourceName() const {
+  IsDeadCheck("v8::CpuProfileNode::GetScriptResourceName");
+  const i::ProfileNode* node = reinterpret_cast<const i::ProfileNode*>(this);
+  return Handle<String>(ToApi<String>(i::Factory::LookupAsciiSymbol(
+      node->entry()->resource_name())));
+}
+
+
+int CpuProfileNode::GetLineNumber() const {
+  IsDeadCheck("v8::CpuProfileNode::GetLineNumber");
+  return reinterpret_cast<const i::ProfileNode*>(this)->entry()->line_number();
+}
+
+
+double CpuProfileNode::GetTotalTime() const {
+  IsDeadCheck("v8::CpuProfileNode::GetTotalTime");
+  return reinterpret_cast<const i::ProfileNode*>(this)->GetTotalMillis();
+}
+
+
+double CpuProfileNode::GetSelfTime() const {
+  IsDeadCheck("v8::CpuProfileNode::GetSelfTime");
+  return reinterpret_cast<const i::ProfileNode*>(this)->GetSelfMillis();
+}
+
+
+double CpuProfileNode::GetTotalSamplesCount() const {
+  IsDeadCheck("v8::CpuProfileNode::GetTotalSamplesCount");
+  return reinterpret_cast<const i::ProfileNode*>(this)->total_ticks();
+}
+
+
+double CpuProfileNode::GetSelfSamplesCount() const {
+  IsDeadCheck("v8::CpuProfileNode::GetSelfSamplesCount");
+  return reinterpret_cast<const i::ProfileNode*>(this)->self_ticks();
+}
+
+
+unsigned CpuProfileNode::GetCallUid() const {
+  IsDeadCheck("v8::CpuProfileNode::GetCallUid");
+  return reinterpret_cast<const i::ProfileNode*>(this)->entry()->GetCallUid();
+}
+
+
+int CpuProfileNode::GetChildrenCount() const {
+  IsDeadCheck("v8::CpuProfileNode::GetChildrenCount");
+  return reinterpret_cast<const i::ProfileNode*>(this)->children()->length();
+}
+
+
+const CpuProfileNode* CpuProfileNode::GetChild(int index) const {
+  IsDeadCheck("v8::CpuProfileNode::GetChild");
+  const i::ProfileNode* child =
+      reinterpret_cast<const i::ProfileNode*>(this)->children()->at(index);
+  return reinterpret_cast<const CpuProfileNode*>(child);
+}
+
+
+unsigned CpuProfile::GetUid() const {
+  IsDeadCheck("v8::CpuProfile::GetUid");
+  return reinterpret_cast<const i::CpuProfile*>(this)->uid();
+}
+
+
+Handle<String> CpuProfile::GetTitle() const {
+  IsDeadCheck("v8::CpuProfile::GetTitle");
+  const i::CpuProfile* profile = reinterpret_cast<const i::CpuProfile*>(this);
+  return Handle<String>(ToApi<String>(i::Factory::LookupAsciiSymbol(
+      profile->title())));
+}
+
+
+const CpuProfileNode* CpuProfile::GetBottomUpRoot() const {
+  IsDeadCheck("v8::CpuProfile::GetBottomUpRoot");
+  const i::CpuProfile* profile = reinterpret_cast<const i::CpuProfile*>(this);
+  return reinterpret_cast<const CpuProfileNode*>(profile->bottom_up()->root());
+}
+
+
+const CpuProfileNode* CpuProfile::GetTopDownRoot() const {
+  IsDeadCheck("v8::CpuProfile::GetTopDownRoot");
+  const i::CpuProfile* profile = reinterpret_cast<const i::CpuProfile*>(this);
+  return reinterpret_cast<const CpuProfileNode*>(profile->top_down()->root());
+}
+
+
+int CpuProfiler::GetProfilesCount() {
+  IsDeadCheck("v8::CpuProfiler::GetProfilesCount");
+  return i::CpuProfiler::GetProfilesCount();
+}
+
+
+const CpuProfile* CpuProfiler::GetProfile(int index,
+                                          Handle<Value> security_token) {
+  IsDeadCheck("v8::CpuProfiler::GetProfile");
+  return reinterpret_cast<const CpuProfile*>(
+      i::CpuProfiler::GetProfile(
+          security_token.IsEmpty() ? NULL : *Utils::OpenHandle(*security_token),
+          index));
+}
+
+
+const CpuProfile* CpuProfiler::FindProfile(unsigned uid,
+                                           Handle<Value> security_token) {
+  IsDeadCheck("v8::CpuProfiler::FindProfile");
+  return reinterpret_cast<const CpuProfile*>(
+      i::CpuProfiler::FindProfile(
+          security_token.IsEmpty() ? NULL : *Utils::OpenHandle(*security_token),
+          uid));
+}
+
+
+void CpuProfiler::StartProfiling(Handle<String> title) {
+  IsDeadCheck("v8::CpuProfiler::StartProfiling");
+  i::CpuProfiler::StartProfiling(*Utils::OpenHandle(*title));
+}
+
+
+const CpuProfile* CpuProfiler::StopProfiling(Handle<String> title,
+                                             Handle<Value> security_token) {
+  IsDeadCheck("v8::CpuProfiler::StopProfiling");
+  return reinterpret_cast<const CpuProfile*>(
+      i::CpuProfiler::StopProfiling(
+          security_token.IsEmpty() ? NULL : *Utils::OpenHandle(*security_token),
+          *Utils::OpenHandle(*title)));
+}
+
+
+static i::HeapGraphEdge* ToInternal(const HeapGraphEdge* edge) {
+  return const_cast<i::HeapGraphEdge*>(
+      reinterpret_cast<const i::HeapGraphEdge*>(edge));
+}
+
+HeapGraphEdge::Type HeapGraphEdge::GetType() const {
+  IsDeadCheck("v8::HeapGraphEdge::GetType");
+  return static_cast<HeapGraphEdge::Type>(ToInternal(this)->type());
+}
+
+
+Handle<Value> HeapGraphEdge::GetName() const {
+  IsDeadCheck("v8::HeapGraphEdge::GetName");
+  i::HeapGraphEdge* edge = ToInternal(this);
+  switch (edge->type()) {
+    case i::HeapGraphEdge::kContextVariable:
+    case i::HeapGraphEdge::kInternal:
+    case i::HeapGraphEdge::kProperty:
+    case i::HeapGraphEdge::kShortcut:
+      return Handle<String>(ToApi<String>(i::Factory::LookupAsciiSymbol(
+          edge->name())));
+    case i::HeapGraphEdge::kElement:
+    case i::HeapGraphEdge::kHidden:
+      return Handle<Number>(ToApi<Number>(i::Factory::NewNumberFromInt(
+          edge->index())));
+    default: UNREACHABLE();
+  }
+  return ImplementationUtilities::Undefined();
+}
+
+
+const HeapGraphNode* HeapGraphEdge::GetFromNode() const {
+  IsDeadCheck("v8::HeapGraphEdge::GetFromNode");
+  const i::HeapEntry* from = ToInternal(this)->From();
+  return reinterpret_cast<const HeapGraphNode*>(from);
+}
+
+
+const HeapGraphNode* HeapGraphEdge::GetToNode() const {
+  IsDeadCheck("v8::HeapGraphEdge::GetToNode");
+  const i::HeapEntry* to = ToInternal(this)->to();
+  return reinterpret_cast<const HeapGraphNode*>(to);
+}
+
+
+static i::HeapGraphPath* ToInternal(const HeapGraphPath* path) {
+  return const_cast<i::HeapGraphPath*>(
+      reinterpret_cast<const i::HeapGraphPath*>(path));
+}
+
+
+int HeapGraphPath::GetEdgesCount() const {
+  return ToInternal(this)->path()->length();
+}
+
+
+const HeapGraphEdge* HeapGraphPath::GetEdge(int index) const {
+  return reinterpret_cast<const HeapGraphEdge*>(
+      ToInternal(this)->path()->at(index));
+}
+
+
+const HeapGraphNode* HeapGraphPath::GetFromNode() const {
+  return GetEdgesCount() > 0 ? GetEdge(0)->GetFromNode() : NULL;
+}
+
+
+const HeapGraphNode* HeapGraphPath::GetToNode() const {
+  const int count = GetEdgesCount();
+  return count > 0 ? GetEdge(count - 1)->GetToNode() : NULL;
+}
+
+
+static i::HeapEntry* ToInternal(const HeapGraphNode* entry) {
+  return const_cast<i::HeapEntry*>(
+      reinterpret_cast<const i::HeapEntry*>(entry));
+}
+
+
+HeapGraphNode::Type HeapGraphNode::GetType() const {
+  IsDeadCheck("v8::HeapGraphNode::GetType");
+  return static_cast<HeapGraphNode::Type>(ToInternal(this)->type());
+}
+
+
+Handle<String> HeapGraphNode::GetName() const {
+  IsDeadCheck("v8::HeapGraphNode::GetName");
+  return Handle<String>(ToApi<String>(i::Factory::LookupAsciiSymbol(
+      ToInternal(this)->name())));
+}
+
+
+uint64_t HeapGraphNode::GetId() const {
+  IsDeadCheck("v8::HeapGraphNode::GetId");
+  ASSERT(ToInternal(this)->snapshot()->type() != i::HeapSnapshot::kAggregated);
+  return ToInternal(this)->id();
+}
+
+
+int HeapGraphNode::GetInstancesCount() const {
+  IsDeadCheck("v8::HeapGraphNode::GetInstancesCount");
+  ASSERT(ToInternal(this)->snapshot()->type() == i::HeapSnapshot::kAggregated);
+  return static_cast<int>(ToInternal(this)->id());
+}
+
+
+int HeapGraphNode::GetSelfSize() const {
+  IsDeadCheck("v8::HeapGraphNode::GetSelfSize");
+  return ToInternal(this)->self_size();
+}
+
+
+int HeapGraphNode::GetRetainedSize(bool exact) const {
+  IsDeadCheck("v8::HeapSnapshot::GetRetainedSize");
+  return ToInternal(this)->RetainedSize(exact);
+}
+
+
+int HeapGraphNode::GetChildrenCount() const {
+  IsDeadCheck("v8::HeapSnapshot::GetChildrenCount");
+  return ToInternal(this)->children().length();
+}
+
+
+const HeapGraphEdge* HeapGraphNode::GetChild(int index) const {
+  IsDeadCheck("v8::HeapSnapshot::GetChild");
+  return reinterpret_cast<const HeapGraphEdge*>(
+      &ToInternal(this)->children()[index]);
+}
+
+
+int HeapGraphNode::GetRetainersCount() const {
+  IsDeadCheck("v8::HeapSnapshot::GetRetainersCount");
+  return ToInternal(this)->retainers().length();
+}
+
+
+const HeapGraphEdge* HeapGraphNode::GetRetainer(int index) const {
+  IsDeadCheck("v8::HeapSnapshot::GetRetainer");
+  return reinterpret_cast<const HeapGraphEdge*>(
+      ToInternal(this)->retainers()[index]);
+}
+
+
+int HeapGraphNode::GetRetainingPathsCount() const {
+  IsDeadCheck("v8::HeapSnapshot::GetRetainingPathsCount");
+  return ToInternal(this)->GetRetainingPaths()->length();
+}
+
+
+const HeapGraphPath* HeapGraphNode::GetRetainingPath(int index) const {
+  IsDeadCheck("v8::HeapSnapshot::GetRetainingPath");
+  return reinterpret_cast<const HeapGraphPath*>(
+      ToInternal(this)->GetRetainingPaths()->at(index));
+}
+
+
+const HeapGraphNode* HeapGraphNode::GetDominatorNode() const {
+  IsDeadCheck("v8::HeapSnapshot::GetDominatorNode");
+  return reinterpret_cast<const HeapGraphNode*>(ToInternal(this)->dominator());
+}
+
+
+const HeapGraphNode* HeapSnapshotsDiff::GetAdditionsRoot() const {
+  IsDeadCheck("v8::HeapSnapshotsDiff::GetAdditionsRoot");
+  i::HeapSnapshotsDiff* diff =
+      const_cast<i::HeapSnapshotsDiff*>(
+          reinterpret_cast<const i::HeapSnapshotsDiff*>(this));
+  return reinterpret_cast<const HeapGraphNode*>(diff->additions_root());
+}
+
+
+const HeapGraphNode* HeapSnapshotsDiff::GetDeletionsRoot() const {
+  IsDeadCheck("v8::HeapSnapshotsDiff::GetDeletionsRoot");
+  i::HeapSnapshotsDiff* diff =
+      const_cast<i::HeapSnapshotsDiff*>(
+          reinterpret_cast<const i::HeapSnapshotsDiff*>(this));
+  return reinterpret_cast<const HeapGraphNode*>(diff->deletions_root());
+}
+
+
+static i::HeapSnapshot* ToInternal(const HeapSnapshot* snapshot) {
+  return const_cast<i::HeapSnapshot*>(
+      reinterpret_cast<const i::HeapSnapshot*>(snapshot));
+}
+
+
+HeapSnapshot::Type HeapSnapshot::GetType() const {
+  IsDeadCheck("v8::HeapSnapshot::GetType");
+  return static_cast<HeapSnapshot::Type>(ToInternal(this)->type());
+}
+
+
+unsigned HeapSnapshot::GetUid() const {
+  IsDeadCheck("v8::HeapSnapshot::GetUid");
+  return ToInternal(this)->uid();
+}
+
+
+Handle<String> HeapSnapshot::GetTitle() const {
+  IsDeadCheck("v8::HeapSnapshot::GetTitle");
+  return Handle<String>(ToApi<String>(i::Factory::LookupAsciiSymbol(
+      ToInternal(this)->title())));
+}
+
+
+const HeapGraphNode* HeapSnapshot::GetRoot() const {
+  IsDeadCheck("v8::HeapSnapshot::GetHead");
+  return reinterpret_cast<const HeapGraphNode*>(ToInternal(this)->root());
+}
+
+
+const HeapSnapshotsDiff* HeapSnapshot::CompareWith(
+    const HeapSnapshot* snapshot) const {
+  IsDeadCheck("v8::HeapSnapshot::CompareWith");
+  return reinterpret_cast<const HeapSnapshotsDiff*>(
+      ToInternal(this)->CompareWith(ToInternal(snapshot)));
+}
+
+
+void HeapSnapshot::Serialize(OutputStream* stream,
+                             HeapSnapshot::SerializationFormat format) const {
+  IsDeadCheck("v8::HeapSnapshot::Serialize");
+  ApiCheck(format == kJSON,
+           "v8::HeapSnapshot::Serialize",
+           "Unknown serialization format");
+  ApiCheck(stream->GetOutputEncoding() == OutputStream::kAscii,
+           "v8::HeapSnapshot::Serialize",
+           "Unsupported output encoding");
+  ApiCheck(stream->GetChunkSize() > 0,
+           "v8::HeapSnapshot::Serialize",
+           "Invalid stream chunk size");
+  i::HeapSnapshotJSONSerializer serializer(ToInternal(this));
+  serializer.Serialize(stream);
+}
+
+
+int HeapProfiler::GetSnapshotsCount() {
+  IsDeadCheck("v8::HeapProfiler::GetSnapshotsCount");
+  return i::HeapProfiler::GetSnapshotsCount();
+}
+
+
+const HeapSnapshot* HeapProfiler::GetSnapshot(int index) {
+  IsDeadCheck("v8::HeapProfiler::GetSnapshot");
+  return reinterpret_cast<const HeapSnapshot*>(
+      i::HeapProfiler::GetSnapshot(index));
+}
+
+
+const HeapSnapshot* HeapProfiler::FindSnapshot(unsigned uid) {
+  IsDeadCheck("v8::HeapProfiler::FindSnapshot");
+  return reinterpret_cast<const HeapSnapshot*>(
+      i::HeapProfiler::FindSnapshot(uid));
+}
+
+
+const HeapSnapshot* HeapProfiler::TakeSnapshot(Handle<String> title,
+                                               HeapSnapshot::Type type) {
+  IsDeadCheck("v8::HeapProfiler::TakeSnapshot");
+  i::HeapSnapshot::Type internal_type = i::HeapSnapshot::kFull;
+  switch (type) {
+    case HeapSnapshot::kFull:
+      internal_type = i::HeapSnapshot::kFull;
+      break;
+    case HeapSnapshot::kAggregated:
+      internal_type = i::HeapSnapshot::kAggregated;
+      break;
+    default:
+      UNREACHABLE();
+  }
+  return reinterpret_cast<const HeapSnapshot*>(
+      i::HeapProfiler::TakeSnapshot(*Utils::OpenHandle(*title), internal_type));
+}
+
+#endif  // ENABLE_LOGGING_AND_PROFILING
+
 
 namespace internal {
 

@@ -84,9 +84,7 @@ struct ifreq *ifr;
 }
 
 int
-sock_ioctl(tcp, code, arg)
-struct tcb *tcp;
-long code, arg;
+sock_ioctl(struct tcb *tcp, long code, long arg)
 {
 	struct ifreq ifr;
 	struct ifconf ifc;
@@ -95,8 +93,8 @@ long code, arg;
 
 	if (entering(tcp)) {
 		if (code == SIOCGIFCONF) {
-			umove(tcp, tcp->u_arg[2], &ifc);
-			if (ifc.ifc_buf == NULL)
+			if (umove(tcp, tcp->u_arg[2], &ifc) >= 0
+			    && ifc.ifc_buf == NULL)
 				tprintf(", {%d -> ", ifc.ifc_len);
 			else
 				tprintf(", {");
@@ -146,8 +144,11 @@ long code, arg;
 	case SIOCGIFMTU:
 	case SIOCGIFSLAVE:
 	case SIOCGIFHWADDR:
-		umove(tcp, tcp->u_arg[2], &ifr);
-                if (syserror(tcp)) {
+	case SIOCGIFTXQLEN:
+	case SIOCGIFMAP:
+		if (umove(tcp, tcp->u_arg[2], &ifr) < 0)
+			tprintf(", %#lx", tcp->u_arg[2]);
+		else if (syserror(tcp)) {
 			if (code == SIOCGIFNAME)
 				tprintf(", {ifr_index=%d, ifr_name=???}", ifr.ifr_ifindex);
 			else
@@ -204,12 +205,29 @@ long code, arg;
 			case SIOCGIFSLAVE:
 				tprintf("ifr_slave=\"%s\"", ifr.ifr_slave);
 				break;
+			case SIOCGIFTXQLEN:
+				tprintf("ifr_qlen=%d", ifr.ifr_qlen);
+				break;
+			case SIOCGIFMAP:
+				tprintf("ifr_map={mem_start=%#lx, "
+					"mem_end=%#lx, base_addr=%#x, "
+					"irq=%u, dma=%u, port=%u}",
+					ifr.ifr_map.mem_start,
+					ifr.ifr_map.mem_end,
+					(unsigned) ifr.ifr_map.base_addr,
+					(unsigned) ifr.ifr_map.irq,
+					(unsigned) ifr.ifr_map.dma,
+					(unsigned) ifr.ifr_map.port);
+				break;
 			}
 			tprintf("}");
 		}
 		return 1;
 	case SIOCGIFCONF:
-		umove(tcp, tcp->u_arg[2], &ifc);
+		if (umove(tcp, tcp->u_arg[2], &ifc) < 0) {
+			tprintf("???}");
+			return 1;
+		}
 		tprintf("%d, ", ifc.ifc_len);
                 if (syserror(tcp)) {
 			tprintf("%lx", (unsigned long) ifc.ifc_buf);

@@ -194,7 +194,7 @@
     <string name="account_setup_options_mail_window_label" msgid="8764417340954006086">"Amount to synchronise"</string>
     <string name="account_setup_options_mail_window_1day" msgid="3965715241135811407">"One day"</string>
     <string name="account_setup_options_mail_window_3days" msgid="736181102295878114">"Three days"</string>
-    <string name="account_setup_options_mail_window_1week" msgid="5639718031108023741">"one week"</string>
+    <string name="account_setup_options_mail_window_1week" msgid="5639718031108023741">"One week"</string>
     <string name="account_setup_options_mail_window_2weeks" msgid="4567049268124213035">"Two weeks"</string>
     <string name="account_setup_options_mail_window_1month" msgid="5846359669750047081">"One month"</string>
     <string name="account_setup_failed_dlg_auth_message" msgid="42827150104879570">"Username or password incorrect."</string>
@@ -245,7 +245,6 @@
     <string name="account_delete_dlg_instructions_fmt" msgid="8236846322040271280">"The account \"<xliff:g id="ACCOUNT">%s</xliff:g>\" will be removed from email."</string>
     <string name="upgrade_accounts_title" msgid="5444140226380754014">"Upgrade accounts"</string>
     <string name="upgrade_accounts_error" msgid="7241661832029255715">"Unable to upgrade account"</string>
-    <string name="provider_note_live" msgid="3584841823811425060">"Only some \"Plus\" accounts include POP access allowing this programme to connect. If you are not able to sign in with your correct email address and password, you may not have a paid \"Plus\" account. Please launch the web browser to gain access to these mail accounts."</string>
     <string name="provider_note_t_online" msgid="1973701903400232774">"Before setting up this email account, please visit the T-Online website and create a password for POP3 email access."</string>
     <string name="exchange_name" msgid="1190783774800310346">"Corporate"</string>
     <string name="exchange_name_alternate" msgid="5772529644749041052">"Microsoft Exchange ActiveSync"</string>

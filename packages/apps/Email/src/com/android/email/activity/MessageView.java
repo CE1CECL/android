@@ -32,15 +32,18 @@ import com.android.email.provider.EmailContent.Attachment;
 import com.android.email.provider.EmailContent.Body;
 import com.android.email.provider.EmailContent.BodyColumns;
 import com.android.email.provider.EmailContent.Message;
+import com.android.email.provider.EmailContent.Account;
 import com.android.email.service.EmailServiceConstants;
 
 import org.apache.commons.io.IOUtils;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
@@ -63,6 +66,7 @@ import android.provider.ContactsContract.StatusUpdates;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -165,6 +169,8 @@ public class MessageView extends Activity implements OnClickListener {
     private LoadMessageListTask mLoadMessageListTask;
     private Cursor mMessageListCursor;
     private ContentObserver mCursorObserver;
+    private Account mAccount;
+    private boolean msgListOnDelete;
 
     // contains the HTML body. Is used by LoadAttachmentTask to display inline images.
     // is null most of the time, is used transiently to pass info to LoadAttachementTask
@@ -345,7 +351,6 @@ public class MessageView extends Activity implements OnClickListener {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.message_view);
-
         mHandler = new MessageViewHandler();
         mControllerCallback = new ControllerResults();
 
@@ -514,12 +519,42 @@ public class MessageView extends Activity implements OnClickListener {
         // the cursor was closed in onPause()
     }
 
+
     private void onDelete() {
+        boolean onDelete = (0 != (mAccount.getFlags() & Account.FLAGS_CONFIRM_ON_DELETE));
+
+        if (onDelete) {
+            new AlertDialog.Builder(MessageView.this)
+                .setTitle(R.string.confirm_on_delete_dlg_title)
+                .setMessage(R.string.confirm_on_delete_dlg_msg)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        onDeleteAction();
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        /* User clicked Cancel so do some stuff */
+                    }
+                })
+                .create()
+                .show();
+        } else {
+            onDeleteAction();
+        }
+    }
+
+    private void onDeleteAction() {
         if (mMessage != null) {
             // the delete triggers mCursorObserver
             // first move to older/newer before the actual delete
             long messageIdToDelete = mMessageId;
-            boolean moved = moveToOlder() || moveToNewer();
+            boolean moved;
+            if (msgListOnDelete) {
+                moved = false;
+                } else {
+                moved = moveToOlder() || moveToNewer();
+                }
             mController.deleteMessage(messageIdToDelete, mMessage.mAccountKey);
             Toast.makeText(this, getResources().getQuantityString(R.plurals.message_deleted_toast,
                     1), Toast.LENGTH_SHORT).show();
@@ -1024,12 +1059,6 @@ public class MessageView extends Activity implements OnClickListener {
                         Email.UNACCEPTABLE_ATTACHMENT_VIEW_TYPES))) {
             attachmentView.setVisibility(View.GONE);
         }
-        if ((!MimeUtility.mimeTypeMatches(attachmentInfo.contentType,
-                Email.ACCEPTABLE_ATTACHMENT_DOWNLOAD_TYPES))
-                || (MimeUtility.mimeTypeMatches(attachmentInfo.contentType,
-                        Email.UNACCEPTABLE_ATTACHMENT_DOWNLOAD_TYPES))) {
-            attachmentDownload.setVisibility(View.GONE);
-        }
 
         if (attachmentInfo.size > Email.MAX_ATTACHMENT_DOWNLOAD_SIZE) {
             attachmentView.setVisibility(View.GONE);
@@ -1326,6 +1355,8 @@ public class MessageView extends Activity implements OnClickListener {
         if (mMailboxId == -1) {
             mMailboxId = message.mMailboxKey;
         }
+        mAccount = Account.restoreAccountWithId(this, mAccountId);
+        msgListOnDelete = (0 != (mAccount.getFlags() & Account.FLAGS_MSG_LIST_ON_DELETE));
         // only start LoadMessageListTask here if it's the first time
         if (mMessageListCursor == null) {
             mLoadMessageListTask = new LoadMessageListTask(mMailboxId);
@@ -1697,5 +1728,33 @@ public class MessageView extends Activity implements OnClickListener {
                 mHandler = null;
             }
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keycode, KeyEvent event) {
+        switch (keycode) {
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                moveToOlder();
+                break;
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                moveToNewer();
+                break;
+            default:
+                return super.onKeyDown(keycode, event);
+        }
+        return true;
+    }
+
+    // get rid of volume rocker default sound effect
+    @Override
+    public boolean onKeyUp(int keycode, KeyEvent event) {
+        switch (keycode) {
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                break;
+            default:
+                return super.onKeyUp(keycode, event);
+        }
+        return true;
     }
 }

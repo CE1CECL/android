@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # Copyright (C) 2010, T-Mobile USA, Inc.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #      http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Theme Chooser</string>
+    <string name="app_title">Theme Chooser</string>
+    <string name="apply">Apply</string>
+
+    <string name="menu_header">Theme Options</string>
+    <string name="menu_uninstall">Uninstall</string>
+    <string name="theme_current">%s (current)</string>
+    <string name="theme_change_dialog_title">Applying...</string>
+    <string name="switching_to_theme">Switching to <xliff:g id="theme">%s</xliff:g>...</string>
+    <string name="item_count">%1$d/%2$d</string>
+
+    <string name="dialog_theme_error_title">Theme error</string>
+    <string name="dialog_missing_host_density_msg">Sorry, this theme is missing assets for your device\'s screen size.</string>
+    <string name="dialog_missing_theme_package_scope_msg">This theme was improperly compiled and cannot be applied.  Please report this incident to the theme author.</string>
+    <string name="dialog_apply_anyway_btn">Apply anyway</string>
+    <string name="dialog_bummer_btn">Bummer</string>
+</resources>

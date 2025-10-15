@@ -28,6 +28,8 @@
 #ifndef V8_REGEXP_MACRO_ASSEMBLER_H_
 #define V8_REGEXP_MACRO_ASSEMBLER_H_
 
+#include "ast.h"
+
 namespace v8 {
 namespace internal {
 
@@ -153,6 +155,7 @@ class RegExpMacroAssembler {
                             StackCheckFlag check_stack_limit) = 0;
   virtual void ReadCurrentPositionFromRegister(int reg) = 0;
   virtual void ReadStackPointerFromRegister(int reg) = 0;
+  virtual void SetCurrentPositionFromEnd(int by) = 0;
   virtual void SetRegister(int register_index, int to) = 0;
   virtual void Succeed() = 0;
   virtual void WriteCurrentPositionToRegister(int reg, int cp_offset) = 0;
@@ -161,7 +164,7 @@ class RegExpMacroAssembler {
 };
 
 
-#ifdef V8_NATIVE_REGEXP  // Avoid compiling unused code.
+#ifndef V8_INTERPRETED_REGEXP  // Avoid compiling unused code.
 
 class NativeRegExpMacroAssembler: public RegExpMacroAssembler {
  public:
@@ -221,7 +224,7 @@ class NativeRegExpMacroAssembler: public RegExpMacroAssembler {
                         int* output);
 };
 
-#endif  // V8_NATIVE_REGEXP
+#endif  // V8_INTERPRETED_REGEXP
 
 } }  // namespace v8::internal
 

@@ -16,12 +16,16 @@
 
 package android.bluetooth;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.SystemClock;
+import android.provider.Settings;
 import android.server.BluetoothA2dpService;
 import android.server.BluetoothService;
 import android.util.Log;
@@ -80,10 +84,14 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
 
     private static final int AUTO_CONNECT_DELAY = 6000; // 6 secs
     private static final int CONNECT_OTHER_PROFILES_DELAY = 4000; // 4 secs
+    private static final int CONNECT_OTHER_PROFILES_DELAY_FAST = 100; // 100ms
     private static final int CONNECTION_ACCESS_REQUEST_EXPIRY_TIMEOUT = 7000; // 7 secs
     private static final int CONNECTION_ACCESS_UNDEFINED = -1;
     private static final long INIT_INCOMING_REJECT_TIMER = 1000; // 1 sec
     private static final long MAX_INCOMING_REJECT_TIMER = 3600 * 1000 * 4; // 4 hours
+
+    private static final String ACTION_CONNECT = "android.bluetooth.profile_state.CONNECT";
+    private static final String ACTION_CONNECT_TYPE = "android.bluetooth.profile_state.CONNECT_TYPE";
 
     private static final String PREFS_NAME = "ConnectionAccess";
 
@@ -116,7 +124,7 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-            if (!device.equals(mDevice)) return;
+            if (device == null || !device.equals(mDevice)) return;
 
             if (action.equals(BluetoothHeadset.ACTION_STATE_CHANGED)) {
                 int newState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE, 0);
@@ -165,6 +173,11 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
                 Message msg = obtainMessage(CONNECTION_ACCESS_REQUEST_REPLY);
                 msg.arg1 = val;
                 sendMessage(msg);
+            } else if (action.equals(ACTION_CONNECT)) {
+                Message msg = new Message();
+                msg.what = CONNECT_OTHER_PROFILES;
+                msg.arg1 = intent.getIntExtra(ACTION_CONNECT_TYPE, -1);
+                sendMessage(msg);
             }
       }
     };
@@ -206,6 +219,7 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         filter.addAction(BluetoothDevice.ACTION_CONNECTION_ACCESS_REPLY);
+        filter.addAction(ACTION_CONNECT);
 
         mContext.registerReceiver(mBroadcastReceiver, filter);
 
@@ -806,6 +820,24 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
         mContext.sendBroadcast(intent, BLUETOOTH_ADMIN_PERM);
     }
 
+    private void scheduleConnect(int type) {
+        AlarmManager mgr = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
+        Intent i = new Intent(ACTION_CONNECT);
+        i.putExtra(BluetoothDevice.EXTRA_DEVICE, mDevice);
+        i.putExtra(ACTION_CONNECT_TYPE, type);
+        PendingIntent pi = PendingIntent.getBroadcast(mContext, 0, i, 0);
+
+        long delayTime = CONNECT_OTHER_PROFILES_DELAY;
+
+        // Many devices don't need the long delay.
+        if (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.BLUETOOTH_FAST_CONNECT, 0) != 0) {
+            delayTime = CONNECT_OTHER_PROFILES_DELAY_FAST;
+        }
+
+        mgr.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, SystemClock.elapsedRealtime() + delayTime, pi);
+    }
+
     private int getTrust() {
         String address = mDevice.getAddress();
         if (mIncomingConnections != null) return mIncomingConnections.first;
@@ -999,10 +1031,8 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
                 if (mA2dpService.getSinkPriority(mDevice) == BluetoothA2dp.PRIORITY_ON ||
                         mA2dpService.getSinkPriority(mDevice) ==
                             BluetoothA2dp.PRIORITY_AUTO_CONNECT) {
-                    Message msg = new Message();
-                    msg.what = CONNECT_OTHER_PROFILES;
-                    msg.arg1 = CONNECT_A2DP_OUTGOING;
-                    sendMessageDelayed(msg, CONNECT_OTHER_PROFILES_DELAY);
+                    Log.i(TAG, "Queueing CONNECT_A2DP_OUTGOING");
+                    scheduleConnect(CONNECT_A2DP_OUTGOING);
                 }
                 break;
             case CONNECT_A2DP_INCOMING:
@@ -1012,10 +1042,8 @@ public final class BluetoothDeviceProfileState extends HierarchicalStateMachine 
                 if (mHeadsetService.getPriority(mDevice) == BluetoothHeadset.PRIORITY_ON
                         || mHeadsetService.getPriority(mDevice) ==
                             BluetoothHeadset.PRIORITY_AUTO_CONNECT) {
-                    Message msg = new Message();
-                    msg.what = CONNECT_OTHER_PROFILES;
-                    msg.arg1 = CONNECT_HFP_OUTGOING;
-                    sendMessageDelayed(msg, CONNECT_OTHER_PROFILES_DELAY);
+                    Log.i(TAG, "Queueing CONNECT_HFP_OUTGOING");
+                    scheduleConnect(CONNECT_HFP_OUTGOING);
                 }
                 break;
             default:

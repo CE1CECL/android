@@ -18,11 +18,14 @@ package com.android.internal.policy.impl;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 
+import com.android.internal.app.ThemeUtils;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.widget.LockPatternUtils;
 
@@ -58,6 +61,7 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
     private final int[] mEnteredPin = {0, 0, 0, 0, 0, 0, 0, 0};
     private int mEnteredDigits = 0;
 
+    private Context mUiContext;
     private ProgressDialog mSimUnlockProgressDialog = null;
 
     private LockPatternUtils mLockPatternUtils;
@@ -67,6 +71,14 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
     private int mKeyboardHidden;
 
     private static final char[] DIGITS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+
+    private BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
+            context.unregisterReceiver(this);
+        }
+    };
 
     public SimUnlockScreen(Context context, Configuration configuration,
             KeyguardUpdateMonitor updateMonitor, KeyguardScreenCallback callback,
@@ -82,6 +94,9 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
         LayoutInflater inflater = LayoutInflater.from(context);
         if (mKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO) {
             inflater.inflate(R.layout.keyguard_screen_sim_pin_landscape, this, true);
+        } else if (mCreationOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+            inflater.inflate(R.layout.keyguard_screen_sim_pin_land_nokey, this, true);
+            new TouchInput();
         } else {
             inflater.inflate(R.layout.keyguard_screen_sim_pin_portrait, this, true);
             new TouchInput();
@@ -112,7 +127,10 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
 
     /** {@inheritDoc} */
     public void onPause() {
-
+        if (mUiContext != null) {
+            mContext.unregisterReceiver(mThemeChangeReceiver);
+            mUiContext = null;
+        }
     }
 
     /** {@inheritDoc} */
@@ -189,8 +207,23 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
     }
 
     private Dialog getSimUnlockProgressDialog() {
+        if (mUiContext == null && mSimUnlockProgressDialog != null) {
+            mSimUnlockProgressDialog.dismiss();
+            mSimUnlockProgressDialog = null;
+        }
+
         if (mSimUnlockProgressDialog == null) {
-            mSimUnlockProgressDialog = new ProgressDialog(mContext);
+            final Context context;
+
+            mUiContext = ThemeUtils.createUiContext(mContext);
+            if (mUiContext != null) {
+                context = mUiContext;
+                ThemeUtils.registerThemeChangeReceiver(mContext, mThemeChangeReceiver);
+            } else {
+                context = mContext;
+            }
+
+            mSimUnlockProgressDialog = new ProgressDialog(context);
             mSimUnlockProgressDialog.setMessage(
                     mContext.getString(R.string.lockscreen_sim_unlock_progress_dialog_message));
             mSimUnlockProgressDialog.setIndeterminate(true);
@@ -418,6 +451,10 @@ public class SimUnlockScreen extends LinearLayout implements KeyguardScreen, Vie
     }
 
     public void onTimeChanged() {
+
+    }
+
+    public void onMusicChanged() {
 
     }
 }

@@ -28,10 +28,12 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.LayoutInflater;
+import android.view.ViewStub;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -49,8 +51,10 @@ public class AlarmAlertFullScreen extends Activity {
 
     // These defaults must match the values in res/xml/settings.xml
     private static final String DEFAULT_SNOOZE = "10";
-    private static final String DEFAULT_VOLUME_BEHAVIOR = "2";
+    private static final String DEFAULT_VOLUME_BEHAVIOR = "0";
     protected static final String SCREEN_OFF = "screen_off";
+
+    private static final String KEY_DUAL_MODE_BUTTON = "use_dual_mode_button";
 
     protected Alarm mAlarm;
     private int mVolumeBehavior;
@@ -90,8 +94,7 @@ public class AlarmAlertFullScreen extends Activity {
         requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
 
         final Window win = getWindow();
-        win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-                | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+        win.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
         // Turn on the screen unless we are being launched from the AlarmAlert
         // subclass.
         if (!getIntent().getBooleanExtra(SCREEN_OFF, false)) {
@@ -118,7 +121,8 @@ public class AlarmAlertFullScreen extends Activity {
     private void updateLayout() {
         LayoutInflater inflater = LayoutInflater.from(this);
 
-        setContentView(inflater.inflate(R.layout.alarm_alert, null));
+        View contentView = inflater.inflate(R.layout.alarm_alert, null);
+        setContentView(contentView);
 
         /* snooze behavior: pop a snooze confirmation view, kick alarm
            manager. */
@@ -130,13 +134,32 @@ public class AlarmAlertFullScreen extends Activity {
             }
         });
 
-        /* dismiss button: close notification */
-        findViewById(R.id.dismiss).setOnClickListener(
-                new Button.OnClickListener() {
-                    public void onClick(View v) {
-                        dismiss(false);
-                    }
-                });
+        boolean dualModeButtonEnabled = PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean(KEY_DUAL_MODE_BUTTON, false);
+
+        View dismiss = findViewById(R.id.dismiss);
+
+        if (dualModeButtonEnabled) {
+            snooze.setOnLongClickListener(new Button.OnLongClickListener() {
+                        @Override
+                        public boolean onLongClick(View v) {
+                            dismiss(false);
+                            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
+                            return true;
+                        }
+                    });
+            snooze.setText(R.string.alarm_alert_snooze_text_dual_mode);
+            dismiss.setVisibility(View.GONE);
+            findViewById(R.id.spacer).setVisibility(View.GONE);
+        } else {
+            /* dismiss button: close notification */
+            dismiss.setOnClickListener(
+                    new Button.OnClickListener() {
+                        public void onClick(View v) {
+                            dismiss(false);
+                        }
+                    });
+        }
 
         /* Set the title from the passed in alarm */
         setTitle();

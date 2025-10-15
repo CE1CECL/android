@@ -100,14 +100,16 @@ private:
 DEFINE_bool(debug_code, false,
             "generate extra code (comments, assertions) for debugging")
 DEFINE_bool(emit_branch_hints, false, "emit branch hints")
-DEFINE_bool(push_pop_elimination, true,
-            "eliminate redundant push/pops in assembly code")
-DEFINE_bool(print_push_pop_elimination, false,
-            "print elimination of redundant push/pops in assembly code")
+DEFINE_bool(peephole_optimization, true,
+            "perform peephole optimizations in assembly code")
+DEFINE_bool(print_peephole_optimization, false,
+            "print peephole optimizations in assembly code")
 DEFINE_bool(enable_sse2, true,
             "enable use of SSE2 instructions if available")
 DEFINE_bool(enable_sse3, true,
             "enable use of SSE3 instructions if available")
+DEFINE_bool(enable_sse4_1, true,
+            "enable use of SSE4.1 instructions if available")
 DEFINE_bool(enable_cmov, true,
             "enable use of CMOV instruction if available")
 DEFINE_bool(enable_rdtsc, true,
@@ -123,7 +125,10 @@ DEFINE_bool(enable_armv7, true,
 DEFINE_string(expose_natives_as, NULL, "expose natives in global object")
 DEFINE_string(expose_debug_as, NULL, "expose debug in global object")
 DEFINE_bool(expose_gc, false, "expose gc extension")
+DEFINE_bool(expose_externalize_string, false,
+            "expose externalize string extension")
 DEFINE_int(stack_trace_limit, 10, "number of stack frames to capture")
+DEFINE_bool(disable_native_files, false, "disable builtin natives files")
 
 // builtins-ia32.cc
 DEFINE_bool(inline_new, true, "use fast inline allocation")
@@ -135,6 +140,9 @@ DEFINE_bool(stack_trace_on_abort, true,
 // codegen-ia32.cc / codegen-arm.cc
 DEFINE_bool(trace, false, "trace function calls")
 DEFINE_bool(defer_negation, true, "defer negation operation")
+DEFINE_bool(mask_constants_with_cookie,
+            true,
+            "use random jit cookie to mask large constants")
 
 // codegen.cc
 DEFINE_bool(lazy, true, "use lazy compilation")
@@ -145,16 +153,19 @@ DEFINE_bool(strict, false, "strict error checking")
 DEFINE_int(min_preparse_length, 1024,
            "minimum length for automatic enable preparsing")
 DEFINE_bool(full_compiler, true, "enable dedicated backend for run-once code")
-DEFINE_bool(fast_compiler, false, "enable speculative optimizing backend")
 DEFINE_bool(always_full_compiler, false,
             "try to use the dedicated run-once backend for all code")
-DEFINE_bool(always_fast_compiler, false,
-            "try to use the speculative optimizing backend for all code")
 DEFINE_bool(trace_bailout, false,
             "print reasons for falling back to using the classic V8 backend")
+DEFINE_bool(safe_int32_compiler, true,
+            "enable optimized side-effect-free int32 expressions.")
+DEFINE_bool(use_flow_graph, false, "perform flow-graph based optimizations")
 
 // compilation-cache.cc
 DEFINE_bool(compilation_cache, true, "enable compilation cache")
+
+// data-flow.cc
+DEFINE_bool(loop_peeling, false, "Peel off the first iteration of loops.")
 
 // debug.cc
 DEFINE_bool(remote_debugging, false, "enable remote debugging")
@@ -162,22 +173,35 @@ DEFINE_bool(trace_debug_json, false, "trace debugging JSON request/response")
 DEFINE_bool(debugger_auto_break, true,
             "automatically set the debug break flag when debugger commands are "
             "in the queue")
+DEFINE_bool(enable_liveedit, true, "enable liveedit experimental feature")
 
 // frames.cc
 DEFINE_int(max_stack_trace_source_length, 300,
            "maximum length of function source code printed in a stack trace.")
 
+// full-codegen.cc
+DEFINE_bool(always_inline_smi_code, false,
+            "always inline smi code in non-opt code")
+
 // heap.cc
-DEFINE_int(max_new_space_size, 0, "max size of the new generation")
-DEFINE_int(max_old_space_size, 0, "max size of the old generation")
+DEFINE_int(max_new_space_size, 0, "max size of the new generation (in kBytes)")
+DEFINE_int(max_old_space_size, 0, "max size of the old generation (in Mbytes)")
+DEFINE_int(max_executable_size, 0, "max size of executable memory (in Mbytes)")
 DEFINE_bool(gc_global, false, "always perform global GCs")
 DEFINE_int(gc_interval, -1, "garbage collect after <n> allocations")
 DEFINE_bool(trace_gc, false,
             "print one trace line following each garbage collection")
+DEFINE_bool(trace_gc_nvp, false,
+            "print one detailed trace line in name=value format "
+            "after each garbage collection")
+DEFINE_bool(print_cumulative_gc_stat, false,
+            "print cumulative GC statistics in name=value format on exit")
 DEFINE_bool(trace_gc_verbose, false,
             "print more details following each garbage collection")
 DEFINE_bool(collect_maps, true,
             "garbage collect maps from which no objects can be reached")
+DEFINE_bool(flush_code, true,
+            "flush code that we expect not to use again before full gc")
 
 // v8.cc
 DEFINE_bool(use_idle_notification, true,
@@ -197,6 +221,9 @@ DEFINE_bool(cleanup_ics_at_gc, true,
             "Flush inline caches prior to mark compact collection.")
 DEFINE_bool(cleanup_caches_in_maps_at_gc, true,
             "Flush code caches in maps during mark compact cycle.")
+DEFINE_int(random_seed, 0,
+           "Default seed for initializing random generator "
+           "(0, the default, means to use system random).")
 
 DEFINE_bool(canonicalize_object_literal_maps, true,
             "Canonicalize maps for object literals.")
@@ -220,17 +247,17 @@ DEFINE_bool(allow_natives_syntax, false, "allow natives syntax")
 DEFINE_bool(optimize_ast, true, "optimize the ast")
 
 // simulator-arm.cc and simulator-mips.cc
-DEFINE_bool(trace_sim, false, "trace simulator execution")
+DEFINE_bool(trace_sim, false, "Trace simulator execution")
+DEFINE_bool(check_icache, false, "Check icache flushes in ARM simulator")
 DEFINE_int(stop_sim_at, 0, "Simulator stop after x number of instructions")
+DEFINE_int(sim_stack_alignment, 8,
+           "Stack alingment in bytes in simulator (4 or 8, 8 is default)")
 
 // top.cc
 DEFINE_bool(trace_exception, false,
             "print stack trace when throwing exceptions")
 DEFINE_bool(preallocate_message_memory, false,
             "preallocate some memory to build stack traces.")
-
-// usage-analyzer.cc
-DEFINE_bool(usage_computation, true, "compute variable usage counts")
 
 // v8.cc
 DEFINE_bool(preemption, false,
@@ -261,12 +288,12 @@ DEFINE_string(testing_serialization_file, "/tmp/serdes",
 
 DEFINE_bool(help, false, "Print usage message, including flags, on console")
 DEFINE_bool(dump_counters, false, "Dump counters on exit")
-DEFINE_bool(debugger, true, "Enable JavaScript debugger")
+DEFINE_bool(debugger, false, "Enable JavaScript debugger")
 DEFINE_bool(remote_debugger, false, "Connect JavaScript debugger to the "
                                     "debugger agent in another process")
 DEFINE_bool(debugger_agent, false, "Enable debugger agent")
 DEFINE_int(debugger_port, 5858, "Port to use for remote debugging")
-DEFINE_string(map_counters, false, "Map counters to a file")
+DEFINE_string(map_counters, NULL, "Map counters to a file")
 DEFINE_args(js_arguments, JSArguments(),
             "Pass all remaining arguments to the script. Alias for \"--\".")
 
@@ -303,6 +330,8 @@ DEFINE_string(stop_at, "", "function name where to insert a breakpoint")
 DEFINE_bool(print_builtin_scopes, false, "print scopes for builtins")
 DEFINE_bool(print_scopes, false, "print scopes")
 DEFINE_bool(print_ir, false, "print the AST as seen by the backend")
+DEFINE_bool(print_graph_text, false,
+            "print a text representation of the flow graph")
 
 // contexts.cc
 DEFINE_bool(trace_contexts, false, "trace contexts operations")
@@ -315,7 +344,6 @@ DEFINE_bool(code_stats, false, "report code statistics after GC")
 DEFINE_bool(verify_heap, false, "verify heap pointers before and after GC")
 DEFINE_bool(print_handles, false, "report handles after GC")
 DEFINE_bool(print_global_handles, false, "report global handles after GC")
-DEFINE_bool(print_rset, false, "print remembered sets before GC")
 
 // ic.cc
 DEFINE_bool(trace_ic, false, "trace inline cache state transitions")
@@ -381,11 +409,14 @@ DEFINE_bool(prof_auto, true,
 DEFINE_bool(prof_lazy, false,
             "Used with --prof, only does sampling and logging"
             " when profiler is active (implies --noprof_auto).")
+DEFINE_bool(prof_browser_mode, true,
+            "Used with --prof, turns on browser-compatible mode for profiling.")
 DEFINE_bool(log_regexp, false, "Log regular expression execution.")
 DEFINE_bool(sliding_state_window, false,
             "Update sliding state window counters.")
-DEFINE_string(logfile, "v8.log", "Specify the name of the log file.")
+DEFINE_string(logfile, "*", "Specify the name of the log file.")
 DEFINE_bool(oprofile, false, "Enable JIT agent for OProfile.")
+DEFINE_bool(ll_prof, false, "Enable low-level linux profiler.")
 
 //
 // Heap protection flags

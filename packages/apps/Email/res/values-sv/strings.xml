@@ -43,6 +43,7 @@
     <string name="refresh_action" msgid="5951383001436708175">"Uppdatera"</string>
     <string name="add_account_action" msgid="8835736309476033727">"Lägg till konto"</string>
     <string name="deselect_all_action" msgid="253663239459688238">"Avmarkera alla"</string>
+    <string name="select_all_action">Markera alla</string>
     <string name="compose_action" msgid="4045702519637388045">"Skriv"</string>
     <string name="search_action" msgid="6325101454876682308">"Sök"</string>
     <string name="open_action" msgid="936766723989190816">"Öppna"</string>
@@ -61,6 +62,10 @@
     <string name="status_network_error" msgid="6045933332005067021">"Anslutningsfel"</string>
     <string name="notification_new_title" msgid="2200257910380529139">"Nytt e-postmeddelande"</string>
     <string name="error_loading_message_body" msgid="2265140604109272914">"Ett oväntat fel uppstod när meddelandetexten skulle läsas in. Meddelandet kanske är för stort för att visas."</string>
+    <string name="confirm_on_delete_dlg_title">Bekräfta borttagning</string>
+    <string name="confirm_on_delete_dlg_msg">Vill du ta bort detta meddelande?</string>
+    <string name="confirm_on_send_dlg_title">Skicka meddelande?</string>
+    <string name="confirm_on_send_dlg_msg">Skicka detta meddelande?</string>
   <plurals name="notification_new_one_account_fmt">
     <item quantity="one" msgid="3422945912787702191">"<xliff:g id="UNREAD_MESSAGE_COUNT">%1$d</xliff:g> oläst (<xliff:g id="ACCOUNT">%2$s</xliff:g>"</item>
     <item quantity="few" msgid="6543078667692990869">"<xliff:g id="UNREAD_MESSAGE_COUNT">%1$d</xliff:g> oläst (<xliff:g id="ACCOUNT">%2$s</xliff:g>"</item>
@@ -178,6 +183,7 @@
     <string name="account_setup_exchange_ssl_label" msgid="6704105469083211236">"Använd säker anslutning (SSL)"</string>
     <string name="account_setup_exchange_trust_certificates_label" msgid="6232880757633882678">"Acceptera alla SSL-certifikat"</string>
     <string name="account_setup_options_title" msgid="8995162193118880993">"Kontoalternativ"</string>
+    <string name="account_setup_color_title">Kontofärg</string>
     <string name="account_setup_options_mail_check_frequency_label" msgid="4824859792882810053">"Intervall för e-postkontroll"</string>
     <string name="account_setup_options_mail_check_frequency_never" msgid="287951859480505416">"Aldrig"</string>
     <string name="account_setup_options_mail_check_frequency_push" msgid="5934525907736008673">"Automatiskt (push)"</string>
@@ -197,6 +203,7 @@
     <string name="account_setup_options_mail_window_1week" msgid="5639718031108023741">"En vecka"</string>
     <string name="account_setup_options_mail_window_2weeks" msgid="4567049268124213035">"Två veckor"</string>
     <string name="account_setup_options_mail_window_1month" msgid="5846359669750047081">"En månad"</string>
+    <string name="account_setup_options_mail_window_all">All e-post</string>
     <string name="account_setup_failed_dlg_auth_message" msgid="42827150104879570">"Fel användarnamn eller lösenord."</string>
     <string name="account_setup_failed_dlg_auth_message_fmt" msgid="8598560266430207606">"Fel användarnamn eller lösenord."\n"(<xliff:g id="ERROR">%s</xliff:g>)"</string>
     <string name="account_setup_failed_dlg_certificate_message" msgid="961843413600482906">"Det går inte att upprätta en säker anslutning till servern."</string>
@@ -222,6 +229,7 @@
     <string name="account_settings_exchange_summary" msgid="8498451479029626317">"Synkroniseringsfrekvens, aviseringar osv."</string>
     <string name="account_settings_notify_summary" msgid="6609224590300639887">"Meddelande i statusfältet vid e-postmeddelande"</string>
     <string name="account_settings_mail_check_frequency_label" msgid="8271462919214560616">"Intervall för e-postkontroll"</string>
+    <string name="account_settings_color_label">Kontofärg</string>
     <string name="account_settings_incoming_label" msgid="7858928031806297542">"Inkommande inställningar"</string>
     <string name="account_settings_outgoing_label" msgid="4464829249980026745">"Utgående inställningar"</string>
     <string name="account_settings_description_label" msgid="8894815221204511715">"Kontonamn"</string>
@@ -241,11 +249,17 @@
     <string name="account_settings_vibrate_when_dlg_title" msgid="308167729046312952">"Vibrera"</string>
     <string name="account_settings_ringtone" msgid="7922187231467500404">"Välj ringsignal"</string>
     <string name="account_settings_servers" msgid="4925493817981624242">"Serverinställningar"</string>
+    <string name="misc_settings_label">Övriga inställningar</string>
+    <string name="account_settings_msg_list_on_delete">Återgå till meddelandelista</string>
+    <string name="account_settings_msg_list_on_delete_summary">Återgå till meddelandelista om du tar bort meddelandet du tittar på.</string>
+    <string name="account_settings_confirm_on_delete">Bekräfta borttagning</string>
+    <string name="account_settings_confirm_on_delete_summary">Visa en dialog när borttagning utförs</string>
+    <string name="account_settings_confirm_on_send">Bekräfta vid sändning</string>
+    <string name="account_settings_confirm_on_send_summary">Visa en dialog när sändningar görs</string>
     <string name="account_delete_dlg_title" msgid="6806087520856396608">"Ta bort konto"</string>
     <string name="account_delete_dlg_instructions_fmt" msgid="8236846322040271280">"Kontot <xliff:g id="ACCOUNT">%s</xliff:g> tas bort från E-post."</string>
     <string name="upgrade_accounts_title" msgid="5444140226380754014">"Uppgradera konton"</string>
     <string name="upgrade_accounts_error" msgid="7241661832029255715">"Det går inte att uppgradera kontot"</string>
-    <string name="provider_note_live" msgid="3584841823811425060">"POP-åtkomst, som gör så att detta program kan ansluta, ingår bara i vissa pluskonton. Om det inte går att logga in med rätt e-postadress och lösenord kanske du inte har betalat för ett pluskonto. Öppna webbläsaren igen om du vill få åtkomst tills dessa e-postkonton."</string>
     <string name="provider_note_t_online" msgid="1973701903400232774">"Innan du skapar e-postkontot besöker du T-Onlines webbplats och skapar ett lösenord för POP3-åtkomst till e-post."</string>
     <string name="exchange_name" msgid="1190783774800310346">"Företag"</string>
     <string name="exchange_name_alternate" msgid="5772529644749041052">"Microsoft Exchange ActiveSync"</string>
@@ -269,4 +283,15 @@
     <item quantity="other" msgid="7816121892960632123">"<xliff:g id="RESULTS">%1$d</xliff:g> resultat från <xliff:g id="DOMAIN">%2$s</xliff:g>"</item>
   </plurals>
     <string name="gal_completed_limited_fmt" msgid="2343791690766047585">"De första <xliff:g id="RESULTS">%1$d</xliff:g> resultaten från <xliff:g id="DOMAIN">%2$s</xliff:g>"</string>
+    <string name="sync_action">Växla synk</string>
+    <string name="hide_action">Växla synlighet</string>
+    <string name="show_hidden_action">Visa gömda mappar</string>
+    <string name="hide_hidden_action">Göm gömda mappar</string>
+    <string name="toast_folder_sync_on">Synkroniserar mapp:</string>
+    <string name="toast_folder_sync_off">Synkroniserar inte längre mapp:</string>
+    <string name="toast_folder_sync_invalid">Felaktig mall för synkronisering</string>
+    <string name="toast_folder_hide_on">Gömmer mapp:</string>
+    <string name="toast_folder_hide_off">Slutar gömma mapp:</string>
+    <string name="toast_folder_hide_invalid">Kan inte gömma denna mapp!</string>
+    <string name="sample_account_name">Kontonamnsexempel</string>
 </resources>

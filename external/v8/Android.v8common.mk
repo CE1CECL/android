@@ -6,9 +6,13 @@ V8_LOCAL_SRC_FILES := \
 	src/api.cc \
 	src/assembler.cc \
 	src/ast.cc \
+	src/bignum.cc \
+	src/bignum-dtoa.cc \
 	src/bootstrapper.cc \
 	src/builtins.cc \
+	src/cached-powers.cc \
 	src/checks.cc \
+	src/circular-queue.cc \
 	src/code-stubs.cc \
 	src/codegen.cc \
 	src/compilation-cache.cc \
@@ -16,20 +20,24 @@ V8_LOCAL_SRC_FILES := \
 	src/contexts.cc \
 	src/conversions.cc \
 	src/counters.cc \
+	src/cpu-profiler.cc \
 	src/data-flow.cc \
 	src/dateparser.cc \
 	src/debug.cc \
 	src/debug-agent.cc \
 	src/disassembler.cc \
+	src/diy-fp.cc \
+	src/dtoa.cc \
 	src/execution.cc \
 	src/factory.cc \
-	src/fast-codegen.cc \
 	src/flags.cc \
 	src/frame-element.cc \
 	src/frames.cc \
 	src/full-codegen.cc \
 	src/func-name-inferrer.cc \
 	src/global-handles.cc \
+	src/fast-dtoa.cc \
+	src/fixed-dtoa.cc \
 	src/handles.cc \
 	src/hashmap.cc \
 	src/heap.cc \
@@ -44,8 +52,12 @@ V8_LOCAL_SRC_FILES := \
 	src/mark-compact.cc \
 	src/messages.cc \
 	src/objects.cc \
+	src/objects-visiting.cc \
 	src/oprofile-agent.cc \
 	src/parser.cc \
+	src/preparser.cc \
+	src/preparse-data.cc \
+	src/profile-generator.cc \
 	src/property.cc \
 	src/regexp-macro-assembler.cc \
 	src/regexp-macro-assembler-irregexp.cc \
@@ -53,18 +65,21 @@ V8_LOCAL_SRC_FILES := \
 	src/register-allocator.cc \
 	src/rewriter.cc \
 	src/runtime.cc \
+	src/scanner-base.cc \
 	src/scanner.cc \
 	src/scopeinfo.cc \
 	src/scopes.cc \
 	src/serialize.cc \
 	src/snapshot-common.cc \
 	src/spaces.cc \
+	src/string-search.cc \
 	src/string-stream.cc \
+	src/strtod.cc \
 	src/stub-cache.cc \
 	src/token.cc \
 	src/top.cc \
+	src/type-info.cc \
 	src/unicode.cc \
-	src/usage-analyzer.cc \
 	src/utils.cc \
 	src/v8-counters.cc \
 	src/v8.cc \
@@ -72,19 +87,23 @@ V8_LOCAL_SRC_FILES := \
 	src/variables.cc \
 	src/virtual-frame.cc \
 	src/version.cc \
-	src/zone.cc
+	src/zone.cc \
+	src/extensions/gc-extension.cc \
+	src/extensions/externalize-string-extension.cc
 
 ifeq ($(TARGET_ARCH),arm)
   V8_LOCAL_SRC_FILES += \
+		src/jump-target-light.cc \
+		src/virtual-frame-light.cc \
 		src/arm/assembler-arm.cc \
 		src/arm/builtins-arm.cc \
+		src/arm/code-stubs-arm.cc \
 		src/arm/codegen-arm.cc \
 		src/arm/constants-arm.cc \
 		src/arm/cpu-arm.cc \
 		src/arm/debug-arm.cc \
 		src/arm/disasm-arm.cc \
 		src/arm/frames-arm.cc \
-		src/arm/fast-codegen-arm.cc \
 		src/arm/full-codegen-arm.cc \
 		src/arm/ic-arm.cc \
 		src/arm/jump-target-arm.cc \
@@ -97,6 +116,8 @@ endif
 
 ifeq ($(TARGET_ARCH),x86)
   V8_LOCAL_SRC_FILES += \
+		src/virtual-frame-heavy.cc \
+		src/ia32/assembler-ia32.cc \
 		src/ia32/assembler-ia32.cc \
 		src/ia32/builtins-ia32.cc \
 		src/ia32/codegen-ia32.cc \
@@ -119,9 +140,6 @@ ifeq ($(DEBUG_V8),true)
 		src/prettyprinter.cc \
 		src/regexp-macro-assembler-tracer.cc
 endif
-
-V8_LOCAL_SRC_FILES += \
-	src/dtoa-config.c
 
 V8_LOCAL_JS_LIBRARY_FILES := \
 	src/runtime.js \

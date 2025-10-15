@@ -68,6 +68,13 @@
 
         </activity>
         
+        <activity
+            android:label="Settings"
+            android:name="com.android.wallpaper.nexus.NexusSettings"
+            android:theme="@android:style/Theme"
+            android:exported="true">
+        </activity>
+
         <service
             android:label="@string/wallpaper_nexus"
             android:name="com.android.wallpaper.nexus.NexusWallpaper"
@@ -77,7 +84,7 @@
             </intent-filter>
             <meta-data android:name="android.service.wallpaper" android:resource="@xml/nexus" />
         </service>
-        
+
         <service
             android:label="@string/wallpaper_grass"
             android:name="com.android.wallpaper.grass.GrassWallpaper"

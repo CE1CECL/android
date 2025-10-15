@@ -489,4 +489,29 @@ public class MockPackageManager extends PackageManager {
     public boolean isSafeMode() {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * @hide - to match hiding in superclass
+     */
+    @Override
+    public List<PackageInfo> getInstalledThemePackages() {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * @hide
+     */
+    @Override
+    public String[] getRevokedPermissions(String packageName) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * @hide
+     */
+    @Override
+    public void setRevokedPermissions(String packageName, String[] perms) {
+        throw new UnsupportedOperationException();
+    }
+
 }

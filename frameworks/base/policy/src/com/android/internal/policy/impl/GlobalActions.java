@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010-2011 CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +17,38 @@
 
 package com.android.internal.policy.impl;
 
-import android.app.Activity;
+import com.android.internal.R;
+import com.android.internal.app.ShutdownThread;
+import com.android.internal.telephony.TelephonyIntents;
+import com.android.internal.telephony.TelephonyProperties;
+import com.google.android.collect.Lists;
+
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.Profile;
+import android.app.ProfileManager;
 import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
+import android.provider.CmSystem;
 import android.provider.Settings;
 import android.telephony.PhoneStateListener;
 import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.view.IWindowManager;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,13 +56,11 @@ import android.view.WindowManager;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import com.android.internal.R;
-import com.android.internal.app.ShutdownThread;
-import com.android.internal.telephony.TelephonyIntents;
-import com.android.internal.telephony.TelephonyProperties;
-import com.google.android.collect.Lists;
+
+import com.android.internal.app.ThemeUtils;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 /**
  * Helper to show the global actions dialog.  Each item is an {@link Action} that
@@ -60,6 +74,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private StatusBarManager mStatusBar;
 
     private final Context mContext;
+    private Context mUiContext;
     private final AudioManager mAudioManager;
 
     private ArrayList<Action> mItems;
@@ -75,6 +90,61 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private ToggleAction.State mAirplaneState = ToggleAction.State.Off;
     private boolean mIsWaitingForEcmExit = false;
 
+    private Profile mChosenProfile;
+
+    private IWindowManager mWindowManager;
+
+    private int mInjectKeycode;
+
+    private boolean mExtendPm;
+
+    private SinglePressAction mExtendPmHome;
+
+    private SinglePressAction mExtendPmMenu;
+
+    private SinglePressAction mExtendPmBack;
+
+    private boolean mExtendPmShowHome;
+    private boolean mExtendPmShowMenu;
+    private boolean mExtendPmShowBack;
+
+    class SettingsObserver extends ContentObserver {
+        SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.EXTEND_PM), false, this);
+            resolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.EXTEND_PM_SHOW_HOME), false, this);
+            resolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.EXTEND_PM_SHOW_MENU), false, this);
+            resolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.EXTEND_PM_SHOW_BACK), false, this);
+            onChange(true);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            int defValue;
+
+            defValue=(CmSystem.getDefaultBool(mContext, CmSystem.CM_DEFAULT_EXTEND_POWER_MENU) ? 1 : 0);
+            mExtendPm = (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.EXTEND_PM, defValue) == 1);
+            defValue=(CmSystem.getDefaultBool(mContext, CmSystem.CM_DEFAULT_POWER_MENU_HOME) ? 1 : 0);
+            mExtendPmShowHome = (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.EXTEND_PM_SHOW_HOME, defValue) == 1);
+            defValue=(CmSystem.getDefaultBool(mContext, CmSystem.CM_DEFAULT_POWER_MENU_MENU) ? 1 : 0);
+            mExtendPmShowMenu = (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.EXTEND_PM_SHOW_MENU, defValue) == 1);
+            defValue=(CmSystem.getDefaultBool(mContext, CmSystem.CM_DEFAULT_POWER_MENU_BACK) ? 1 : 0);
+            mExtendPmShowBack = (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.EXTEND_PM_SHOW_BACK, defValue) == 1);
+        }
+    }
+
     /**
      * @param context everything needs a context :(
      */
@@ -89,10 +159,18 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
         filter.addAction(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED);
         context.registerReceiver(mBroadcastReceiver, filter);
 
+        ThemeUtils.registerThemeChangeReceiver(context, mThemeChangeReceiver);
+
         // get notified of phone state changes
         TelephonyManager telephonyManager =
                 (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_SERVICE_STATE);
+
+        SettingsObserver settingsObserver = new SettingsObserver(mHandler);
+        settingsObserver.observe();
+
+        // get window manager to inject key events
+        mWindowManager = IWindowManager.Stub.asInterface(ServiceManager.getService("window"));
     }
 
     /**
@@ -102,6 +180,10 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     public void showDialog(boolean keyguardShowing, boolean isDeviceProvisioned) {
         mKeyguardShowing = keyguardShowing;
         mDeviceProvisioned = isDeviceProvisioned;
+        if (mDialog != null && mUiContext == null) {
+            mDialog.dismiss();
+            mDialog = null;
+        }
         if (mDialog == null) {
             mStatusBar = (StatusBarManager)mContext.getSystemService(Context.STATUS_BAR_SERVICE);
             mDialog = createDialog();
@@ -110,6 +192,13 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         mStatusBar.disable(StatusBarManager.DISABLE_EXPAND);
         mDialog.show();
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     /**
@@ -192,11 +281,104 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             }
         };
 
+        // tablet: extendPm - Home
+        mExtendPmHome = new SinglePressAction(com.android.internal.R.drawable.ic_lock_home,
+                R.string.global_action_home) {
+
+            public void onPress() {
+                injectKeyDelayed(KeyEvent.KEYCODE_HOME);
+            }
+
+            public boolean showDuringKeyguard() {
+                return false;
+            }
+
+            public boolean showBeforeProvisioning() {
+                return false;
+            }
+        };
+        // tablet: extendPm - Menu
+        mExtendPmMenu = new SinglePressAction(com.android.internal.R.drawable.ic_lock_menu,
+                R.string.global_action_menu) {
+
+            public void onPress() {
+                injectKeyDelayed(KeyEvent.KEYCODE_MENU);
+            }
+
+            public boolean showDuringKeyguard() {
+                return false;
+            }
+
+            public boolean showBeforeProvisioning() {
+                return false;
+            }
+        };
+        // tablet: extendPm - Back
+        mExtendPmBack = new SinglePressAction(com.android.internal.R.drawable.ic_lock_back,
+                R.string.global_action_back) {
+
+            public void onPress() {
+                injectKeyDelayed(KeyEvent.KEYCODE_BACK);
+            }
+
+            public boolean showDuringKeyguard() {
+                return false;
+            }
+
+            public boolean showBeforeProvisioning() {
+                return false;
+            }
+        };
+
         mItems = Lists.newArrayList(
                 // silent mode
                 mSilentModeToggle,
                 // next: airplane mode
                 mAirplaneModeOn,
+                // next: choose profile
+                new ProfileChooseAction() {
+                    public void onPress() {
+                        createProfileDialog();
+                    }
+
+                    public boolean showDuringKeyguard() {
+                        return false;
+                    }
+
+                    public boolean showBeforeProvisioning() {
+                        return false;
+                    }
+                },
+                // next: screenshot
+                new SinglePressAction(com.android.internal.R.drawable.ic_lock_screenshot, R.string.global_action_screenshot) {
+                    public void onPress() {
+                        Intent intent = new Intent("android.intent.action.SCREENSHOT");
+                        mContext.sendBroadcast(intent);
+                    }
+
+                    public boolean showDuringKeyguard() {
+                        return true;
+                    }
+
+                    public boolean showBeforeProvisioning() {
+                        return true;
+                    }
+                },
+                // next: reboot
+                new SinglePressAction(com.android.internal.R.drawable.ic_lock_reboot, R.string.global_action_reboot) {
+                    public void onPress() {
+                        ShutdownThread.reboot(getUiContext(), null, (Settings.System.getInt(mContext.getContentResolver(),
+                                Settings.System.POWER_DIALOG_PROMPT, 1) == 1));
+                    }
+
+                    public boolean showDuringKeyguard() {
+                        return true;
+                    }
+
+                    public boolean showBeforeProvisioning() {
+                        return true;
+                    }
+                },
                 // last: power off
                 new SinglePressAction(
                         com.android.internal.R.drawable.ic_lock_power_off,
@@ -204,7 +386,8 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
                     public void onPress() {
                         // shutdown by making sure radio and power are handled accordingly.
-                        ShutdownThread.shutdown(mContext, true);
+                        ShutdownThread.shutdown(getUiContext(),(Settings.System.getInt(mContext.getContentResolver(),
+                                Settings.System.POWER_DIALOG_PROMPT, 1) == 1));
                     }
 
                     public boolean showDuringKeyguard() {
@@ -218,7 +401,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         mAdapter = new MyAdapter();
 
-        final AlertDialog.Builder ab = new AlertDialog.Builder(mContext);
+        final AlertDialog.Builder ab = new AlertDialog.Builder(getUiContext());
 
         ab.setAdapter(mAdapter, this)
                 .setInverseBackgroundForced(true);
@@ -236,7 +419,85 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
         return dialog;
     }
 
+    public void injectKeyDelayed(int keycode){
+        mInjectKeycode = keycode;
+        mHandler.removeCallbacks(onInjectKeyDelayed);
+        mHandler.postDelayed(onInjectKeyDelayed, 50);
+    }
+
+    final Runnable onInjectKeyDelayed = new Runnable() {
+        public void run() {
+            try {
+                mWindowManager.injectKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, mInjectKeycode), true);
+                mWindowManager.injectKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, mInjectKeycode), true);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+    };
+
+    private void createProfileDialog(){
+        final ProfileManager profileManager = (ProfileManager)mContext.getSystemService(Context.PROFILE_SERVICE);
+
+        final Profile[] profiles = profileManager.getProfiles();
+        UUID activeProfile = profileManager.getActiveProfile().getUuid();
+        final CharSequence[] names = new CharSequence[profiles.length];
+
+        int i=0;
+        int checkedItem = 0;
+        for(Profile profile : profiles){
+            if(profile.getUuid().equals(activeProfile)){
+                checkedItem = i;
+                mChosenProfile = profile;
+            }
+            names[i++] = profile.getName();
+        }
+
+        final AlertDialog.Builder ab = new AlertDialog.Builder(getUiContext());
+
+        AlertDialog dialog = ab
+                .setSingleChoiceItems(names, checkedItem, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which < 0)
+                            return;
+                        mChosenProfile = profiles[which];
+                    }
+                })
+                .setPositiveButton(com.android.internal.R.string.yes,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                profileManager.setActiveProfile(mChosenProfile.getUuid());
+                            }
+                        })
+                .setNegativeButton(com.android.internal.R.string.no,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        }).create();
+        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_DIALOG);
+        if (!mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_sf_slowBlur)) {
+            dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND);
+        }
+        dialog.show();
+    }
+
     private void prepareDialog() {
+        // care about extended power menu entries
+        mItems.remove(mExtendPmHome);
+        mItems.remove(mExtendPmMenu);
+        mItems.remove(mExtendPmBack);
+
+        if(mExtendPm){
+            if(mExtendPmShowBack && !mItems.contains(mExtendPmBack))
+                mItems.add(0, mExtendPmBack);
+            if(mExtendPmShowMenu && !mItems.contains(mExtendPmMenu))
+                mItems.add(0, mExtendPmMenu);
+            if(mExtendPmShowHome && !mItems.contains(mExtendPmHome))
+                mItems.add(0, mExtendPmHome);
+        }
+
         final boolean silentModeOn =
                 mAudioManager.getRingerMode() != AudioManager.RINGER_MODE_NORMAL;
         mSilentModeToggle.updateState(
@@ -316,9 +577,10 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                 filteredPos++;
             }
 
-            throw new IllegalArgumentException("position " + position + " out of "
-                    + "range of showable actions, filtered count = "
-                    + "= " + getCount() + ", keyguardshowing=" + mKeyguardShowing
+            throw new IllegalArgumentException("position " + position
+                    + " out of range of showable actions"
+                    + ", filtered count=" + getCount()
+                    + ", keyguardshowing=" + mKeyguardShowing
                     + ", provisioned=" + mDeviceProvisioned);
         }
 
@@ -329,7 +591,8 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         public View getView(int position, View convertView, ViewGroup parent) {
             Action action = getItem(position);
-            return action.create(mContext, convertView, parent, LayoutInflater.from(mContext));
+            final Context context = getUiContext();
+            return action.create(context, convertView, parent, LayoutInflater.from(context));
         }
     }
 
@@ -394,6 +657,42 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
             icon.setImageDrawable(context.getResources().getDrawable(mIconResId));
             messageView.setText(mMessageResId);
+
+            return v;
+        }
+    }
+
+    /**
+     * A single press action maintains no state, just responds to a press
+     * and takes an action.
+     */
+    private abstract class ProfileChooseAction implements Action {
+        private ProfileManager mProfileManager;
+
+        protected ProfileChooseAction() {
+            mProfileManager = (ProfileManager)mContext.getSystemService(Context.PROFILE_SERVICE);
+        }
+
+        public boolean isEnabled() {
+            return true;
+        }
+
+        abstract public void onPress();
+
+        public View create(
+                Context context, View convertView, ViewGroup parent, LayoutInflater inflater) {
+            View v = (convertView != null) ?
+                    convertView :
+                    inflater.inflate(R.layout.global_actions_item, parent, false);
+
+            ImageView icon = (ImageView) v.findViewById(R.id.icon);
+            TextView messageView = (TextView) v.findViewById(R.id.message);
+            TextView statusView = (TextView) v.findViewById(R.id.status);
+            statusView.setVisibility(View.VISIBLE);
+            statusView.setText(mProfileManager.getActiveProfile().getName());
+
+            icon.setImageDrawable(context.getResources().getDrawable(com.android.internal.R.drawable.ic_lock_profile));
+            messageView.setText(R.string.global_action_choose_profile);
 
             return v;
         }
@@ -525,8 +824,8 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             String action = intent.getAction();
             if (Intent.ACTION_CLOSE_SYSTEM_DIALOGS.equals(action)
                     || Intent.ACTION_SCREEN_OFF.equals(action)) {
-                String reason = intent.getStringExtra(PhoneWindowManager.SYSTEM_DIALOG_REASON_KEY);
-                if (!PhoneWindowManager.SYSTEM_DIALOG_REASON_GLOBAL_ACTIONS.equals(reason)) {
+                String reason = intent.getStringExtra(CmPhoneWindowManager.SYSTEM_DIALOG_REASON_KEY);
+                if (!CmPhoneWindowManager.SYSTEM_DIALOG_REASON_GLOBAL_ACTIONS.equals(reason)) {
                     mHandler.sendEmptyMessage(MESSAGE_DISMISS);
                 }
             } else if (TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED.equals(action)) {
@@ -538,6 +837,12 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
                     changeAirplaneModeSystemSetting(true);
                 }
             }
+        }
+    };
+
+    private BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
         }
     };
 

@@ -50,8 +50,11 @@ import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract.CommonDataKinds.Phone;
+import android.provider.ContactsContract.PhoneLookup;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.TelephonyManager;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -59,6 +62,7 @@ import android.text.style.StyleSpan;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
@@ -85,6 +89,9 @@ public class MessagingNotification {
     private static final String[] SMS_STATUS_PROJECTION = new String[] {
         Sms.THREAD_ID, Sms.DATE, Sms.ADDRESS, Sms.SUBJECT, Sms.BODY };
 
+    private static final String[] LOOKUP_PROJECTION = new String[] {
+        PhoneLookup.DISPLAY_NAME, PhoneLookup.TYPE, PhoneLookup.LABEL };
+
     // These must be consistent with MMS_STATUS_PROJECTION and
     // SMS_STATUS_PROJECTION.
     private static final int COLUMN_THREAD_ID   = 0;
@@ -94,6 +101,11 @@ public class MessagingNotification {
     private static final int COLUMN_SUBJECT     = 3;
     private static final int COLUMN_SUBJECT_CS  = 4;
     private static final int COLUMN_SMS_BODY    = 4;
+
+    // These must be consistent with LOOKUP_PROJECTION
+    private static final int COLUMN_DISPLAY_NAME = 0;
+    private static final int COLUMN_TYPE         = 1;
+    private static final int COLUMN_LABEL        = 2;
 
     private static final String NEW_INCOMING_SM_CONSTRAINT =
             "(" + Sms.TYPE + " = " + Sms.MESSAGE_TYPE_INBOX
@@ -192,10 +204,11 @@ public class MessagingNotification {
 
         // And deals with delivery reports (which use Toasts). It's safe to call in a worker
         // thread because the toast will eventually get posted to a handler.
-        delivery = getSmsNewDeliveryInfo(context);
-        if (delivery != null) {
-            delivery.deliver(context, isStatusMessage);
-        }
+        // Oh no it doesn't since this design is so bad
+        //delivery = getSmsNewDeliveryInfo(context);
+        //if (delivery != null) {
+        //    delivery.deliver(context, isStatusMessage);
+        //}
     }
 
     /**
@@ -206,6 +219,53 @@ public class MessagingNotification {
         nonBlockingUpdateNewMessageIndicator(context, false, false);
         updateSendFailedNotification(context);
         updateDownloadFailedNotification(context);
+    }
+
+    /**
+     * Display delivery notification. One for each call, not just for
+     * most recent one.
+     * Does its work and query in a worker thread.
+     */
+    public static void nonBlockingShowDelivery(final Context context,
+            final String address) {
+        if (address == null) {
+            return;
+        }
+        new Thread(new Runnable() {
+            public void run() {
+                SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+                if (!sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_ENABLED, true)) {
+                    return;
+                }
+                Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI,
+                        Uri.encode(address));
+                Cursor cursor = context.getContentResolver().query(uri,
+                        LOOKUP_PROJECTION, null, null, null);
+                String recipient;
+                try {
+                    if (cursor != null && cursor.moveToFirst()) {
+                        recipient = cursor.getString(COLUMN_DISPLAY_NAME) + " (" +
+                                Phone.getTypeLabel(context.getResources(), cursor.getInt(COLUMN_TYPE),
+                                cursor.getString(COLUMN_LABEL)) + ")";
+                    }
+                    else {
+                        recipient = address;
+                    }
+                } finally {
+                    if (cursor != null) {
+                        cursor.close();
+                    }
+                }
+
+                final String message = String.format(context.getString(R.string.delivery_toast_body),
+                        recipient);
+                mToastHandler.post(new Runnable() {
+                    public void run() {
+                        Toast.makeText(context, message, 3000).show();
+                    }
+                });
+            }
+        }).start();
     }
 
     private static final int accumulateNotificationInfo(
@@ -330,13 +390,13 @@ public class MessagingNotification {
         ContentResolver resolver = context.getContentResolver();
         Cursor cursor = SqliteWrapper.query(context, resolver, Sms.CONTENT_URI,
                     SMS_STATUS_PROJECTION, NEW_DELIVERY_SM_CONSTRAINT,
-                    null, Sms.DATE + " desc");
+                    null, Sms.DATE);
 
         if (cursor == null)
             return null;
 
         try {
-            if (!cursor.moveToFirst())
+            if (!cursor.moveToLast())
             return null;
 
             String address = cursor.getString(COLUMN_SMS_ADDRESS);
@@ -372,7 +432,7 @@ public class MessagingNotification {
             long threadId = cursor.getLong(COLUMN_THREAD_ID);
             long timeMillis = cursor.getLong(COLUMN_DATE);
 
-            if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) 
+            if (Log.isLoggable(LogTag.APP, Log.VERBOSE))
             {
                 Log.d(TAG, "getSmsNewMessageNotificationInfo: count=" + cursor.getCount() +
                         ", first addr=" + address + ", thread_id=" + threadId);
@@ -509,6 +569,10 @@ public class MessagingNotification {
                 vibrateWhen = context.getString(R.string.prefDefault_vibrateWhen);
             }
 
+            TelephonyManager mTM = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            boolean callStateIdle = mTM.getCallState() == TelephonyManager.CALL_STATE_IDLE;
+            boolean vibrateOnCall = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_CALL, true);
+
             boolean vibrateAlways = vibrateWhen.equals("always");
             boolean vibrateSilent = vibrateWhen.equals("silent");
             AudioManager audioManager =
@@ -516,8 +580,16 @@ public class MessagingNotification {
             boolean nowSilent =
                 audioManager.getRingerMode() == AudioManager.RINGER_MODE_VIBRATE;
 
-            if (vibrateAlways || vibrateSilent && nowSilent) {
-                notification.defaults |= Notification.DEFAULT_VIBRATE;
+            if ((vibrateAlways || vibrateSilent && nowSilent) && (vibrateOnCall || (!vibrateOnCall && callStateIdle))) {
+                /* WAS: notification.defaults |= Notification.DEFAULT_VIBRATE;*/
+                String mVibratePattern = sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN, "").equals("custom")
+                    ? sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN_CUSTOM, "0,1200")
+                    : sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN, "0,1200");
+                if(!mVibratePattern.equals("")) {
+                    notification.vibrate = parseVibratePattern(mVibratePattern);
+                } else {
+                    notification.defaults |= Notification.DEFAULT_VIBRATE;
+                }
             }
 
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
@@ -751,4 +823,35 @@ public class MessagingNotification {
     }
 
 
+    // Parse the user provided custom vibrate pattern into a long[]
+    public static long[] parseVibratePattern(String stringPattern) {
+      ArrayList<Long> arrayListPattern = new ArrayList<Long>();
+      Long l;
+      String[] splitPattern = stringPattern.split(",");
+      int VIBRATE_PATTERN_MAX_SECONDS = 60000;
+      int VIBRATE_PATTERN_MAX_PATTERN = 100;
+
+      for (int i = 0; i < splitPattern.length; i++) {
+        try {
+          l = Long.parseLong(splitPattern[i].trim());
+        } catch (NumberFormatException e) {
+          return null;
+        }
+        if (l > VIBRATE_PATTERN_MAX_SECONDS) {
+          return null;
+        }
+        arrayListPattern.add(l);
+      }
+
+      int size = arrayListPattern.size();
+      if (size > 0 && size < VIBRATE_PATTERN_MAX_PATTERN) {
+        long[] pattern = new long[size];
+        for (int i = 0; i < pattern.length; i++) {
+          pattern[i] = arrayListPattern.get(i);
+        }
+        return pattern;
+      }
+
+      return null;
+    }
 }

@@ -31,6 +31,7 @@ import android.net.MobileDataStateTracker;
 import android.net.NetworkInfo;
 import android.net.NetworkStateTracker;
 import android.net.wifi.WifiStateTracker;
+import android.net.wimax.WimaxHelper;
 import android.net.wimax.WimaxManagerConstants;
 import android.os.Binder;
 import android.os.Handler;
@@ -73,6 +74,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     private static final String NETWORK_RESTORE_DELAY_PROP_NAME =
             "android.telephony.apn-restore";
 
+    private static final String ACTION_MOBILE_DATA_CHANGED =
+            "com.android.internal.telephony.MOBILE_DATA_CHANGED";
+    private static final String EXTRA_ENABLED = "enabled";
 
     private Tethering mTethering;
     private boolean mTetheringConfigValid = false;
@@ -108,6 +112,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
     private boolean mTestMode;
     private static ConnectivityService sServiceInstance;
+
     private static final int ENABLED  = 1;
     private static final int DISABLED = 0;
 
@@ -260,12 +265,21 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     private ConnectivityService(Context context) {
         if (DBG) Slog.v(TAG, "ConnectivityService starting up");
 
-        // setup our unique device name
-        String id = Settings.Secure.getString(context.getContentResolver(),
-                Settings.Secure.ANDROID_ID);
-        if (id != null && id.length() > 0) {
-            String name = new String("android_").concat(id);
-            SystemProperties.set("net.hostname", name);
+        // try to get our custom device name
+        String hostname = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.DEVICE_HOSTNAME);
+        if (hostname != null && hostname.length() > 0) {
+            SystemProperties.set("net.hostname", hostname);
+            Slog.i(TAG, "hostname has been set: " + hostname);
+        } else {
+            // otherwise setup our unique device name
+            String id = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ANDROID_ID);
+            if (id != null && id.length() > 0) {
+                String name = new String("android-").concat(id);
+                SystemProperties.set("net.hostname", name);
+                Slog.i(TAG, "hostname has been set: " + name);
+            }
         }
 
         mContext = context;
@@ -415,14 +429,13 @@ public class ConnectivityService extends IConnectivityManager.Stub {
         }
     }
 
+
     private NetworkStateTracker makeWimaxStateTracker() {
         //Initialize Wimax
         DexClassLoader wimaxClassLoader;
         Class wimaxStateTrackerClass = null;
         Class wimaxServiceClass = null;
         Class wimaxManagerClass;
-        String wimaxJarLocation;
-        String wimaxLibLocation;
         String wimaxManagerClassName;
         String wimaxServiceClassName;
         String wimaxStateTrackerClassName;
@@ -434,10 +447,6 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
         if (isWimaxEnabled) {
             try {
-                wimaxJarLocation = mContext.getResources().getString(
-                        com.android.internal.R.string.config_wimaxServiceJarLocation);
-                wimaxLibLocation = mContext.getResources().getString(
-                        com.android.internal.R.string.config_wimaxNativeLibLocation);
                 wimaxManagerClassName = mContext.getResources().getString(
                         com.android.internal.R.string.config_wimaxManagerClassname);
                 wimaxServiceClassName = mContext.getResources().getString(
@@ -445,9 +454,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                 wimaxStateTrackerClassName = mContext.getResources().getString(
                         com.android.internal.R.string.config_wimaxStateTrackerClassname);
 
-                wimaxClassLoader =  new DexClassLoader(wimaxJarLocation,
-                        new ContextWrapper(mContext).getCacheDir().getAbsolutePath(),
-                        wimaxLibLocation,ClassLoader.getSystemClassLoader());
+                wimaxClassLoader = WimaxHelper.getWimaxClassLoader(mContext);
 
                 try {
                     wimaxManagerClass = wimaxClassLoader.loadClass(wimaxManagerClassName);
@@ -649,7 +656,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     private class FeatureUser implements IBinder.DeathRecipient {
         int mNetworkType;
         String mFeature;
-        IBinder mBinder;
+        final IBinder mBinder;
         int mPid;
         int mUid;
         long mCreateTime;
@@ -1010,6 +1017,10 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                 mNetTrackers[ConnectivityManager.TYPE_WIMAX].teardown();
             }
         }
+
+        Intent intent = new Intent(ACTION_MOBILE_DATA_CHANGED);
+        intent.putExtra(EXTRA_ENABLED, enabled);
+        mContext.sendBroadcast(intent);
     }
 
     private int getNumConnectedNetworks() {
@@ -1088,6 +1099,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
             intent.putExtra(ConnectivityManager.EXTRA_REASON, info.getReason());
         }
         if (info.getExtraInfo() != null) {
+            intent.putExtra(ConnectivityManager.EXTRA_REASON, info.getReason());
+        }
+        if (info.getExtraInfo() != null) {
             intent.putExtra(ConnectivityManager.EXTRA_EXTRA_INFO,
                     info.getExtraInfo());
         }
@@ -1133,9 +1147,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                 if (mNetAttributes[checkType].isDefault() == false) continue;
                 if (mNetAttributes[checkType].mRadio == ConnectivityManager.TYPE_MOBILE &&
                         noMobileData) {
-                    Slog.e(TAG, "not failing over to mobile type " + checkType +
-                            " because Mobile Data Disabled");
-                    continue;
+                        Slog.e(TAG, "not failing over to mobile type " + checkType +
+                                " because Mobile Data Disabled");
+                        continue;
                 }
                 if (mNetAttributes[checkType].mRadio == ConnectivityManager.TYPE_WIMAX &&
                         noMobileData) {
@@ -1615,8 +1629,13 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                     break;
 
                 case NetworkStateTracker.EVENT_NETWORK_SUBTYPE_CHANGED:
-                    // fill me in
+                {
+                    info = (NetworkInfo) msg.obj;
+                    int netType = info.getType();
+                    NetworkStateTracker thisNet = mNetTrackers[netType];
+                    thisNet.updateNetworkSettings();
                     break;
+                }
                 case EVENT_RESTORE_DEFAULT_NETWORK:
                     FeatureUser u = (FeatureUser)msg.obj;
                     u.expire();

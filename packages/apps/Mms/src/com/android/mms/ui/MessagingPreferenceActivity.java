@@ -29,15 +29,19 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.Preference.OnPreferenceChangeListener;
+import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.provider.SearchRecentSuggestions;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import com.android.mms.templates.TemplatesListActivity;
 import com.android.mms.util.Recycler;
 
 import android.content.res.Resources;
@@ -54,12 +58,34 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
     public static final String READ_REPORT_MODE         = "pref_key_mms_read_reports";
     public static final String SMS_DELIVERY_REPORT_MODE = "pref_key_sms_delivery_reports";
     public static final String NOTIFICATION_ENABLED     = "pref_key_enable_notifications";
+    public static final String SMS_SPLIT_MESSAGE        = "pref_key_sms_split_160";
+    public static final String SMS_SPLIT_COUNTER        = "pref_key_sms_split_counter";
     public static final String NOTIFICATION_VIBRATE     = "pref_key_vibrate";
     public static final String NOTIFICATION_VIBRATE_WHEN= "pref_key_vibrateWhen";
     public static final String NOTIFICATION_RINGTONE    = "pref_key_ringtone";
     public static final String AUTO_RETRIEVAL           = "pref_key_mms_auto_retrieval";
     public static final String RETRIEVAL_DURING_ROAMING = "pref_key_mms_retrieval_during_roaming";
+    public static final String MMS_SAVE_LOCATION        = "pref_save_location";
     public static final String AUTO_DELETE              = "pref_key_auto_delete";
+    public static final String BLACK_BACKGROUND         = "pref_key_mms_black_background";
+    public static final String BACK_TO_ALL_THREADS      = "pref_key_mms_back_to_all_threads";
+    public static final String SEND_ON_ENTER            = "pref_key_mms_send_on_enter";
+    public static final String USER_AGENT               = "pref_key_mms_user_agent";
+    public static final String USER_AGENT_CUSTOM        = "pref_key_mms_user_agent_custom";
+    public static final String FULL_TIMESTAMP           = "pref_key_mms_full_timestamp";
+    public static final String ONLY_MOBILE_NUMBERS      = "pref_key_mms_only_mobile_numbers";
+    public static final String SENT_TIMESTAMP           = "pref_key_mms_use_sent_timestamp";
+    public static final String SENT_TIMESTAMP_GMT_CORRECTION = "pref_key_mms_use_sent_timestamp_gmt_correction";
+    public static final String MESSAGE_FONT_SIZE     = "pref_key_mms_message_font_size";
+    public static final String EMAIL_ADDR_COMPLETION        = "pref_key_mms_email_addr_completion";
+    public static final String NOTIFICATION_VIBRATE_PATTERN = "pref_key_mms_notification_vibrate_pattern";
+    public static final String NOTIFICATION_VIBRATE_PATTERN_CUSTOM = "pref_key_mms_notification_vibrate_pattern_custom";
+    public static final String NOTIFICATION_VIBRATE_CALL = "pref_key_mms_notification_vibrate_call";
+    public static final String MANAGE_TEMPLATES = "pref_key_templates_manage";
+    public static final String SHOW_GESTURE = "pref_key_templates_show_gesture";
+    public static final String GESTURE_SENSITIVITY = "pref_key_templates_gestures_sensitivity";
+    public static final String GESTURE_SENSITIVITY_VALUE = "pref_key_templates_gestures_sensitivity_value";
+    public static final String STRIP_UNICODE = "pref_key_strip_unicode";
 
     // Menu entries
     private static final int MENU_RESTORE_DEFAULTS    = 1;
@@ -72,8 +98,11 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
     private Preference mManageSimPref;
     private Preference mClearHistoryPref;
     private ListPreference mVibrateWhenPref;
+    private Preference mManageTemplate;
     private Recycler mSmsRecycler;
     private Recycler mMmsRecycler;
+    private ListPreference mGestureSensitivity;
+
     private static final int CONFIRM_CLEAR_SEARCH_HISTORY_DIALOG = 3;
 
     @Override
@@ -93,6 +122,8 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
         mMmsLimitPref = findPreference("pref_key_mms_delete_limit");
         mClearHistoryPref = findPreference("pref_key_mms_clear_history");
         mVibrateWhenPref = (ListPreference) findPreference(NOTIFICATION_VIBRATE_WHEN);
+        mManageTemplate = findPreference(MANAGE_TEMPLATES);
+        mGestureSensitivity = (ListPreference) findPreference(GESTURE_SENSITIVITY);
 
         if (!MmsApp.getApplication().getTelephonyManager().hasIccCard()) {
             // No SIM card, remove the SIM-related prefs
@@ -139,7 +170,7 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
         }
 
         // If needed, migrate vibration setting from a previous version
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        final SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         if (!sharedPreferences.contains(NOTIFICATION_VIBRATE_WHEN) &&
                 sharedPreferences.contains(NOTIFICATION_VIBRATE)) {
             int stringId = sharedPreferences.getBoolean(NOTIFICATION_VIBRATE, false) ?
@@ -147,6 +178,32 @@ public class MessagingPreferenceActivity extends PreferenceActivity {
                     R.string.prefDefault_vibrate_false;
             mVibrateWhenPref.setValue(getString(stringId));
         }
+
+        mManageTemplate.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                Intent intent = new Intent(MessagingPreferenceActivity.this,
+                        TemplatesListActivity.class);
+                startActivity(intent);
+                return false;
+            }
+        });
+
+        String gestureSensitivity = String.valueOf(sharedPreferences.getInt(GESTURE_SENSITIVITY_VALUE, 3));
+
+        mGestureSensitivity.setSummary(gestureSensitivity);
+        mGestureSensitivity.setValue(gestureSensitivity);
+        mGestureSensitivity.setOnPreferenceChangeListener(new OnPreferenceChangeListener() {
+
+            @Override
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                int value = Integer.parseInt((String) newValue);
+                sharedPreferences.edit().putInt(GESTURE_SENSITIVITY_VALUE, value).commit();
+                mGestureSensitivity.setSummary(String.valueOf(value));
+                return true;
+            }
+        });
 
         mSmsRecycler = Recycler.getSmsRecycler();
         mMmsRecycler = Recycler.getMmsRecycler();

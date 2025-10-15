@@ -998,12 +998,12 @@ bool RenderBlock::handleRunInChild(RenderBox* child)
     RenderInline* inlineRunIn = new (renderArena()) RenderInline(runInNode ? runInNode : document());
     inlineRunIn->setStyle(blockRunIn->style());
 
-    // Move the nodes from the old child to the new child
-    for (RenderObject* runInChild = blockRunIn->firstChild(); runInChild;) {
-        RenderObject* nextSibling = runInChild->nextSibling();
+    bool runInIsGenerated = child->style()->styleType() == BEFORE || child->style()->styleType() == AFTER;
+
+    // Move the nodes from the old child to the new child 
+    for (RenderObject* runInChild = blockRunIn->firstChild(); runInChild; runInChild = runInChild->nextSibling()) {
         blockRunIn->children()->removeChildNode(blockRunIn, runInChild, false);
         inlineRunIn->addChild(runInChild); // Use addChild instead of appendChildNode since it handles correct placement of the children relative to :after-generated content.
-        runInChild = nextSibling;
     }
 
     // Now insert the new child under |currBlock|.

@@ -344,7 +344,7 @@
     <string name="nfc_quick_toggle_title" msgid="6769159366307299004">"NFC"</string>
     <string name="nfc_quick_toggle_summary" msgid="1988408027741447231">"Use Near-Field Communication to read and exchange tags"</string>
     <string name="nfc_toggle_error" msgid="2233172102497535522">"An error occurred."</string>
-    <string name="wifi_quick_toggle_title" msgid="874495178395350104">"WiFi"</string>
+    <string name="wifi_quick_toggle_title" msgid="874495178395350104">"Wi-Fi"</string>
     <string name="wifi_quick_toggle_summary" msgid="1047950931623694366">"Turn on Wi-Fi"</string>
     <string name="wifi_settings" msgid="4746946030627213196">"Wi-Fi settings"</string>
     <string name="wifi_settings_category" msgid="2810363951104753710">"Wi-Fi settings"</string>
@@ -356,7 +356,7 @@
     <string name="wifi_fail_to_scan" msgid="6194542252808587669">"Unable to scan for networks"</string>
     <string name="wifi_notify_open_networks" msgid="3755768188029653293">"Network notification"</string>
     <string name="wifi_notify_open_networks_summary" msgid="3038290727701553612">"Notify me when an open network is available"</string>
-    <string name="wifi_add_network" msgid="1671334951296205616">"Add WiFi network"</string>
+    <string name="wifi_add_network" msgid="1671334951296205616">"Add Wi-Fi network"</string>
     <string name="wifi_access_points" msgid="2664629396767022441">"Wi-Fi networks"</string>
     <string name="wifi_menu_scan" msgid="1470911530412095868">"Scan"</string>
     <string name="wifi_menu_advanced" msgid="7522252991919573664">"Advanced"</string>
@@ -517,7 +517,7 @@
     <string name="device_info_not_available" msgid="8062521887156825182">"Not available"</string>
     <string name="device_status_activity_title" msgid="1411201799384697904">"Status"</string>
     <string name="device_status" msgid="607405385799807324">"Status"</string>
-    <string name="device_status_summary" msgid="2599162787451519618">"phone number, signal, etc."</string>
+    <string name="device_status_summary" msgid="2599162787451519618">"Phone number, signal, etc."</string>
     <string name="storage_settings" msgid="4211799979832404953">"Storage"</string>
     <string name="storage_settings_title" msgid="8746016738388094064">"Storage settings"</string>
     <string name="storage_settings_summary" product="nosdcard" msgid="3543813623294870759">"Unmount USB storage, view available storage"</string>
@@ -684,7 +684,7 @@
     <string name="lockpassword_confirm_your_pin_header" msgid="49038294648213197">"Confirm your PIN"</string>
     <string name="lockpassword_confirm_passwords_dont_match" msgid="6850677112663979120">"Passwords don\'t match"</string>
     <string name="lockpassword_confirm_pins_dont_match" msgid="4757532830594400147">"PINs don\'t match"</string>
-    <string name="lockpassword_password_set_toast" msgid="4875050283108629383">"password has been set"</string>
+    <string name="lockpassword_password_set_toast" msgid="4875050283108629383">"Password has been set"</string>
     <string name="lockpassword_pin_set_toast" msgid="6011826444725291475">"PIN has been set"</string>
     <string name="lockpassword_pattern_set_toast" msgid="6867259621331406236">"Pattern has been set"</string>
     <string name="lock_settings_title" msgid="975088518210629938">"Screen unlock"</string>
@@ -725,7 +725,7 @@
     <string name="applications_settings_summary" msgid="2714215108369119717">"Manage applications, set up quick launch shortcuts"</string>
     <string name="applications_settings_header" msgid="6018266337275422250">"Application settings"</string>
     <string name="install_applications" msgid="4872012136210802181">"Unknown sources"</string>
-    <string name="install_unknown_applications" msgid="6612824788917283662">"Allow installation of non-Market applications"</string>
+    <string name="install_unknown_applications" msgid="6612824788917283662">"Allow installation of non-Google Play applications"</string>
     <string name="install_all_warning" msgid="1923717607319933741">"Your phone and personal data are more vulnerable to be attacked by applications from unknown sources. You agree that you are solely responsible for any damage to your phone or loss of data that may result from using these applications."</string>
     <string name="application_info_label" msgid="1150486628158409543">"Application info"</string>
     <string name="storage_label" msgid="8700867073480107253">"Storage"</string>
@@ -759,7 +759,7 @@
     <string name="filter_apps_third_party" msgid="7786348047690140979">"Downloaded"</string>
     <string name="filter_apps_running" msgid="7767071454371350486">"Running"</string>
     <string name="filter_apps_onsdcard" product="nosdcard" msgid="4843063154701023349">"USB storage"</string>
-    <string name="filter_apps_onsdcard" product="default" msgid="1477351142334784771">"On SD card"</string>
+    <string name="filter_apps_onsdcard" product="default" msgid="1477351142334784771">"SD card"</string>
     <string name="disabled" msgid="9206776641295849915">"Disabled"</string>
     <string name="no_applications" msgid="5190227407135243904">"No applications."</string>
     <string name="internal_storage" msgid="1584700623164275282">"Internal storage"</string>
@@ -908,7 +908,7 @@
     <string name="accessibility_service_security_warning" msgid="4066258132331302670">"This accessibility service may be able to collect all the text that you type, including personal data credit card numbers except passwords. It may also log your user interface interactions. It comes from the application <xliff:g id="ACCESSIBILITY_SERVICE_NAME">%1$s</xliff:g>. Use this accessibility service?"</string>
     <string name="accessibility_service_disable_warning" msgid="8930591383312775132">"Disable accessibility?"</string>
     <string name="accessibility_service_no_apps_title" msgid="898893674114288531">"No accessibility-related applications found"</string>
-    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"You do not have any accessibility-related applications installed."\n\n"You can download a screen reader for your device from Android Market."\n\n"Click OK to install the screen reader."</string>
+    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"You do not have any accessibility-related applications installed."\n\n"You can download a screen reader for your device from Google Play."\n\n"Click OK to install the screen reader."</string>
     <string name="accessibility_power_button_category" msgid="8545885236482339928">"Power button"</string>
     <string name="accessibility_power_button_ends_call" msgid="7698764194501089533">"Power button ends call"</string>
     <string name="accessibility_power_button_ends_call_summary" msgid="8878097632186291462">"During a call, pressing Power ends call instead of turning off screen"</string>
@@ -935,7 +935,7 @@
     <string name="controls_subtitle" msgid="390468421138288702">"Adjust power use"</string>
     <string name="packages_subtitle" msgid="4736416171658062768">"Included packages"</string>
     <string name="power_screen" msgid="2353149143338929583">"Display"</string>
-    <string name="power_wifi" msgid="2382791137776486974">"WiFi"</string>
+    <string name="power_wifi" msgid="2382791137776486974">"Wi-Fi"</string>
     <string name="power_bluetooth" msgid="4373329044379008289">"Bluetooth"</string>
     <string name="power_cell" msgid="6596471490976003056">"Mobile standby"</string>
     <string name="power_phone" msgid="5392641106474567277">"Voice calls"</string>
@@ -964,8 +964,8 @@
     <string name="battery_sugg_radio" msgid="8211336978326295047">"Switch to airplane mode to save power in areas with no mobile coverage"</string>
     <string name="battery_desc_display" msgid="5432795282958076557">"Battery used by the display and backlight"</string>
     <string name="battery_sugg_display" msgid="3370202402045141760">"Reduce the screen brightness and/or screen timeout"</string>
-    <string name="battery_desc_wifi" msgid="1702486494565080431">"Battery used by WiFi"</string>
-    <string name="battery_sugg_wifi" msgid="7542345142282261691">"Turn off WiFi when not using it or where it is not available"</string>
+    <string name="battery_desc_wifi" msgid="1702486494565080431">"Battery used by Wi-Fi"</string>
+    <string name="battery_sugg_wifi" msgid="7542345142282261691">"Turn off Wi-Fi when not using it or where it is not available"</string>
     <string name="battery_desc_bluetooth" msgid="7535520658674621902">"Battery used by Bluetooth"</string>
     <string name="battery_sugg_bluetooth_basic" msgid="817276933922157788">"Turn off Bluetooth when you aren\'t using it"</string>
     <string name="battery_sugg_bluetooth_headset" msgid="8214816222115517479">"Try connecting to a different Bluetooth device"</string>
@@ -1024,7 +1024,7 @@
     <string name="tts_notif_engine_install_title" msgid="7000346872482649034">"Speech synthesis engine installed"</string>
     <string name="tts_notif_engine_install_message" msgid="5304661142202662693">"Enable new engine before use"</string>
     <string name="gadget_title" msgid="7455548605888590466">"Power Control"</string>
-    <string name="gadget_toggle_wifi" msgid="2382963973155082629">"Updating WiFi setting"</string>
+    <string name="gadget_toggle_wifi" msgid="2382963973155082629">"Updating Wi-Fi setting"</string>
     <string name="gadget_toggle_bluetooth" msgid="7538903239807020826">"Updating Bluetooth setting"</string>
     <string name="vpn_settings_activity_title" msgid="7276864950701612579">"VPN settings"</string>
     <string name="vpn_connect_to" msgid="2541409082892684362">"Connect to <xliff:g id="NAME">%s</xliff:g>"</string>
@@ -1125,7 +1125,7 @@
     <string name="credentials_wrong_password" msgid="7525192410790152041">"Please enter the correct password."</string>
     <string name="credentials_reset_warning" msgid="6392481296673345268">"Please enter the correct password. You have one more try to enter the correct password before the credential storage is erased."</string>
     <string name="credentials_reset_warning_plural" msgid="454828369803055270">"Please enter the correct password. You have <xliff:g id="NUMBER">%1$d</xliff:g> more tries to enter the correct password before the credential storage is erased."</string>
-    <string name="credentials_passwords_mismatch" msgid="5288565139590031733">"passwords do not match."</string>
+    <string name="credentials_passwords_mismatch" msgid="5288565139590031733">"Passwords do not match."</string>
     <string name="credentials_passwords_empty" msgid="8647631321684363549">"You must enter and confirm a password."</string>
     <string name="credentials_password_empty" msgid="8292138152983330473">"Please enter the password."</string>
     <string name="credentials_password_too_short" msgid="7502749986405522663">"The password must contain at least 8 characters."</string>
@@ -1147,7 +1147,7 @@
     <string name="privacy_settings" msgid="9206631214140954954">"Privacy"</string>
     <string name="privacy_settings_title" msgid="1987089301293213705">"Privacy settings"</string>
     <string name="backup_section_title" msgid="8856083167469467588">"Back up and restore"</string>
-    <string name="personal_data_section_title" msgid="7815209034443782061">"personal data"</string>
+    <string name="personal_data_section_title" msgid="7815209034443782061">"Personal data"</string>
     <string name="backup_data_title" msgid="1239105919852668016">"Back up my data"</string>
     <string name="backup_data_summary" msgid="6515285107793232815">"Back up application data, Wi-Fi passwords and other settings, to Google servers"</string>
     <string name="auto_restore_title" msgid="5397528966329126506">"Automatic restore"</string>

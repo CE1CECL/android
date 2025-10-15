@@ -74,6 +74,7 @@ import android.provider.ContactsContract.CommonDataKinds.Website;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -93,6 +94,12 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+//Wysie
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 /**
  * Displays the details of a specific contact.
@@ -114,6 +121,9 @@ public class ViewContactActivity extends Activity
 
     public static final int MENU_ITEM_MAKE_DEFAULT = 3;
     public static final int MENU_ITEM_CALL = 4;
+    public static final int MENU_ITEM_SHARE = 5;
+
+    private static final String PLAIN_TEXT_TYPE = "text/plain";
 
     protected Uri mLookupUri;
     private ContentResolver mResolver;
@@ -191,11 +201,16 @@ public class ViewContactActivity extends Activity
     }
 
     private ListView mListView;
-    private boolean mShowSmsLinksForAllPhones;
+    private boolean mShowSmsLinksForAllPhones;    
+    
+    //Wysie
+    private SharedPreferences ePrefs;
 
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
+        
+        ePrefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
 
         final Intent intent = getIntent();
         Uri data = intent.getData();
@@ -244,12 +259,16 @@ public class ViewContactActivity extends Activity
         mSections.add(mOtherEntries);
 
         //TODO Read this value from a preference
-        mShowSmsLinksForAllPhones = true;
+        //mShowSmsLinksForAllPhones = true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        
+        //Wysie: Read from preference
+        mShowSmsLinksForAllPhones = !ePrefs.getBoolean("contacts_show_text_mobile_only", false);        
+        
         startEntityQuery();
     }
 
@@ -575,13 +594,22 @@ public class ViewContactActivity extends Activity
             if (!entry.isPrimary) {
                 menu.add(0, MENU_ITEM_MAKE_DEFAULT, 0, R.string.menu_makeDefaultNumber);
             }
+            if (!mAllRestricted) {
+                menu.add(0, MENU_ITEM_SHARE, 0, R.string.menu_shareNumber);
+            }
         } else if (entry.mimetype.equals(CommonDataKinds.Email.CONTENT_ITEM_TYPE)) {
             menu.add(0, 0, 0, R.string.menu_sendEmail).setIntent(entry.intent);
             if (!entry.isPrimary) {
                 menu.add(0, MENU_ITEM_MAKE_DEFAULT, 0, R.string.menu_makeDefaultEmail);
             }
+            if (!mAllRestricted) {
+                menu.add(0, MENU_ITEM_SHARE, 0, R.string.menu_shareEmail);
+            }
         } else if (entry.mimetype.equals(CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE)) {
             menu.add(0, 0, 0, R.string.menu_viewAddress).setIntent(entry.intent);
+            if (!mAllRestricted) {
+                menu.add(0, MENU_ITEM_SHARE, 0, R.string.menu_shareAddress);
+            }
         }
     }
 
@@ -661,10 +689,32 @@ public class ViewContactActivity extends Activity
                 startActivity(item.getIntent());
                 return true;
             }
+            case MENU_ITEM_SHARE: {
+                shareContactInfo(item);
+                return true;
+            }
             default: {
                 return super.onContextItemSelected(item);
             }
         }
+    }
+
+    private boolean shareContactInfo(MenuItem item) {
+        ViewEntry entry = getViewEntryForMenuItem(item);
+        if (mAllRestricted || entry == null) {
+            return false;
+        }
+
+        final Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType(PLAIN_TEXT_TYPE);
+        intent.putExtra(Intent.EXTRA_TEXT, entry.data);
+
+        try {
+            startActivity(Intent.createChooser(intent, getText(R.string.share_via)));
+        } catch (ActivityNotFoundException ex) {
+            Toast.makeText(this, R.string.share_error, Toast.LENGTH_SHORT).show();
+        }
+        return true;
     }
 
     private boolean makeItemDefault(MenuItem item) {
@@ -795,6 +845,8 @@ public class ViewContactActivity extends Activity
                         StickyTabs.saveTab(this, getIntent());
                         return true;
                     }
+
+                //FIXME: I think this do same has mNumPhoneNumbers != 0 from Wysie need
                 } else if (mPrimaryPhoneUri != null) {
                     // There isn't anything selected, call the default number
                     final Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
@@ -802,6 +854,14 @@ public class ViewContactActivity extends Activity
                     startActivity(intent);
                     StickyTabs.saveTab(this, getIntent());
                     return true;
+                } else if (mNumPhoneNumbers != 0) {
+                    // There isn't anything selected; pick the correct number to dial.
+                    long freshContactId = getRefreshedContactId();
+
+                    if(!ContactsUtils.callOrSmsContact(freshContactId, this, false, StickyTabs.getTab(getIntent()))) {
+                        signalError();
+                        return false;
+                    }
                 }
                 return false;
             }
@@ -899,7 +959,6 @@ public class ViewContactActivity extends Activity
                     mWritableRawContactIds.add(rawContactId);
                 }
 
-
                 for (NamedContentValues subValue : entity.getSubValues()) {
                     final ContentValues entryValues = subValue.values;
                     entryValues.put(Data.RAW_CONTACT_ID, rawContactId);
@@ -933,9 +992,13 @@ public class ViewContactActivity extends Activity
 
                         entry.isPrimary = isSuperPrimary;
                         mPhoneEntries.add(entry);
+                        
+                        //Wysie: Workaround for the entry.type bug, since entry.type always returns -1
+                        
+                        Integer type = entryValues.getAsInteger(Phone.TYPE);
+                        //Wysie: Bug here, entry.type always returns -1.
 
-                        if (entry.type == CommonDataKinds.Phone.TYPE_MOBILE
-                                || mShowSmsLinksForAllPhones) {
+                        if ((type != null && type == CommonDataKinds.Phone.TYPE_MOBILE) || mShowSmsLinksForAllPhones) {
                             // Add an SMS entry
                             if (kind.iconAltRes > 0) {
                                 entry.secondaryActionIcon = kind.iconAltRes;
@@ -963,8 +1026,20 @@ public class ViewContactActivity extends Activity
                     } else if (StructuredPostal.CONTENT_ITEM_TYPE.equals(mimeType) && hasData) {
                         // Build postal entries
                         entry.maxLines = 4;
-                        entry.intent = new Intent(Intent.ACTION_VIEW, entry.uri);
+                        entry.intent = new Intent(Intent.ACTION_VIEW, entry.uri);                        
+
+                        Intent i = startNavigation(entry.data);
+                        
+                        if (i != null) {
+                            entry.secondaryIntent = i;
+                            // Add a navigation entry
+                            if (kind.iconAltRes > 0) {
+                                entry.secondaryActionIcon = kind.iconAltRes;
+                            }
+                        }
+                        
                         mPostalEntries.add(entry);
+                        
                     } else if (Im.CONTENT_ITEM_TYPE.equals(mimeType) && hasData) {
                         // Build IM entries
                         entry.intent = ContactsUtils.buildImIntent(entryValues);
@@ -1254,6 +1329,11 @@ public class ViewContactActivity extends Activity
                         R.id.secondary_action_button);
                 views.secondaryActionButton.setOnClickListener(this);
                 views.secondaryActionDivider = v.findViewById(R.id.divider);
+
+                // Set the text size of data row (phone number, email, address, etc.)
+                float fontSize = Float.parseFloat(ePrefs.getString("misc_data_font_size", "14"));
+                views.data.setTextSize(TypedValue.COMPLEX_UNIT_DIP, fontSize);
+
                 v.setTag(views);
             }
 
@@ -1383,6 +1463,36 @@ public class ViewContactActivity extends Activity
             super.startSearch(initialQuery, selectInitialQuery, appSearchData, globalSearch);
         } else {
             ContactsSearchManager.startSearch(this, initialQuery);
+        }
+    }
+    //Wysie
+    public boolean isIntentAvailable(Intent intent) {
+        final PackageManager packageManager = this.getPackageManager();
+        List<ResolveInfo> list = packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        return list.size() > 0;
+    }
+        
+    //Wysie: Navigation code. Adapted from rac2030's NavStarter.
+    //http://code.google.com/p/andrac/source/browse/trunk/NavWidget/src/ch/racic/android/gnav/NavSearch.java
+    public Intent startNavigation(String address) {
+        address = address.replace('#', ' ');
+        Intent i = new Intent();
+        i.setAction(Intent.ACTION_VIEW);
+        i.setData(Uri.parse("http://maps.google.com/maps?myl=saddr&daddr=" + address + "&dirflg=d&nav=1"));
+        i.addFlags(0x10800000);
+        i.setClassName("com.google.android.apps.m4ps", "com.google.android.maps.driveabout.app.NavigationActivity");
+        
+        if (isIntentAvailable(i)) {
+            return i;
+        }
+        else {
+            i.setClassName("com.google.android.apps.maps", "com.google.android.maps.driveabout.app.NavigationActivity");
+            if (isIntentAvailable(i)) {
+                return i;
+            }
+            else {
+                return null;
+            }
         }
     }
 }

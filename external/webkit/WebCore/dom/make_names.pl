@@ -35,7 +35,7 @@ use Getopt::Long;
 use File::Path;
 use IO::File;
 use InFilesParser;
-use Switch;
+use feature qw{ switch };
 
 my $printFactory = 0; 
 my $printWrapperFactory = 0; 
@@ -48,6 +48,11 @@ my %attrs = ();
 my %parameters = ();
 my $extraDefines = 0;
 my $preprocessor = "/usr/bin/gcc -E -P -x c++";
+open( GCV, "gcc --version | head -1|");
+if ( <GCV> =~ m/(4\.)([6-7]\.)([0-9])/) {
+    $preprocessor = "/usr/bin/gcc -E -x c++";
+}
+close GCV;
 
 GetOptions(
     'tags=s' => \$tagsFile, 
@@ -199,14 +204,14 @@ sub readNames
 
     my $InParser = InFilesParser->new();
 
-    switch ($type) {
-        case "tags" {
+    given ($type) {
+        when ("tags") {
             $InParser->parse($names, \&parametersHandler, \&tagsHandler);
         }
-        case "attrs" {
+        when ("attrs") {
             $InParser->parse($names, \&parametersHandler, \&attrsHandler);
         }
-        else {
+        default {
             die "Do not know how to parse $type";
         }
     }

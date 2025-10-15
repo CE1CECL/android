@@ -45,8 +45,18 @@ enum audio_source {
     AUDIO_SOURCE_CAMCORDER = 5,
     AUDIO_SOURCE_VOICE_RECOGNITION = 6,
     AUDIO_SOURCE_VOICE_COMMUNICATION = 7,
+#ifdef OMAP_ENHANCEMENT
+    AUDIO_SOURCE_FM_ANALOG = 8,
+    AUDIO_SOURCE_MAX = AUDIO_SOURCE_FM_ANALOG,
+#else
+#ifdef HAVE_FM_RADIO
+    AUDIO_SOURCE_FM_RX = 8,
+    AUDIO_SOURCE_FM_RX_A2DP = 9,
+    AUDIO_SOURCE_MAX = AUDIO_SOURCE_FM_RX_A2DP,
+#else
     AUDIO_SOURCE_MAX = AUDIO_SOURCE_VOICE_COMMUNICATION,
-
+#endif
+#endif
     AUDIO_SOURCE_LIST_END  // must be last - used to validate audio source type
 };
 
@@ -187,6 +197,7 @@ public:
     status_t    close();
     status_t    release();
     void        notify(int msg, int ext1, int ext2);
+    status_t    setCameraParameters(const String8& params);
 
 private:
     void                    doCleanUp();

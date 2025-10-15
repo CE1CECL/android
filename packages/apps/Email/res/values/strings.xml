@@ -15,44 +15,6 @@
 -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-
-    <!-- Deprecated strings - Move the identifiers to this section, mark as DO NOT TRANSLATE,
-         and remove the actual text.  These will be removed in a bulk operation. -->
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="meeting_invitation"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_setup_failed_security_policies_required"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_folder_list_summary_unread"></string>    
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_settings_add_account_label"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_setup_basics_instructions"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_setup_exchange_domain_hint"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_setup_exchange_domain_label"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="account_setup_options_mail_window_all"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="accounts_context_menu_title"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="accounts_title"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="add_contact_dlg_message_fmt"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="add_contact_dlg_title"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="message_list_title"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="status_loading_more_failed"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="status_sending_messages_failed"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="provider_note_yahoo"></string>
-    <!-- Do Not Translate.  Unused string. -->
-    <string name="provider_note_yahoo_uk"></string>
-
     <!-- Permissions label for reading attachments -->
     <string name="read_attachment_label">Read Email attachments</string>
     <!-- Permissions description for reading attachments -->
@@ -115,6 +77,8 @@
     <!-- Menu item -->
     <string name="deselect_all_action">Deselect all</string>
     <!-- Menu item -->
+    <string name="select_all_action">Select all</string>
+    <!-- Menu item -->
     <string name="compose_action">Compose</string>
     <!-- Menu item/button name -->
     <string name="search_action">Search</string>
@@ -152,6 +116,14 @@
     <!-- Dialog text when we are unable to load the message for display -->
     <string name="error_loading_message_body">Unexpected error while loading message text.  Message
         may be too large to view.</string>
+    <!-- Appears in Confirm deletion dialog title -->
+    <string name="confirm_on_delete_dlg_title">Confirm deletion</string>
+    <!-- Appears in Confirm deletion dialog message -->
+    <string name="confirm_on_delete_dlg_msg">Do you want to delete this message?</string>
+    <!-- Appears in Confirm send dialog title -->
+    <string name="confirm_on_send_dlg_title">Send message?</string>
+    <!-- Appears in Confirm send dialog message -->
+    <string name="confirm_on_send_dlg_msg">Send this message?</string>
 
     <!-- Notification message in notifications window when one account has
          one or more new messages; e.g, "279 unread (someone@google.com)". -->
@@ -177,17 +149,17 @@
 
     <!-- The next set of strings are used server-side and must not be localized. -->
     <!-- Do Not Translate.  This is the name of the "inbox" folder, on the server. -->
-    <string name="mailbox_name_server_inbox">Inbox</string>
+    <string name="mailbox_name_server_inbox" translatable="false">Inbox</string>
     <!-- Do Not Translate.  This is the name of the "outbox" folder, on the server. -->
-    <string name="mailbox_name_server_outbox">Outbox</string>
+    <string name="mailbox_name_server_outbox" translatable="false">Outbox</string>
     <!-- Do Not Translate.  This is the name of the "drafts" folder, on the server. -->
-    <string name="mailbox_name_server_drafts">Drafts</string>
+    <string name="mailbox_name_server_drafts" translatable="false">Drafts</string>
     <!-- Do Not Translate.  This is the name of the "trash" folder, on the server. -->
-    <string name="mailbox_name_server_trash">Trash</string>
+    <string name="mailbox_name_server_trash" translatable="false">Trash</string>
     <!-- Do Not Translate.  This is the name of the "sent" folder, on the server. -->
-    <string name="mailbox_name_server_sent">Sent</string>
+    <string name="mailbox_name_server_sent" translatable="false">Sent</string>
     <!-- Do Not Translate.  This is the name of the "junk" folder, on the server. -->
-    <string name="mailbox_name_server_junk">Junk</string>
+    <string name="mailbox_name_server_junk" translatable="false">Junk</string>
 
     <!-- The next set of strings are used in local display and may be localized. -->
     <!-- In the UI, the inbox will be displayed with this name -->
@@ -353,7 +325,7 @@ save attachment.</string>
     </string>
 
     <!-- Do Not Translate.  Activity Title for check-settings screen -->
-    <string name="account_setup_check_settings_title"></string>
+    <string name="account_setup_check_settings_title" translatable="false"></string>
     <!-- On check-settings screen, this is the initially-displayed message. -->
     <string name="account_setup_check_settings_retr_info_msg">Retrieving account information\u2026</string>
     <!-- Appears on screen while system is checking incoming server settings -->
@@ -378,16 +350,16 @@ save attachment.</string>
 
     <!-- Do Not Translate. "Add new email account" screen, button name in response to what
          type of account this is -->
-    <string name="account_setup_account_type_pop_action">POP3</string>
+    <string name="account_setup_account_type_pop_action" translatable="false">POP3</string>
     <!-- Do Not Translate. "Add new email account" screen, button name in response to what
          type of account this is -->
-    <string name="account_setup_account_type_imap_action">IMAP</string>
+    <string name="account_setup_account_type_imap_action" translatable="false">IMAP</string>
     <!-- Do Not Translate. "Add new email account" screen, button name in response to what
          type of account this is -->
-    <string name="account_setup_account_type_exchange_action">Exchange</string>
+    <string name="account_setup_account_type_exchange_action" translatable="false">Exchange</string>
     <!-- Do Not Translate. "Add new email account" screen, button name in
          response to what type of account this is -->
-    <string name="account_setup_account_type_exchange_action_alternate">
+    <string name="account_setup_account_type_exchange_action_alternate" translatable="false">
         Microsoft Exchange ActiveSync</string>
 
     <!-- "Incoming server settings" screen, label for text field -->
@@ -454,6 +426,8 @@ save attachment.</string>
 
     <!-- In Account setup options screen, Activity title -->
     <string name="account_setup_options_title">Account options</string>
+    <!-- In Account setup color screen, Activity title -->
+    <string name="account_setup_color_title">Account color</string>
     <!-- In Account setup options screen, label for email check frequency selector -->
     <string name="account_setup_options_mail_check_frequency_label">Inbox checking frequency</string>
     <!-- In Account setup options & Account Settings screens, label for email check frequency option -->
@@ -470,6 +444,14 @@ save attachment.</string>
     <string name="account_setup_options_mail_check_frequency_30min">Every 30 minutes</string>
     <!-- In Account setup options & Account Settings screens, email check frequency option -->
     <string name="account_setup_options_mail_check_frequency_1hour">Every hour</string>
+    <!-- In Account setup options & Account Settings screens, email check frequency option -->
+    <string name="account_setup_options_mail_check_frequency_3hour">Every 3 hours</string>
+    <!-- In Account setup options & Account Settings screens, email check frequency option -->
+    <string name="account_setup_options_mail_check_frequency_6hour">Every 6 hours</string>
+    <!-- In Account setup options & Account Settings screens, email check frequency option -->
+    <string name="account_setup_options_mail_check_frequency_12hour">Every 12 hours</string>
+    <!-- In Account setup options & Account Settings screens, email check frequency option -->
+    <string name="account_setup_options_mail_check_frequency_24hour">Every 24 hours</string>
     <!-- Check box label on "Set up email" screen to make this the default account -->
     <!-- Note, this should usually match the default account summary preference string -->
     <string name="account_setup_options_default_label">Send email from this account by default.</string>
@@ -495,6 +477,8 @@ save attachment.</string>
     <string name="account_setup_options_mail_window_2weeks">Two weeks</string>
     <!-- In account setup options & account settings screens (exchange), sync window length  -->
     <string name="account_setup_options_mail_window_1month">One month</string>
+    <!-- In account setup options & account settings screens (exchange), sync window length  -->
+    <string name="account_setup_options_mail_window_all">All emails</string>
 
     <!-- "Setup could not finish" dialog text; e.g., Username or password incorrect -->
     <string name="account_setup_failed_dlg_auth_message">Username or password incorrect.</string> 
@@ -565,6 +549,8 @@ save attachment.</string>
     <!-- On Settings screen, setting option name and title of dialog box that opens -->
     <string name="account_settings_mail_check_frequency_label">Inbox check frequency</string>
     <!-- On Settings screen, setting option name -->
+    <string name="account_settings_color_label">Account color</string>
+    <!-- On Settings screen, setting option name -->
     <string name="account_settings_incoming_label">Incoming settings</string>
     <!-- On Settings screen, setting option name -->
     <string name="account_settings_outgoing_label">Outgoing settings</string>
@@ -608,6 +594,17 @@ save attachment.</string>
     <string name="account_settings_ringtone">Select ringtone</string>
     <!-- On Settings screen, section heading -->
     <string name="account_settings_servers">Server settings</string>
+
+    <!-- On Settings screen, miscellaneous settings-->
+    <string name="misc_settings_label">Miscellaneous settings</string>
+    <string name="account_settings_msg_list_on_delete">Return to message list</string>
+    <string name="account_settings_msg_list_on_delete_summary">Return to message folder after deleting the message you\'re viewing.</string>
+    <!-- Confirm on delete -->
+    <string name="account_settings_confirm_on_delete">Confirm on delete</string>
+    <string name="account_settings_confirm_on_delete_summary">Show a dialog whenever you perform delete action</string>
+    <!-- Confirm on send -->
+    <string name="account_settings_confirm_on_send">Confirm on send</string>
+    <string name="account_settings_confirm_on_send_summary">Show a dialog whenever you perform send action</string>
     <!-- Title of Remove account confirmation dialog box -->
     <string name="account_delete_dlg_title">Remove account</string>
     <!-- Message of Remove account confirmation dialog box -->
@@ -617,12 +614,6 @@ save attachment.</string>
     <string name="upgrade_accounts_title">Upgrade accounts</string>
     <string name="upgrade_accounts_error">Unable to upgrade account</string>
 
-    <!-- Message that appears when adding a Windows Live Hotmail Plus account -->
-    <string name="provider_note_live">Only some \"Plus\" accounts include POP access
-        allowing this program to connect. If you are not able to sign in with
-        your correct email address and password, you may not have a paid
-        \"Plus\" account. Please launch the Web browser to gain access to
-        these mail accounts.</string>
     <!-- Message that appears when adding a T-Online account -->
     <string name="provider_note_t_online">Before setting up this email account, please visit the T-Online Web site and create a password for POP3 email access.</string>
 
@@ -707,4 +698,19 @@ save attachment.</string>
          always a larger value because it represents the limit of displayed results.  -->
     <string name="gal_completed_limited_fmt">First <xliff:g id="results" example="20">%1$d</xliff:g>
         results from <xliff:g id="domain">%2$s</xliff:g></string>
+
+    <string name="sync_action">Toggle sync</string>
+    <string name="hide_action">Toggle visibility</string>
+    <string name="show_hidden_action">Show hidden folders</string>
+    <string name="hide_hidden_action">Hide hidden folders</string>
+    <string name="toast_folder_sync_on">Now syncing folder:</string>
+    <string name="toast_folder_sync_off">No longer syncing folder:</string>
+    <string name="toast_folder_sync_invalid">Invalid folder for syncing</string>
+    <string name="toast_folder_hide_on">Hiding folder:</string>
+    <string name="toast_folder_hide_off">Unhiding folder:</string>
+    <string name="toast_folder_hide_invalid">Cannot hide this folder!</string>
+
+    <string name="sample_account_name">Sample Account Name</string>
+    <string name="default_rgb_value" translatable="false">255</string>
+    <string name="default_html_color_code" translatable="false">0xFFFFFFFF</string>
 </resources>

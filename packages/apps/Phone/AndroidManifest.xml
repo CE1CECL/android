@@ -44,7 +44,6 @@
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW" />
-    <uses-permission android:name="android.permission.ADD_SYSTEM_SERVICE" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -85,11 +84,19 @@
                  android:persistent="true"
                  android:label="@string/dialerIconLabel"
                  android:icon="@drawable/ic_launcher_phone">
-            <provider android:name="IccProvider"
-                      android:authorities="icc"
-                      android:multiprocess="true"
-                      android:readPermission="android.permission.READ_CONTACTS"
-                      android:writePermission="android.permission.WRITE_CONTACTS" />
+
+        <provider android:name="IccProvider"
+                  android:authorities="icc"
+                  android:multiprocess="true"
+                  android:readPermission="android.permission.READ_CONTACTS"
+                  android:writePermission="android.permission.WRITE_CONTACTS" />
+
+        <!-- Workaround for non saved phone number -->
+        <receiver android:name=".MyPhoneNumber">
+            <intent-filter>
+                <action android:name="android.intent.action.SIM_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Dialer UI that only allows emergency calls -->
         <activity android:name="EmergencyDialer"
@@ -148,6 +155,9 @@
                 <data android:mimeType="vnd.android.cursor.item/phone" />
                 <data android:mimeType="vnd.android.cursor.item/phone_v2" />
                 <data android:mimeType="vnd.android.cursor.item/person" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_GOGGLES_COMMUNICATION" />
             </intent-filter>
         </activity>
 
@@ -219,8 +229,8 @@
             android:label="@string/phoneIconLabel"
             android:excludeFromRecents="true"
             android:launchMode="singleInstance"
-            android:screenOrientation="portrait"
-            android:configChanges="orientation|keyboardHidden|uiMode"
+            android:screenOrientation="nosensor"
+            android:configChanges="keyboardHidden|uiMode"
             android:exported="false">
         </activity>
 
@@ -240,6 +250,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.settings.DATA_ROAMING_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -252,7 +263,8 @@
             android:configChanges="orientation|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <action android:name="android.settings.NETWORK_OPERATOR_" />
+                <action android:name="android.settings.NETWORK_OPERATOR_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -438,6 +450,18 @@
                 android:configChanges="orientation|keyboardHidden">
         </activity>
 
+        <receiver android:name="com.android.phone.PhoneToggler" android:permission="com.android.phone.CHANGE_NETWORK_MODE">
+            <intent-filter>
+                <action android:name="com.android.internal.telephony.REQUEST_NETWORK_MODE" />
+                <action android:name="com.android.internal.telephony.MODIFY_NETWORK_MODE" />
+            </intent-filter>
+        </receiver>
     </application>
+    
+      <permission android:name="com.android.phone.CHANGE_NETWORK_MODE"
+        android:label="@string/per_change_mobile_network"
+        android:description="@string/per_change_mobile_network_desc"
+        android:permissionGroup="android.permission-group.COST_MONEY"
+        android:protectionLevel="dangerous" />
 </manifest>
 

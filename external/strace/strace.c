@@ -46,6 +46,21 @@
 #include <limits.h>
 #include <dirent.h>
 
+#ifdef LINUX
+# include <asm/unistd.h>
+# if defined __NR_tgkill
+#  define my_tgkill(pid, tid, sig) syscall (__NR_tgkill, (pid), (tid), (sig))
+# elif defined __NR_tkill
+#  define my_tgkill(pid, tid, sig) syscall (__NR_tkill, (tid), (sig))
+# else
+   /* kill() may choose arbitrarily the target task of the process group
+      while we later wait on a that specific TID.  PID process waits become
+      TID task specific waits for a process under ptrace(2).  */
+#  warning "Neither tkill(2) nor tgkill(2) available, risk of strace hangs!"
+#  define my_tgkill(pid, tid, sig) kill ((tid), (sig))
+# endif
+#endif
+
 #if defined(IA64) && defined(LINUX)
 # include <asm/ptrace_offsets.h>
 #endif
@@ -88,6 +103,7 @@ unsigned int nprocs, tcbtabsize;
 char *progname;
 extern char **environ;
 
+static int detach P((struct tcb *tcp, int sig));
 static int trace P((void));
 static void cleanup P((void));
 static void interrupt P((int sig));
@@ -181,9 +197,7 @@ foobar()
 #endif /* SVR4 */
 
 int
-main(argc, argv)
-int argc;
-char *argv[];
+main(int argc, char *argv[])
 {
 	extern int optind;
 	extern char *optarg;
@@ -193,22 +207,29 @@ char *argv[];
 
 	static char buf[BUFSIZ];
 
+	progname = argv[0] ? argv[0] : "strace";
+
 	/* Allocate the initial tcbtab.  */
 	tcbtabsize = argc;	/* Surely enough for all -p args.  */
-	tcbtab = (struct tcb **) malloc (tcbtabsize * sizeof tcbtab[0]);
-	tcbtab[0] = (struct tcb *) calloc (tcbtabsize, sizeof *tcbtab[0]);
+	if ((tcbtab = calloc (tcbtabsize, sizeof tcbtab[0])) == NULL) {
+		fprintf(stderr, "%s: out of memory\n", progname);
+		exit(1);
+	}
+	if ((tcbtab[0] = calloc (tcbtabsize, sizeof tcbtab[0][0])) == NULL) {
+		fprintf(stderr, "%s: out of memory\n", progname);
+		exit(1);
+	}
 	for (tcp = tcbtab[0]; tcp < &tcbtab[0][tcbtabsize]; ++tcp)
 		tcbtab[tcp - tcbtab[0]] = &tcbtab[0][tcp - tcbtab[0]];
 
-	progname = argv[0];
 	outf = stderr;
 	interactive = 1;
+	set_sortby(DEFAULT_SORTBY);
+	set_personality(DEFAULT_PERSONALITY);
 	qualify("trace=all");
 	qualify("abbrev=all");
 	qualify("verbose=all");
 	qualify("signal=all");
-	set_sortby(DEFAULT_SORTBY);
-	set_personality(DEFAULT_PERSONALITY);
 	while ((c = getopt(argc, argv,
 		"+cdfFhiqrtTvVxza:e:o:O:p:s:S:u:E:")) != EOF) {
 		switch (c) {
@@ -315,8 +336,15 @@ char *argv[];
 		}
 	}
 
-	if (optind == argc && !pflag_seen)
+	if ((optind == argc) == !pflag_seen)
 		usage(stderr, 1);
+
+	if (followfork > 1 && cflag) {
+		fprintf(stderr,
+			"%s: -c and -ff are mutually exclusive options\n",
+			progname);
+		exit(1);
+	}
 
 	/* See if they want to run as another user. */
 	if (username != NULL) {
@@ -330,7 +358,7 @@ char *argv[];
 		}
 		if ((pent = getpwnam(username)) == NULL) {
 			fprintf(stderr, "%s: cannot find user `%s'\n",
-				progname, optarg);
+				progname, username);
 			exit(1);
 		}
 		run_uid = pent->pw_uid;
@@ -444,11 +472,8 @@ char *argv[];
 							tcp = NULL;
 						else
 							tcp = alloctcb(tid);
-						if (tcp == NULL) {
-							fprintf(stderr, "%s: out of memory\n",
-								progname);
+						if (tcp == NULL)
 							exit(1);
-						}
 						tcp->flags |= TCB_ATTACHED|TCB_CLONE_THREAD|TCB_CLONE_DETACHED|TCB_FOLLOWFORK;
 						tcbtab[c]->nchildren++;
 						tcbtab[c]->nclone_threads++;
@@ -524,7 +549,8 @@ Process %u attached - interrupt to quit\n",
 				else
 					m = n = strlen(path);
 				if (n == 0) {
-					getcwd(pathname, MAXPATHLEN);
+					if (!getcwd(pathname, MAXPATHLEN))
+						continue;
 					len = strlen(pathname);
 				}
 				else if (n > sizeof pathname - 1)
@@ -630,7 +656,6 @@ Process %u attached - interrupt to quit\n",
 		}
 		default:
 			if ((tcp = alloctcb(pid)) == NULL) {
-				fprintf(stderr, "tcb table full\n");
 				cleanup();
 				exit(1);
 			}
@@ -729,6 +754,8 @@ expand_tcbtab()
 	if (newtab == NULL || newtcbs == NULL) {
 		if (newtab != NULL)
 			free(newtab);
+		fprintf(stderr, "%s: expand_tcbtab: out of memory\n",
+			progname);
 		return 1;
 	}
 	for (i = tcbtabsize; i < 2 * tcbtabsize; ++i)
@@ -767,6 +794,7 @@ int pid;
 			return tcp;
 		}
 	}
+	fprintf(stderr, "%s: alloctcb: tcb table full\n", progname);
 	return NULL;
 }
 
@@ -1207,7 +1235,10 @@ struct tcb *tcp;
 
 #endif /* !USE_PROCFS */
 
-/* detach traced process; continue with sig */
+/* detach traced process; continue with sig
+   Never call DETACH twice on the same process as both unattached and
+   attached-unstopped processes give the same ESRCH.  For unattached process we
+   would SIGSTOP it and wait for its SIGSTOP notification forever.  */
 
 static int
 detach(tcp, sig)
@@ -1217,6 +1248,14 @@ int sig;
 	int error = 0;
 #ifdef LINUX
 	int status, resumed;
+	struct tcb *zombie = NULL;
+
+	/* If the group leader is lingering only because of this other
+	   thread now dying, then detach the leader as well.  */
+	if ((tcp->flags & TCB_CLONE_THREAD) &&
+	    tcp->parent->nclone_threads == 1 &&
+	    (tcp->parent->flags & TCB_EXITING))
+		zombie = tcp->parent;
 #endif
 
 	if (tcp->flags & TCB_BPTSET)
@@ -1239,11 +1278,15 @@ int sig;
 		/* Shouldn't happen. */
 		perror("detach: ptrace(PTRACE_DETACH, ...)");
 	}
-	else if (kill(tcp->pid, 0) < 0) {
+	else if (my_tgkill((tcp->flags & TCB_CLONE_THREAD ? tcp->parent->pid
+							  : tcp->pid),
+			   tcp->pid, 0) < 0) {
 		if (errno != ESRCH)
 			perror("detach: checking sanity");
 	}
-	else if (kill(tcp->pid, SIGSTOP) < 0) {
+	else if (my_tgkill((tcp->flags & TCB_CLONE_THREAD ? tcp->parent->pid
+							  : tcp->pid),
+			   tcp->pid, SIGSTOP) < 0) {
 		if (errno != ESRCH)
 			perror("detach: stopping child");
 	}
@@ -1375,6 +1418,14 @@ int sig;
 		fprintf(stderr, "Process %u detached\n", tcp->pid);
 
 	droptcb(tcp);
+
+#ifdef LINUX
+	if (zombie != NULL) {
+		/* TCP no longer exists therefore you must not detach () it.  */
+		droptcb(zombie);
+	}
+#endif
+
 	return error;
 }
 
@@ -1952,35 +2003,29 @@ handle_group_exit(struct tcb *tcp, int sig)
 			fprintf(stderr,
 				"PANIC: handle_group_exit: %d leader %d\n",
 				tcp->pid, leader ? leader->pid : -1);
+		/* TCP no longer exists therefore you must not detach () it.  */
 		droptcb(tcp);	/* Already died.  */
 	}
 	else {
+		/* Mark that we are taking the process down.  */
+		tcp->flags |= TCB_EXITING | TCB_GROUP_EXITING;
 		if (tcp->flags & TCB_ATTACHED) {
+			detach(tcp, sig);
 		  	if (leader != NULL && leader != tcp) {
-				if (leader->flags & TCB_ATTACHED) {
+				if ((leader->flags & TCB_ATTACHED) &&
+				    !(leader->flags & TCB_EXITING)) {
 					/* We need to detach the leader so
 					   that the process death will be
-					   reported to its real parent.
-					   But we kill it first to prevent
-					   it doing anything before we kill
-					   the whole process in a moment.
-					   We can use PTRACE_KILL on a
-					   thread that's not already
-					   stopped.  Then the value we pass
-					   in PTRACE_DETACH just sets the
-					   death signal reported to the
-					   real parent.  */
-					ptrace(PTRACE_KILL, leader->pid, 0, 0);
+					   reported to its real parent.  */
 					if (debug)
 						fprintf(stderr,
-							" [%d exit %d kills %d]\n",
+							" [%d exit %d detaches %d]\n",
 							tcp->pid, sig, leader->pid);
 					detach(leader, sig);
 				}
 				else
 					leader->flags |= TCB_GROUP_EXITING;
 			}
-			detach(tcp, sig);
 		}
 		else if (ptrace(PTRACE_CONT, tcp->pid, (char *) 1, sig) < 0) {
 			perror("strace: ptrace(PTRACE_CONT, ...)");
@@ -2092,8 +2137,12 @@ trace()
 				   will we have the association of parent and
 				   child so that we know how to do clearbpt
 				   in the child.  */
-				if ((tcp = alloctcb(pid)) == NULL) {
-					fprintf(stderr, " [tcb table full]\n");
+				if (nprocs == tcbtabsize &&
+				    expand_tcbtab())
+					tcp = NULL;
+				else
+					tcp = alloctcb(pid);
+				if (tcp == NULL) {
 					kill(pid, SIGKILL); /* XXX */
 					return 0;
 				}
@@ -2246,7 +2295,7 @@ Process %d attached (waiting for parent)\n",
 			if (!cflag
 			    && (qual_flags[WSTOPSIG(status)] & QUAL_SIGNAL)) {
 				unsigned long addr = 0, pc = 0;
-#ifdef PT_GETSIGINFO
+#if defined(PT_CR_IPSR) && defined(PT_CR_IIP) && defined(PT_GETSIGINFO)
 #				define PSR_RI	41
 				struct siginfo si;
 				unsigned long psr;

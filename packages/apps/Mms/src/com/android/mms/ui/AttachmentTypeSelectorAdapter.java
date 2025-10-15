@@ -39,6 +39,7 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
     public final static int ADD_SOUND               = 4;
     public final static int RECORD_SOUND            = 5;
     public final static int ADD_SLIDESHOW           = 6;
+    public final static int ADD_CONTACT_INFO        = 7;
 
     public AttachmentTypeSelectorAdapter(Context context, int mode) {
         super(context, getData(mode, context));
@@ -75,6 +76,9 @@ public class AttachmentTypeSelectorAdapter extends IconListAdapter {
             addItem(data, context.getString(R.string.attach_slideshow),
                     R.drawable.ic_launcher_slideshow_add_sms, ADD_SLIDESHOW);
         }
+        
+        addItem(data, context.getString(R.string.attach_contact_info),
+                R.drawable.ic_menu_contact, ADD_CONTACT_INFO);
 
         return data;
     }

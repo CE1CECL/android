@@ -4,8 +4,8 @@
  * Copyright (C) 1994, 1995, 1996, 1997 Theodore Ts'o.
  *
  * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
  * %End-Header%
  */
 
@@ -74,7 +74,7 @@ static ext2_loff_t my_llseek (int fd, ext2_loff_t offset, int origin)
 
 #ifndef __i386__
 	retval = _llseek(fd, ((unsigned long long) offset) >> 32,
-#else			  
+#else
 	retval = syscall(__NR__llseek, fd, (unsigned long long) (offset >> 32),
 #endif
 			  ((unsigned long long) offset) & 0xffffffff,
@@ -100,7 +100,7 @@ ext2_loff_t ext2fs_llseek (int fd, ext2_loff_t offset, int origin)
 		errno = EINVAL;
 		return -1;
 	}
-	
+
 	result = my_llseek (fd, offset, origin);
 	if (result == -1 && errno == ENOSYS) {
 		/*

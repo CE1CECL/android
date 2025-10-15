@@ -20,12 +20,21 @@ zlib_files := \
 	inflate.c \
 	infback.c \
 	inftrees.c \
-	inffast.c
+	inffast.c \
+	slhash.c
+
+zlib_arm_files :=
+zlib_arm_flags :=
+
+ifeq ($(ARCH_ARM_HAVE_NEON),true)
+	zlib_arm_files += contrib/inflateneon/inflate_fast_copy_neon.s
+	zlib_arm_flags += -D__ARM_HAVE_NEON
+endif
 
 LOCAL_MODULE := libz
 LOCAL_MODULE_TAGS := optional
-LOCAL_CFLAGS += -O3 -DUSE_MMAP
-LOCAL_SRC_FILES := $(zlib_files)
+LOCAL_CFLAGS += -O3 -DUSE_MMAP $(zlib_arm_flags)
+LOCAL_SRC_FILES := $(zlib_files) $(zlib_arm_files)
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -33,8 +42,8 @@ include $(CLEAR_VARS)
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := libz
 LOCAL_MODULE_TAGS := optional
-LOCAL_CFLAGS += -O3 -DUSE_MMAP
-LOCAL_SRC_FILES := $(zlib_files)
+LOCAL_CFLAGS += -O3 -DUSE_MMAP $(zlib_arm_flags)
+LOCAL_SRC_FILES := $(zlib_files) $(zlib_arm_files)
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -71,7 +80,7 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:=        \
-	minigzip.c
+	test/minigzip.c
 
 LOCAL_MODULE:= gzip
 
@@ -82,11 +91,10 @@ include $(BUILD_EXECUTABLE)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:=        \
-	minigzip.c
+	test/minigzip.c
 
 LOCAL_MODULE:= minigzip
 
 LOCAL_STATIC_LIBRARIES := libz
 
 include $(BUILD_HOST_EXECUTABLE)
-

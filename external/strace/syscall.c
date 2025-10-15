@@ -131,12 +131,14 @@ static const struct sysent sysent0[] = {
 #include "syscallent.h"
 };
 static const int nsyscalls0 = sizeof sysent0 / sizeof sysent0[0];
+int qual_flags0[MAX_QUALS];
 
 #if SUPPORTED_PERSONALITIES >= 2
 static const struct sysent sysent1[] = {
 #include "syscallent1.h"
 };
 static const int nsyscalls1 = sizeof sysent1 / sizeof sysent1[0];
+int qual_flags1[MAX_QUALS];
 #endif /* SUPPORTED_PERSONALITIES >= 2 */
 
 #if SUPPORTED_PERSONALITIES >= 3
@@ -144,9 +146,11 @@ static const struct sysent sysent2[] = {
 #include "syscallent2.h"
 };
 static const int nsyscalls2 = sizeof sysent2 / sizeof sysent2[0];
+int qual_flags2[MAX_QUALS];
 #endif /* SUPPORTED_PERSONALITIES >= 3 */
 
 const struct sysent *sysent;
+int *qual_flags;
 int nsyscalls;
 
 /* Now undef them since short defines cause wicked namespace pollution. */
@@ -180,6 +184,19 @@ int nerrnos;
 
 int current_personality;
 
+#ifndef PERSONALITY0_WORDSIZE
+# define PERSONALITY0_WORDSIZE sizeof(long)
+#endif
+const int personality_wordsize[SUPPORTED_PERSONALITIES] = {
+	PERSONALITY0_WORDSIZE,
+#if SUPPORTED_PERSONALITIES > 1
+	PERSONALITY1_WORDSIZE,
+#endif
+#if SUPPORTED_PERSONALITIES > 2
+	PERSONALITY2_WORDSIZE,
+#endif
+};;
+
 int
 set_personality(personality)
 int personality;
@@ -194,6 +211,7 @@ int personality;
 		nioctlents = nioctlents0;
 		signalent = signalent0;
 		nsignals = nsignals0;
+		qual_flags = qual_flags0;
 		break;
 
 #if SUPPORTED_PERSONALITIES >= 2
@@ -206,6 +224,7 @@ int personality;
 		nioctlents = nioctlents1;
 		signalent = signalent1;
 		nsignals = nsignals1;
+		qual_flags = qual_flags1;
 		break;
 #endif /* SUPPORTED_PERSONALITIES >= 2 */
 
@@ -219,6 +238,7 @@ int personality;
 		nioctlents = nioctlents2;
 		signalent = signalent2;
 		nsignals = nsignals2;
+		qual_flags = qual_flags2;
 		break;
 #endif /* SUPPORTED_PERSONALITIES >= 3 */
 
@@ -229,8 +249,6 @@ int personality;
 	current_personality = personality;
 	return 0;
 }
-
-int qual_flags[MAX_QUALS];
 
 
 struct call_counts {
@@ -274,15 +292,36 @@ static const struct qual_options {
 };
 
 static void
-qualify_one(n, opt, not)
+qualify_one(n, opt, not, pers)
 	int n;
 	const struct qual_options *opt;
 	int not;
+	int pers;
 {
-	if (not)
-		qual_flags[n] &= ~opt->bitflag;
-	else
-		qual_flags[n] |= opt->bitflag;
+	if (pers == 0 || pers < 0) {
+		if (not)
+			qual_flags0[n] &= ~opt->bitflag;
+		else
+			qual_flags0[n] |= opt->bitflag;
+	}
+
+#if SUPPORTED_PERSONALITIES >= 2
+	if (pers == 1 || pers < 0) {
+		if (not)
+			qual_flags1[n] &= ~opt->bitflag;
+		else
+			qual_flags1[n] |= opt->bitflag;
+	}
+#endif /* SUPPORTED_PERSONALITIES >= 2 */
+
+#if SUPPORTED_PERSONALITIES >= 3
+	if (pers == 2 || pers < 0) {
+		if (not)
+			qual_flags2[n] &= ~opt->bitflag;
+		else
+			qual_flags2[n] |= opt->bitflag;
+	}
+#endif /* SUPPORTED_PERSONALITIES >= 3 */
 }
 
 static int
@@ -294,12 +333,35 @@ qual_syscall(s, opt, not)
 	int i;
 	int rc = -1;
 
-	for (i = 0; i < nsyscalls; i++) {
-		if (strcmp(s, sysent[i].sys_name) == 0) {
-			qualify_one(i, opt, not);
+  	if (isdigit((unsigned char)*s)) {
+ 		int i = atoi(s);
+		if (i < 0 || i >= MAX_QUALS)
+ 			return -1;
+ 		qualify_one(i, opt, not, -1);
+ 		return 0;
+	}
+	for (i = 0; i < nsyscalls0; i++)
+		if (strcmp(s, sysent0[i].sys_name) == 0) {
+			qualify_one(i, opt, not, 0);
 			rc = 0;
 		}
-	}
+
+#if SUPPORTED_PERSONALITIES >= 2
+	for (i = 0; i < nsyscalls1; i++)
+		if (strcmp(s, sysent1[i].sys_name) == 0) {
+			qualify_one(i, opt, not, 1);
+			rc = 0;
+		}
+#endif /* SUPPORTED_PERSONALITIES >= 2 */
+
+#if SUPPORTED_PERSONALITIES >= 3
+	for (i = 0; i < nsyscalls2; i++)
+		if (strcmp(s, sysent2[i].sys_name) == 0) {
+			qualify_one(i, opt, not, 2);
+			rc = 0;
+		}
+#endif /* SUPPORTED_PERSONALITIES >= 3 */
+
 	return rc;
 }
 
@@ -312,11 +374,11 @@ qual_signal(s, opt, not)
 	int i;
 	char buf[32];
 
-  	if (s && *s && isdigit((unsigned char)*s)) {
+  	if (isdigit((unsigned char)*s)) {
  		int signo = atoi(s);
  		if (signo < 0 || signo >= MAX_QUALS)
  			return -1;
- 		qualify_one(signo, opt, not);
+ 		qualify_one(signo, opt, not, -1);
  		return 0;
 	}
 	if (strlen(s) >= sizeof buf)
@@ -329,7 +391,7 @@ qual_signal(s, opt, not)
 		s += 3;
 	for (i = 0; i <= NSIG; i++)
 		if (strcmp(s, signame(i) + 3) == 0) {
-			qualify_one(i, opt, not);
+			qualify_one(i, opt, not, -1);
 			return 0;
 		}
 	return -1;
@@ -350,11 +412,11 @@ qual_desc(s, opt, not)
 	const struct qual_options *opt;
 	int not;
 {
-	if (s && *s && isdigit((unsigned char)*s)) {
+	if (isdigit((unsigned char)*s)) {
 		int desc = atoi(s);
 		if (desc < 0 || desc >= MAX_QUALS)
 			return -1;
-		qualify_one(desc, opt, not);
+		qualify_one(desc, opt, not, -1);
 		return 0;
 	}
 	return -1;
@@ -406,29 +468,31 @@ char *s;
 	}
 	if (strcmp(s, "all") == 0) {
 		for (i = 0; i < MAX_QUALS; i++) {
-			if (not)
-				qual_flags[i] &= ~opt->bitflag;
-			else
-				qual_flags[i] |= opt->bitflag;
+			qualify_one(i, opt, not, -1);
 		}
 		return;
 	}
 	for (i = 0; i < MAX_QUALS; i++) {
-		if (not)
-			qual_flags[i] |= opt->bitflag;
-		else
-			qual_flags[i] &= ~opt->bitflag;
+		qualify_one(i, opt, !not, -1);
 	}
 	for (p = strtok(s, ","); p; p = strtok(NULL, ",")) {
 		if (opt->bitflag == QUAL_TRACE && (n = lookup_class(p)) > 0) {
-			for (i = 0; i < MAX_QUALS; i++) {
-				if (sysent[i].sys_flags & n) {
-					if (not)
-						qual_flags[i] &= ~opt->bitflag;
-					else
-						qual_flags[i] |= opt->bitflag;
-				}
-			}
+			for (i = 0; i < nsyscalls0; i++)
+				if (sysent0[i].sys_flags & n)
+					qualify_one(i, opt, not, 0);
+
+#if SUPPORTED_PERSONALITIES >= 2
+			for (i = 0; i < nsyscalls1; i++)
+				if (sysent1[i].sys_flags & n)
+					qualify_one(i, opt, not, 1);
+#endif /* SUPPORTED_PERSONALITIES >= 2 */
+
+#if SUPPORTED_PERSONALITIES >= 3
+			for (i = 0; i < nsyscalls2; i++)
+				if (sysent2[i].sys_flags & n)
+					qualify_one(i, opt, not, 2);
+#endif /* SUPPORTED_PERSONALITIES >= 3 */
+
 			continue;
 		}
 		if (opt->qualify(p, opt, not)) {
@@ -580,8 +644,9 @@ int subcall;
 int nsubcalls;
 enum subcall_style style;
 {
-	long addr, mask, arg;
+	unsigned long addr, mask;
 	int i;
+	int size = personality_wordsize[current_personality];
 
 	switch (style) {
 	case shift_style:
@@ -601,10 +666,21 @@ enum subcall_style style;
 		tcp->scno = subcall + tcp->u_arg[0];
 		addr = tcp->u_arg[1];
 		for (i = 0; i < sysent[tcp->scno].nargs; i++) {
-			if (umove(tcp, addr, &arg) < 0)
-				arg = 0;
-			tcp->u_arg[i] = arg;
-			addr += sizeof(arg);
+			if (size == sizeof(int)) {
+				unsigned int arg;
+				if (umove(tcp, addr, &arg) < 0)
+					arg = 0;
+				tcp->u_arg[i] = arg;
+			}
+			else if (size == sizeof(long)) {
+				unsigned long arg;
+				if (umove(tcp, addr, &arg) < 0)
+					arg = 0;
+				tcp->u_arg[i] = arg;
+			}
+			else
+				abort();
+			addr += size;
 		}
 		tcp->u_nargs = sysent[tcp->scno].nargs;
 		break;

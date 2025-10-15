@@ -437,59 +437,62 @@ static const struct xlat protocols[] = {
 	{ 0,		NULL		},
 };
 static const struct xlat msg_flags[] = {
-	{ MSG_OOB,	"MSG_OOB"	},
+	{ MSG_OOB,		"MSG_OOB"		},
 #ifdef MSG_DONTROUTE
-	{ MSG_DONTROUTE,"MSG_DONTROUTE"	},
+	{ MSG_DONTROUTE,	"MSG_DONTROUTE"		},
 #endif
 #ifdef MSG_PEEK
-	{ MSG_PEEK,	"MSG_PEEK"	},
+	{ MSG_PEEK,		"MSG_PEEK"		},
 #endif
 #ifdef MSG_CTRUNC
-	{ MSG_CTRUNC,	"MSG_CTRUNC"	},
+	{ MSG_CTRUNC,		"MSG_CTRUNC"		},
 #endif
 #ifdef MSG_PROXY
-	{ MSG_PROXY,	"MSG_PROXY"	},
+	{ MSG_PROXY,		"MSG_PROXY"		},
 #endif
 #ifdef MSG_EOR
-	{ MSG_EOR,	"MSG_EOR"	},
+	{ MSG_EOR,		"MSG_EOR"		},
 #endif
 #ifdef MSG_WAITALL
-	{ MSG_WAITALL,	"MSG_WAITALL"	},
+	{ MSG_WAITALL,		"MSG_WAITALL"		},
 #endif
 #ifdef MSG_TRUNC
-	{ MSG_TRUNC,	"MSG_TRUNC"	},
+	{ MSG_TRUNC,		"MSG_TRUNC"		},
 #endif
 #ifdef MSG_CTRUNC
-	{ MSG_CTRUNC,	"MSG_CTRUNC"	},
+	{ MSG_CTRUNC,		"MSG_CTRUNC"		},
 #endif
 #ifdef MSG_ERRQUEUE
-	{ MSG_ERRQUEUE,	"MSG_ERRQUEUE"	},
+	{ MSG_ERRQUEUE,		"MSG_ERRQUEUE"		},
 #endif
 #ifdef MSG_DONTWAIT
-	{ MSG_DONTWAIT,	"MSG_DONTWAIT"	},
+	{ MSG_DONTWAIT,		"MSG_DONTWAIT"		},
 #endif
 #ifdef MSG_CONFIRM
-	{ MSG_CONFIRM,	"MSG_CONFIRM"	},
+	{ MSG_CONFIRM,		"MSG_CONFIRM"		},
 #endif
 #ifdef MSG_PROBE
-	{ MSG_PROBE,	"MSG_PROBE"	},
+	{ MSG_PROBE,		"MSG_PROBE"		},
 #endif
 #ifdef MSG_FIN
-	{ MSG_FIN,	"MSG_FIN"	},
+	{ MSG_FIN,		"MSG_FIN"		},
 #endif
 #ifdef MSG_SYN
-	{ MSG_SYN,	"MSG_SYN"	},
+	{ MSG_SYN,		"MSG_SYN"		},
 #endif
 #ifdef MSG_RST
-	{ MSG_RST,	"MSG_RST"	},
+	{ MSG_RST,		"MSG_RST"		},
 #endif
 #ifdef MSG_NOSIGNAL
-	{ MSG_NOSIGNAL,	"MSG_NOSIGNAL"	},
+	{ MSG_NOSIGNAL,		"MSG_NOSIGNAL"		},
 #endif
 #ifdef MSG_MORE
-	{ MSG_MORE,	"MSG_MORE"	},
+	{ MSG_MORE,		"MSG_MORE"		},
 #endif
-	{ 0,		NULL		},
+#ifdef MSG_CMSG_CLOEXEC
+	{ MSG_CMSG_CLOEXEC,	"MSG_CMSG_CLOEXEC"	},
+#endif
+	{ 0,			NULL			},
 };
 
 static const struct xlat sockoptions[] = {
@@ -671,10 +674,10 @@ static const struct xlat sockipoptions[] = {
 	{ IP_RECVERR,		"IP_RECVERR"		},
 #endif
 #ifdef IP_RECVTTL
-	{ IP_RECVTTL,		"IP_RECRECVTTL"		},
+	{ IP_RECVTTL,		"IP_RECVTTL"		},
 #endif
 #ifdef IP_RECVTOS
-	{ IP_RECVTOS,		"IP_RECRECVTOS"		},
+	{ IP_RECVTOS,		"IP_RECVTOS"		},
 #endif
 #ifdef IP_MTU
 	{ IP_MTU,		"IP_MTU"		},
@@ -769,6 +772,15 @@ static const struct xlat sockipv6options[] = {
 #ifdef IPV6_FLOWINFO_SEND
 	{ IPV6_FLOWINFO_SEND,	"IPV6_FLOWINFO_SEND"	},
 #endif
+#ifdef IPV6_ADD_MEMBERSHIP
+	{ IPV6_ADD_MEMBERSHIP,	"IPV6_ADD_MEMBERSHIP"	},
+#endif
+#ifdef IPV6_DROP_MEMBERSHIP
+	{ IPV6_DROP_MEMBERSHIP,	"IPV6_DROP_MEMBERSHIP"	},
+#endif
+#ifdef IPV6_ROUTER_ALERT
+	{ IPV6_ROUTER_ALERT,	"IPV6_ROUTER_ALERT"	},
+#endif
 	{ 0,			NULL			},
 };
 #endif /* SOL_IPV6 */
@@ -791,8 +803,12 @@ static const struct xlat sockrawoptions[] = {
 
 #ifdef SOL_PACKET
 static const struct xlat sockpacketoptions[] = {
+#ifdef PACKET_ADD_MEMBERSHIP
 	{ PACKET_ADD_MEMBERSHIP,	"PACKET_ADD_MEMBERSHIP"	},
+#endif
+#ifdef PACKET_DROP_MEMBERSHIP
 	{ PACKET_DROP_MEMBERSHIP,	"PACKET_DROP_MEMBERSHIP"},
+#endif
 #if defined(PACKET_RECV_OUTPUT)
 	{ PACKET_RECV_OUTPUT,		"PACKET_RECV_OUTPUT"	},
 #endif
@@ -925,10 +941,7 @@ static const struct xlat af_packet_types[] = {
 
 
 void
-printsock(tcp, addr, addrlen)
-struct tcb *tcp;
-long addr;
-int addrlen;
+printsock(struct tcb *tcp, long addr, int addrlen)
 {
 	union {
 		char pad[128];
@@ -958,13 +971,16 @@ int addrlen;
 		tprintf("%#lx", addr);
 		return;
 	}
-	if ((addrlen<2) || (addrlen>sizeof(addrbuf)))
-		addrlen=sizeof(addrbuf);
 
-	if (umoven(tcp, addr, addrlen, (char*)&addrbuf) < 0) {
+	if (addrlen < 2 || addrlen > sizeof(addrbuf))
+		addrlen = sizeof(addrbuf);
+
+	memset(&addrbuf, 0, sizeof(addrbuf));
+	if (umoven(tcp, addr, addrlen, addrbuf.pad) < 0) {
 		tprintf("{...}");
 		return;
 	}
+	addrbuf.pad[sizeof(addrbuf.pad) - 1] = '\0';
 
 	tprintf("{sa_family=");
 	printxval(addrfams, addrbuf.sa.sa_family, "AF_???");
@@ -972,12 +988,14 @@ int addrlen;
 
 	switch (addrbuf.sa.sa_family) {
 	case AF_UNIX:
-		if (addrlen==2) {
-			tprintf("<nil>");
+		if (addrlen == 2) {
+			tprintf("NULL");
 		} else if (addrbuf.sau.sun_path[0]) {
-			tprintf("path=\"%-.*s\"", addrlen-2, addrbuf.sau.sun_path);
+			tprintf("path=");
+			printpathn(tcp, addr + 2, strlen(addrbuf.sau.sun_path));
 		} else {
-			tprintf("path=@%-.*s", addrlen-3, addrbuf.sau.sun_path+1);
+			tprintf("path=@");
+			printpathn(tcp, addr + 3, strlen(addrbuf.sau.sun_path + 1));
 		}
 		break;
 	case AF_INET:
@@ -1710,7 +1728,7 @@ int len;
 	tprintf (", ");
 
 	if (len == sizeof (int)) {
-		printnum(tcp, addr, "%ld");
+		printnum_int (tcp, addr, "%d");
 	}
 	else {
 		printstr (tcp, addr, len);

@@ -137,6 +137,12 @@
     <item msgid="966666856467721784">"2 días"</item>
     <item msgid="5840973497558794742">"1 semana"</item>
   </string-array>
+  <string-array name="preferences_week_start_day_labels">
+    <item>Por defecto</item>
+    <item>Sabado</item>
+    <item>Domingo</item>
+    <item>Lunes</item>
+  </string-array>
   <string-array name="preferences_alert_type_labels">
     <item msgid="2724242028978664229">"Alerta"</item>
     <item msgid="8723674378160518790">"Notificación en la barra de estado"</item>
@@ -145,6 +151,10 @@
   <string-array name="availability">
     <item msgid="454869065893453189">"Ocupado"</item>
     <item msgid="6228387173725732140">"Disponible"</item>
+  </string-array>
+  <string-array name="event_status">
+    <item>Tentativo</item>
+    <item>Confirmado</item>
   </string-array>
   <string-array name="visibility">
     <item msgid="3035788428581513163">"Predeterminado"</item>

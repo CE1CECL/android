@@ -217,7 +217,11 @@ int mapFrameBufferLocked(struct private_module_t* module)
     info.blue.offset    = 8;
     info.blue.length    = 8;
     info.transp.offset  = 0;
+#ifdef USE_FRAMEBUFFER_ALPHA_CHANNEL
+    info.transp.length  = 8;
+#else
     info.transp.length  = 0;
+#endif
 
     /* Note: the GL driver does not have a r=8 g=8 b=8 a=0 config, so if we do
      * not use the MDP for composition (i.e. hw composition == 0), ask for

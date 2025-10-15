@@ -45,6 +45,38 @@
         android:entries="@array/volume_button_setting_entries"
         android:entryValues="@array/volume_button_setting_values"
         android:summary="@string/volume_button_setting_summary"
-        android:defaultValue="2" />
+        android:defaultValue="0" />
+
+	<ListPreference
+		android:key="alarm_limit"
+		android:title="@string/alarm_limit_title"
+        android:entries="@array/alarm_limit_entries"
+        android:entryValues="@array/alarm_limit_values"
+        android:defaultValue="30" 
+        android:dialogTitle="@string/alarm_limit_title"/>
+        
+	<ListPreference
+		android:key="screensaver_timeout"
+		android:title="@string/screensaver_timeout_title"
+        android:entries="@array/screensaver_timeout_entries"
+        android:entryValues="@array/screensaver_timeout_values"
+        android:defaultValue="5" 
+        android:dialogTitle="@string/screensaver_timeout_title"/>
+        
+	<PreferenceScreen
+			android:key="color_picker"
+			android:title="@string/color_picker_title"
+			android:summary="@string/color_picker_summary">
+			<intent
+				android:action="com.android.alarmclock.ColorPicker"
+				android:targetPackage="com.android.alarmclock"
+				android.targetClass="com.android.alarmclock.ColorPicker"/>
+    </PreferenceScreen>
+
+    <CheckBoxPreference
+        android:key="use_dual_mode_button"
+        android:title="@string/use_dual_mode_button"
+        android:summaryOn="@string/use_dual_mode_button_on"
+        android:summaryOff="@string/use_dual_mode_button_off" />
 
 </PreferenceScreen>

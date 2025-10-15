@@ -245,6 +245,12 @@ public:
 protected:
 
     virtual status_t dump(int fd, const Vector<String16>& args) = 0;
+
+#ifdef HAVE_FM_RADIO
+public:
+    /** set the fm volume. Range is between 0.0 and 1.0 */
+    virtual status_t    setFmVolume(float volume) { return 0; }
+#endif
 };
 
 // ----------------------------------------------------------------------------

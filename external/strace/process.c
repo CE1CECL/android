@@ -421,7 +421,7 @@ fork_tcb(struct tcb *tcp)
 	if (nprocs == tcbtabsize) {
 		if (expand_tcbtab()) {
 			tcp->flags &= ~TCB_FOLLOWFORK;
-			fprintf(stderr, "sys_fork: tcb table full\n");
+			return 1;
 		}
 	}
 
@@ -483,10 +483,8 @@ struct tcb *tcp;
 			return 0;
 		if (syserror(tcp))
 			return 0;
-		if ((tcpchild = alloctcb(tcp->u_rval)) == NULL) {
-			fprintf(stderr, "sys_fork: tcb table full\n");
+		if ((tcpchild = alloctcb(tcp->u_rval)) == NULL)
 			return 0;
-		}
 		if (proc_open(tcpchild, 2) < 0)
 		  	droptcb(tcpchild);
 	}
@@ -614,6 +612,14 @@ struct tcb *tcp;
 		if (flags & (CLONE_CHILD_SETTID|CLONE_CHILD_CLEARTID))
 			tprintf(", child_tidptr=%#lx", tcp->u_arg[ARG_CTID]);
 	}
+	return 0;
+}
+
+int
+sys_unshare(struct tcb *tcp)
+{
+	if (entering(tcp))
+		printflags(clone_flags, tcp->u_arg[0], "CLONE_???");
 	return 0;
 }
 #endif
@@ -842,10 +848,9 @@ struct tcb *tcp;
 		}
 		else
 #endif
-		if ((tcpchild = alloctcb(pid)) == NULL) {
+		if (fork_tcb(tcp) || (tcpchild = alloctcb(pid)) == NULL) {
 			if (bpt)
 				clearbpt(tcp);
-			fprintf(stderr, " [tcb table full]\n");
 			kill(pid, SIGKILL); /* XXX */
 			return 0;
 		}
@@ -979,8 +984,7 @@ struct tcb *tcp;
 			return 0;
 
 		pid = tcp->u_rval;
-		if ((tcpchild = alloctcb(pid)) == NULL) {
-			fprintf(stderr, " [tcb table full]\n");
+		if (fork_tcb(tcp) || (tcpchild = alloctcb(pid)) == NULL) {
 			kill(pid, SIGKILL); /* XXX */
 			return 0;
 		}
@@ -1682,25 +1686,31 @@ printargv(tcp, addr)
 struct tcb *tcp;
 long addr;
 {
-	char *cp;
+	union {
+		int p32;
+		long p64;
+		char data[sizeof(long)];
+	} cp;
 	char *sep;
-	int max = max_strlen / 2;
+	int n = 0;
 
-	for (sep = ""; --max >= 0; sep = ", ") {
-		if (!abbrev(tcp))
-			max++;
-		if (umove(tcp, addr, &cp) < 0) {
+	cp.p64 = 1;
+	for (sep = ""; !abbrev(tcp) || n < max_strlen / 2; sep = ", ", ++n) {
+		if (umoven(tcp, addr, personality_wordsize[current_personality],
+			   cp.data) < 0) {
 			tprintf("%#lx", addr);
 			return;
 		}
-		if (cp == 0)
+		if (personality_wordsize[current_personality] == 4)
+			cp.p64 = cp.p32;
+		if (cp.p64 == 0)
 			break;
 		tprintf("%s", sep);
-		printstr(tcp, (long) cp, -1);
-		addr += sizeof(char *);
+		printstr(tcp, cp.p64, -1);
+		addr += personality_wordsize[current_personality];
 	}
-	if (cp)
-		tprintf(", ...");
+	if (cp.p64)
+		tprintf("%s...", sep);
 }
 
 static void
@@ -2007,7 +2017,8 @@ int flagarg;
 					    (tcp->flags & TCB_CLONE_THREAD)
 					    ? tcp->parent :
 #endif
-					    tcp))
+					    tcp) ||
+				    (child->flags & TCB_EXITING))
 					return 0;
 			}
 			tcp->flags |= TCB_SUSPENDED;
@@ -3069,12 +3080,75 @@ struct tcb *tcp;
 #endif /* !SVR4 */
 
 #ifdef LINUX
+# ifndef FUTEX_CMP_REQUEUE
+#  define FUTEX_CMP_REQUEUE 4
+# endif
+# ifndef FUTEX_WAKE_OP
+#  define FUTEX_WAKE_OP 5
+# endif
+# ifndef FUTEX_LOCK_PI
+#  define FUTEX_LOCK_PI 6
+#  define FUTEX_UNLOCK_PI 7
+#  define FUTEX_TRYLOCK_PI 8
+# endif
+# ifndef FUTEX_CMP_REQUEUE_PI
+#  define FUTEX_CMP_REQUEUE_PI 9
+# endif
+# ifndef FUTEX_PRIVATE_FLAG
+#  define FUTEX_PRIVATE_FLAG 128
+# endif
 static const struct xlat futexops[] = {
-	{ FUTEX_WAIT,	"FUTEX_WAIT" },
-	{ FUTEX_WAKE,	"FUTEX_WAKE" },
-	{ FUTEX_FD,	"FUTEX_FD" },
-	{ FUTEX_REQUEUE,"FUTEX_REQUEUE" },
-	{ 0,		NULL }
+	{ FUTEX_WAIT,					"FUTEX_WAIT" },
+	{ FUTEX_WAKE,					"FUTEX_WAKE" },
+	{ FUTEX_FD,					"FUTEX_FD" },
+	{ FUTEX_REQUEUE,				"FUTEX_REQUEUE" },
+	{ FUTEX_CMP_REQUEUE,				"FUTEX_CMP_REQUEUE" },
+	{ FUTEX_WAKE_OP,				"FUTEX_WAKE_OP" },
+	{ FUTEX_LOCK_PI,				"FUTEX_LOCK_PI" },
+	{ FUTEX_UNLOCK_PI,				"FUTEX_UNLOCK_PI" },
+	{ FUTEX_TRYLOCK_PI,				"FUTEX_TRYLOCK_PI" },
+	{ FUTEX_CMP_REQUEUE_PI,				"FUTEX_CMP_REQUEUE_PI" },
+	{ FUTEX_WAIT|FUTEX_PRIVATE_FLAG,		"FUTEX_WAIT_PRIVATE" },
+	{ FUTEX_WAKE|FUTEX_PRIVATE_FLAG,		"FUTEX_WAKE_PRIVATE" },
+	{ FUTEX_FD|FUTEX_PRIVATE_FLAG,			"FUTEX_FD_PRIVATE" },
+	{ FUTEX_REQUEUE|FUTEX_PRIVATE_FLAG,		"FUTEX_REQUEUE_PRIVATE" },
+	{ FUTEX_CMP_REQUEUE|FUTEX_PRIVATE_FLAG,		"FUTEX_CMP_REQUEUE_PRIVATE" },
+	{ FUTEX_WAKE_OP|FUTEX_PRIVATE_FLAG,		"FUTEX_WAKE_OP_PRIVATE" },
+	{ FUTEX_LOCK_PI|FUTEX_PRIVATE_FLAG,		"FUTEX_LOCK_PI_PRIVATE" },
+	{ FUTEX_UNLOCK_PI|FUTEX_PRIVATE_FLAG,		"FUTEX_UNLOCK_PI_PRIVATE" },
+	{ FUTEX_TRYLOCK_PI|FUTEX_PRIVATE_FLAG,		"FUTEX_TRYLOCK_PI_PRIVATE" },
+	{ FUTEX_CMP_REQUEUE_PI|FUTEX_PRIVATE_FLAG,	"FUTEX_CMP_REQUEUE_PI_PRIVATE" },
+	{ 0,						NULL }
+};
+#ifndef FUTEX_OP_SET
+# define FUTEX_OP_SET		0
+# define FUTEX_OP_ADD		1
+# define FUTEX_OP_OR		2
+# define FUTEX_OP_ANDN		3
+# define FUTEX_OP_XOR		4
+# define FUTEX_OP_CMP_EQ	0
+# define FUTEX_OP_CMP_NE	1
+# define FUTEX_OP_CMP_LT	2
+# define FUTEX_OP_CMP_LE	3
+# define FUTEX_OP_CMP_GT	4
+# define FUTEX_OP_CMP_GE	5
+#endif
+static const struct xlat futexwakeops[] = {
+	{ FUTEX_OP_SET,		"FUTEX_OP_SET" },
+	{ FUTEX_OP_ADD,		"FUTEX_OP_ADD" },
+	{ FUTEX_OP_OR,		"FUTEX_OP_OR" },
+	{ FUTEX_OP_ANDN,	"FUTEX_OP_ANDN" },
+	{ FUTEX_OP_XOR,		"FUTEX_OP_XOR" },
+	{ 0,			NULL }
+};
+static const struct xlat futexwakecmps[] = {
+	{ FUTEX_OP_CMP_EQ,	"FUTEX_OP_CMP_EQ" },
+	{ FUTEX_OP_CMP_NE,	"FUTEX_OP_CMP_NE" },
+	{ FUTEX_OP_CMP_LT,	"FUTEX_OP_CMP_LT" },
+	{ FUTEX_OP_CMP_LE,	"FUTEX_OP_CMP_LE" },
+	{ FUTEX_OP_CMP_GT,	"FUTEX_OP_CMP_GT" },
+	{ FUTEX_OP_CMP_GE,	"FUTEX_OP_CMP_GE" },
+	{ 0,			NULL }
 };
 
 int
@@ -3082,14 +3156,28 @@ sys_futex(tcp)
 struct tcb *tcp;
 {
     if (entering(tcp)) {
+	long int cmd = tcp->u_arg[1] & ~FUTEX_PRIVATE_FLAG;
 	tprintf("%p, ", (void *) tcp->u_arg[0]);
 	printxval(futexops, tcp->u_arg[1], "FUTEX_???");
 	tprintf(", %ld", tcp->u_arg[2]);
-	if (tcp->u_arg[1] == FUTEX_WAIT) {
+	if (cmd == FUTEX_WAIT) {
 		tprintf(", ");
 		printtv(tcp, tcp->u_arg[3]);
-	} else if (tcp->u_arg[1] == FUTEX_REQUEUE)
+	} else if (cmd == FUTEX_REQUEUE)
 		tprintf(", %ld, %p", tcp->u_arg[3], (void *) tcp->u_arg[4]);
+	else if (cmd == FUTEX_CMP_REQUEUE)
+		tprintf(", %ld, %p, %ld", tcp->u_arg[3], (void *) tcp->u_arg[4], tcp->u_arg[5]);
+	else if (cmd == FUTEX_WAKE_OP) {
+		tprintf(", %ld, %p, {", tcp->u_arg[3], (void *) tcp->u_arg[4]);
+		if ((tcp->u_arg[5] >> 28) & 8)
+			tprintf("FUTEX_OP_OPARG_SHIFT|");
+		printxval(futexwakeops, (tcp->u_arg[5] >> 28) & 0x7, "FUTEX_OP_???");
+		tprintf(", %ld, ", (tcp->u_arg[5] >> 12) & 0xfff);
+		if ((tcp->u_arg[5] >> 24) & 8)
+			tprintf("FUTEX_OP_OPARG_SHIFT|");
+		printxval(futexwakecmps, (tcp->u_arg[5] >> 24) & 0x7, "FUTEX_OP_CMP_???");
+		tprintf(", %ld}", tcp->u_arg[5] & 0xfff);
+	}
     }
     return 0;
 }

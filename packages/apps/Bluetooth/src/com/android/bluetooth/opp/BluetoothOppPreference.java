@@ -46,7 +46,6 @@ import android.util.Log;
  */
 public class BluetoothOppPreference {
     private static final String TAG = "BluetoothOppPreference";
-    private static final boolean D = Constants.DEBUG;
     private static final boolean V = Constants.VERBOSE;
 
     private static BluetoothOppPreference INSTANCE;
@@ -127,7 +126,7 @@ public class BluetoothOppPreference {
 
     public void setName(BluetoothDevice remoteDevice, String name) {
         if (V) Log.v(TAG, "Setname for " + remoteDevice + " to " + name);
-        if (!name.equals(getName(remoteDevice))) {
+        if (name != null && !name.equals(getName(remoteDevice))) {
             Editor ed = mNamePreference.edit();
             ed.putString(remoteDevice.getAddress(), name);
             ed.apply();

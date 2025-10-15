@@ -96,13 +96,9 @@ class EntryFrameConstants : public AllStatic {
 
 class ExitFrameConstants : public AllStatic {
  public:
-  // Exit frames have a debug marker on the stack.
-  static const int kSPDisplacement = -1 * kPointerSize;
-
-  // The debug marker is just above the frame pointer.
   static const int kCodeOffset = -1 * kPointerSize;
-
-  static const int kSavedRegistersOffset = 0 * kPointerSize;
+  static const int kSPOffset = -1 * kPointerSize;
+  static const int kMarkerOffset = -2 * kPointerSize;
 
   // The caller fields are below the frame pointer on the stack.
   static const int kCallerFPOffset = +0 * kPointerSize;
@@ -112,6 +108,12 @@ class ExitFrameConstants : public AllStatic {
   // FP-relative displacement of the caller's SP.  It points just
   // below the saved PC.
   static const int kCallerSPDisplacement = +3 * kPointerSize;
+};
+
+class ExitApiFrameConstants : public AllStatic {
+ public:
+  static const int kSPOffset = -3 * kPointerSize;
+  static const int kMarker = 0x01;
 };
 
 

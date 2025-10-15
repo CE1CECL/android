@@ -98,7 +98,7 @@ int sys_mq_open(), sys_mq_timedsend(), sys_mq_timedreceive();
 int sys_mq_notify(), sys_mq_getsetattr();
 int sys_epoll_create(), sys_epoll_ctl(), sys_epoll_wait();
 int sys_waitid(), sys_fadvise64(), sys_fadvise64_64();
-int sys_mbind(), sys_get_mempolicy(), sys_set_mempolicy();
+int sys_mbind(), sys_get_mempolicy(), sys_set_mempolicy(), sys_move_pages();
 int sys_arch_prctl();
 int sys_io_setup(), sys_io_submit(), sys_io_cancel(), sys_io_getevents(), sys_io_destroy();
 
@@ -109,10 +109,30 @@ int sys_accept(), sys_getsockname(), sys_getpeername(), sys_socketpair();
 int sys_send(), sys_recv(), sys_sendto(), sys_recvfrom();
 int sys_shutdown(), sys_setsockopt(), sys_getsockopt();
 
+/* *at syscalls */
+int sys_fchmodat();
+int sys_newfstatat();
+int sys_unlinkat();
+int sys_fchownat();
+int sys_openat();
+int sys_renameat();
+int sys_symlinkat();
+int sys_readlinkat();
+int sys_linkat();
+int sys_faccessat();
+int sys_mkdirat();
+int sys_mknodat();
+int sys_futimesat();
+
 /* new ones */
 int sys_query_module();
 int sys_poll();
 int sys_mincore();
+int sys_inotify_add_watch();
+int sys_inotify_rm_watch();
+int sys_pselect6();
+int sys_ppoll();
+int sys_unshare();
 
 /* architecture-specific calls */
 #ifdef ALPHA
@@ -182,7 +202,7 @@ int sys_osf_utimes();
 #  undef SYS_sendmsg
 #  undef SYS_recvmsg
 # endif /* IA64 */
-#  define SYS_socket_subcall	300
+#  define SYS_socket_subcall	400
 #define SYS_sub_socket		(SYS_socket_subcall + 1)
 #define SYS_sub_bind		(SYS_socket_subcall + 2)
 #define SYS_sub_connect		(SYS_socket_subcall + 3)

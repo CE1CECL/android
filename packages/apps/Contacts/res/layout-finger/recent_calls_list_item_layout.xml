@@ -22,7 +22,7 @@
         android:layout_marginTop="5dip"
         android:layout_marginBottom="5dip"
         android:layout_toLeftOf="@id/call_icon"
-        android:layout_marginLeft="11dip"
+        android:layout_marginLeft="2dip"
         android:background="@drawable/divider_vertical_dark"
     />
 
@@ -30,9 +30,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
+        android:layout_toLeftOf="@id/divider"
+        android:layout_alignWithParentIfMissing="true"
+        android:layout_marginRight="-2dip"
         android:layout_marginLeft="4dip"
     />
+
 
     <TextView android:id="@+id/date"
         android:layout_width="wrap_content"
@@ -40,7 +43,8 @@
         android:layout_toLeftOf="@id/divider"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="8dip"
-        android:layout_marginLeft="10dip"
+        android:layout_alignWithParentIfMissing="true"
+        android:layout_marginRight="5dip"
 
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:singleLine="true"
@@ -49,14 +53,15 @@
     <TextView android:id="@+id/label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+        android:layout_toRightOf="@id/photo"
         android:layout_alignParentBottom="true"
-        android:layout_marginLeft="36dip"
-        android:layout_marginRight="5dip"
-        android:layout_alignBaseline="@id/date"
+        android:layout_marginBottom="8dip"
+        android:layout_marginTop="-10dip"
+        android:layout_marginLeft="4dip"
+        android:layout_marginRight="8dip"
+        android:layout_alignWithParentIfMissing="true"
 
         android:singleLine="true"
-        android:ellipsize="marquee"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:textStyle="bold"
     />
@@ -73,17 +78,29 @@
         android:ellipsize="marquee"
         android:textAppearance="?android:attr/textAppearanceSmall"
     />
+ 
+    <android.widget.QuickContactBadge android:id="@+id/photo"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"
+        style="@*android:style/Widget.QuickContactBadge.WindowLarge" />
+    
+    <ImageView android:id="@+id/noQuickContactPhoto"
+        android:layout_alignParentLeft="true"
+        android:layout_centerVertical="true"            
+        style="@*android:style/Widget.QuickContactBadge.WindowMedium"
+    />
+
 
     <TextView android:id="@+id/line1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@id/divider"
+        android:layout_toRightOf="@id/photo"
+        android:layout_toLeftOf="@id/call_type_icon"
         android:layout_above="@id/date"
         android:layout_alignWithParentIfMissing="true"
-        android:layout_marginLeft="36dip"
         android:layout_marginBottom="-10dip"
+        android:layout_marginLeft="4dip"
 
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:singleLine="true"

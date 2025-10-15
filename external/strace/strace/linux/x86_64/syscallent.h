@@ -15,8 +15,8 @@
 	{ 4,	TS,	sys_rt_sigprocmask,	"rt_sigprocmask"},  /* 14 */
 	{ 1,	TS,	printargs,		"rt_sigreturn"	},  /* 15 */
 	{ 3,	0,	sys_ioctl,		"ioctl"		},  /* 16 */
-	{ 5,	TF,	sys_pread,		"pread"		},  /* 17 */
-	{ 5,	TF,	sys_pwrite,		"pwrite"	},  /* 18 */
+	{ 5,	0,	sys_pread,		"pread"		},  /* 17 */
+	{ 5,	0,	sys_pwrite,		"pwrite"	},  /* 18 */
 	{ 3,	0,	sys_readv,		"readv"		},  /* 19 */
 	{ 3,	0,	sys_writev,		"writev"	},  /* 20 */
 	{ 2,	TF,	sys_access,		"access"	},  /* 21 */
@@ -38,7 +38,7 @@
 	{ 1,	0,	sys_alarm,		"alarm"		},  /* 37 */
 	{ 3,	0,	sys_setitimer,		"setitimer"	},  /* 38 */
 	{ 0,	0,	sys_getpid,		"getpid"	},  /* 39 */
-	{ 4,	TF,	sys_sendfile,		"sendfile"	},  /* 40 */
+	{ 4,	0,	sys_sendfile,		"sendfile"	},  /* 40 */
 	{ 3,	TN,	sys_socket,		"socket"	},  /* 41 */
 	{ 3,	TN,	sys_connect,		"connect"	},  /* 42 */
 	{ 3,	TN,	sys_accept,		"accept"	},  /* 43 */
@@ -219,7 +219,7 @@
 	{ 1,	0,	printargs,		"set_tid_address"}, /* 218 */
 	{ 5,	0,	printargs,		"restart_syscall"}, /* 219 */
 	{ 5,	TI,	sys_semtimedop,		"semtimedop"	}, /* 220 */
-	{ 4,	TF,	sys_fadvise64_64,	"fadvise64"	}, /* 221 */
+	{ 4,	0,	sys_fadvise64_64,	"fadvise64"	}, /* 221 */
 	{ 3,	0,	sys_timer_create,	"timer_create"	}, /* 222 */
 	{ 4,	0,	sys_timer_settime,	"timer_settime"	}, /* 223 */
 	{ 2,	0,	sys_timer_gettime,	"timer_gettime"	}, /* 224 */
@@ -246,9 +246,35 @@
 	{ 3,	0,	sys_mq_getsetattr,	"mq_getsetattr"	}, /* 245 */
 	{ 5,	0,	printargs,		"kexec_load"	}, /* 246 */
 	{ 5,	TP,	sys_waitid,		"waitid"	}, /* 247 */
-	{ 5,	0,	printargs,		"SYS_248"	}, /* 248 */
-	{ 5,	0,	printargs,		"SYS_249"	}, /* 249 */
-	{ 5,	0,	printargs,		"SYS_250"	}, /* 250 */
-	{ 5,	0,	printargs,		"SYS_251"	}, /* 251 */
-	{ 5,	0,	printargs,		"SYS_252"	}, /* 252 */
-	{ 5,	0,	printargs,		"SYS_253"	}, /* 253 */
+	{ 5,	0,	printargs,		"add_key"	}, /* 248 */
+	{ 4,	0,	printargs,		"request_key"	}, /* 249 */
+	{ 5,	0,	printargs,		"keyctl"	}, /* 250 */
+	{ 3,	0,	printargs,		"ioprio_set"	}, /* 251 */
+	{ 2,	0,	printargs,		"ioprio_get"	}, /* 252 */
+	{ 0,	TD,	printargs,		"inotify_init"	}, /* 253 */
+	{ 3,	TD,	sys_inotify_add_watch,	"inotify_add_watch" }, /* 254 */
+	{ 2,	TD,	sys_inotify_rm_watch,	"inotify_rm_watch" }, /* 255 */
+	{ 4,	0,	printargs,		"migrate_pages"	}, /* 256 */
+	{ 4,	TD|TF,	sys_openat,		"openat"	}, /* 257 */
+	{ 3,	TD|TF,	sys_mkdirat,		"mkdirat"	}, /* 258 */
+	{ 4,	TD|TF,	sys_mknodat,		"mknodat"	}, /* 259 */
+	{ 5,	TD|TF,	sys_fchownat,		"fchownat"	}, /* 260 */
+	{ 3,	TD|TF,	sys_futimesat,		"futimesat"	}, /* 261 */
+	{ 4,	TD|TD,	sys_newfstatat,		"newfstatat"	}, /* 262 */
+	{ 3,	TD|TF,	sys_unlinkat,		"unlinkat"	}, /* 263 */
+	{ 4,	TD|TF,	sys_renameat,		"renameat"	}, /* 264 */
+	{ 5,	TD|TF,	sys_linkat,		"linkat"	}, /* 265 */
+	{ 3,	TD|TF,	sys_symlinkat,		"symlinkat"	}, /* 266 */
+	{ 4,	TD|TF,	sys_readlinkat,		"readlinkat"	}, /* 267 */
+	{ 3,	TD|TF,	sys_fchmodat,		"fchmodat"	}, /* 268 */
+	{ 3,	TD|TF,	sys_faccessat,		"faccessat"	}, /* 269 */
+	{ 6,	TD,	sys_pselect6,		"pselect6"	}, /* 270 */
+	{ 5,	TD,	sys_ppoll,		"ppoll"		}, /* 271 */
+	{ 1,	TP,	sys_unshare,		"unshare"	}, /* 272 */
+	{ 2,	0,	printargs,		"set_robust_list" }, /* 273 */
+	{ 3,	0,	printargs,		"get_robust_list" }, /* 274 */
+	{ 6,	TD,	printargs,		"splice"	}, /* 275 */
+	{ 4,	TD,	printargs,		"sync_file_range" }, /* 276 */
+	{ 4,	TD,	printargs,		"tee"		}, /* 277 */
+	{ 4,	TD,	printargs,		"vmsplice"	}, /* 278 */
+	{ 6,	0,	sys_move_pages,		"move_pages"	}, /* 279 */

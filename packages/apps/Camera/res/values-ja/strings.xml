@@ -49,7 +49,7 @@
     <string name="pref_video_quality_entry_high" msgid="2874184763684055612">"高（30m）"</string>
     <string name="pref_video_quality_entry_low" msgid="5282945640948667598">"低（30m）"</string>
     <string name="pref_video_quality_entry_mms" msgid="2271260293894247704">"MMS（低、30s）"</string>
-    <string name="pref_video_quality_entry_youtube" msgid="3731902408685997150">"YouTube（高、10m）"</string>
+    <string name="pref_video_quality_entry_youtube" msgid="3731902408685997150">"YouTube（高、15m）"</string>
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"カメラ設定"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"ビデオ録画設定"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"表示サイズ"</string>
@@ -64,6 +64,7 @@
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"フォーカスモード"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"オート"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"無限遠"</string>
+    <string name="pref_camera_focusmode_entry_touch">"タッチ"</string>
     <string name="pref_camera_focusmode_entry_macro" msgid="4424489110551866161">"マクロ"</string>
     <string name="pref_camera_flashmode_title" msgid="2287362477238791017">"フラッシュモード"</string>
     <string name="pref_camera_flashmode_entry_auto" msgid="7288383434237457709">"オート"</string>
@@ -88,6 +89,10 @@
     <string name="pref_camera_coloreffect_entry_redtint" msgid="7135044258970245718">"色合い（赤）"</string>
     <string name="pref_camera_coloreffect_entry_bluetint" msgid="987468567611774716">"色合い（青）"</string>
     <string name="pref_camera_coloreffect_entry_greentint" msgid="4205380735971677893">"色合い（緑）"</string>
+    <string name="pref_camera_coloreffect_entry_emboss">"エンボス"</string>
+    <string name="pref_camera_coloreffect_entry_vivid">"ビビッド"</string>
+    <string name="pref_camera_coloreffect_entry_blue">"ブルー"</string>
+    <string name="pref_camera_coloreffect_entry_negative_sepia">"セピア調"</string>
     <string name="pref_camera_scenemode_title" msgid="1420535844292504016">"撮影モード"</string>
     <string name="pref_camera_scenemode_entry_auto" msgid="7113995286836658648">"オート"</string>
     <string name="pref_camera_scenemode_entry_action" msgid="616748587566110484">"スポーツ"</string>
@@ -113,4 +118,133 @@
     <string name="zoom_control_title" msgid="6532562653386981815">"ズーム"</string>
     <string name="switch_to_camera_lable" msgid="8248495141797448471">"写真に切替"</string>
     <string name="switch_to_video_lable" msgid="4525451949497982385">"ムービーに切替"</string>
+
+    <!-- CM extra entries -->
+    <string name="pref_video_quality_entry_hd">HD (30分)</string>
+    <string name="pref_video_quality_entry_wide">ワイド (30分)</string>
+    <string name="pref_video_quality_entry_youtubehd">YouTube (HD, 15分)</string>
+    <string name="pref_camera_picturesize_entry_3264x2448">8メガピクセル</string>
+    <string name="pref_camera_picturesize_entry_3264x1968">6.5メガピクセル(ワイド)</string>
+    <string name="pref_camera_picturesize_entry_3264x1952">6メガピクセル(ワイド)</string>
+    <string name="pref_camera_picturesize_entry_2592x1552">4メガピクセル(ワイド)</string>
+    <string name="pref_camera_picturesize_entry_2560x1712">4メガピクセル</string>
+    <string name="pref_camera_picturesize_entry_2304x1728">4メガピクセル</string>
+    <string name="pref_camera_picturesize_entry_2048x1216">2.5メガピクセル(ワイド)</string>
+    <string name="pref_camera_picturesize_entry_1600x960">1.5メガピクセル(ワイド)</string>
+    <string name="pref_camera_focusmode_entry_normal">ノーマル</string>
+    <string name="pref_camera_focusmode_entry_fixed">固定</string>
+    <string name="pref_camera_focusmode_entry_facedetect">顔認識</string>
+
+    <string name="pref_camera_sharpness_entry_level0">レベル 0</string>
+    <string name="pref_camera_sharpness_entry_level1">レベル 1</string>
+    <string name="pref_camera_sharpness_entry_level2">レベル 2(デフォルト)</string>
+    <string name="pref_camera_sharpness_entry_level3">レベル 3</string>
+    <string name="pref_camera_sharpness_entry_level4">レベル 4</string>
+    <string name="pref_camera_sharpness_entry_level5">レベル 5</string>
+
+    <string name="pref_camera_contrast_entry_level0">レベル 0</string>
+    <string name="pref_camera_contrast_entry_level1">レベル 1</string>
+    <string name="pref_camera_contrast_entry_level2">レベル 2</string>
+    <string name="pref_camera_contrast_entry_level3">レベル 3(デフォルト)</string>
+    <string name="pref_camera_contrast_entry_level4">レベル 4</string>
+    <string name="pref_camera_contrast_entry_level5">レベル 5</string>
+
+    <string name="pref_camera_saturation_entry_level0">レベル 0</string>
+    <string name="pref_camera_saturation_entry_level1">レベル 1</string>
+    <string name="pref_camera_saturation_entry_level2">レベル 2</string>
+    <string name="pref_camera_saturation_entry_level3">レベル 3(デフォルト)</string>
+    <string name="pref_camera_saturation_entry_level4">レベル 4</string>
+    <string name="pref_camera_saturation_entry_level5">レベル 5</string>
+
+    <string name="pref_camera_sharpness_title">シャープネス</string>
+    <string name="pref_camera_contrast_title">コントラスト</string>
+    <string name="pref_camera_saturation_title">サチュレーション</string>
+
+    <string name="pref_camera_scenemode_entry_sports">スポーツ</string>
+    <string name="pref_camera_scenemode_entry_backlight">バックライト</string>
+    <string name="pref_camera_scenemode_entry_flowers">花</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">夕暮れ</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">秋色</string>
+    <string name="pref_camera_scenemode_entry_text">テキスト</string>
+
+
+    <string name="pref_camera_iso_title">ISO選択</string>
+    <string name="pref_camera_iso_entry_auto">オート</string>
+    <string name="pref_camera_iso_entry_isodeblur">ISOオート(HJR)</string>
+
+    <string name="pref_camera_lensshading_title">レンズ影</string>
+    <string name="pref_camera_lensshading_entry_enable">有効</string>
+    <string name="pref_camera_lensshading_entry_disable">無効</string>
+
+    <string name="pref_camera_antibanding_title">アンチバンディング</string>
+    <string name="pref_camera_antibanding_entry_0">オフ</string>
+    <string name="pref_camera_antibanding_entry_3">オート</string>
+
+    <string name="pref_camera_autoexposure_title">自動測光(AE)モード</string>
+    <string name="pref_camera_autoexposure_entry_frameaverage">フレーム平均</string>
+    <string name="pref_camera_autoexposure_entry_centerweighted">中央部重点測光</string>
+    <string name="pref_camera_autoexposure_entry_spotmetering">スポット測光</string>
+     <string name="pref_camera_autoexposure_entry_matrixmetering">分割測光</string>
+
+
+    <!-- Advanced options label -->
+    <string name="advanced_options_label">追加オプション</string>
+
+    <!-- Other settings -->
+    <string name="pref_camera_other_settings_title">その他の設定</string>
+    <string name="pref_camera_timer_duration">タイマー時間</string>
+    <string name="pref_camera_timer_duration_summary">カメラタイマーの時間を選択</string>
+
+    <!-- More Settings screen, volume buttons title -->
+    <string name="pref_camera_vol_shutter_title">ボリュームシャッター</string>
+    <string name="pref_camera_vol_up_shutter">ボリュームアップ</string>
+    <string name="pref_camera_vol_up_shutter_summary">ボリュームアップキーで撮影</string>
+    <string name="pref_camera_vol_down_shutter">ボリュームダウン</string>
+    <string name="pref_camera_vol_down_shutter_summary">ボリュームダウンキーで撮影</string>
+
+    <!-- More Settings screen, zoom button title -->
+    <string name="pref_camera_vol_zoom_title">ボリュームズーム</string>
+    <string name="pref_camera_vol_zoom">ボリュームキーでズーム</string>
+    <string name="pref_camera_vol_zoom_summary">ボリュームアップ/ダウンキーでそれぞれズームイン/アウトする</string>
+
+    <!-- More Settings screen, search button title -->
+    <string name="pref_camera_search_shutter_title">検索キーシャッター</string>
+
+    <!-- More Settings screen, search button -->
+    <string name="pref_camera_search_shutter">検索キー</string>
+    <string name="pref_camera_search_shutter_summary">検索キーで撮影する</string>
+
+    <!-- More Settings screen, power button title -->
+    <string name="pref_camera_power_shutter_title">電源ボタンシャッター</string>
+
+    <!-- More Settings screen, power button -->
+    <string name="pref_camera_power_shutter">電源ボタン</string>
+    <string name="pref_camera_power_shutter_summary">電源ボタンで撮影する</string>
+
+    <!-- Settings screen, Capture mode title -->
+    <string name="pref_camera_capturemode_title">撮影モード</string>
+
+    <!-- Settings screen, Capture mode dialog radio button choices -->
+    <string name="pref_camera_capturemode_entry_default">即時</string>
+    <string name="pref_camera_capturemode_entry_timer">タイマー</string>
+
+    <!-- Settings screen, Capture mode dialog entries -->
+    <string name="pref_camera_capturemode_entry_10">10秒</string>
+    <string name="pref_camera_capturemode_entry_20">20秒</string>
+    <string name="pref_camera_capturemode_entry_30">30秒</string>
+    <string name="pref_camera_capturemode_entry_40">40秒</string>
+    <string name="pref_camera_capturemode_entry_50">50秒</string>
+    <string name="pref_camera_capturemode_entry_60">60秒</string>
+
+    <!-- Settings screen, custom focus title -->
+    <string name="pref_camera_settings_focus_title">フォーカス</string>
+
+    <!-- Settings screen, focus settings -->
+    <string name="pref_camera_settings_focus">プリフォーカス</string>
+    <string name="pref_camera_settings_focus_summary">撮影前にフォーカスする</string>
+    <string name="pref_camera_settings_long_focus">ロングフォーカス</string>
+    <string name="pref_camera_settings_long_focus_summary">ボタンを長押しでフォーカスし、ボタンを離して撮影する</string>
+
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">曇り</string>
+
 </resources>

@@ -19,7 +19,6 @@ package com.android.internal.telephony.gsm;
 import static com.android.internal.telephony.TelephonyProperties.PROPERTY_ICC_OPERATOR_ALPHA;
 import static com.android.internal.telephony.TelephonyProperties.PROPERTY_ICC_OPERATOR_ISO_COUNTRY;
 import static com.android.internal.telephony.TelephonyProperties.PROPERTY_ICC_OPERATOR_NUMERIC;
-import android.content.Context;
 import android.os.AsyncResult;
 import android.os.Message;
 import android.os.SystemProperties;
@@ -37,6 +36,7 @@ import com.android.internal.telephony.IccVmNotSupportedException;
 import com.android.internal.telephony.MccTable;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 
 /**
@@ -56,6 +56,8 @@ public final class SIMRecords extends IccRecords {
 
     SpnOverride mSpnOverride;
 
+    Locale mCurrentLocale = null;
+
     // ***** Cached SIM State; cleared on channel close
 
     String imsi;
@@ -73,6 +75,7 @@ public final class SIMRecords extends IccRecords {
      *  mCphsInfo[1] and mCphsInfo[2] is CPHS Service Table
      */
     private byte[] mCphsInfo = null;
+    boolean mCspPlmnEnabled = true;
 
     byte[] efMWIS = null;
     byte[] efCPHS_MWI =null;
@@ -93,6 +96,7 @@ public final class SIMRecords extends IccRecords {
     static final int SPN_RULE_SHOW_PLMN = 0x02;
 
     // From TS 51.011 EF[SPDI] section
+    static final int TAG_SPDI = 0xA3;
     static final int TAG_SPDI_PLMN_LIST = 0x80;
 
     // Full Name IEI from TS 24.008
@@ -140,6 +144,7 @@ public final class SIMRecords extends IccRecords {
     private static final int EVENT_SET_MSISDN_DONE = 30;
     private static final int EVENT_SIM_REFRESH = 31;
     private static final int EVENT_GET_CFIS_DONE = 32;
+    private static final int EVENT_GET_CSP_CPHS_DONE = 33;
 
     // Lookup table for carriers known to produce SIMs which incorrectly indicate MNC length.
 
@@ -213,6 +218,9 @@ public final class SIMRecords extends IccRecords {
         pnnHomeName = null;
 
         adnCache.reset();
+
+        spn = null;
+        mCurrentLocale = null;
 
         phone.setSystemProperty(PROPERTY_ICC_OPERATOR_NUMERIC, null);
         phone.setSystemProperty(PROPERTY_ICC_OPERATOR_ALPHA, null);
@@ -589,6 +597,13 @@ public final class SIMRecords extends IccRecords {
                 break;
             case EVENT_GET_CPHS_MAILBOX_DONE:
             case EVENT_GET_MBDN_DONE:
+                //Resetting the voice mail number and voice mail tag to null
+                //as these should be updated from the data read from EF_MBDN.
+                //If they are not reset, incase of invalid data/exception these
+                //variables are retaining their previous values and are
+                //causing invalid voice mailbox info display to user.
+                voiceMailNum = null;
+                voiceMailTag = null;
                 isRecordLoadResponse = true;
 
                 ar = (AsyncResult)msg.obj;
@@ -1035,6 +1050,22 @@ public final class SIMRecords extends IccRecords {
                 ((GSMPhone) phone).notifyCallForwardingIndicator();
                 break;
 
+            case EVENT_GET_CSP_CPHS_DONE:
+                isRecordLoadResponse = true;
+
+                ar = (AsyncResult)msg.obj;
+
+                if (ar.exception != null) {
+                    Log.e(LOG_TAG,"Exception in fetching EF_CSP data " + ar.exception);
+                    break;
+                }
+
+                data = (byte[])ar.result;
+
+                Log.i(LOG_TAG,"EF_CSP: " + IccUtils.bytesToHexString(data));
+                handleEfCspData(data);
+                break;
+
         }}catch (RuntimeException exc) {
             // I don't want these exceptions to be fatal
             Log.w(LOG_TAG, "Exception parsing SIM record", exc);
@@ -1057,6 +1088,12 @@ public final class SIMRecords extends IccRecords {
                 recordsToLoad++;
                 new AdnRecordLoader(phone).loadFromEF(EF_MAILBOX_CPHS, EF_EXT1,
                         1, obtainMessage(EVENT_GET_CPHS_MAILBOX_DONE));
+                break;
+            case EF_CSP_CPHS:
+                recordsToLoad++;
+                Log.i(LOG_TAG, "[CSP] SIM Refresh for EF_CSP_CPHS");
+                phone.getIccFileHandler().loadEFTransparent(EF_CSP_CPHS,
+                        obtainMessage(EVENT_GET_CSP_CPHS_DONE));
                 break;
             default:
                 // For now, fetch all records if this is not a
@@ -1200,11 +1237,30 @@ public final class SIMRecords extends IccRecords {
                 SimCard.INTENT_VALUE_ICC_LOADED, null);
     }
 
+    public String getServiceProviderName() {
+        setSpnFromConfig(getSIMOperatorNumeric());
+        return super.getServiceProviderName();
+    }
+
     //***** Private methods
 
     private void setSpnFromConfig(String carrier) {
-        if (mSpnOverride.containsCarrier(carrier)) {
-            spn = mSpnOverride.getSpn(carrier);
+        if (carrier == null) return;
+
+        Locale locale = phone.getContext().getResources().getConfiguration().locale;
+        locale = new Locale(locale.getLanguage(), locale.getCountry());
+
+        if ((mCurrentLocale == null || !mCurrentLocale.equals(locale))) {
+            if (mSpnOverride.containsCarrier(carrier) &&
+                    (spn = mSpnOverride.getSpn(carrier, locale)) == null &&
+                    (spn = mSpnOverride.getSpn(carrier)) == null &&
+                    "".equals(spn = SystemProperties.get(PROPERTY_ICC_OPERATOR_ALPHA))) {
+                spn = null;
+            }
+            if (spn != null && "".equals(spn)) {
+                spn = null;
+            }
+            mCurrentLocale = locale;
         }
     }
 
@@ -1288,6 +1344,9 @@ public final class SIMRecords extends IccRecords {
         iccFh.loadEFTransparent(EF_INFO_CPHS, obtainMessage(EVENT_GET_INFO_CPHS_DONE));
         recordsToLoad++;
 
+        iccFh.loadEFTransparent(EF_CSP_CPHS,obtainMessage(EVENT_GET_CSP_CPHS_DONE));
+        recordsToLoad++;
+
         // XXX should seek instead of examining them all
         if (false) { // XXX
             iccFh.loadEFLinearFixedAll(EF_SMS, obtainMessage(EVENT_GET_ALL_SMS_DONE));
@@ -1317,19 +1376,25 @@ public final class SIMRecords extends IccRecords {
      */
     protected int getDisplayRule(String plmn) {
         int rule;
-        if (spn == null || spnDisplayCondition == -1) {
-            // EF_SPN was not found on the SIM, or not yet loaded.  Just show ONS.
+        if (spn == null || spnDisplayCondition == -1 || plmn == null) {
+            // EF_SPN was not found on the SIM, or not yet loaded, or
+            // currently not registered to any PLMN. Just show ONS or
+            // the "(No service)" string.
             rule = SPN_RULE_SHOW_PLMN;
         } else if (isOnMatchingPlmn(plmn)) {
+            // registered PLMN is either HPLMN or a PLMN in the EF_SPDI list.
             rule = SPN_RULE_SHOW_SPN;
             if ((spnDisplayCondition & 0x01) == 0x01) {
-                // ONS required when registered to HPLMN or PLMN in EF_SPDI
+                // b1=0: ONS is not required
+                // b1=1: ONS is required
                 rule |= SPN_RULE_SHOW_PLMN;
             }
         } else {
+            // registered PLMN is neither HPLMN nor a PLMN in the EF_SPDI list.
             rule = SPN_RULE_SHOW_PLMN;
             if ((spnDisplayCondition & 0x02) == 0x00) {
-                // SPN required if not registered to HPLMN or PLMN in EF_SPDI
+                // b2=0: SPN is required
+                // b2=1: SPN is not required
                 rule |= SPN_RULE_SHOW_SPN;
             }
         }
@@ -1389,6 +1454,7 @@ public final class SIMRecords extends IccRecords {
         switch(spnState){
             case INIT:
                 spn = null;
+                mCurrentLocale = null;
 
                 phone.getIccFileHandler().loadEFTransparent( EF_SPN,
                         obtainMessage(EVENT_GET_SPN_DONE));
@@ -1467,8 +1533,12 @@ public final class SIMRecords extends IccRecords {
 
         byte[] plmnEntries = null;
 
-        // There should only be one TAG_SPDI_PLMN_LIST
         for ( ; tlv.isValidObject() ; tlv.nextObject()) {
+            // Skip SPDI tag, if existant
+            if (tlv.getTag() == TAG_SPDI) {
+              tlv = new SimTlv(tlv.getData(), 0, tlv.getData().length);
+            }
+            // There should only be one TAG_SPDI_PLMN_LIST
             if (tlv.getTag() == TAG_SPDI_PLMN_LIST) {
                 plmnEntries = tlv.getData();
                 break;
@@ -1505,4 +1575,53 @@ public final class SIMRecords extends IccRecords {
         Log.d(LOG_TAG, "[SIMRecords] " + s);
     }
 
+    /**
+     * Return true if "Restriction of menu options for manual PLMN selection"
+     * bit is set or EF_CSP data is unavailable, return false otherwise.
+     */
+    public boolean isCspPlmnEnabled() {
+        return mCspPlmnEnabled;
+    }
+
+    /**
+     * Parse EF_CSP data and check if
+     * "Restriction of menu options for manual PLMN selection" is
+     * Enabled/Disabled
+     *
+     * @param data EF_CSP hex data.
+     */
+    private void handleEfCspData(byte[] data) {
+        // As per spec CPHS4_2.WW6, CPHS B.4.7.1, EF_CSP contains CPHS defined
+        // 18 bytes (i.e 9 service groups info) and additional data specific to
+        // operator. The valueAddedServicesGroup is not part of standard
+        // services. This is operator specific and can be programmed any where.
+        // Normally this is programmed as 10th service after the standard
+        // services.
+        int usedCspGroups = data.length / 2;
+        // This is the "Servive Group Number" of "Value Added Services Group".
+        byte valueAddedServicesGroup = (byte)0xC0;
+
+        mCspPlmnEnabled = true;
+        for (int i = 0; i < usedCspGroups; i++) {
+             if (data[2 * i] == valueAddedServicesGroup) {
+                 Log.i(LOG_TAG, "[CSP] found ValueAddedServicesGroup, value "
+                       + data[(2 * i) + 1]);
+                 if ((data[(2 * i) + 1] & 0x80) == 0x80) {
+                     // Bit 8 is for
+                     // "Restriction of menu options for manual PLMN selection".
+                     // Operator Selection menu should be enabled.
+                     mCspPlmnEnabled = true;
+                 } else {
+                     mCspPlmnEnabled = false;
+                     // Operator Selection menu should be disabled.
+                     // Operator Selection Mode should be set to Automatic.
+                     Log.i(LOG_TAG,"[CSP] Set Automatic Network Selection");
+                     phone.setNetworkSelectionModeAutomatic(null);
+                 }
+                 return;
+             }
+        }
+
+        Log.w(LOG_TAG, "[CSP] Value Added Service Group (0xC0), not found!");
+    }
 }

@@ -138,8 +138,12 @@
     <string name="recent_tasks_title" msgid="3691764623638127888">"新着"</string>
     <string name="no_recent_tasks" msgid="279702952298056674">"最近使ったアプリケーションはありません。"</string>
     <string name="global_actions" msgid="2406416831541615258">"携帯電話オプション"</string>
+    <string name="global_action_home">"ホーム"</string>
+    <string name="global_action_menu">"メニュー"</string>
+    <string name="global_action_back">"戻る"</string>
     <string name="global_action_lock" msgid="2844945191792119712">"画面ロック"</string>
     <string name="global_action_power_off" msgid="4471879440839879722">"電源を切る"</string>
+    <string name="global_action_reboot">"再起動する"</string>
     <string name="global_action_toggle_silent_mode" msgid="8219525344246810925">"マナーモード"</string>
     <string name="global_action_silent_mode_on_status" msgid="3289841937003758806">"サウンドOFF"</string>
     <string name="global_action_silent_mode_off_status" msgid="1506046579177066419">"サウンドON"</string>
@@ -826,6 +830,10 @@
     <string name="extmedia_format_button_format" msgid="4131064560127478695">"フォーマット"</string>
     <string name="adb_active_notification_title" msgid="6729044778949189918">"USBデバッグが接続されました"</string>
     <string name="adb_active_notification_message" msgid="8470296818270110396">"USBデバッグを無効にする場合に選択します。"</string>
+
+    <string name="adb_net_enabled_notification_title">ネットワークデバッグが有効になりました</string>
+    <string name="adb_net_enabled_notification_message">ネットワークデバッグを無効にする場合に選択します。</string>
+
     <string name="select_input_method" msgid="6865512749462072765">"入力方法の選択"</string>
     <string name="fast_scroll_alphabet" msgid="5433275485499039199">" ABCDEFGHIJKLMNOPQRSTUVWXYZ"</string>
     <string name="fast_scroll_numeric_alphabet" msgid="4030170524595123610">" 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"</string>
@@ -911,4 +919,79 @@
     <string name="media_shared" product="nosdcard" msgid="5830814349250834225">"USBストレージは現在パソコンで使用中です。"</string>
     <string name="media_shared" product="default" msgid="5706130568133540435">"SDカードは現在パソコンで使用中です。"</string>
     <string name="media_unknown_state" msgid="729192782197290385">"外部メディアの状態は不明です。"</string>
+    <!-- CM extra -->
+    <string name="global_action_screenshot">"スクリーンショット"</string>
+    <string name="reboot_system">"再起動する"</string>
+    <string name="reboot_reboot">"再起動"</string>
+    <string name="reboot_recovery">"リカバリ"</string>
+    <string name="reboot_bootloader">"ブートローダ"</string>
+    <string name="reboot_progress">"再起動中..."</string>
+    <string name="reboot_confirm">"携帯電話を再起動します。"</string>
+    <string name="lockscreen_phone_label">"電話"</string>
+    <string name="app_killed_message">"アプリケーションを終了しました"</string>
+    <string name="lockscreen_discharging">放電中 (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)</string>
+    <!-- Phone goggles -->
+    <string name="phone_goggles_problem_count">問題 #%1$d: </string>
+    <string name="phone_goggles_description">次の %1$d 個の数学の問題を %2$d 秒以内に問けばコミュニケーションを開始できます。</string>
+    <plurals name="phone_goggles_countdown">
+        <item quantity="one">残り %d 秒</item>
+        <item quantity="other">残り %d 秒</item>
+    </plurals>
+
+    <string name="wildcardProfile">他</string>
+    <string name="global_action_choose_profile">プロファイル選択</string>
+
+    <!-- Names of default profiles. -->
+    <string name="profileNameDefault">デフォルト</string>
+    <string name="profileNameWork">仕事</string>
+    <string name="profileNameHome">ホーム</string>
+    <string name="profileNameSilent">サイレント</string>
+    <string name="profileNameNight">夜間</string>
+
+    <!-- Names of application groups. -->
+    <string name="profileGroupPhone">電話</string>
+    <string name="profileGroupCalendar">カレンダー</string>
+    <string name="profileGroupGmail">Gmail</string>
+    <string name="profileGroupEmail">Email</string>
+    <string name="profileGroupSMS">SMS</string>
+
+    <!-- Item on EditText context menu. This action is used to copy all text in the edit field. -->
+    <string name="copyAll">全てコピー</string>
+
+    <!-- Title of the alert when an application is not responding. -->
+    <string name="aerr_revoked_application">アプリケーション <xliff:g id="application">%1$s</xliff:g>
+        (プロセス <xliff:g id="process">%2$s</xliff:g>) は予期せず終了しました。\n警告!\nこのアプリケーションは一つ以上の権限が取り消されているため、不安定です。必要な権限を与えてから再度お試しください。</string>
+    <!-- Text of the alert that is displayed when an application has crashed. -->
+    <string name="aerr_revoked_process">プロセス <xliff:g id="process">%1$s</xliff:g> は
+        予期せず終了しました。\n警告!\nこのプロセスは一つ以上の権限が取り消されているため、不安定です。必要な権限を与えてから再度お試しください。</string>
+
+    <!-- Button allowing the user reset the revoked permissions for application which has encountered an error. -->
+    <string name="reset_perms">権限をリセット</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_preventpower">電源キーの制御</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_preventpower">アプリケーションが電源キーの挙動を変更するのを許可する</string>
+
+    <!-- Title of an application permission that lets an application view/edit revoked permissions. -->
+    <string name="permlab_revokePermissions">取り消された権限を閲覧/編集する。通常のアプリケーションでは不要です。</string>
+    <!-- Description of an application permission that lets lets an application view/edit revoked permissions. -->
+    <string name="permdesc_revokePermissions">取り消された権限を読み書きする。通常のアプリケーションでは不要です。</string>
+
+    <string name="keyguard_finger_please_swipe">ロックを解除するには指をセンサー上で滑らせてください</string>
+    <string name="keyguard_finger_ui_timeout">UI がタイムアウトしました!</string>
+    <string name="keyguard_finger_failed_to_unlock">ロックを解除できませんでした!</string>
+    <string name="keyguard_finger_screen_off">画面オフ</string>
+    <string name="keyguard_finger_screen_on">画面オン</string>
+    <string name="keyguard_finger_match">指が一致しました。画面のロックを解除しています...</string>
+    <string name="keyguard_finger_not_match">指が一致しませんでした...</string>
+    <string name="keyguard_finger_swipe_too_far_right">中央で指を滑らせてください。</string>
+    <string name="keyguard_finger_swipe_too_far_left">中央で指を滑らせてください。</string>
+    <string name="keyguard_finger_swipe_too_fast">滑らせ方が速すぎます。</string>
+    <string name="keyguard_finger_swipe_too_short">滑らせる距離が短すぎます。</string>
+    <string name="keyguard_finger_swipe_too_slow">滑らせ方が遅すぎます。</string>
+    <string name="keyguard_finger_swipe_too_skewed">滑らせ方が傾きすぎです。</string>
+    <string name="lockscreen_too_many_failed_fingers_dialog_message">指紋の識別に %1$d 回失敗しました。\n\n%2$d 秒後に再試行してください。</string>
+    <string name="lockscreen_failed_fingers_almost_glogin">指紋の識別に %1$d 回失敗しました。識別にあと %2$d 回失敗すると、Google サインインを使用して電話のロックを解除するように求められます。\n\n%3$d 秒後に再試行してください。</string>
+    <string name="lockscreen_forgot_finger_button_text">どの指かわからなくなった場合</string>
 </resources>

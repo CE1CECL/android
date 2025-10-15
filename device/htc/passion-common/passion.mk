@@ -17,6 +17,10 @@
 PRODUCT_PROPERTY_OVERRIDES :=
     ro.media.dec.jpeg.memcap=20000000
 
+# Don't set /proc/sys/vm/dirty_ratio to 0 when USB mounting
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.vold.umsdirtyratio=20
+
 DEVICE_PACKAGE_OVERLAYS := device/htc/passion-common/overlay
 
 PRODUCT_COPY_FILES := \
@@ -38,15 +42,16 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES := \
     sensors.mahimahi \
     lights.mahimahi \
-    gralloc.qsd8k \
     librs_jni \
+    gralloc.qsd8k \
+    copybit.qsd8k \
+    gps.mahimahi \
+    libOmxCore \
+    libOmxVidEnc \
     com.android.future.usb.accessory
 
 # we have enough storage space to hold precise GC data
 PRODUCT_TAGS += dalvik.gc.type-precise
-
-# Passion uses high-density artwork where available
-PRODUCT_LOCALES := hdpi
 
 PRODUCT_COPY_FILES += \
     device/htc/passion-common/mahimahi-keypad.kl:system/usr/keylayout/mahimahi-keypad.kl \

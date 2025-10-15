@@ -20,6 +20,10 @@ package com.android.mms.transaction;
 import static android.content.Intent.ACTION_BOOT_COMPLETED;
 import static android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION;
 
+import java.util.TimeZone;
+import android.preference.PreferenceManager;
+
+import com.android.mms.ui.MessagingPreferenceActivity;
 import com.android.mms.data.Contact;
 import com.android.mms.ui.ClassZeroActivity;
 import com.android.mms.util.Recycler;
@@ -55,6 +59,7 @@ import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
+
 
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.mms.R;
@@ -485,9 +490,18 @@ public class SmsReceiverService extends Service {
 
         values.put(Inbox.ADDRESS, sms.getDisplayOriginatingAddress());
 
-        // Use now for the timestamp to avoid confusion with clock
-        // drift between the handset and the SMSC.
-        values.put(Inbox.DATE, new Long(System.currentTimeMillis()));
+        Long time = new Long(System.currentTimeMillis());
+
+        if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(MessagingPreferenceActivity.SENT_TIMESTAMP, false)) {
+            time = sms.getTimestampMillis();
+            if (PreferenceManager.getDefaultSharedPreferences(getApplicationContext()).getBoolean(MessagingPreferenceActivity.SENT_TIMESTAMP_GMT_CORRECTION, true)) {
+                // Use the GMT offset to correct the time from the sms message
+                // to use as the message time stamp.
+                time -= TimeZone.getDefault().getOffset(time);
+            }
+        }
+
+        values.put(Inbox.DATE, time);
         values.put(Inbox.PROTOCOL, sms.getProtocolIdentifier());
         values.put(Inbox.READ, 0);
         values.put(Inbox.SEEN, 0);

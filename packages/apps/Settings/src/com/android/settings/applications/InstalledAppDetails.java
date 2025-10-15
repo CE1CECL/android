@@ -46,6 +46,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.provider.Settings;
 import android.text.format.Formatter;
 import android.util.Log;
 
@@ -54,7 +55,9 @@ import java.util.ArrayList;
 import java.util.List;
 import android.content.ComponentName;
 import android.view.View;
+import android.widget.AppSecurityEditablePermissions;
 import android.widget.AppSecurityPermissions;
+import android.widget.AppSecurityPermissionsBase;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -225,6 +228,7 @@ public class InstalledAppDetails extends Activity
         boolean dataOnly = false;
         dataOnly = (mPackageInfo == null) && (mAppEntry != null);
         boolean moveDisable = true;
+
         if (dataOnly) {
             mMoveAppButton.setText(R.string.move_app);
         } else if ((mAppEntry.info.flags & ApplicationInfo.FLAG_EXTERNAL_STORAGE) != 0) {
@@ -236,7 +240,9 @@ public class InstalledAppDetails extends Activity
             mCanBeOnSdCardChecker.init();
             moveDisable = !mCanBeOnSdCardChecker.check(mAppEntry.info);
         }
-        if (moveDisable) {
+        boolean allowMoveAllApps = android.provider.Settings.Secure.getInt(getContentResolver(),
+                android.provider.Settings.Secure.ALLOW_MOVE_ALL_APPS_EXTERNAL, 1) == 1;
+        if (!allowMoveAllApps && moveDisable || (mAppEntry.info.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
             mMoveAppButton.setEnabled(false);
         } else {
             mMoveAppButton.setOnClickListener(this);
@@ -445,7 +451,12 @@ public class InstalledAppDetails extends Activity
 
         // Security permissions section
         LinearLayout permsView = (LinearLayout) findViewById(R.id.permissions_section);
-        AppSecurityPermissions asp = new AppSecurityPermissions(this, packageName);
+        AppSecurityPermissionsBase asp = null;
+        if (isRevokeEnabled() && (mAppEntry.info.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+            asp = new AppSecurityEditablePermissions(this, packageName);
+        } else {
+            asp = new AppSecurityPermissions(this, packageName);
+        }
         if (asp.getPermissionCount() > 0) {
             permsView.setVisibility(View.VISIBLE);
             // Make the security sections header visible
@@ -462,6 +473,12 @@ public class InstalledAppDetails extends Activity
         refreshButtons();
         refreshSizeInfo();
         return true;
+    }
+
+    private boolean isRevokeEnabled() {
+        return Settings.Secure.getInt(getContentResolver(),
+                Settings.Secure.ENABLE_PERMISSIONS_MANAGEMENT,
+                getResources().getBoolean(com.android.internal.R.bool.config_enablePermissionsManagement) ? 1 : 0) == 1;
     }
     
     private void setIntentAndFinish(boolean finish, boolean appChanged) {

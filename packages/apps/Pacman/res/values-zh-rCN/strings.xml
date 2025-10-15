@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Play 商店 软件安装工具</string>
+    <string name="activity_title">选择要安装的应用程序</string>
+
+    <!-- Buttons -->
+    <string name="main_btn_ok">确定</string>
+    <string name="main_btn_selectall">全选</string>
+    <string name="main_btn_cancel">取消</string>
+
+    <!-- Alert Dialog -->
+    <string name="alert_dialog_title">重要：务必阅读！</string>
+    <string name="alert_dialog_message">本程序只能使用一次，用途是在 Market 上搜索你所选择要安装的 Google 应用程序。然而，有很多使用者会因为各种原因（例如希望先连接 Wi-Fi）而想要推迟本程序的执行。如果您想要本程序在之后再次出现，好让你能先完成某些必要工作的话，现在请点击“取消”。</string>
+
+    <!-- Names of applications from Google that have been translated -->
+    <string name="com_google_android_apps_maps">Google 地图</string>
+    <string name="com_google_android_googlequicksearchbox">Google 搜索</string>
+    <string name="com_google_android_street">Google 地图的街景服务</string>
+    <string name="com_google_android_voicesearch">语音搜索</string>
+</resources>

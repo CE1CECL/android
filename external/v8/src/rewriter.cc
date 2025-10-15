@@ -1,4 +1,4 @@
-// Copyright 2006-2008 the V8 project authors. All rights reserved.
+// Copyright 2010 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -27,22 +27,18 @@
 
 #include "v8.h"
 
-#include "ast.h"
-#include "func-name-inferrer.h"
-#include "scopes.h"
 #include "rewriter.h"
+
+#include "ast.h"
+#include "compiler.h"
+#include "scopes.h"
 
 namespace v8 {
 namespace internal {
 
-
 class AstOptimizer: public AstVisitor {
  public:
   explicit AstOptimizer() : has_function_literal_(false) {}
-  explicit AstOptimizer(Handle<String> enclosing_name)
-      : has_function_literal_(false) {
-    func_name_inferrer_.PushEnclosingName(enclosing_name);
-  }
 
   void Optimize(ZoneList<Statement*>* statements);
 
@@ -50,8 +46,6 @@ class AstOptimizer: public AstVisitor {
   // Used for loop condition analysis.  Cleared before visiting a loop
   // condition, set when a function literal is visited.
   bool has_function_literal_;
-  // Helper object for function name inferring.
-  FuncNameInferrer func_name_inferrer_;
 
   // Helpers
   void OptimizeArguments(ZoneList<Expression*>* arguments);
@@ -87,11 +81,13 @@ void AstOptimizer::VisitBlock(Block* node) {
 
 
 void AstOptimizer::VisitExpressionStatement(ExpressionStatement* node) {
+  node->expression()->set_no_negative_zero(true);
   Visit(node->expression());
 }
 
 
 void AstOptimizer::VisitIfStatement(IfStatement* node) {
+  node->condition()->set_no_negative_zero(true);
   Visit(node->condition());
   Visit(node->then_statement());
   if (node->HasElseStatement()) {
@@ -101,6 +97,7 @@ void AstOptimizer::VisitIfStatement(IfStatement* node) {
 
 
 void AstOptimizer::VisitDoWhileStatement(DoWhileStatement* node) {
+  node->cond()->set_no_negative_zero(true);
   Visit(node->cond());
   Visit(node->body());
 }
@@ -108,8 +105,9 @@ void AstOptimizer::VisitDoWhileStatement(DoWhileStatement* node) {
 
 void AstOptimizer::VisitWhileStatement(WhileStatement* node) {
   has_function_literal_ = false;
+  node->cond()->set_no_negative_zero(true);
   Visit(node->cond());
-  node->may_have_function_literal_ = has_function_literal_;
+  node->set_may_have_function_literal(has_function_literal_);
   Visit(node->body());
 }
 
@@ -120,8 +118,9 @@ void AstOptimizer::VisitForStatement(ForStatement* node) {
   }
   if (node->cond() != NULL) {
     has_function_literal_ = false;
+    node->cond()->set_no_negative_zero(true);
     Visit(node->cond());
-    node->may_have_function_literal_ = has_function_literal_;
+    node->set_may_have_function_literal(has_function_literal_);
   }
   Visit(node->body());
   if (node->next() != NULL) {
@@ -151,6 +150,7 @@ void AstOptimizer::VisitTryFinallyStatement(TryFinallyStatement* node) {
 
 
 void AstOptimizer::VisitSwitchStatement(SwitchStatement* node) {
+  node->tag()->set_no_negative_zero(true);
   Visit(node->tag());
   for (int i = 0; i < node->cases()->length(); i++) {
     CaseClause* clause = node->cases()->at(i);
@@ -205,21 +205,17 @@ void AstOptimizer::VisitDebuggerStatement(DebuggerStatement* node) {
 
 void AstOptimizer::VisitFunctionLiteral(FunctionLiteral* node) {
   has_function_literal_ = true;
-
-  if (node->name()->length() == 0) {
-    // Anonymous function.
-    func_name_inferrer_.AddFunction(node);
-  }
 }
 
 
-void AstOptimizer::VisitFunctionBoilerplateLiteral(
-    FunctionBoilerplateLiteral* node) {
+void AstOptimizer::VisitSharedFunctionInfoLiteral(
+    SharedFunctionInfoLiteral* node) {
   USE(node);
 }
 
 
 void AstOptimizer::VisitConditional(Conditional* node) {
+  node->condition()->set_no_negative_zero(true);
   Visit(node->condition());
   Visit(node->then_expression());
   Visit(node->else_expression());
@@ -240,9 +236,12 @@ void AstOptimizer::VisitVariableProxy(VariableProxy* node) {
       var->type()->SetAsLikelySmi();
     }
 
-    if (!var->is_this() &&
-        !Heap::result_symbol()->Equals(*var->name())) {
-      func_name_inferrer_.PushName(var->name());
+    if (FLAG_safe_int32_compiler) {
+      if (var->IsStackAllocated() &&
+          !var->is_arguments() &&
+          var->mode() != Variable::CONST) {
+        node->set_side_effect_free(true);
+      }
     }
   }
 }
@@ -252,10 +251,15 @@ void AstOptimizer::VisitLiteral(Literal* node) {
   Handle<Object> literal = node->handle();
   if (literal->IsSmi()) {
     node->type()->SetAsLikelySmi();
-  } else if (literal->IsString()) {
-    Handle<String> lit_str(Handle<String>::cast(literal));
-    if (!Heap::prototype_symbol()->Equals(*lit_str)) {
-      func_name_inferrer_.PushName(lit_str);
+    node->set_side_effect_free(true);
+  } else if (literal->IsHeapNumber()) {
+    if (node->to_int32()) {
+      // Any HeapNumber has an int32 value if it is the input to a bit op.
+      node->set_side_effect_free(true);
+    } else {
+      double double_value = HeapNumber::cast(*literal)->value();
+      int32_t int32_value = DoubleToInt32(double_value);
+      node->set_side_effect_free(double_value == int32_value);
     }
   }
 }
@@ -274,8 +278,6 @@ void AstOptimizer::VisitArrayLiteral(ArrayLiteral* node) {
 
 void AstOptimizer::VisitObjectLiteral(ObjectLiteral* node) {
   for (int i = 0; i < node->properties()->length(); i++) {
-    ScopedFuncNameInferrer scoped_fni(&func_name_inferrer_);
-    scoped_fni.Enter();
     Visit(node->properties()->at(i)->key());
     Visit(node->properties()->at(i)->value());
   }
@@ -289,17 +291,11 @@ void AstOptimizer::VisitCatchExtensionObject(CatchExtensionObject* node) {
 
 
 void AstOptimizer::VisitAssignment(Assignment* node) {
-  ScopedFuncNameInferrer scoped_fni(&func_name_inferrer_);
   switch (node->op()) {
     case Token::INIT_VAR:
     case Token::INIT_CONST:
     case Token::ASSIGN:
       // No type can be infered from the general assignment.
-
-      // Don't infer if it is "a = function(){...}();"-like expression.
-      if (node->value()->AsCall() == NULL) {
-        scoped_fni.Enter();
-      }
       break;
     case Token::ASSIGN_BIT_OR:
     case Token::ASSIGN_BIT_XOR:
@@ -310,6 +306,8 @@ void AstOptimizer::VisitAssignment(Assignment* node) {
       node->type()->SetAsLikelySmiIfUnknown();
       node->target()->type()->SetAsLikelySmiIfUnknown();
       node->value()->type()->SetAsLikelySmiIfUnknown();
+      node->value()->set_to_int32(true);
+      node->value()->set_no_negative_zero(true);
       break;
     case Token::ASSIGN_ADD:
     case Token::ASSIGN_SUB:
@@ -384,6 +382,7 @@ void AstOptimizer::VisitThrow(Throw* node) {
 
 
 void AstOptimizer::VisitProperty(Property* node) {
+  node->key()->set_no_negative_zero(true);
   Visit(node->obj());
   Visit(node->key());
 }
@@ -402,36 +401,109 @@ void AstOptimizer::VisitCallNew(CallNew* node) {
 
 
 void AstOptimizer::VisitCallRuntime(CallRuntime* node) {
-  ScopedFuncNameInferrer scoped_fni(&func_name_inferrer_);
-  if (Factory::InitializeVarGlobal_symbol()->Equals(*node->name()) &&
-      node->arguments()->length() >= 2 &&
-      node->arguments()->at(1)->AsFunctionLiteral() != NULL) {
-      scoped_fni.Enter();
-  }
   OptimizeArguments(node->arguments());
 }
 
 
 void AstOptimizer::VisitUnaryOperation(UnaryOperation* node) {
+  if (node->op() == Token::ADD || node->op() == Token::SUB) {
+    node->expression()->set_no_negative_zero(node->no_negative_zero());
+  } else {
+    node->expression()->set_no_negative_zero(true);
+  }
   Visit(node->expression());
+  if (FLAG_safe_int32_compiler) {
+    switch (node->op()) {
+      case Token::BIT_NOT:
+        node->expression()->set_no_negative_zero(true);
+        node->expression()->set_to_int32(true);
+        // Fall through.
+      case Token::ADD:
+      case Token::SUB:
+        node->set_side_effect_free(node->expression()->side_effect_free());
+        break;
+      case Token::NOT:
+      case Token::DELETE:
+      case Token::TYPEOF:
+      case Token::VOID:
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
+  } else if (node->op() == Token::BIT_NOT) {
+    node->expression()->set_to_int32(true);
+  }
+}
+
+
+void AstOptimizer::VisitIncrementOperation(IncrementOperation* node) {
+  UNREACHABLE();
 }
 
 
 void AstOptimizer::VisitCountOperation(CountOperation* node) {
   // Count operations assume that they work on Smis.
+  node->expression()->set_no_negative_zero(node->is_prefix() ?
+                                           true :
+                                           node->no_negative_zero());
   node->type()->SetAsLikelySmiIfUnknown();
   node->expression()->type()->SetAsLikelySmiIfUnknown();
   Visit(node->expression());
 }
 
 
+static bool CouldBeNegativeZero(AstNode* node) {
+  Literal* literal = node->AsLiteral();
+  if (literal != NULL) {
+    Handle<Object> handle = literal->handle();
+    if (handle->IsString() || handle->IsSmi()) {
+      return false;
+    } else if (handle->IsHeapNumber()) {
+      double double_value = HeapNumber::cast(*handle)->value();
+      if (double_value != 0) {
+        return false;
+      }
+    }
+  }
+  BinaryOperation* binary = node->AsBinaryOperation();
+  if (binary != NULL && Token::IsBitOp(binary->op())) {
+    return false;
+  }
+  return true;
+}
+
+
+static bool CouldBePositiveZero(AstNode* node) {
+  Literal* literal = node->AsLiteral();
+  if (literal != NULL) {
+    Handle<Object> handle = literal->handle();
+    if (handle->IsSmi()) {
+      if (Smi::cast(*handle) != Smi::FromInt(0)) {
+        return false;
+      }
+    } else if (handle->IsHeapNumber()) {
+      // Heap number literal can't be +0, because that's a Smi.
+      return false;
+    }
+  }
+  return true;
+}
+
+
 void AstOptimizer::VisitBinaryOperation(BinaryOperation* node) {
   // Depending on the operation we can propagate this node's type down the
   // AST nodes.
-  switch (node->op()) {
+  Token::Value op = node->op();
+  switch (op) {
     case Token::COMMA:
     case Token::OR:
+      node->left()->set_no_negative_zero(true);
+      node->right()->set_no_negative_zero(node->no_negative_zero());
+      break;
     case Token::AND:
+      node->left()->set_no_negative_zero(node->no_negative_zero());
+      node->right()->set_no_negative_zero(node->no_negative_zero());
       break;
     case Token::BIT_OR:
     case Token::BIT_XOR:
@@ -442,17 +514,59 @@ void AstOptimizer::VisitBinaryOperation(BinaryOperation* node) {
       node->type()->SetAsLikelySmiIfUnknown();
       node->left()->type()->SetAsLikelySmiIfUnknown();
       node->right()->type()->SetAsLikelySmiIfUnknown();
+      node->left()->set_to_int32(true);
+      node->right()->set_to_int32(true);
+      node->left()->set_no_negative_zero(true);
+      node->right()->set_no_negative_zero(true);
       break;
+    case Token::MUL: {
+      VariableProxy* lvar_proxy = node->left()->AsVariableProxy();
+      VariableProxy* rvar_proxy = node->right()->AsVariableProxy();
+      if (lvar_proxy != NULL && rvar_proxy != NULL) {
+        Variable* lvar = lvar_proxy->AsVariable();
+        Variable* rvar = rvar_proxy->AsVariable();
+        if (lvar != NULL && rvar != NULL) {
+          if (lvar->mode() == Variable::VAR && rvar->mode() == Variable::VAR) {
+            Slot* lslot = lvar->AsSlot();
+            Slot* rslot = rvar->AsSlot();
+            if (lslot->type() == rslot->type() &&
+                (lslot->type() == Slot::PARAMETER ||
+                 lslot->type() == Slot::LOCAL) &&
+                lslot->index() == rslot->index()) {
+              // A number squared doesn't give negative zero.
+              node->set_no_negative_zero(true);
+            }
+          }
+        }
+      }
+    }
     case Token::ADD:
     case Token::SUB:
-    case Token::MUL:
     case Token::DIV:
-    case Token::MOD:
+    case Token::MOD: {
       if (node->type()->IsLikelySmi()) {
         node->left()->type()->SetAsLikelySmiIfUnknown();
         node->right()->type()->SetAsLikelySmiIfUnknown();
       }
+      if (op == Token::ADD && (!CouldBeNegativeZero(node->left()) ||
+                               !CouldBeNegativeZero(node->right()))) {
+        node->left()->set_no_negative_zero(true);
+        node->right()->set_no_negative_zero(true);
+      } else if (op == Token::SUB && (!CouldBeNegativeZero(node->left()) ||
+                                      !CouldBePositiveZero(node->right()))) {
+        node->left()->set_no_negative_zero(true);
+        node->right()->set_no_negative_zero(true);
+      } else {
+        node->left()->set_no_negative_zero(node->no_negative_zero());
+        node->right()->set_no_negative_zero(node->no_negative_zero());
+      }
+      if (node->op() == Token::DIV) {
+        node->right()->set_no_negative_zero(false);
+      } else if (node->op() == Token::MOD) {
+        node->right()->set_no_negative_zero(true);
+      }
       break;
+    }
     default:
       UNREACHABLE();
       break;
@@ -463,7 +577,81 @@ void AstOptimizer::VisitBinaryOperation(BinaryOperation* node) {
 
   // After visiting the operand nodes we have to check if this node's type
   // can be updated. If it does, then we can push that information down
-  // towards the leafs again if the new information is an upgrade over the
+  // towards the leaves again if the new information is an upgrade over the
+  // previous type of the operand nodes.
+  if (node->type()->IsUnknown()) {
+    if (node->left()->type()->IsLikelySmi() ||
+        node->right()->type()->IsLikelySmi()) {
+      node->type()->SetAsLikelySmi();
+    }
+    if (node->type()->IsLikelySmi()) {
+      // The type of this node changed to LIKELY_SMI. Propagate this knowledge
+      // down through the nodes.
+      if (node->left()->type()->IsUnknown()) {
+        node->left()->type()->SetAsLikelySmi();
+        Visit(node->left());
+      }
+      if (node->right()->type()->IsUnknown()) {
+        node->right()->type()->SetAsLikelySmi();
+        Visit(node->right());
+      }
+    }
+  }
+
+  if (FLAG_safe_int32_compiler) {
+    switch (node->op()) {
+      case Token::COMMA:
+      case Token::OR:
+      case Token::AND:
+        break;
+      case Token::BIT_OR:
+      case Token::BIT_XOR:
+      case Token::BIT_AND:
+      case Token::SHL:
+      case Token::SAR:
+      case Token::SHR:
+        // Add one to the number of bit operations in this expression.
+        node->set_num_bit_ops(1);
+        // Fall through.
+      case Token::ADD:
+      case Token::SUB:
+      case Token::MUL:
+      case Token::DIV:
+      case Token::MOD:
+        node->set_side_effect_free(node->left()->side_effect_free() &&
+                                   node->right()->side_effect_free());
+        node->set_num_bit_ops(node->num_bit_ops() +
+                                  node->left()->num_bit_ops() +
+                                  node->right()->num_bit_ops());
+        if (!node->no_negative_zero() && node->op() == Token::MUL) {
+          node->set_side_effect_free(false);
+        }
+        break;
+      default:
+        UNREACHABLE();
+        break;
+    }
+  }
+}
+
+
+void AstOptimizer::VisitCompareOperation(CompareOperation* node) {
+  if (node->type()->IsKnown()) {
+    // Propagate useful information down towards the leaves.
+    node->left()->type()->SetAsLikelySmiIfUnknown();
+    node->right()->type()->SetAsLikelySmiIfUnknown();
+  }
+
+  node->left()->set_no_negative_zero(true);
+  // Only [[HasInstance]] has the right argument passed unchanged to it.
+  node->right()->set_no_negative_zero(true);
+
+  Visit(node->left());
+  Visit(node->right());
+
+  // After visiting the operand nodes we have to check if this node's type
+  // can be updated. If it does, then we can push that information down
+  // towards the leaves again if the new information is an upgrade over the
   // previous type of the operand nodes.
   if (node->type()->IsUnknown()) {
     if (node->left()->type()->IsLikelySmi() ||
@@ -486,38 +674,8 @@ void AstOptimizer::VisitBinaryOperation(BinaryOperation* node) {
 }
 
 
-void AstOptimizer::VisitCompareOperation(CompareOperation* node) {
-  if (node->type()->IsKnown()) {
-    // Propagate useful information down towards the leafs.
-    node->left()->type()->SetAsLikelySmiIfUnknown();
-    node->right()->type()->SetAsLikelySmiIfUnknown();
-  }
-
-  Visit(node->left());
-  Visit(node->right());
-
-  // After visiting the operand nodes we have to check if this node's type
-  // can be updated. If it does, then we can push that information down
-  // towards the leafs again if the new information is an upgrade over the
-  // previous type of the operand nodes.
-  if (node->type()->IsUnknown()) {
-    if (node->left()->type()->IsLikelySmi() ||
-        node->right()->type()->IsLikelySmi()) {
-      node->type()->SetAsLikelySmi();
-    }
-    if (node->type()->IsLikelySmi()) {
-      // The type of this node changed to LIKELY_SMI. Propagate this knowledge
-      // down through the nodes.
-      if (node->left()->type()->IsUnknown()) {
-        node->left()->type()->SetAsLikelySmi();
-        Visit(node->left());
-      }
-      if (node->right()->type()->IsUnknown()) {
-        node->right()->type()->SetAsLikelySmi();
-        Visit(node->right());
-      }
-    }
-  }
+void AstOptimizer::VisitCompareToNull(CompareToNull* node) {
+  Visit(node->expression());
 }
 
 
@@ -536,7 +694,7 @@ class Processor: public AstVisitor {
   }
 
   void Process(ZoneList<Statement*>* statements);
-  bool result_assigned() const  { return result_assigned_; }
+  bool result_assigned() const { return result_assigned_; }
 
  private:
   VariableProxy* result_;
@@ -698,8 +856,8 @@ void Processor::VisitFunctionLiteral(FunctionLiteral* node) {
 }
 
 
-void Processor::VisitFunctionBoilerplateLiteral(
-    FunctionBoilerplateLiteral* node) {
+void Processor::VisitSharedFunctionInfoLiteral(
+    SharedFunctionInfoLiteral* node) {
   USE(node);
   UNREACHABLE();
 }
@@ -795,6 +953,11 @@ void Processor::VisitUnaryOperation(UnaryOperation* node) {
 }
 
 
+void Processor::VisitIncrementOperation(IncrementOperation* node) {
+  UNREACHABLE();
+}
+
+
 void Processor::VisitCountOperation(CountOperation* node) {
   USE(node);
   UNREACHABLE();
@@ -813,40 +976,52 @@ void Processor::VisitCompareOperation(CompareOperation* node) {
 }
 
 
+void Processor::VisitCompareToNull(CompareToNull* node) {
+  USE(node);
+  UNREACHABLE();
+}
+
+
 void Processor::VisitThisFunction(ThisFunction* node) {
   USE(node);
   UNREACHABLE();
 }
 
 
-bool Rewriter::Process(FunctionLiteral* function) {
-  HistogramTimerScope timer(&Counters::rewriting);
+// Assumes code has been parsed and scopes hve been analyzed.  Mutates the
+// AST, so the AST should not continue to be used in the case of failure.
+bool Rewriter::Rewrite(CompilationInfo* info) {
+  FunctionLiteral* function = info->function();
+  ASSERT(function != NULL);
   Scope* scope = function->scope();
+  ASSERT(scope != NULL);
   if (scope->is_function_scope()) return true;
 
   ZoneList<Statement*>* body = function->body();
-  if (body->is_empty()) return true;
+  if (!body->is_empty()) {
+    VariableProxy* result = scope->NewTemporary(Factory::result_symbol());
+    Processor processor(result);
+    processor.Process(body);
+    if (processor.HasStackOverflow()) return false;
 
-  VariableProxy* result = scope->NewTemporary(Factory::result_symbol());
-  Processor processor(result);
-  processor.Process(body);
-  if (processor.HasStackOverflow()) return false;
+    if (processor.result_assigned()) body->Add(new ReturnStatement(result));
+  }
 
-  if (processor.result_assigned()) body->Add(new ReturnStatement(result));
   return true;
 }
 
 
-bool Rewriter::Optimize(FunctionLiteral* function) {
-  ZoneList<Statement*>* body = function->body();
+// Assumes code has been parsed and scopes have been analyzed.  Mutates the
+// AST, so the AST should not continue to be used in the case of failure.
+bool Rewriter::Analyze(CompilationInfo* info) {
+  FunctionLiteral* function = info->function();
+  ASSERT(function != NULL && function->scope() != NULL);
 
+  ZoneList<Statement*>* body = function->body();
   if (FLAG_optimize_ast && !body->is_empty()) {
-    HistogramTimerScope timer(&Counters::ast_optimization);
-    AstOptimizer optimizer(function->name());
+    AstOptimizer optimizer;
     optimizer.Optimize(body);
-    if (optimizer.HasStackOverflow()) {
-      return false;
-    }
+    if (optimizer.HasStackOverflow()) return false;
   }
   return true;
 }

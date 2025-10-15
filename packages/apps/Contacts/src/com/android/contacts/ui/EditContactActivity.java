@@ -1221,7 +1221,7 @@ public final class EditContactActivity extends Activity
         @Override
         protected ArrayList<Account> doInBackground(final EditContactActivity target,
                 Void... params) {
-            return Sources.getInstance(target).getAccounts(true);
+            return Sources.getInstance(target).getAccounts(true, true);
         }
 
         @Override
@@ -1269,11 +1269,17 @@ public final class EditContactActivity extends Activity
                 final TextView text2 = (TextView)convertView.findViewById(android.R.id.text2);
 
                 final Account account = this.getItem(position);
-                final ContactsSource source = sources.getInflatedSource(account.type,
-                        ContactsSource.LEVEL_SUMMARY);
+                final ContactsSource source =
+                    sources.getInflatedSource(account != null ? account.type : null,
+                            ContactsSource.LEVEL_SUMMARY);
 
-                text1.setText(account.name);
-                text2.setText(source.getDisplayLabel(EditContactActivity.this));
+                if (account == null) {
+                    text1.setText(source.getDisplayLabel(EditContactActivity.this));
+                    text2.setText("");
+                } else {
+                    text1.setText(account.name);
+                    text2.setText(source.getDisplayLabel(EditContactActivity.this));
+                }
 
                 return convertView;
             }
@@ -1389,6 +1395,11 @@ public final class EditContactActivity extends Activity
 
         int value;
         if (!skipAccountTypeCheck) {
+            if (oneSource.accountType == null) {
+                return 1;
+            } else if (twoSource.accountType == null) {
+                return -1;
+            }
             value = oneSource.accountType.compareTo(twoSource.accountType);
             if (value != 0) {
                 return value;

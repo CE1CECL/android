@@ -1908,9 +1908,8 @@ extern PNG_EXPORT(void,png_read_row) PNGARG((png_structp png_ptr,
 /* Build image index for partial image decoding. */
 extern PNG_EXPORT(void,png_build_index) PNGARG((png_structp png_ptr));
 extern PNG_EXPORT(void,png_configure_decoder)
-    PNGARG((png_structp png_ptr, int *row_offset, int pass));
+   PNGARG((png_structp png_ptr, int *row_offset, int pass));
 #endif
-
 
 #ifndef PNG_NO_SEQUENTIAL_READ_SUPPORTED
 /* Read the whole image into memory at once. */

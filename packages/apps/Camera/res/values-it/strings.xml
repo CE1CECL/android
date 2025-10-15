@@ -46,25 +46,49 @@
     <string name="pref_camera_recordlocation_entry_off" msgid="8888142742988946038">"Non attiva"</string>
     <string name="pref_camera_recordlocation_entry_on" msgid="7954533529969575594">"Attiva"</string>
     <string name="pref_video_quality_title" msgid="8245379279801096922">"Qualità video"</string>
+    <string name="pref_video_quality_entry_hd">HD (30m)</string>
     <string name="pref_video_quality_entry_high" msgid="2874184763684055612">"Alta (30 m)"</string>
     <string name="pref_video_quality_entry_low" msgid="5282945640948667598">"Bassa (30 m)"</string>
     <string name="pref_video_quality_entry_mms" msgid="2271260293894247704">"MMS (bassa, 30 s)"</string>
-    <string name="pref_video_quality_entry_youtube" msgid="3731902408685997150">"YouTube (alta, 10 m)"</string>
+    <string name="pref_video_quality_entry_youtubehd">YouTube (HD, 15m)</string>
+    <string name="pref_video_quality_entry_youtube" msgid="3731902408685997150">"YouTube (alta, 15 m)"</string>
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"Impostazioni fotocamera"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"Impostazioni videocamera"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"Dimensioni foto"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="1871154452633783418">"5 Megapixel"</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="8763841848102861602">"3 Megapixel"</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="3802531502504271124">"2 Megapixel"</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="6557686202570581693">"1 Megapixel"</string>
+    <!-- Settings screen, Picture size dialog radio button choices -->
+    <string name="pref_camera_picturesize_entry_3264x2448">8M Pixel</string>
+    <string name="pref_camera_picturesize_entry_3264x1968">6.5M Pixel (esteso)</string>
+    <string name="pref_camera_picturesize_entry_3264x1952">6M Pixel (esteso)</string>
+    <string name="pref_camera_picturesize_entry_2592x1936">5M Pixel</string>
+    <string name="pref_camera_picturesize_entry_2592x1552">4M Pixel (esteso)</string>
+    <string name="pref_camera_picturesize_entry_2560x1712">4M Pixel</string>
+    <string name="pref_camera_picturesize_entry_2304x1728">4M Pixel</string>
+    <string name="pref_camera_picturesize_entry_2048x1536">3M Pixel</string>
+    <string name="pref_camera_picturesize_entry_2048x1216">2.5M Pixel (esteso)</string>
+    <string name="pref_camera_picturesize_entry_1920x1080">HD1080</string>
+    <string name="pref_camera_picturesize_entry_1600x1200">UXGA</string>
+    <string name="pref_camera_picturesize_entry_1280x1024">SXGA</string>
+    <string name="pref_camera_picturesize_entry_1280x960">SXGA (4:3)</string>
+    <string name="pref_camera_picturesize_entry_1280x768">WXGA</string>
+    <string name="pref_camera_picturesize_entry_1280x720">HD720</string>
+    <string name="pref_camera_picturesize_entry_1024x768">XGA</string>
+    <string name="pref_camera_picturesize_entry_800x600">SVGA</string>
+    <string name="pref_camera_picturesize_entry_800x480">WVGA</string>
+    <string name="pref_camera_picturesize_entry_640x480">VGA</string>
+    <string name="pref_camera_picturesize_entry_352x288">CIF</string>
+    <string name="pref_camera_picturesize_entry_320x240">QVGA</string>
+    <string name="pref_camera_picturesize_entry_176x144">QCIF</string>
     <string name="pref_camera_jpegquality_title" msgid="6074540285403193970">"Qualità immagine"</string>
     <string name="pref_camera_jpegquality_entry_superfine" msgid="4087830022547613205">"Super fine"</string>
     <string name="pref_camera_jpegquality_entry_fine" msgid="4474043704802385370">"Fine"</string>
     <string name="pref_camera_jpegquality_entry_normal" msgid="1274801937207351293">"Normale"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"Modalità messa a fuoco"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"Automatica"</string>
-    <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"Infinito"</string>
+    <string name="pref_camera_focusmode_entry_normal">Normale</string>
     <string name="pref_camera_focusmode_entry_macro" msgid="4424489110551866161">"Macro"</string>
+    <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">Off</string>
+    <string name="pref_camera_focusmode_entry_fixed">Fisso</string>
+    <string name="pref_camera_focusmode_entry_facedetect">Facedetect</string>
     <string name="pref_camera_flashmode_title" msgid="2287362477238791017">"Modalità flash"</string>
     <string name="pref_camera_flashmode_entry_auto" msgid="7288383434237457709">"Automatica"</string>
     <string name="pref_camera_flashmode_entry_on" msgid="5330043918845197616">"Attiva"</string>
@@ -75,6 +99,7 @@
     <string name="pref_camera_whitebalance_entry_daylight" msgid="2534757270149561027">"Luce diurna"</string>
     <string name="pref_camera_whitebalance_entry_fluorescent" msgid="2435332872847454032">"Luce neon"</string>
     <string name="pref_camera_whitebalance_entry_cloudy" msgid="3531996716997959326">"Nuvoloso"</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">Nuvoloso-Luce diurna</string>
     <string name="pref_camera_coloreffect_title" msgid="4152827686267109207">"Effetto colore"</string>
     <string name="pref_camera_coloreffect_entry_none" msgid="4759462740660236565">"Nessuno"</string>
     <string name="pref_camera_coloreffect_entry_mono" msgid="9068472385922288418">"Mono"</string>
@@ -88,6 +113,92 @@
     <string name="pref_camera_coloreffect_entry_redtint" msgid="7135044258970245718">"Tinta rossa"</string>
     <string name="pref_camera_coloreffect_entry_bluetint" msgid="987468567611774716">"Tinta blu"</string>
     <string name="pref_camera_coloreffect_entry_greentint" msgid="4205380735971677893">"Tinta verde"</string>
+    <string name="pref_camera_coloreffect_entry_emboss">Rilievo</string>
+    <string name="pref_camera_coloreffect_entry_vivid">Vivido</string>
+    <string name="pref_camera_coloreffect_entry_blue">Blu</string>
+    <string name="pref_camera_coloreffect_entry_negative_sepia">Seppia Negativo</string>
+
+
+    <!-- ********************** -->
+    <!-- Advanced options label -->
+    <string name="advanced_options_label">Impostazioni avanzate</string>
+
+    <!-- More Settings screen, volume buttons title -->
+    <string name="pref_camera_vol_shutter_title">Scatta con tasti volume</string>
+    <string name="pref_camera_vol_up_shutter">Tasto volume più</string>
+    <string name="pref_camera_vol_up_shutter_summary">Utilizza il tasto volume più per scattare le foto</string>
+    <string name="pref_camera_vol_down_shutter">Tasto volume meno</string>
+    <string name="pref_camera_vol_down_shutter_summary">Utilizza il tasto volume meno per scattare le foto</string>
+
+    <!-- More Settings screen, zoom button title -->
+    <string name="pref_camera_vol_zoom_title">Zoom tramite tasti volume</string>
+    <string name="pref_camera_vol_zoom">Zoom tramite tasti volume</string>
+    <string name="pref_camera_vol_zoom_summary">Utilizza i tasti volume per controllare lo zoom</string>
+
+    <!-- Other settings -->
+    <string name="pref_camera_other_settings_title">Altre impostazioni</string>
+    <string name="pref_camera_timer_duration">Durata timer</string>
+    <string name="pref_camera_timer_duration_summary">Seleziona la durata per il timer della fotocamera</string>
+
+    <!-- More Settings screen, search button title -->
+    <string name="pref_camera_search_shutter_title">Scatta con tasto cerca</string>
+
+    <!-- More Settings screen, search button -->
+    <string name="pref_camera_search_shutter">Tasto cerca</string>
+    <string name="pref_camera_search_shutter_summary">Utilizza il tasto cerca per scattare le foto</string>
+
+    <!-- More Settings screen, power button title -->
+    <string name="pref_camera_power_shutter_title">Scatta con tasto accensione</string>
+
+    <!-- More Settings screen, power button -->
+    <string name="pref_camera_power_shutter">Tasto accensione</string>
+    <string name="pref_camera_power_shutter_summary">Utilizza il tasto accensione per scattare le foto o riprender i video</string>
+
+    <!-- Settings screen, custom focus title -->
+    <string name="pref_camera_settings_focus_title">Focus</string>
+
+    <!-- Settings screen, focus settings -->
+    <string name="pref_camera_settings_focus">Pre-Focus</string>
+    <string name="pref_camera_settings_focus_summary">Mette a fuoco prima di scattare la foto</string>
+    <string name="pref_camera_settings_long_focus">Long Focus</string>
+    <string name="pref_camera_settings_long_focus_summary">Tieni premuto il tasto per mettere a fuoco, rilascia per scattare la foto</string>
+
+<!-- ********************** -->
+
+    <!-- Settings screen, Multiple levels entries -->
+    <string name="pref_camera_sharpness_entry_level0">Livello 0</string>
+    <string name="pref_camera_sharpness_entry_level1">Livello 1</string>
+    <string name="pref_camera_sharpness_entry_level2">Livello 2(Default)</string>
+    <string name="pref_camera_sharpness_entry_level3">Livello 3</string>
+    <string name="pref_camera_sharpness_entry_level4">Livello 4</string>
+    <string name="pref_camera_sharpness_entry_level5">Livello 5</string>
+
+    <!-- Settings screen, Multiple levels entries -->
+    <string name="pref_camera_contrast_entry_level0">Livello 0</string>
+    <string name="pref_camera_contrast_entry_level1">Livello 1</string>
+    <string name="pref_camera_contrast_entry_level2">Livello 2</string>
+    <string name="pref_camera_contrast_entry_level3">Livello 3(Default)</string>
+    <string name="pref_camera_contrast_entry_level4">Livello 4</string>
+    <string name="pref_camera_contrast_entry_level5">Livello 5</string>
+
+
+    <!-- Settings screen, Multiple levels entries -->
+    <string name="pref_camera_saturation_entry_level0">Livello 0</string>
+    <string name="pref_camera_saturation_entry_level1">Livello 1</string>
+    <string name="pref_camera_saturation_entry_level2">Livello 2</string>
+    <string name="pref_camera_saturation_entry_level3">Livello 3(Default)</string>
+    <string name="pref_camera_saturation_entry_level4">Livello 4</string>
+    <string name="pref_camera_saturation_entry_level5">Livello 5</string>
+
+    <!-- Settings screen, Select sharpness title -->
+    <string name="pref_camera_sharpness_title">Nitidezza</string>
+
+    <!-- Settings screen, Select contrast title -->
+    <string name="pref_camera_contrast_title">Contrasto</string>
+
+    <!-- Settings screen, Select saturation title -->
+    <string name="pref_camera_saturation_title">Saturazione</string>
+
     <string name="pref_camera_scenemode_title" msgid="1420535844292504016">"Modalità scena"</string>
     <string name="pref_camera_scenemode_entry_auto" msgid="7113995286836658648">"Automatica"</string>
     <string name="pref_camera_scenemode_entry_action" msgid="616748587566110484">"Movimento"</string>
@@ -101,8 +212,20 @@
     <string name="pref_camera_scenemode_entry_sunset" msgid="181661154611507212">"Tramonto"</string>
     <string name="pref_camera_scenemode_entry_steadyphoto" msgid="5751266665823209065">"Stabilizzazione foto"</string>
     <string name="pref_camera_scenemode_entry_fireworks" msgid="3530608172188797432">"Fuochi d\'artificio"</string>
+    <!-- Scene mode optimized for taking images during sports . -->
+    <string name="pref_camera_scenemode_entry_sports">Sport</string>
     <string name="pref_camera_scenemode_entry_party" msgid="907053529286788253">"Festa"</string>
     <string name="pref_camera_scenemode_entry_candlelight" msgid="2066183182126946813">"Lume di candela"</string>
+    <!-- Scene mode for taking a photo with backlight. -->
+    <string name="pref_camera_scenemode_entry_backlight">Retroilluminazione</string>
+    <!-- Scene mode optimized for taking images of flowers. -->
+    <string name="pref_camera_scenemode_entry_flowers">Fiori</string>
+    <!-- Scene mode optimized for taking images on Dusk. -->
+    <string name="pref_camera_scenemode_entry_duskdawn">Crepuscolo</string>
+    <!-- Scene mode optimized for taking images on Fall. -->
+    <string name="pref_camera_scenemode_entry_fallcolor">Colori autunnali</string>
+    <!-- Scene mode optimized for taking images of Texts. -->
+    <string name="pref_camera_scenemode_entry_text">Testo</string>
     <string name="pref_restore_title" msgid="6479274979730178961">"Impostazioni fotocamera"</string>
     <string name="pref_restore_detail" msgid="5732490002291044791">"Ripristina predefinite"</string>
     <string name="pref_exposure_title" msgid="1229093066434614811">"Esposizione"</string>
@@ -113,4 +236,55 @@
     <string name="zoom_control_title" msgid="6532562653386981815">"Zoom"</string>
     <string name="switch_to_camera_lable" msgid="8248495141797448471">"Passa a fotocamera"</string>
     <string name="switch_to_video_lable" msgid="4525451949497982385">"Passa a video"</string>
+
+     <!-- Settings screen, Select Iso title -->
+     <string name="pref_camera_iso_title">Seleziona ISO</string>
+
+     <!-- Settings screen, ISO dialog radio button choices -->
+     <string name="pref_camera_iso_entry_auto">Automatico</string>
+     <string name="pref_camera_iso_entry_isodeblur">ISO Auto(HJR)</string>
+     <string name="pref_camera_iso_entry_iso100">ISO100</string>
+     <string name="pref_camera_iso_entry_iso200">ISO200</string>
+     <string name="pref_camera_iso_entry_iso400">ISO400</string>
+     <string name="pref_camera_iso_entry_iso800">ISO800</string>
+
+     <!-- Settings screen, Select lens shading title -->
+     <string name="pref_camera_lensshading_title">Lens shading</string>
+
+     <!-- Settings screen, lens shading radio button choices -->
+     <string name="pref_camera_lensshading_entry_enable">Attivo</string>
+     <string name="pref_camera_lensshading_entry_disable">Non attivo</string>
+
+     <!-- Settings screen, Anti Banding title -->
+     <string name="pref_camera_antibanding_title">Anti Banding</string>
+
+     <!-- Settings screen, Anti Banding entries -->
+     <string name="pref_camera_antibanding_entry_0">Non attivo</string>
+     <string name="pref_camera_antibanding_entry_1">50 Hz</string>
+     <string name="pref_camera_antibanding_entry_2">60 Hz</string>
+     <string name="pref_camera_antibanding_entry_3">Automatico</string>
+
+     <!-- Settings screen, Select auto exposure title -->
+     <string name="pref_camera_autoexposure_title">Modalità di Misurazione</string>
+
+     <!-- Settings screen, auto exposure dialog radio button choices -->
+     <string name="pref_camera_autoexposure_entry_frameaverage">Valutativa</string>
+     <string name="pref_camera_autoexposure_entry_centerweighted">Ponderata Centrale</string>
+     <string name="pref_camera_autoexposure_entry_spotmetering">Spot</string>
+     <string name="pref_camera_autoexposure_entry_matrixmetering">A matrice</string>
+
+     <!-- Settings screen, Capture mode title -->
+    <string name="pref_camera_capturemode_title">Modalità cattura</string>
+
+    <!-- Settings screen, Capture mode dialog radio button choices -->
+    <string name="pref_camera_capturemode_entry_default">Immediata</string>
+    <string name="pref_camera_capturemode_entry_timer">Timer</string>
+
+    <!-- Settings screen, Capture mode dialog entries -->
+    <string name="pref_camera_capturemode_entry_10">10 secondi</string>
+    <string name="pref_camera_capturemode_entry_20">20 secondi</string>
+    <string name="pref_camera_capturemode_entry_30">30 secondi</string>
+    <string name="pref_camera_capturemode_entry_40">40 secondi</string>
+    <string name="pref_camera_capturemode_entry_50">50 secondi</string>
+    <string name="pref_camera_capturemode_entry_60">60 secondi</string>
 </resources>

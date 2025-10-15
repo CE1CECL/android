@@ -4,9 +4,9 @@
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
-  
+
           http://www.apache.org/licenses/LICENSE-2.0
-  
+
      Unless required by applicable law or agreed to in writing, software
      distributed under the License is distributed on an "AS IS" BASIS,
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -39,6 +39,37 @@
                 android:targetClass="com.android.phone.CallFeaturesSetting" />
         </com.android.settings.IconPreferenceScreen>
 
+	<!-- CM Settings -->
+        <com.android.settings.IconPreferenceScreen
+            settings:icon="@drawable/ic_cyanogenmod"
+            android:title="@string/cm_settings_title">
+            <intent
+                android:action="android.intent.action.MAIN"
+                android:targetPackage="com.cyanogenmod.cmparts"
+                android:targetClass="com.cyanogenmod.cmparts.activities.MainActivity" />
+        </com.android.settings.IconPreferenceScreen>
+
+       <!-- Device Settings -->
+       <com.android.settings.IconPreferenceScreen
+           android:key="device_settings"
+           settings:icon="@drawable/ic_settings_device"
+           android:title="@string/device_settings_title">
+           <intent
+               android:action="com.cyanogenmod.action.LAUNCH_DEVICE_SETTINGS"/>
+       </com.android.settings.IconPreferenceScreen>
+
+        <!-- Launcher -->
+
+        <com.android.settings.IconPreferenceScreen
+            settings:icon="@drawable/ic_settings_launcher"
+            android:title="@string/launcher_settings_title"
+            android:key="launcher_settings">
+            <intent
+                android:action="android.intent.action.MAIN"
+                android:targetPackage="com.android.launcher"
+                android:targetClass="com.android.launcher.MyLauncherSettings" />
+        </com.android.settings.IconPreferenceScreen>
+
         <!-- Sound -->
 
         <com.android.settings.IconPreferenceScreen
@@ -48,6 +79,17 @@
                 android:action="android.intent.action.MAIN"
                 android:targetPackage="com.android.settings"
                 android:targetClass="com.android.settings.SoundSettings" />
+        </com.android.settings.IconPreferenceScreen>
+
+        <!-- Profiles -->
+
+        <com.android.settings.IconPreferenceScreen
+            settings:icon="@drawable/ic_settings_profile"
+            android:title="@string/profile_settings_title">
+            <intent
+                android:action="android.intent.action.MAIN"
+                android:targetPackage="com.android.settings"
+                android:targetClass="com.android.settings.ProfileList" />
         </com.android.settings.IconPreferenceScreen>
 
         <!-- Display -->
@@ -110,7 +152,7 @@
 
         <!-- Storage -->
 
-        <com.android.settings.IconPreferenceScreen 
+        <com.android.settings.IconPreferenceScreen
             settings:icon="@drawable/ic_settings_storage"
             android:title="@string/storage_settings">
             <intent android:action="android.intent.action.MAIN"

@@ -82,7 +82,7 @@ class PreferenceAdapter
         }
         for (int i = 0, n = entries.length; i < n; ++i) {
             GLOptionItem item = new GLOptionItem(
-                    context, icons == null ? ICON_NONE : icons[i],
+                    context, icons == null || icons.length == 0 ? ICON_NONE : icons[i],
                     entries[i].toString());
             item.setChecked(values[i].equals(value));
             mContent.add(item);
@@ -112,7 +112,11 @@ class PreferenceAdapter
     }
 
     public boolean isSelectable(int index) {
-        return mContent.get(index) instanceof GLOptionItem;
+        GLView view = getView(index);
+        if (view instanceof GLOptionItem) {
+            return ((GLOptionItem) view).isEnabled();
+        }
+        return false;
     }
 
     public int size() {

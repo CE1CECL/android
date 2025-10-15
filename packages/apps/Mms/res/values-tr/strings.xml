@@ -20,12 +20,13 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_label" msgid="1503967887341230795">"Mesajlaş."</string>
+    <string name="app_label">"Mesajlaş"</string>
     <string name="new_message" msgid="1530369762346003973">"Yeni ileti"</string>
     <string name="create_new_message" msgid="8735943333953093860">"Yeni ileti oluştur"</string>
     <string name="menu_call_back" msgid="7538482331117914146">"Ara: <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="menu_send_email" msgid="671366308915241664">"<xliff:g id="NAME">%s</xliff:g> kişisine e-posta gönder"</string>
     <string name="menu_compose_new" msgid="3763437973691046238">"Oluştur"</string>
+    <string name="menu_mark_all_read">Tümünü okunmuş say</string>
     <string name="menu_preferences" msgid="4693148116114749414">"Ayarlar"</string>
     <string name="menu_add_address_to_contacts" msgid="2313624913486309940">"<xliff:g id="NAME">%s</xliff:g> Kişilere eklensin mi?"</string>
     <string name="menu_call" msgid="5877123227307074690">"Çağrı"</string>
@@ -63,7 +64,7 @@
     <string name="done" msgid="7479926268660505871">"Bitti"</string>
     <string name="move_up" msgid="7307578107431739359">"Yukarı taşı"</string>
     <string name="move_down" msgid="6356509518429479053">"Aşağı taşı"</string>
-    <string name="remove_slide" msgid="2225604354024914900">"Slaydı kaldır"</string>
+    <string name="remove_slide">"Slaytı kaldır"</string>
     <string name="add_slide" msgid="9140721399423564187">"Slayt ekle"</string>
     <string name="add_slide_hint" msgid="563319570849475501">"Yeni slayt oluşturmak için seçin."</string>
     <string name="discard_slideshow" msgid="5054239124146413609">"Slayt gösterisini sil"</string>
@@ -108,6 +109,7 @@
     <string name="cannot_send_message" msgid="3918913277571649400">"Bu ileti gönderilemiyor"</string>
     <string name="cannot_send_message_reason" msgid="8745080126044054343">"İletinizin geçerli alıcısı yok."</string>
     <string name="cannot_forward_drm_obj" msgid="84606990079390099">"İletideki DRM nesnesi yönlendirilemiyor."</string>
+    <string name="cannot_find_contact">Seçtiğiniz kişi iliştirilemedi.</string>
     <string name="converting_to_picture_message" msgid="2980023239017588627">"Multimedya iletisine dönüştürülüyor..."</string>
     <string name="converting_to_text_message" msgid="6374423235426015422">"Kısa mesaja dönüştürülüyor..."</string>
     <string name="cannot_add_slide_anymore" msgid="8437666385579890987">"Daha fazla slayt eklenemiyor."</string>
@@ -164,10 +166,14 @@
     <string name="pref_sms_settings_title" msgid="9088516111717417514">"Kısa mesaj (SMS) ayarları"</string>
     <string name="pref_sms_storage_title" msgid="2531726671883516470">"Depolama ayarları"</string>
     <string name="pref_summary_manage_sim_messages" msgid="4141349892597640864">"SIM kartınızda depolanan iletileri yönetin"</string>
-    <string name="pref_summary_mms_delivery_reports" msgid="4874657984217756112">"Gönderdiğiniz her ileti için bir iletim raporu iste"</string>
-    <string name="pref_summary_mms_read_reports" msgid="2748323864008907440">"Gönderdiğiniz her ileti için bir okundu raporu iste"</string>
-    <string name="pref_summary_sms_delivery_reports" msgid="5852207702358546129">"Gönderdiğiniz her ileti için bir iletim raporu iste"</string>
-    <string name="pref_summary_auto_delete" msgid="7719538116486177613">"Sınıra ulaşıldığında eski iletileri silin"</string>
+    <string name="pref_summary_mms_delivery_reports">"Gönderilen her ileti için bir iletim raporu iste"</string>
+    <string name="pref_summary_mms_read_reports">"Gönderilen her ileti için bir okundu raporu iste"</string>
+    <string name="pref_summary_sms_delivery_reports">"Gönderilen her ileti için bir iletim raporu iste"</string>
+    <string name="pref_title_sms_split_160">SMS böl</string>
+    <string name="pref_summary_sms_split_160">Her 160 karakterde mesajları böl</string>
+    <string name="pref_title_sms_split_counter">Bölme sayacı</string>
+    <string name="pref_summary_sms_split_counter">(1/2) şeklinde mesaj bölme sayacı ekle</string>
+    <string name="pref_summary_auto_delete">"Sınıra ulaşıldığında eski iletileri sil"</string>
     <string name="pref_summary_delete_limit" msgid="597128041393045216">"Her bir ileti dizisi için <xliff:g id="COUNT">%1$s</xliff:g> ileti"</string>
     <string name="pref_title_manage_sim_messages" msgid="7820895261757881177">"SIM kart iletilerini yönet"</string>
     <string name="pref_title_mms_delivery_reports" msgid="6666857926679451910">"İletim raporları"</string>
@@ -192,6 +198,8 @@
     <string name="pref_summary_mms_auto_retrieval" msgid="925163257363757048">"İletileri otomatik olarak al"</string>
     <string name="pref_title_mms_retrieval_during_roaming" msgid="6016227402731817804">"Dolaşımda otomatik al"</string>
     <string name="pref_summary_mms_retrieval_during_roaming" msgid="2427892806582531020">"Dolaşırken iletileri otomatik olarak al"</string>
+    <string name="pref_title_save_location">Dosya kaydetme klasörü</string>
+    <string name="pref_summary_save_location">Mesaj eklerinin kaydedileceği klasör</string>
     <string name="to_label" msgid="2355268818058389047">"Alıcı "</string>
     <string name="confirm_dialog_title" msgid="5810813994465120375">"Sil"</string>
     <string name="confirm_dialog_locked_title" msgid="8179085718150932242">"Kilitli ileti silinsin mi?"</string>
@@ -253,6 +261,7 @@
     <string name="attach_sound" msgid="3149325985970669609">"Ses"</string>
     <string name="attach_record_sound" msgid="6011431304469858929">"Ses kaydet"</string>
     <string name="attach_slideshow" msgid="3497422151091037063">"Slayt Gösterisi"</string>
+    <string name="attach_contact_info">Kişi Bilgisi</string>
     <string name="select_bottom_text" msgid="4201966447623311931">"Metin altta"</string>
     <string name="select_top_text" msgid="6734183477539197815">"Metin üstte"</string>
     <string name="delivery_toast_body" msgid="4478305651728684364">"Mesaj %s tarafından alındı"</string>
@@ -305,7 +314,7 @@
     <string name="change_duration_activity" msgid="7048606979485031693">"Süreyi değiştir"</string>
     <string name="edit_text_activity" msgid="5915226413346879213">"Metin düzenle"</string>
     <string name="edit_slideshow_activity" msgid="8751493388760050529">"Slayt gösterisini düzenle"</string>
-    <string name="edit_slide_activity" msgid="8752829671778696983">"Slaydı düzenle"</string>
+    <string name="edit_slide_activity">"Slaytı düzenle"</string>
     <string name="pick_numbers_activity" msgid="2083330191224178637">"Numaraları Seç"</string>
     <string name="slideshow_activity" msgid="5658249461317434432">"Slayt Gösterisi"</string>
     <string name="class_0_message_activity" msgid="8474176218999130627">"Sınıf 0 İletisi"</string>
@@ -324,7 +333,7 @@
     <string name="confirm_clear_search_title" msgid="8510295993632032904">"Temizle"</string>
     <string name="confirm_clear_search_text" msgid="8731877031837077478">"Arama geçmişi temizlenecek."</string>
     <string name="pref_mms_clear_search_history_title" msgid="6159758850628148164">"Arama geçmişini temizle"</string>
-    <string name="pref_mms_clear_search_history_summary" msgid="7960005384066460035">"Önceki Mesajlaşma aramalarını, Arama kutusunda gösterilmeyecek biçimde temizleyin"</string>
+    <string name="pref_mms_clear_search_history_summary">"Önceki Mesajlaşma aramalarını, Arama kutusunda gösterilmeyecek biçimde temizle"</string>
     <string name="save" msgid="6847069284991531310">"Kaydet"</string>
     <string name="storage_limits_title" msgid="7074684882530693016">"İletileri sınırla"</string>
     <string name="storage_limits_message" msgid="8729608389698270388">"İleti dizisi başına kaydettiğiniz iletilerin sayısını sınırlandırmak istiyor musunuz?"</string>
@@ -335,4 +344,71 @@
     <string name="sending_message" msgid="222836893217450538">"Gönderiliyor…"</string>
     <string name="error_state" msgid="5177386717626893507">"Tutarsız durum"</string>
     <string name="error_state_text" msgid="5006221625000536698">"İleti dizilerinin ve alıcıların durumları tutarsız. Lütfen bir hata raporu alın ve android-sms-bug@google.com adresine gönderin"</string>
+    <string name="label_mms_push">MMS Push</string>
+    <string name="desc_mms_push">MMS\'leri giden kutusundan ağa iletir</string>
+    <string name="pref_extra_settings">Ek ayarlar</string>
+    <string name="pref_title_mms_back_to_all_threads">Tüm mesajlara dön</string>
+    <string name="pref_summary_mms_back_to_all_threads">Geri tuşuna basıldığında her zaman tüm mesajlara dön</string>
+    <string name="pref_title_mms_black_background">Siyah arka zemin</string>
+    <string name="pref_summary_mms_black_background">Siyah arka zemini etkinleştir (Mms\'i yeniden başlatın)</string>
+    <string name="pref_title_show_counter_always">Karakter sayacını göster</string>
+    <string name="pref_summary_show_counter_always">Mesaj yazarken her zaman karakter sayacını göster</string>
+    <string name="pref_mms_custom_option">Özel..</string>
+    <string name="pref_title_mms_user_agent">Özel User-Agent</string>
+    <string name="pref_summary_mms_user_agent">MMS\'i farklı bir modelden gönderiliyormuş gibi göster</string>
+    <string name="pref_mms_user_agent_custom_set">Özel User-Agent ayarlandı:\n</string>
+    <string name="pref_title_mms_full_timestamp">Zamanın hepsi</string>
+    <string name="pref_summary_mms_full_timestamp">Mesajlardaki zamanlarda hem tarihi hem de saati göster</string>
+    <string name="pref_title_mms_use_sent_timestamp">Gönderilme zamanı</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Alınan mesajlardaki tarih yerine şebekenin gönderdiği tarihi göster</string>
+    <string name="pref_title_mms_use_sent_timestamp_gmt_correction">GMT gönderilme zamanı</string>
+    <string name="pref_summary_mms_use_sent_timestamp_gmt_correction">Şebekenin gönderdiği zamanı GMT zamanına ayarla</string>
+    <string name="pref_title_only_mobile_numbers">Sadece telefon numaraları</string>
+    <string name="pref_summary_only_mobile_numbers">Alıcı alanında sadece telefon numaralarını göster</string>
+    <string name="pref_title_mms_email_addr_completion">E-posta otomatik tamamla</string>
+    <string name="pref_summary_mms_email_addr_completion">Alıcı alanındaki e-posta adresini otomatik olarak tamamla</string>
+    <string name="pref_title_mms_message_font_size">Mesaj yazı boyutu</string>
+    <string name="pref_summary_mms_message_font_size">Mesaj görünümünün yazı boyutunu değiştir</string>
+    <string name="pref_dialogtitle_mms_message_font_size">Yazı boyutu seçin</string>
+    <string name="pref_title_mms_notification_vibrate_settings">Titreşim ayarları</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Titreşim türü</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Titreşim türünü değiştir</string>
+    <string name="pref_title_mms_notification_vibrate_call">Çağrı sırasında titret</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Çağrı sırasında titreşime izin ver</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Özel titreşim türü</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Milisaniye cinsinden açık/kapalı durumları\u2026</string>
+    <string name="pref_title_mms_send_on_enter">Enter ile gönder</string>
+    <string name="pref_summary_mms_send_on_enter">Enter tuşuna basıldığında mesajı gönder</string>
+    <string name="prefs_templates_settings">Sms şablonları</string>
+    <string name="pref_title_templates_manage">Şablonlar</string>
+    <string name="pref_summary_templates_manage">Sms şablonlarınızı düzenleyin</string>
+    <string name="pref_title_templates_show_gesture">Şekil</string>
+    <string name="pref_summary_templates_show_gesture">Şekil izini göster</string>
+    <string name="pref_title_template_gestures_sensitivity">Şekil duyarlılığı</string>
+    <string name="template_save">Kaydet</string>
+    <string name="template_insert_hint">Şablon metni buraya ekle</string>
+    <string name="template_empty_text">Metin alanı boş olamaz</string>
+    <string name="template_explanation">Şablon metni düzenleyin/ekleyin ve isteğe bağlı olarak bir şekille ilişkilendirin</string>
+    <string name="template_edit">Düzenle</string>
+    <string name="template_delete">Sil</string>
+    <string name="template_ctx_menu_title">İşlemler</string>
+    <string name="template_list_title">Şablonlar</string>
+    <string name="template_edit_title">Şablon düzenle</string>
+    <string name="template_new_title">Yeni şablon</string>
+    <string name="template_insert">Şablon ekle</string>
+    <string name="template_insert_ctx_menu_title">Metni düzenle</string>
+    <string name="template_gesture_draw">Aşağıdaki alana şekli çizin</string>
+    <string name="template_not_present_error">Hiç şablon yok</string>
+    <string name="template_not_present_error_title">Hata</string>
+    <string name="template_select">Bir şablon seç</string>
+    <string name="template_cancel_confirm_title">Uyarı</string>
+    <string name="template_cancel_confirm_text">İptal etmek istiyor musunuz?</string>
+    <string name="gestures_already_present">Uyarı: Benzer bir şekil bu şablonla ilişkilendirilmiş!</string>
+    <string name="toast_phone_goggles">Şu an SMS gönderme izniniz yok. Lütfen daha sonra tekrar deneyin.</string>
+    <string name="dialog_phone_goggles_title">SMS engellendi</string>
+    <string name="dialog_phone_goggles_title_unlocked">SMS yetkisi kabul edildi</string>
+    <string name="dialog_phone_goggles_content">Şu an SMS gönderme engellenmiş olabilir. Devam etmek istediğinizden emin misiniz?</string>
+    <string name="dialog_phone_goggles_unauthorized">Şu an SMS gönderme engellenmiş olabilir.</string>
+    <string name="dialog_phone_goggles_ok">Gönder</string>
+    <string name="dialog_phone_goggles_cancel">Taslağa kaydet</string>
 </resources>

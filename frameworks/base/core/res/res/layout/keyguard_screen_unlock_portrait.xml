@@ -27,6 +27,7 @@
     android:layout_height="match_parent"
     android:gravity="center_horizontal"
     android:background="#70000000"
+    android:id="@+id/pattern"
     >
 
     <RelativeLayout
@@ -40,6 +41,7 @@
             android:layout_alignParentTop="true"
             android:layout_marginTop="6dip"
             android:layout_alignParentRight="true"
+            android:layout_marginLeft="8dip"
             android:layout_marginRight="8dip"
             android:layout_toRightOf="@+id/time"
             android:singleLine="true"
@@ -55,6 +57,7 @@
             android:layout_alignParentTop="true"
             android:layout_marginTop="15dip"
             android:layout_marginLeft="20dip"
+            android:layout_marginRight="20dip"
             >
 
             <TextView android:id="@+id/timeDisplay"
@@ -95,10 +98,22 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/time"
             android:layout_marginLeft="24dip"
+            android:layout_marginRight="24dip"
             android:textAppearance="?android:attr/textAppearanceMedium"
             />
 
     </RelativeLayout>
+    
+    <TextView
+        android:id="@+id/customMsg" 
+		android:layout_width="wrap_content" 
+		android:layout_height="wrap_content"
+		android:layout_marginTop="4dip" 
+		android:layout_marginLeft="24dip"
+        android:layout_marginRight="24dip"
+		android:layout_below="@id/status2"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+		/>
 
     <View
         android:id="@+id/divider"
@@ -117,6 +132,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="0dip"
         android:layout_marginLeft="12dip"
+        android:layout_marginRight="12dip"
         android:gravity="left"
         >
         <TextView

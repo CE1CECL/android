@@ -2139,7 +2139,7 @@ public class ActivityStack {
                     // being started, which means not bringing it to the front
                     // if the caller is not itself in the front.
                     ActivityRecord curTop = topRunningNonDelayedActivityLocked(notTop);
-                    if (curTop.task != taskTop.task) {
+                    if (curTop != null && curTop.task != taskTop.task) {
                         r.intent.addFlags(Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT);
                         boolean callerAtFront = sourceRecord == null
                                 || curTop.task == sourceRecord.task;
@@ -2891,7 +2891,7 @@ public class ActivityStack {
             return false;
         }
 
-        r.finishing = true;
+        r.makeFinishing();
         EventLog.writeEvent(EventLogTags.AM_FINISH_ACTIVITY,
                 System.identityHashCode(r),
                 r.task.taskId, r.shortComponentName, reason);
@@ -2940,7 +2940,10 @@ public class ActivityStack {
         // because clients have remote IPC references to this object so we
         // can't assume that will go away and want to avoid circular IPC refs.
         r.results = null;
-        r.pendingResults = null;
+        if(r.pendingResults != null) {
+           r.pendingResults.clear();
+           r.pendingResults = null;
+        }
         r.newIntents = null;
         r.icicle = null;
         
@@ -3075,6 +3078,7 @@ public class ActivityStack {
                     mService.cancelIntentSenderLocked(rec, false);
                 }
             }
+            r.pendingResults.clear();
             r.pendingResults = null;
         }
 
@@ -3096,8 +3100,10 @@ public class ActivityStack {
 
     private final void removeActivityFromHistoryLocked(ActivityRecord r) {
         if (r.state != ActivityState.DESTROYED) {
+            r.makeFinishing();
             mHistory.remove(r);
             r.inHistory = false;
+            r.resultTo = null;
             r.state = ActivityState.DESTROYED;
             mService.mWindowManager.removeAppToken(r);
             if (VALIDATE_TOKENS) {
@@ -3119,6 +3125,7 @@ public class ActivityStack {
                 ConnectionRecord c = it.next();
                 mService.removeConnectionLocked(c, null, r);
             }
+            r.connections.clear();
             r.connections = null;
         }
     }
@@ -3239,6 +3246,7 @@ public class ActivityStack {
             if (r.app == app) {
                 if (localLOGV) Slog.v(TAG, "Removing this entry!");
                 list.remove(i);
+                r.resultTo = null;
             }
         }
     }
@@ -3270,11 +3278,11 @@ public class ActivityStack {
 
         // Shift all activities with this task up to the top
         // of the stack, keeping them in the same internal order.
+        boolean first = true;
         while (pos >= 0) {
             ActivityRecord r = (ActivityRecord)mHistory.get(pos);
             if (localLOGV) Slog.v(
                 TAG, "At " + pos + " ckp " + r.task + ": " + r);
-            boolean first = true;
             if (r.task.taskId == task) {
                 if (localLOGV) Slog.v(TAG, "Removing and adding at " + top);
                 mHistory.remove(pos);

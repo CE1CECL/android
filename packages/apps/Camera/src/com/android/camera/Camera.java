@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,16 +44,15 @@ import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
-import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.provider.MediaStore;
 import android.provider.Settings;
-import android.util.AttributeSet;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Display;
 import android.view.GestureDetector;
@@ -71,7 +71,7 @@ import android.view.WindowManager;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
-
+import android.widget.TextView;
 import com.android.camera.gallery.IImage;
 import com.android.camera.gallery.IImageList;
 import com.android.camera.ui.CameraHeadUpDisplay;
@@ -92,7 +92,7 @@ import java.util.HashMap;
 import java.util.List;
 
 /** The Camera activity which can preview and take pictures. */
-public class Camera extends NoSearchActivity implements View.OnClickListener,
+public class Camera extends BaseCamera implements View.OnClickListener,
         ShutterButton.OnShutterButtonListener, SurfaceHolder.Callback,
         Switcher.OnSwitchListener {
 
@@ -103,6 +103,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private static final int RESTART_PREVIEW = 3;
     private static final int CLEAR_SCREEN_DELAY = 4;
     private static final int SET_CAMERA_PARAMETERS_WHEN_IDLE = 5;
+    private static final int CAMERA_TIMER = 6;
 
     // The subset of parameters we need to update in setCameraParameters().
     private static final int UPDATE_PARAM_INITIALIZE = 1;
@@ -118,20 +119,25 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     // The reason why it is set to 0.7 is just because 1.0 is too bright.
     private static final float DEFAULT_CAMERA_BRIGHTNESS = 0.7f;
 
-    private static final int SCREEN_DELAY = 2 * 60 * 1000;
+    private static final int SCREEN_DELAY = 1000;
     private static final int FOCUS_BEEP_VOLUME = 100;
 
     private static final int ZOOM_STOPPED = 0;
     private static final int ZOOM_START = 1;
     private static final int ZOOM_STOPPING = 2;
 
+    // Property that indicates that the device screen is rotated by default
+    // Necesary to adjust the rotation of pictures/movies (0, 90, 180, 270)
+    private static final int mDeviceScreenRotation =
+       SystemProperties.getInt("ro.device.screenrotation", 0);
+
     private int mZoomState = ZOOM_STOPPED;
     private boolean mSmoothZoomSupported = false;
     private int mZoomValue;  // The current zoom value.
     private int mZoomMax;
+    private boolean mTimerMode = false;
     private int mTargetZoomValue;
 
-    private Parameters mParameters;
     private Parameters mInitialParams;
 
     private MyOrientationEventListener mOrientationListener;
@@ -139,7 +145,6 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private int mOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
     // The orientation compensation for icons and thumbnails.
     private int mOrientationCompensation = 0;
-    private ComboPreferences mPreferences;
 
     private static final int IDLE = 1;
     private static final int SNAPSHOT_IN_PROGRESS = 2;
@@ -150,12 +155,10 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private int mStatus = IDLE;
     private static final String sTempCropFilename = "crop-temp";
 
-    private android.hardware.Camera mCameraDevice;
     private ContentProviderClient mMediaProviderClient;
     private SurfaceView mSurfaceView;
     private SurfaceHolder mSurfaceHolder = null;
     private ShutterButton mShutterButton;
-    private FocusRectangle mFocusRectangle;
     private ToneGenerator mFocusToneGenerator;
     private GestureDetector mGestureDetector;
     private Switcher mSwitcher;
@@ -173,19 +176,13 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private Uri mSaveUri;
 
     private ImageCapture mImageCapture = null;
+    private TextView mRecordingTimeView;
 
-    private boolean mPreviewing;
-    private boolean mPausing;
     private boolean mFirstTimeInitialized;
+    private static  int keypresscount = 0;
+    private static  int keyup = 0;
     private boolean mIsImageCaptureIntent;
     private boolean mRecordLocation;
-
-    private static final int FOCUS_NOT_STARTED = 0;
-    private static final int FOCUSING = 1;
-    private static final int FOCUSING_SNAP_ON_FINISH = 2;
-    private static final int FOCUS_SUCCESS = 3;
-    private static final int FOCUS_FAIL = 4;
-    private int mFocusState = FOCUS_NOT_STARTED;
 
     private ContentResolver mContentResolver;
     private boolean mDidRegister = false;
@@ -213,6 +210,8 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private long mPostViewPictureCallbackTime;
     private long mRawPictureCallbackTime;
     private long mJpegPictureCallbackTime;
+    private long mShutterdownTime;
+    private long mShutterupTime;
     private int mPicturesRemaining;
 
     // These latency time are for the CameraLatency test.
@@ -225,16 +224,16 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     // Add for test
     public static boolean mMediaServerDied = false;
 
-    // Focus mode. Options are pref_camera_focusmode_entryvalues.
-    private String mFocusMode;
     private String mSceneMode;
 
     private final Handler mHandler = new MainHandler();
-    private CameraHeadUpDisplay mHeadUpDisplay;
 
     // multiple cameras support
     private int mNumberOfCameras;
     private int mCameraId;
+    private SharedPreferences prefs;
+    private int mImageWidth = 0;
+    private int mImageHeight = 0;
 
     /**
      * This Handler is used to post message back onto the main thread of the
@@ -269,6 +268,11 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
 
                 case SET_CAMERA_PARAMETERS_WHEN_IDLE: {
                     setCameraParametersWhenIdle(0);
+                    break;
+                }
+
+                case CAMERA_TIMER: {
+                    updateTimer(msg.arg1);
                     break;
                 }
             }
@@ -348,6 +352,10 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         mHeadUpDisplay = new CameraHeadUpDisplay(this);
         mHeadUpDisplay.setListener(new MyHeadUpDisplayListener());
         initializeHeadUpDisplay();
+        initializeTouchFocus();
+        clearFocusState();
+        resetFocusIndicator();
+
         mFirstTimeInitialized = true;
         changeHeadUpDisplayState();
         addIdleHandler();
@@ -456,17 +464,23 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
 
             setCameraParametersWhenIdle(UPDATE_PARAM_ZOOM);
 
-            mHeadUpDisplay.setZoomIndex(mZoomValue);
+            ((CameraHeadUpDisplay)mHeadUpDisplay).setZoomIndex(mZoomValue);
             return true;
         }
     }
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent m) {
-        if (!super.dispatchTouchEvent(m) && mGestureDetector != null) {
-            return mGestureDetector.onTouchEvent(m);
+        boolean ret = true;
+        if (!super.dispatchTouchEvent(m)) {
+            if (mGestureDetector != null) {
+                ret = mGestureDetector.onTouchEvent(m);
+            }
+            if (mFocusGestureDetector != null) {
+                ret = mFocusGestureDetector.onTouchEvent(m);
+            }
         }
-        return true;
+        return ret;
     }
 
     LocationListener [] mLocationListeners = new LocationListener[] {
@@ -513,7 +527,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             if (mRecordLocation
                     && LocationManager.GPS_PROVIDER.equals(mProvider)) {
                 if (mHeadUpDisplay != null) {
-                    mHeadUpDisplay.setGpsHasSignal(true);
+                    ((CameraHeadUpDisplay)mHeadUpDisplay).setGpsHasSignal(true);
                 }
             }
             mLastLocation.set(newLocation);
@@ -536,7 +550,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                     if (mRecordLocation &&
                             LocationManager.GPS_PROVIDER.equals(provider)) {
                         if (mHeadUpDisplay != null) {
-                            mHeadUpDisplay.setGpsHasSignal(false);
+                            ((CameraHeadUpDisplay)mHeadUpDisplay).setGpsHasSignal(false);
                         }
                     }
                     break;
@@ -575,6 +589,12 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             mRawPictureCallbackTime = System.currentTimeMillis();
             Log.v(TAG, "mShutterToRawCallbackTime = "
                     + (mRawPictureCallbackTime - mShutterCallbackTime) + "ms");
+
+            if (mShutterdownTime != 0)
+                Log.e(TAG,"<PROFILE> Snapshot to Thumb Latency = "
+                        + (mRawPictureCallbackTime - mShutterdownTime) + " ms");
+
+
         }
     }
 
@@ -610,6 +630,11 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                     + mPictureDisplayedToJpegCallbackTime + "ms");
             mHeadUpDisplay.setEnabled(true);
 
+            if (mShutterdownTime != 0)
+                Log.e(TAG,"<PROFILE> Snapshot to Snapshot Latency = "
+                        + (mJpegPictureCallbackTime - mShutterdownTime) + " ms");
+
+
             if (!mIsImageCaptureIntent) {
                 // We want to show the taken picture for a while, so we wait
                 // for at least 1.2 second before restarting the preview.
@@ -620,7 +645,12 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                     mHandler.sendEmptyMessageDelayed(RESTART_PREVIEW, delay);
                 }
             }
-            mImageCapture.storeImage(jpegData, camera, mLocation);
+
+            if(jpegData != null) {
+                mImageCapture.storeImage(jpegData, camera, mLocation);
+            } else {
+                Log.e(TAG, "null jpeg data, not storing");
+            }
 
             // Calculate this in advance of each shot so we don't add to shutter
             // latency. It's true that someone else could write to the SD card in
@@ -639,8 +669,10 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                         + mJpegCallbackFinishTime + "ms");
                 mJpegPictureCallbackTime = 0;
             }
+            mStatus = IDLE;
+            decrementkeypress();
         }
-    }
+        }
 
     private final class AutoFocusCallback
             implements android.hardware.Camera.AutoFocusCallback {
@@ -648,7 +680,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                 boolean focused, android.hardware.Camera camera) {
             mFocusCallbackTime = System.currentTimeMillis();
             mAutoFocusTime = mFocusCallbackTime - mFocusStartTime;
-            Log.v(TAG, "mAutoFocusTime = " + mAutoFocusTime + "ms");
+            Log.e(TAG, "<PROFILE> mAutoFocusTime = " + mAutoFocusTime + "ms");
             if (mFocusState == FOCUSING_SNAP_ON_FINISH) {
                 // Take the picture no matter focus succeeds or fails. No need
                 // to play the AF sound if we're about to play the shutter
@@ -722,14 +754,21 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             try {
                 long dateTaken = System.currentTimeMillis();
                 String title = createName(dateTaken);
-                String filename = title + ".jpg";
+                String fileExtension = "jpg";
+                String picFormat = mParameters.get("picture-format");
+                if (picFormat != null &&
+                      (picFormat.equals("mpo") || picFormat.equals("jps"))) {
+                    fileExtension = picFormat;
+                }
+                String filename = title + "." + fileExtension;
                 int[] degree = new int[1];
                 mLastContentUri = ImageManager.addImage(
                         mContentResolver,
                         title,
                         dateTaken,
                         loc, // location from gps/network
-                        ImageManager.CAMERA_IMAGE_BUCKET_NAME, filename,
+                        ImageManager.getCameraImageDirectory(),
+                        filename,
                         null, data,
                         degree);
                 return degree[0];
@@ -781,10 +820,11 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             int rotation = 0;
             if (mOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
                 CameraInfo info = CameraHolder.instance().getCameraInfo()[mCameraId];
-                if (info.facing == CameraInfo.CAMERA_FACING_FRONT) {
-                    rotation = (info.orientation - mOrientation + 360) % 360;
-                } else {  // back-facing camera
-                    rotation = (info.orientation + mOrientation) % 360;
+                if (info.facing == CameraInfo.CAMERA_FACING_FRONT &&
+                        info.orientation != 90) {
+                    rotation = (info.orientation - mOrientation + mDeviceScreenRotation + 360) % 360;
+                } else {  // back-facing camera (or acting like it)
+                    rotation = (info.orientation + mOrientation  - mDeviceScreenRotation) % 360;
                 }
             }
             mParameters.setRotation(rotation);
@@ -825,8 +865,18 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                 }
             }
 
+            long dateTaken = System.currentTimeMillis();
+            if (dateTaken != 0) {
+                String datetime = DateFormat.format("yyyy:MM:dd kk:mm:ss", dateTaken).toString();
+                mParameters.set("exif-datetime",datetime);
+            }
+
             mCameraDevice.setParameters(mParameters);
 
+            incrementkeypress();
+            Size pictureSize = mParameters.getPictureSize();
+            mImageWidth = pictureSize.width;
+            mImageHeight = pictureSize.height;
             mCameraDevice.takePicture(mShutterCallback, mRawPictureCallback,
                     mPostViewPictureCallback, new JpegPictureCallback(loc));
             mPreviewing = false;
@@ -834,7 +884,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
 
         public void onSnap() {
             // If we are already in the middle of taking a snapshot then ignore.
-            if (mPausing || mStatus == SNAPSHOT_IN_PROGRESS) {
+            if (mPausing || mStatus == SNAPSHOT_IN_PROGRESS || !mPreviewing) {
                 return;
             }
             mCaptureStartTime = System.currentTimeMillis();
@@ -866,6 +916,12 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private void setLastPictureThumb(byte[] data, int degree, Uri uri) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 16;
+        if(mThumbController != null && mImageWidth > 0 && mImageHeight > 0){
+            int miniThumbHeight = mThumbController.getThumbnailHeight();
+            if(miniThumbHeight > 0){
+                options.inSampleSize = mImageHeight/miniThumbHeight;
+            }
+        }
         Bitmap lastPictureThumb =
                 BitmapFactory.decodeByteArray(data, 0, data.length, options);
         lastPictureThumb = Util.rotate(lastPictureThumb, degree);
@@ -883,15 +939,19 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
+        prefs = getSharedPreferences("com.android.camera_preferences", 0);
+        powerShutter(prefs);
         setContentView(R.layout.camera);
         mSurfaceView = (SurfaceView) findViewById(R.id.camera_preview);
-
+        mRecordingTimeView = (TextView) findViewById(R.id.recording_time);
         mPreferences = new ComboPreferences(this);
         CameraSettings.upgradeGlobalPreferences(mPreferences.getGlobal());
         mCameraId = CameraSettings.readPreferredCameraId(mPreferences);
         mPreferences.setLocalId(this, mCameraId);
         CameraSettings.upgradeLocalPreferences(mPreferences.getLocal());
+
+        mShutterdownTime = 0;
+        mShutterupTime = 0;
 
         mNumberOfCameras = CameraHolder.instance().getNumberOfCameras();
 
@@ -985,8 +1045,9 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         // If scene mode is set, we cannot set flash mode, white balance, and
         // focus mode, instead, we read it from driver
         if (!Parameters.SCENE_MODE_AUTO.equals(mSceneMode)) {
-            overrideHudSettings(mParameters.getFlashMode(),
-                    mParameters.getWhiteBalance(), mParameters.getFocusMode());
+            overrideHudSettings(getString(R.string.pref_camera_flashmode_default),
+                                getString(R.string.pref_camera_whitebalance_default),
+                                getString(R.string.pref_camera_focusmode_default));
         } else {
             overrideHudSettings(null, null, null);
         }
@@ -994,12 +1055,15 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
 
     private void initializeHeadUpDisplay() {
         CameraSettings settings = new CameraSettings(this, mInitialParams,
-                CameraHolder.instance().getCameraInfo());
-        mHeadUpDisplay.initialize(this,
+                CameraHolder.instance().getCameraInfo(), mCameraId);
+
+        boolean zoomSupported = CameraSettings.isZoomSupported(this, mCameraId);
+        ((CameraHeadUpDisplay)mHeadUpDisplay).initialize(this,
                 settings.getPreferenceGroup(R.xml.camera_preferences),
-                getZoomRatios(), mOrientationCompensation);
-        if (mParameters.isZoomSupported()) {
-            mHeadUpDisplay.setZoomListener(new ZoomControllerListener() {
+                zoomSupported ? getZoomRatios() : null,
+                mOrientationCompensation, mParameters);
+        if (zoomSupported) {
+            ((CameraHeadUpDisplay)mHeadUpDisplay).setZoomListener(new ZoomControllerListener() {
                 public void onZoomChanged(
                         int index, float ratio, boolean isMoving) {
                     onZoomValueChanged(index);
@@ -1012,16 +1076,16 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     private void attachHeadUpDisplay() {
         mHeadUpDisplay.setOrientation(mOrientationCompensation);
         if (mParameters.isZoomSupported()) {
-            mHeadUpDisplay.setZoomIndex(mZoomValue);
+            ((CameraHeadUpDisplay)mHeadUpDisplay).setZoomIndex(mZoomValue);
         }
-        FrameLayout frame = (FrameLayout) findViewById(R.id.frame);
+        FrameLayout frame = (FrameLayout) findViewById(R.id.framegl);
         mGLRootView = new GLRootView(this);
         mGLRootView.setContentPane(mHeadUpDisplay);
         frame.addView(mGLRootView);
     }
 
     private void detachHeadUpDisplay() {
-        mHeadUpDisplay.setGpsHasSignal(false);
+        ((CameraHeadUpDisplay)mHeadUpDisplay).setGpsHasSignal(false);
         mHeadUpDisplay.collapse();
         ((ViewGroup) mGLRootView.getParent()).removeView(mGLRootView);
         mGLRootView = null;
@@ -1085,6 +1149,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     }
 
     private void checkStorage() {
+        ImageManager.updateStorageDirectory(this);
         calculatePicturesRemaining();
         updateStorageHint(mPicturesRemaining);
     }
@@ -1203,10 +1268,36 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         finish();
     }
 
+    private synchronized void incrementkeypress() {
+        if(keypresscount == 0)
+            keypresscount++;
+    }
+
+    private synchronized void decrementkeypress() {
+        if(keypresscount > 0)
+            keypresscount--;
+    }
+    private synchronized int keypressvalue() {
+        return keypresscount;
+    }
+
+
     public void onShutterButtonFocus(ShutterButton button, boolean pressed) {
         if (mPausing) {
             return;
         }
+       int keydown =  keypressvalue();
+        if(keydown==0 && pressed)
+         {
+            keyup = 1;
+            Log.v(TAG, "the keydown is  pressed first time");
+            mShutterdownTime = System.currentTimeMillis();
+         }
+         else if(keyup==1 && !pressed)
+         {
+          Log.v(TAG, "the keyup is pressed first time ");
+          keyup = 0;
+         }
         switch (button.getId()) {
             case R.id.shutter_button:
                 doFocus(pressed);
@@ -1215,6 +1306,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     }
 
     public void onShutterButtonClick(ShutterButton button) {
+        mShutterupTime = System.currentTimeMillis();
         if (mPausing) {
             return;
         }
@@ -1347,7 +1439,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             }
             hidePostCaptureAlert();
         }
-
+        keypresscount = 0;
         if (mDidRegister) {
             unregisterReceiver(mReceiver);
             mDidRegister = false;
@@ -1460,6 +1552,11 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        boolean searchShutter = prefs.getBoolean("search_shutter_enabled", false);
+        boolean volUpShutter = prefs.getBoolean("vol_up_shutter_enabled", false);
+        boolean volDownShutter = prefs.getBoolean("vol_down_shutter_enabled", false);
+        boolean volZoom = prefs.getBoolean("vol_zoom_enabled", false);
+
         switch (keyCode) {
             case KeyEvent.KEYCODE_FOCUS:
                 if (mFirstTimeInitialized && event.getRepeatCount() == 0) {
@@ -1469,6 +1566,36 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             case KeyEvent.KEYCODE_CAMERA:
                 if (mFirstTimeInitialized && event.getRepeatCount() == 0) {
                     doSnap();
+                }
+                return true;
+            case KeyEvent.KEYCODE_SEARCH:
+                if (searchShutter) {
+                    doShutter(prefs, event);
+                }
+                return true;
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                if (volUpShutter && doShutter(prefs, event)) {
+                    return true;
+                }
+
+                if (volZoom && !doVolZoom(true)) {
+                    return false;
+                }
+
+                return true;
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (volDownShutter && doShutter(prefs, event)) {
+                    return true;
+                }
+
+                if (volZoom && !doVolZoom(false)) {
+                    return false;
+                }
+
+                return true;
+            case KeyEvent.KEYCODE_POWER:
+                if (powerShutter(prefs)){
+                    doFocus(true);
                 }
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
@@ -1493,9 +1620,74 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         return super.onKeyDown(keyCode, event);
     }
 
+    private boolean doShutter(SharedPreferences prefs, KeyEvent event) {
+        if (!mFirstTimeInitialized || event.getRepeatCount() != 0) {
+            return false;
+        }
+
+        boolean longFocus = prefs.getBoolean("long_focus_enabled", false);
+        boolean preFocus = prefs.getBoolean("pre_focus_enabled", false);
+
+        if (preFocus || longFocus) {
+            // Start auto-focus immediately to reduce shutter lag. After
+            // the shutter button gets the focus, doFocus() will be
+            // called again but it is fine.
+            if (mHeadUpDisplay.collapse()) return true;
+            doFocus(true);
+        } else {
+            mFocusState = FOCUS_SUCCESS;
+        }
+        if (!longFocus) {
+            doSnap();
+        } else {
+            if (mHeadUpDisplay.collapse()) return true;
+            doFocus(true);
+        }
+
+        return false;
+    }
+
+    private boolean doVolZoom(boolean up) {
+        if (!mParameters.isZoomSupported()) {
+            return true;
+        }
+
+        // Perform zoom only when preview is started and snapshot is not in progress.
+        if (mPausing || !isCameraIdle() || !mPreviewing || mZoomState != ZOOM_STOPPED) {
+            return false;
+        }
+
+        if (up && mZoomValue < mZoomMax) {
+            mZoomValue++;
+        } else if (!up && mZoomValue > 0) {
+            mZoomValue--;
+        }
+
+        setCameraParametersWhenIdle(UPDATE_PARAM_ZOOM);
+        ((CameraHeadUpDisplay)mHeadUpDisplay).setZoomIndex(mZoomValue);
+
+        return true;
+    }
+
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        boolean longFocus = prefs.getBoolean("long_focus_enabled", false);
+
         switch (keyCode) {
+            case KeyEvent.KEYCODE_SEARCH:
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (longFocus) {
+                    if (mFirstTimeInitialized && event.getRepeatCount() == 0) {
+                        doSnap();
+                    }
+                }
+                return true;
+            case KeyEvent.KEYCODE_POWER:
+                if (powerShutter(prefs)){
+                    doSnap();
+                }
+                return true;
             case KeyEvent.KEYCODE_FOCUS:
                 if (mFirstTimeInitialized) {
                     doFocus(false);
@@ -1505,16 +1697,32 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         return super.onKeyUp(keyCode, event);
     }
 
+    private void updateTimer(int timerSeconds) {
+        mRecordingTimeView.setText(String.format("%d:%02d", timerSeconds / 60, timerSeconds % 60));
+        timerSeconds--;
+        if (timerSeconds < 0) {
+            autoFocus();
+            mFocusState = FOCUSING_SNAP_ON_FINISH;
+            doFocus(true);
+        } else {
+            Message timerMsg = Message.obtain();
+            timerMsg.arg1 = timerSeconds;
+            timerMsg.what = CAMERA_TIMER;
+            mHandler.sendMessageDelayed(timerMsg, 1000);
+        }
+    }
+
     private void doSnap() {
         if (mHeadUpDisplay.collapse()) return;
-
-        Log.v(TAG, "doSnap: mFocusState=" + mFocusState);
+        if (mTimerMode) return;
+        Log.d(TAG, "doSnap: mFocusState=" + mFocusState + " mFocusMode=" + mFocusMode);
         // If the user has half-pressed the shutter and focus is completed, we
         // can take the photo right away. If the focus mode is infinity, we can
         // also take the photo.
         if (mFocusMode.equals(Parameters.FOCUS_MODE_INFINITY)
                 || mFocusMode.equals(Parameters.FOCUS_MODE_FIXED)
                 || mFocusMode.equals(Parameters.FOCUS_MODE_EDOF)
+                || mFocusMode.equals(CameraSettings.FOCUS_MODE_TOUCH)
                 || (mFocusState == FOCUS_SUCCESS
                 || mFocusState == FOCUS_FAIL)) {
             mImageCapture.onSnap();
@@ -1524,16 +1732,46 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             // focus here.
             mFocusState = FOCUSING_SNAP_ON_FINISH;
         } else if (mFocusState == FOCUS_NOT_STARTED) {
-            // Focus key down event is dropped for some reasons. Just ignore.
+            // Special case: some devices have a one-stage-only camera button.
+            // In those cases, a simple push has to do the trick.
+            if (getResources().getBoolean(R.bool.isOneStageButton)) {
+                doFocus(true);
+                mFocusState = FOCUSING_SNAP_ON_FINISH;
+            }
+
+            // Most of the time, the focus key down event will be invoked
+            // for some reason. Just ignore.
         }
     }
 
     private void doFocus(boolean pressed) {
+        if (!mTimerMode && pressed) {
+            if (mCaptureMode.equals(getResources().getString(
+                    R.string.pref_camera_capturemode_entry_timer))) {
+                mTimerMode = true;
+                mShutterButton.setImageDrawable(getResources().getDrawable(
+                        R.drawable.btn_ic_video_record_stop));
+                mRecordingTimeView.setVisibility(View.VISIBLE);
+                updateTimer(Integer.valueOf(prefs.getString("timer_duration", "10")));
+                return;
+            }
+        } else if (mTimerMode && pressed) {
+            mShutterButton.setImageDrawable(getResources().getDrawable(
+                    R.drawable.btn_ic_camera_shutter));
+            mTimerMode = false;
+            mHandler.removeMessages(CAMERA_TIMER);
+            mRecordingTimeView.setVisibility(View.GONE);
+            return;
+        } else if (mTimerMode && !pressed) {
+            return;
+        }
+
         // Do the focus if the mode is not infinity.
         if (mHeadUpDisplay.collapse()) return;
         if (!(mFocusMode.equals(Parameters.FOCUS_MODE_INFINITY)
                   || mFocusMode.equals(Parameters.FOCUS_MODE_FIXED)
-                  || mFocusMode.equals(Parameters.FOCUS_MODE_EDOF))) {
+                  || mFocusMode.equals(Parameters.FOCUS_MODE_EDOF)
+                  || mFocusMode.equals(CameraSettings.FOCUS_MODE_TOUCH))) {
             if (pressed) {  // Focus key down.
                 autoFocus();
             } else {  // Focus key up.
@@ -1616,7 +1854,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             dataLocation(),
             ImageManager.INCLUDE_IMAGES,
             ImageManager.SORT_ASCENDING,
-            ImageManager.CAMERA_IMAGE_BUCKET_ID);
+            ImageManager.getCameraImageBucketId());
         int count = list.getCount();
         if (count > 0) {
             IImage image = list.getImageAt(count - 1);
@@ -1667,6 +1905,9 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         Util.setCameraDisplayOrientation(this, mCameraId, mCameraDevice);
         setCameraParameters(UPDATE_PARAM_ALL);
 
+        CameraSettings.setVideoMode(mParameters, false);
+        mCameraDevice.setParameters(mParameters);
+
         mCameraDevice.setErrorCallback(mErrorCallback);
 
         try {
@@ -1679,6 +1920,12 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         mPreviewing = true;
         mZoomState = ZOOM_STOPPED;
         mStatus = IDLE;
+
+        /* Get the correct max zoom value, as this varies with
+        * preview size/picture resolution
+        */
+        mParameters = mCameraDevice.getParameters();
+        mZoomMax = mParameters.getMaxZoom();
     }
 
     private void stopPreview() {
@@ -1736,10 +1983,6 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             }
         }
         return optimalSize;
-    }
-
-    private static boolean isSupported(String value, List<String> supported) {
-        return supported == null ? false : supported.indexOf(value) >= 0;
     }
 
     private void updateCameraParametersInitialize() {
@@ -1821,34 +2064,73 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         String jpegQuality = mPreferences.getString(
                 CameraSettings.KEY_JPEG_QUALITY,
                 getString(R.string.pref_camera_jpegquality_default));
-        mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(jpegQuality));
+        mParameters.setJpegQuality(JpegEncodingQualityMappings.getQualityNumber(mCameraId, jpegQuality));
+
+
 
         // For the following settings, we need to check if the settings are
         // still supported by latest driver, if not, ignore the settings.
 
-        // Set color effect parameter.
-        String colorEffect = mPreferences.getString(
-                CameraSettings.KEY_COLOR_EFFECT,
-                getString(R.string.pref_camera_coloreffect_default));
-        if (isSupported(colorEffect, mParameters.getSupportedColorEffects())) {
-            mParameters.setColorEffect(colorEffect);
+         // Set ISO parameter.
+        String iso = mPreferences.getString(
+                CameraSettings.KEY_ISO,
+                getString(R.string.pref_camera_iso_default));
+        if (isSupported(iso,
+                mParameters.getSupportedIsoValues())) {
+                mParameters.setISOValue(iso);
+         }
+
+        //Set LensShading
+        String lensshade = mPreferences.getString(
+                CameraSettings.KEY_LENSSHADING,
+                getString(R.string.pref_camera_lensshading_default));
+        if (isSupported(lensshade,
+                mParameters.getSupportedLensShadeModes())) {
+                mParameters.setLensShade(lensshade);
         }
 
-        // Set exposure compensation
-        String exposure = mPreferences.getString(
-                CameraSettings.KEY_EXPOSURE,
-                getString(R.string.pref_exposure_default));
-        try {
-            int value = Integer.parseInt(exposure);
-            int max = mParameters.getMaxExposureCompensation();
-            int min = mParameters.getMinExposureCompensation();
-            if (value >= min && value <= max) {
-                mParameters.setExposureCompensation(value);
-            } else {
-                Log.w(TAG, "invalid exposure range: " + exposure);
-            }
-        } catch (NumberFormatException e) {
-            Log.w(TAG, "invalid exposure: " + exposure);
+         // Set auto exposure parameter.
+         String autoExposure = mPreferences.getString(
+                 CameraSettings.KEY_AUTOEXPOSURE,
+                 getString(R.string.pref_camera_autoexposure_default));
+         if (isSupported(autoExposure, mParameters.getSupportedAutoexposure())) {
+             mParameters.setAutoExposure(autoExposure);
+         }
+
+
+         // Set anti banding parameter.
+         String antiBanding = mPreferences.getString(
+                 CameraSettings.KEY_ANTIBANDING,
+                 getString(R.string.pref_camera_antibanding_default));
+         if (isSupported(antiBanding, mParameters.getSupportedAntibanding())) {
+             mParameters.setAntibanding(antiBanding);
+         }
+
+         // Set exposure compensation
+         String exposure = mPreferences.getString(CameraSettings.KEY_EXPOSURE,
+                 CameraSettings.EXPOSURE_DEFAULT_VALUE);
+         try {
+             float value = Float.parseFloat(exposure);
+             int max = mParameters.getMaxExposureCompensation();
+             int min = mParameters.getMinExposureCompensation();
+             if (value >= min && value <= max) {
+                 mParameters.set("exposure-compensation", exposure);
+             } else {
+                 Log.w(TAG, "invalid exposure range: " + exposure);
+             }
+         } catch (NumberFormatException e) {
+             Log.w(TAG, "invalid exposure: " + exposure);
+         }
+
+         setCommonParameters();
+
+        //Clearing previous GPS data if any
+        if(mRecordLocation) {
+            //Reset the values when store location is selected
+            mParameters.setGpsLatitude(0);
+            mParameters.setGpsLongitude(0);
+            mParameters.setGpsAltitude(0);
+            mParameters.setGpsTimestamp(0);
         }
 
         if (mHeadUpDisplay != null) updateSceneModeInHud();
@@ -1869,32 +2151,29 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                 }
             }
 
-            // Set white balance parameter.
-            String whiteBalance = mPreferences.getString(
-                    CameraSettings.KEY_WHITE_BALANCE,
-                    getString(R.string.pref_camera_whitebalance_default));
-            if (isSupported(whiteBalance,
-                    mParameters.getSupportedWhiteBalance())) {
-                mParameters.setWhiteBalance(whiteBalance);
-            } else {
-                whiteBalance = mParameters.getWhiteBalance();
-                if (whiteBalance == null) {
-                    whiteBalance = Parameters.WHITE_BALANCE_AUTO;
-                }
-            }
+            // Do white balance after as scenemode affects it
+            setWhiteBalance();
 
             // Set focus mode.
             mFocusMode = mPreferences.getString(
                     CameraSettings.KEY_FOCUS_MODE,
                     getString(R.string.pref_camera_focusmode_default));
+
             if (isSupported(mFocusMode, mParameters.getSupportedFocusModes())) {
                 mParameters.setFocusMode(mFocusMode);
+            } else if (CameraSettings.FOCUS_MODE_TOUCH.equals(mFocusMode)) {
+                mParameters.setFocusMode(Parameters.FOCUS_MODE_AUTO);
             } else {
                 mFocusMode = mParameters.getFocusMode();
                 if (mFocusMode == null) {
                     mFocusMode = Parameters.FOCUS_MODE_AUTO;
                 }
             }
+            clearFocusState();
+            resetFocusIndicator();
+
+            clearTouchFocusAEC();
+
         } else {
             mFocusMode = mParameters.getFocusMode();
         }
@@ -1918,7 +2197,15 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
             updateCameraParametersPreference();
         }
 
-        mCameraDevice.setParameters(mParameters);
+        CameraSettings.dumpParameters(mParameters);
+
+        try {
+            mCameraDevice.setParameters(mParameters);
+        } catch (Exception e) {
+            // Some phones with dual cameras fail to report the actual parameters
+            // on the FFC. Filtering is device-specific but would be better.
+            Log.e(TAG, "Error setting parameters: " + e.getMessage());
+        }
     }
 
     // If the Camera is idle, update the parameters immediately, otherwise
@@ -1939,6 +2226,11 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
                         SET_CAMERA_PARAMETERS_WHEN_IDLE, 1000);
             }
         }
+    }
+
+    private void gotoCameraSettings() {
+        Intent intent = new Intent(this, AdvancedSettings.class);
+        startActivity(intent);
     }
 
     private void gotoGallery() {
@@ -2051,7 +2343,7 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     }
 
     private int calculatePicturesRemaining() {
-        mPicturesRemaining = MenuHelper.calculatePicturesRemaining();
+        mPicturesRemaining = MenuHelper.calculatePicturesRemaining(this);
         return mPicturesRemaining;
     }
 
@@ -2096,6 +2388,18 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
         });
         gallery.setIcon(android.R.drawable.ic_menu_gallery);
         mGalleryItems.add(gallery);
+
+        MenuItem mCameraSettings = menu.add(Menu.NONE, Menu.NONE,
+                MenuHelper.POSITION_CAMERA_SETTINGS,
+                R.string.advanced_options_label)
+                .setOnMenuItemClickListener(new OnMenuItemClickListener() {
+            public boolean onMenuItemClick(MenuItem item) {
+                gotoCameraSettings();
+                return true;
+            }
+        });
+        mCameraSettings.setIcon(android.R.drawable.ic_menu_preferences);
+        mGalleryItems.add(mCameraSettings);
 
         if (mNumberOfCameras > 1) {
             menu.add(Menu.NONE, Menu.NONE,
@@ -2227,36 +2531,6 @@ public class Camera extends NoSearchActivity implements View.OnClickListener,
     }
 }
 
-class FocusRectangle extends View {
-
-    @SuppressWarnings("unused")
-    private static final String TAG = "FocusRectangle";
-
-    public FocusRectangle(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
-
-    private void setDrawable(int resid) {
-        setBackgroundDrawable(getResources().getDrawable(resid));
-    }
-
-    public void showStart() {
-        setDrawable(R.drawable.focus_focusing);
-    }
-
-    public void showSuccess() {
-        setDrawable(R.drawable.focus_focused);
-    }
-
-    public void showFail() {
-        setDrawable(R.drawable.focus_focus_failed);
-    }
-
-    public void clear() {
-        setBackgroundDrawable(null);
-    }
-}
-
 /*
  * Provide a mapping for Jpeg encoding quality levels
  * from String representation to numeric representation.
@@ -2275,12 +2549,12 @@ class JpegEncodingQualityMappings {
 
     // Retrieve and return the Jpeg encoding quality number
     // for the given quality level.
-    public static int getQualityNumber(String jpegQuality) {
+    public static int getQualityNumber(int mCameraId, String jpegQuality) {
         Integer quality = mHashMap.get(jpegQuality);
         if (quality == null) {
             Log.w(TAG, "Unknown Jpeg quality: " + jpegQuality);
             return DEFAULT_QUALITY;
         }
-        return CameraProfile.getJpegEncodingQualityParameter(quality.intValue());
+        return CameraProfile.getJpegEncodingQualityParameter(mCameraId, quality.intValue());
     }
 }

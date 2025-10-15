@@ -21,6 +21,7 @@
 #include "config.h"
 #include "RenderView.h"
 
+#include "Cache.h"
 #include "Document.h"
 #include "Element.h"
 #include "FloatQuad.h"
@@ -28,6 +29,7 @@
 #include "FrameView.h"
 #include "GraphicsContext.h"
 #include "HitTestResult.h"
+#include "loader.h"
 #include "RenderLayer.h"
 #include "RenderSelectionInfo.h"
 #include "RenderWidget.h"
@@ -130,7 +132,8 @@ void RenderView::layout()
     state.m_clipped = false;
     m_layoutState = &state;
 
-    if (needsLayout())
+    bool needsLayouting = needsLayout();
+    if (needsLayouting)
         RenderBlock::layout();
 
     // Reset overflow and then replace it with docWidth and docHeight.
@@ -143,6 +146,9 @@ void RenderView::layout()
     ASSERT(m_layoutState == &state);
     m_layoutState = 0;
     setNeedsLayout(false);
+
+    if (needsLayouting)
+        cache()->loader()->triggerReorder();
 }
 
 void RenderView::mapLocalToContainer(RenderBoxModelObject* repaintContainer, bool fixed, bool /*useTransforms*/, TransformState& transformState) const
@@ -246,7 +252,7 @@ bool RenderView::shouldRepaint(const IntRect& r) const
     return true;
 }
 
-void RenderView::repaintViewRectangle(const IntRect& ur, bool immediate)
+void RenderView::repaintViewRectangle(const IntRect& ur, bool immediate, bool paintHeader)
 {
     if (!shouldRepaint(ur))
         return;
@@ -255,7 +261,7 @@ void RenderView::repaintViewRectangle(const IntRect& ur, bool immediate)
     // or even invisible.
     Element* elt = document()->ownerElement();
     if (!elt)
-        m_frameView->repaintContentRectangle(ur, immediate);
+        m_frameView->repaintContentRectangle(ur, immediate, paintHeader);
     else if (RenderBox* obj = elt->renderBox()) {
         IntRect vr = viewRect();
         IntRect r = intersection(ur, vr);

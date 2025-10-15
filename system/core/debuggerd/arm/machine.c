@@ -49,11 +49,17 @@ extern int unwind_backtrace_with_ptrace(int tfd, pid_t pid, mapinfo *map,
                                         int *frame0_pc_sane,
                                         bool at_fault);
 
+/*
+ * We don't want to dump the whole memory if SP is bogus,
+ * so limit the maximum amount of memory we're going to dump.
+ */
+#define MAX_STACK_DUMP_SIZE (32 * 1024)
+
 void dump_stack_and_code(int tfd, int pid, mapinfo *map,
                          int unwind_depth, unsigned int sp_list[],
                          bool at_fault)
 {
-    unsigned int sp, pc, p, end, data;
+    unsigned int sp, pc, p, end, data, last;
     struct pt_regs r;
     int sp_depth;
     bool only_in_tombstone = !at_fault;
@@ -68,15 +74,17 @@ void dump_stack_and_code(int tfd, int pid, mapinfo *map,
     end = p = pc & ~3;
     p -= 32;
     end += 32;
+    last = p;
 
     /* Dump the code around PC as:
      *  addr       contents
      *  00008d34   fffffcd0 4c0eb530 b0934a0e 1c05447c
      *  00008d44   f7ff18a0 490ced94 68035860 d0012b00
      */
-    while (p <= end) {
+    while (p <= end && last <= p) {
         int i;
 
+        last = p;
         sprintf(code_buffer, "%08x ", p);
         for (i = 0; i < 4; i++) {
             data = ptrace(PTRACE_PEEKTEXT, pid, (void*)p, NULL);
@@ -92,15 +100,17 @@ void dump_stack_and_code(int tfd, int pid, mapinfo *map,
         end = p = r.ARM_lr & ~3;
         p -= 32;
         end += 32;
+        last = p;
 
         /* Dump the code around LR as:
          *  addr       contents
          *  00008d34   fffffcd0 4c0eb530 b0934a0e 1c05447c
          *  00008d44   f7ff18a0 490ced94 68035860 d0012b00
          */
-        while (p <= end) {
+        while (p <= end && last <= p) {
             int i;
 
+            last = p;
             sprintf(code_buffer, "%08x ", p);
             for (i = 0; i < 4; i++) {
                 data = ptrace(PTRACE_PEEKTEXT, pid, (void*)p, NULL);
@@ -113,6 +123,8 @@ void dump_stack_and_code(int tfd, int pid, mapinfo *map,
 
     p = sp - 64;
     p &= ~3;
+    last = p;
+
     if (unwind_depth != 0) {
         if (unwind_depth < STACK_CONTENT_DEPTH) {
             end = sp_list[unwind_depth-1];
@@ -138,7 +150,11 @@ void dump_stack_and_code(int tfd, int pid, mapinfo *map,
         sp_depth = 0;
     }
 
-    while (p <= end) {
+    if ((end - p) > MAX_STACK_DUMP_SIZE) {
+        end = p + MAX_STACK_DUMP_SIZE;
+    }
+
+    while (p <= end && last <= p) {
          char *prompt;
          char level[16];
          data = ptrace(PTRACE_PEEKTEXT, pid, (void*)p, NULL);
@@ -156,16 +172,18 @@ void dump_stack_and_code(int tfd, int pid, mapinfo *map,
          _LOG(tfd, (sp_depth > 2) || only_in_tombstone,
               "%s %08x  %08x  %s\n", prompt, p, data,
               map_to_name(map, data, ""));
+         last = p;
          p += 4;
     }
     /* print another 64-byte of stack data after the last frame */
 
     end = p+64;
-    while (p <= end) {
+    while (p <= end && last <= p) {
          data = ptrace(PTRACE_PEEKTEXT, pid, (void*)p, NULL);
          _LOG(tfd, (sp_depth > 2) || only_in_tombstone,
               "    %08x  %08x  %s\n", p, data,
               map_to_name(map, data, ""));
+         last = p;
          p += 4;
     }
 }

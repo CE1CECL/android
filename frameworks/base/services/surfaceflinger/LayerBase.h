@@ -190,6 +190,13 @@ public:
         return (!(mFlags & DisplayHardware::SLOW_CONFIG)) && mNeedsFiltering;
     }
 
+#ifdef AVOID_DRAW_TEXTURE
+    /**
+     * transformed -- true is this surface needs a to be transformed
+     */
+    virtual bool transformed() const    { return mTransformed; }
+#endif
+
     /**
      * isSecure - true if this surface is secure, that is if it prevents
      * screenshots or VNC servers.
@@ -258,7 +265,9 @@ protected:
 
                 // atomic
     volatile    int32_t         mInvalidate;
-                
+#ifdef AVOID_DRAW_TEXTURE
+                bool            mTransformed;
+#endif
 
 public:
     // called from class SurfaceFlinger
@@ -310,7 +319,12 @@ public:
         virtual void unregisterBuffers();
         virtual sp<OverlayRef> createOverlay(uint32_t w, uint32_t h,
                 int32_t format, int32_t orientation);
-
+#ifdef OMAP_ENHANCEMENT
+        virtual sp<OverlayRef> createOverlay(uint32_t w, uint32_t h,
+                int32_t format, int32_t orientation, int isS3D);
+	virtual void setDisplayId(int displayId);
+        virtual int requestOverlayClone(bool enable);
+#endif
     protected:
         friend class LayerBaseClient;
         sp<SurfaceFlinger>  mFlinger;

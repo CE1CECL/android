@@ -45,6 +45,9 @@ public:
         ENFORCED_AUDIBLE = 7, // Sounds that cannot be muted by user and must be routed to speaker
         DTMF             = 8,
         TTS              = 9,
+#ifdef HAVE_FM_RADIO
+        FM              = 10,
+#endif
         NUM_STREAM_TYPES
     };
 
@@ -142,12 +145,19 @@ public:
         CHANNEL_IN_Z_AXIS = 0x2000,
         CHANNEL_IN_VOICE_UPLINK = 0x4000,
         CHANNEL_IN_VOICE_DNLINK = 0x8000,
+#ifdef OMAP_ENHANCEMENT
+        CHANNEL_IN_VOICE_UPLINK_DNLINK = 0x10000,
+#endif
         CHANNEL_IN_MONO = CHANNEL_IN_FRONT,
         CHANNEL_IN_STEREO = (CHANNEL_IN_LEFT | CHANNEL_IN_RIGHT),
         CHANNEL_IN_ALL = (CHANNEL_IN_LEFT | CHANNEL_IN_RIGHT | CHANNEL_IN_FRONT | CHANNEL_IN_BACK|
                 CHANNEL_IN_LEFT_PROCESSED | CHANNEL_IN_RIGHT_PROCESSED | CHANNEL_IN_FRONT_PROCESSED | CHANNEL_IN_BACK_PROCESSED|
                 CHANNEL_IN_PRESSURE | CHANNEL_IN_X_AXIS | CHANNEL_IN_Y_AXIS | CHANNEL_IN_Z_AXIS |
-                CHANNEL_IN_VOICE_UPLINK | CHANNEL_IN_VOICE_DNLINK)
+#ifdef OMAP_ENHANCEMENT
+                CHANNEL_IN_VOICE_UPLINK | CHANNEL_IN_VOICE_DNLINK | CHANNEL_IN_VOICE_UPLINK_DNLINK)
+#else
+                CHANNEL_IN_VOICE_UPLINK | CHANNEL_IN_VOICE_DNLINK )
+#endif
     };
 
     enum audio_mode {
@@ -231,6 +241,9 @@ public:
         size_t* buffSize);
 
     static status_t setVoiceVolume(float volume);
+#ifdef HAVE_FM_RADIO
+    static status_t setFmVolume(float volume);
+#endif
 
     // return the number of audio frames written by AudioFlinger to audio HAL and
     // audio dsp to DAC since the output on which the specificed stream is playing
@@ -263,11 +276,29 @@ public:
         DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES = 0x100,
         DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER = 0x200,
         DEVICE_OUT_AUX_DIGITAL = 0x400,
+#ifdef HAVE_FM_RADIO
+        DEVICE_OUT_FM = 0x800,
+        DEVICE_OUT_FM_SPEAKER = 0x1000,
+        DEVICE_OUT_FM_ALL = (DEVICE_OUT_FM | DEVICE_OUT_FM_SPEAKER),
+#elif defined(OMAP_ENHANCEMENT)
+        DEVICE_OUT_FM_TRANSMIT = 0x800,
+        DEVICE_OUT_LOW_POWER = 0x1000,
+#endif
+        DEVICE_OUT_HDMI = 0x2000,
         DEVICE_OUT_DEFAULT = 0x8000,
         DEVICE_OUT_ALL = (DEVICE_OUT_EARPIECE | DEVICE_OUT_SPEAKER | DEVICE_OUT_WIRED_HEADSET |
+#ifdef HAVE_FM_RADIO
+                DEVICE_OUT_WIRED_HEADPHONE | DEVICE_OUT_FM | DEVICE_OUT_FM_SPEAKER | DEVICE_OUT_BLUETOOTH_SCO | DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
+#else
                 DEVICE_OUT_WIRED_HEADPHONE | DEVICE_OUT_BLUETOOTH_SCO | DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
+#endif
                 DEVICE_OUT_BLUETOOTH_SCO_CARKIT | DEVICE_OUT_BLUETOOTH_A2DP | DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
-                DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER | DEVICE_OUT_AUX_DIGITAL | DEVICE_OUT_DEFAULT),
+#if defined(OMAP_ENHANCEMENT) && !defined(HAVE_FM_RADIO)
+                DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER | DEVICE_OUT_AUX_DIGITAL | DEVICE_OUT_LOW_POWER |
+                DEVICE_OUT_FM_TRANSMIT | DEVICE_OUT_DEFAULT),
+#else
+                DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER | DEVICE_OUT_AUX_DIGITAL | DEVICE_OUT_HDMI | DEVICE_OUT_DEFAULT),
+#endif
         DEVICE_OUT_ALL_A2DP = (DEVICE_OUT_BLUETOOTH_A2DP | DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
                 DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER),
 
@@ -280,11 +311,25 @@ public:
         DEVICE_IN_AUX_DIGITAL = 0x200000,
         DEVICE_IN_VOICE_CALL = 0x400000,
         DEVICE_IN_BACK_MIC = 0x800000,
+#ifdef HAVE_FM_RADIO
+        DEVICE_IN_FM_RX = 0x1000000,
+        DEVICE_IN_FM_RX_A2DP = 0x2000000,
+#endif
+#ifdef OMAP_ENHANCEMENT
+        DEVICE_IN_FM_ANALOG = 0x1000000,
+#endif
         DEVICE_IN_DEFAULT = 0x80000000,
 
         DEVICE_IN_ALL = (DEVICE_IN_COMMUNICATION | DEVICE_IN_AMBIENT | DEVICE_IN_BUILTIN_MIC |
                 DEVICE_IN_BLUETOOTH_SCO_HEADSET | DEVICE_IN_WIRED_HEADSET | DEVICE_IN_AUX_DIGITAL |
+#ifdef HAVE_FM_RADIO
+                DEVICE_IN_VOICE_CALL | DEVICE_IN_BACK_MIC | DEVICE_IN_FM_RX | DEVICE_IN_FM_RX_A2DP | DEVICE_IN_DEFAULT)
+#elif OMAP_ENHANCEMENT
+                DEVICE_IN_VOICE_CALL | DEVICE_IN_BACK_MIC  | DEVICE_IN_FM_ANALOG | DEVICE_IN_DEFAULT)
+#else
                 DEVICE_IN_VOICE_CALL | DEVICE_IN_BACK_MIC | DEVICE_IN_DEFAULT)
+#endif
+
     };
 
     // device connection states used for setDeviceConnectionState()
@@ -402,12 +447,18 @@ public:
     static bool isOutputDevice(audio_devices device);
     static bool isInputDevice(audio_devices device);
     static bool isA2dpDevice(audio_devices device);
+#ifdef HAVE_FM_RADIO
+    static bool isFmDevice(audio_devices device);
+#endif
     static bool isBluetoothScoDevice(audio_devices device);
     static bool isLowVisibility(stream_type stream);
     static bool isOutputChannel(uint32_t channel);
     static bool isInputChannel(uint32_t channel);
     static bool isValidFormat(uint32_t format);
     static bool isLinearPCM(uint32_t format);
+#ifdef USES_SAMSUNG_SEPARATED_STREAM
+    static bool isSeperatedStream(stream_type stream);
+#endif
 
 private:
 
@@ -482,6 +533,10 @@ public:
     static const char *keyFormat;
     static const char *keyChannels;
     static const char *keyFrameCount;
+#ifdef HAVE_FM_RADIO
+    static const char *keyFmOn;
+    static const char *keyFmOff;
+#endif
     static const char *keyInputSource;
 
     String8 toString();

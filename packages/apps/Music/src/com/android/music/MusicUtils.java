@@ -88,7 +88,8 @@ public class MusicUtils {
         public final static int SCAN_DONE = 11;
         public final static int QUEUE = 12;
         public final static int EFFECTS_PANEL = 13;
-        public final static int CHILD_MENU_BASE = 14; // this should be the last item
+        public final static int SETTINGS = 14;
+        public final static int CHILD_MENU_BASE = 15; // this should be the last item
     }
 
     public static String makeAlbumsLabel(Context context, int numalbums, int numsongs, boolean isUnknown) {
@@ -241,6 +242,16 @@ public class MusicUtils {
         return -1;
     }
 
+    public static long getCurrentAlbumartistId() {
+        if (MusicUtils.sService != null) {
+            try {
+                return sService.getAlbumartistId();
+            } catch (RemoteException ex) {
+            }
+        }
+        return -1;
+    }
+
     public static long getCurrentAudioId() {
         if (MusicUtils.sService != null) {
             try {
@@ -334,6 +345,22 @@ public class MusicUtils {
                 ccols, where, null,
                 MediaStore.Audio.Media.ALBUM_KEY + ","  + MediaStore.Audio.Media.TRACK);
         
+        if (cursor != null) {
+            long [] list = getSongListForCursor(cursor);
+            cursor.close();
+            return list;
+        }
+        return sEmptyList;
+    }
+
+    public static long [] getSongListForAlbumartist(Context context, long id) {
+        final String[] ccols = new String[] { MediaStore.Audio.Media._ID };
+        String where = MediaStore.Audio.Media.ALBUM_ARTIST_ID + "=" + id + " AND " +
+        MediaStore.Audio.Media.IS_MUSIC + "=1";
+        Cursor cursor = query(context, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                ccols, where, null,
+                MediaStore.Audio.Media.ALBUM_KEY + ","  + MediaStore.Audio.Media.TRACK);
+
         if (cursor != null) {
             long [] list = getSongListForCursor(cursor);
             cursor.close();
@@ -872,7 +899,7 @@ public class MusicUtils {
         sBitmapOptionsCache.inPreferredConfig = Bitmap.Config.RGB_565;
         sBitmapOptionsCache.inDither = false;
 
-        sBitmapOptions.inPreferredConfig = Bitmap.Config.RGB_565;
+        sBitmapOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
         sBitmapOptions.inDither = false;
     }
 
@@ -1021,7 +1048,7 @@ public class MusicUtils {
                 Bitmap bm = getArtworkFromFile(context, song_id, album_id);
                 if (bm != null) {
                     if (bm.getConfig() == null) {
-                        bm = bm.copy(Bitmap.Config.RGB_565, false);
+                        bm = bm.copy(Bitmap.Config.ARGB_8888, false);
                         if (bm == null && allowdefault) {
                             return getDefaultArtwork(context);
                         }
@@ -1078,20 +1105,80 @@ public class MusicUtils {
         }
         return bm;
     }
-    
+
     private static Bitmap getDefaultArtwork(Context context) {
         BitmapFactory.Options opts = new BitmapFactory.Options();
         opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
         return BitmapFactory.decodeStream(
                 context.getResources().openRawResource(R.drawable.albumart_mp_unknown), null, opts);
     }
-    
+
+    public static Uri getArtworkUri(Context context, long song_id, long album_id) {
+
+        if (album_id < 0) {
+            // This is something that is not in the database, so get the album art directly
+            // from the file.
+            if (song_id >= 0) {
+                return getArtworkUriFromFile(context, song_id, -1);
+            }
+            return null;
+        }
+
+        ContentResolver res = context.getContentResolver();
+        Uri uri = ContentUris.withAppendedId(sArtworkUri, album_id);
+        if (uri != null) {
+            InputStream in = null;
+            try {
+                in = res.openInputStream(uri);
+                return uri;
+            } catch (FileNotFoundException ex) {
+                // The album art thumbnail does not actually exist. Maybe the user deleted it, or
+                // maybe it never existed to begin with.
+                return getArtworkUriFromFile(context, song_id, album_id);
+            } finally {
+                try {
+                    if (in != null) {
+                        in.close();
+                    }
+                } catch (IOException ex) {
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Uri getArtworkUriFromFile(Context context, long songid, long albumid) {
+
+        if (albumid < 0 && songid < 0) {
+            return null;
+        }
+
+        try {
+            if (albumid < 0) {
+                Uri uri = Uri.parse("content://media/external/audio/media/" + songid + "/albumart");
+                ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+                if (pfd != null) {
+                    return uri;
+                }
+            } else {
+                Uri uri = ContentUris.withAppendedId(sArtworkUri, albumid);
+                ParcelFileDescriptor pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+                if (pfd != null) {
+                    return uri;
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            //
+        }
+        return null;
+    }
+
     static int getIntPref(Context context, String name, int def) {
         SharedPreferences prefs =
             context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
         return prefs.getInt(name, def);
     }
-    
+
     static void setIntPref(Context context, String name, int value) {
         SharedPreferences prefs =
             context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
@@ -1138,9 +1225,9 @@ public class MusicUtils {
             }
         }
     }
-    
+
     static int sActiveTabIndex = -1;
-    
+
     static boolean updateButtonBar(Activity a, int highlight) {
         final TabWidget ll = (TabWidget) a.findViewById(R.id.buttonbar);
         boolean withtabs = false;
@@ -1201,7 +1288,7 @@ public class MusicUtils {
             setIntPref(a, "activetab", id);
         }
     }
-    
+
     static void activateTab(Activity a, int id) {
         Intent intent = new Intent(Intent.ACTION_PICK);
         switch (id) {
@@ -1230,7 +1317,7 @@ public class MusicUtils {
         a.finish();
         a.overridePendingTransition(0, 0);
     }
-    
+
     static void updateNowPlaying(Activity a) {
         View nowPlayingView = a.findViewById(R.id.nowplaying);
         if (nowPlayingView == null) {

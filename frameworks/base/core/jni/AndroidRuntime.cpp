@@ -89,6 +89,10 @@ extern int register_android_message_digest_sha1(JNIEnv *env);
 
 extern int register_android_util_FloatMath(JNIEnv* env);
 
+#if defined(HAVE_FM_RADIO) || defined (BOARD_HAVE_FM_RADIO)
+extern int register_android_hardware_fm_fmradio(JNIEnv* env);
+#endif
+
 namespace android {
 
 /*
@@ -157,6 +161,7 @@ extern int register_android_bluetooth_ScoSocket(JNIEnv *env);
 extern int register_android_server_BluetoothService(JNIEnv* env);
 extern int register_android_server_BluetoothEventLoop(JNIEnv *env);
 extern int register_android_server_BluetoothA2dpService(JNIEnv* env);
+extern int register_android_server_BluetoothHidService(JNIEnv* env);
 extern int register_android_server_Watchdog(JNIEnv* env);
 extern int register_android_ddm_DdmHandleNativeHeap(JNIEnv *env);
 extern int register_com_android_internal_os_ZygoteInit(JNIEnv* env);
@@ -171,6 +176,7 @@ extern int register_android_view_KeyEvent(JNIEnv* env);
 extern int register_android_view_MotionEvent(JNIEnv* env);
 extern int register_android_content_res_ObbScanner(JNIEnv* env);
 extern int register_android_content_res_Configuration(JNIEnv* env);
+extern int register_android_content_res_PackageRedirectionMap(JNIEnv* env);
 
 static AndroidRuntime* gCurRuntime = NULL;
 
@@ -602,7 +608,10 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
         }
     }
 
-    property_get("dalvik.vm.execution-mode", propBuf, "");
+    property_get("persist.sys.jit-mode", propBuf, "");
+    if (strcmp(propBuf, "") == 0) {
+        property_get("dalvik.vm.execution-mode", propBuf, "");
+    }
     if (strcmp(propBuf, "int:portable") == 0) {
         executionMode = kEMIntPortable;
     } else if (strcmp(propBuf, "int:fast") == 0) {
@@ -650,8 +659,12 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
     //options[curOpt++].optionString = "-verbose:class";
 
     strcpy(heapsizeOptsBuf, "-Xmx");
-    property_get("dalvik.vm.heapsize", heapsizeOptsBuf+4, "16m");
-    //LOGI("Heap size: %s", heapsizeOptsBuf);
+    property_get("persist.sys.vm.heapsize", propBuf, "");
+    if (strcmp(propBuf, "") == 0) {
+        property_get("dalvik.vm.heapsize", propBuf, "16m");
+    }
+    strcpy(heapsizeOptsBuf+4, propBuf);
+    LOGI("Heap size: %s", heapsizeOptsBuf);
     opt.optionString = heapsizeOptsBuf;
     mOptions.add(opt);
 
@@ -1260,6 +1273,9 @@ static const RegJNIRec gRegJNI[] = {
     REG_JNI(register_android_os_MemoryFile),
     REG_JNI(register_com_android_internal_os_ZygoteInit),
     REG_JNI(register_android_hardware_Camera),
+#if defined(HAVE_FM_RADIO) || defined (BOARD_HAVE_FM_RADIO)
+    REG_JNI(register_android_hardware_fm_fmradio),
+#endif
     REG_JNI(register_android_hardware_SensorManager),
     REG_JNI(register_android_media_AudioRecord),
     REG_JNI(register_android_media_AudioSystem),
@@ -1275,6 +1291,7 @@ static const RegJNIRec gRegJNI[] = {
     REG_JNI(register_android_server_BluetoothService),
     REG_JNI(register_android_server_BluetoothEventLoop),
     REG_JNI(register_android_server_BluetoothA2dpService),
+    REG_JNI(register_android_server_BluetoothHidService),
     REG_JNI(register_android_server_Watchdog),
     REG_JNI(register_android_message_digest_sha1),
     REG_JNI(register_android_ddm_DdmHandleNativeHeap),
@@ -1291,6 +1308,8 @@ static const RegJNIRec gRegJNI[] = {
 
     REG_JNI(register_android_content_res_ObbScanner),
     REG_JNI(register_android_content_res_Configuration),
+
+    REG_JNI(register_android_content_res_PackageRedirectionMap),
 };
 
 /*

@@ -42,7 +42,8 @@
     <string name="remove_star_action" msgid="6689770999647007163">"Markierung entfernen"</string>
     <string name="refresh_action" msgid="5951383001436708175">"Aktualisieren"</string>
     <string name="add_account_action" msgid="8835736309476033727">"Konto hinzufügen"</string>
-    <string name="deselect_all_action" msgid="253663239459688238">"Auswahl aufheben"</string>
+    <string name="deselect_all_action" msgid="253663239459688238">"Auswahl für alle aufheben"</string>
+    <string name="select_all_action">Alle auswählen</string>
     <string name="compose_action" msgid="4045702519637388045">"Schreiben"</string>
     <string name="search_action" msgid="6325101454876682308">"Suche"</string>
     <string name="open_action" msgid="936766723989190816">"Öffnen"</string>
@@ -57,10 +58,14 @@
     <string name="dump_settings_action" msgid="4478192525236169829">"Einstellungen für Speicherauszug"</string>
     <string name="choose_attachment_dialog_title" msgid="81937507117528954">"Anhang auswählen"</string>
     <string name="status_loading_more" msgid="1580386959044617884">"Nachrichten werden geladen..."</string>
-    <string name="status_sending_messages" msgid="3971880826111264523">"Nachrichten werden gesendet…"</string>
+    <string name="status_sending_messages" msgid="3971880826111264523">"Nachrichten werden gesendet..."</string>
     <string name="status_network_error" msgid="6045933332005067021">"Verbindungsfehler"</string>
     <string name="notification_new_title" msgid="2200257910380529139">"Neue E-Mail"</string>
     <string name="error_loading_message_body" msgid="2265140604109272914">"Unerwarteter Fehler beim Laden des Nachrichtentextes aufgetreten. Die Nachricht ist möglicherweise zu lang, um angezeigt zu werden."</string>
+    <string name="confirm_on_delete_dlg_title">Löschen bestätigen</string>
+    <string name="confirm_on_delete_dlg_msg">Wollen Sie diese Nachricht wirklich löschen?</string>
+    <string name="confirm_on_send_dlg_title">Senden bestätigen</string>
+    <string name="confirm_on_send_dlg_msg">Wollen Sie diese Nachricht senden?</string>
   <plurals name="notification_new_one_account_fmt">
     <item quantity="one" msgid="3422945912787702191">"<xliff:g id="UNREAD_MESSAGE_COUNT">%1$d</xliff:g> ungelesen (<xliff:g id="ACCOUNT">%2$s</xliff:g>)"</item>
     <item quantity="few" msgid="6543078667692990869">"<xliff:g id="UNREAD_MESSAGE_COUNT">%1$d</xliff:g> ungelesen (<xliff:g id="ACCOUNT">%2$s</xliff:g>)"</item>
@@ -178,6 +183,7 @@
     <string name="account_setup_exchange_ssl_label" msgid="6704105469083211236">"Sichere Verbindung (SSL) verwenden"</string>
     <string name="account_setup_exchange_trust_certificates_label" msgid="6232880757633882678">"Alle SSL-Zertifikate akzeptieren"</string>
     <string name="account_setup_options_title" msgid="8995162193118880993">"Kontooptionen"</string>
+    <string name="account_setup_color_title">Kontofarbe</string>
     <string name="account_setup_options_mail_check_frequency_label" msgid="4824859792882810053">"Häufigkeit des E-Mail-Abrufs"</string>
     <string name="account_setup_options_mail_check_frequency_never" msgid="287951859480505416">"Nie"</string>
     <string name="account_setup_options_mail_check_frequency_push" msgid="5934525907736008673">"Automatisch (Push)"</string>
@@ -186,6 +192,10 @@
     <string name="account_setup_options_mail_check_frequency_15min" msgid="5052776740089741793">"Alle 15 Minuten"</string>
     <string name="account_setup_options_mail_check_frequency_30min" msgid="1097088928685931864">"Alle 30 Minuten"</string>
     <string name="account_setup_options_mail_check_frequency_1hour" msgid="3767715356039692899">"Stündlich"</string>
+    <string name="account_setup_options_mail_check_frequency_3hour">"Alle 3 Stunden"</string>
+    <string name="account_setup_options_mail_check_frequency_6hour">"Alle 6 Stunden"</string>
+    <string name="account_setup_options_mail_check_frequency_12hour">"Alle 12 Stunden"</string>
+    <string name="account_setup_options_mail_check_frequency_24hour">"Täglich"</string>
     <string name="account_setup_options_default_label" msgid="8869166381331276697">"E-Mails standardmäßig von diesem Konto senden"</string>
     <string name="account_setup_options_notify_label" msgid="1247525794828820038">"Benachrichtigung bei E-Mail-Eingang"</string>
     <string name="account_setup_options_sync_contacts_label" msgid="7467467090023434271">"Kontakte dieses Kontos synchronisieren"</string>
@@ -197,6 +207,7 @@
     <string name="account_setup_options_mail_window_1week" msgid="5639718031108023741">"Eine Woche"</string>
     <string name="account_setup_options_mail_window_2weeks" msgid="4567049268124213035">"Zwei Wochen"</string>
     <string name="account_setup_options_mail_window_1month" msgid="5846359669750047081">"Ein Monat"</string>
+    <string name="account_setup_options_mail_window_all">Alle Emails</string>
     <string name="account_setup_failed_dlg_auth_message" msgid="42827150104879570">"Nutzername oder Passwort falsch"</string>
     <string name="account_setup_failed_dlg_auth_message_fmt" msgid="8598560266430207606">"Nutzername/Password falsch"\n"(<xliff:g id="ERROR">%s</xliff:g>)"</string>
     <string name="account_setup_failed_dlg_certificate_message" msgid="961843413600482906">"Keine sichere Verbindung zu Server möglich"</string>
@@ -222,6 +233,7 @@
     <string name="account_settings_exchange_summary" msgid="8498451479029626317">"Synchronisierungshäufigkeit, Benachrichtigungen usw."</string>
     <string name="account_settings_notify_summary" msgid="6609224590300639887">"Bei E-Mail-Eingang Benachrichtigung in der Statusleiste"</string>
     <string name="account_settings_mail_check_frequency_label" msgid="8271462919214560616">"Häufigkeit des E-Mail-Abrufs"</string>
+    <string name="account_settings_color_label">Kontofarbe</string>
     <string name="account_settings_incoming_label" msgid="7858928031806297542">"Eingehende Nachrichten"</string>
     <string name="account_settings_outgoing_label" msgid="4464829249980026745">"Ausgehende Nachrichten"</string>
     <string name="account_settings_description_label" msgid="8894815221204511715">"Kontoname"</string>
@@ -241,11 +253,20 @@
     <string name="account_settings_vibrate_when_dlg_title" msgid="308167729046312952">"Vibration"</string>
     <string name="account_settings_ringtone" msgid="7922187231467500404">"Klingelton auswählen"</string>
     <string name="account_settings_servers" msgid="4925493817981624242">"Servereinstellungen"</string>
+
+    <!-- On Settings screen, miscellaneous settings-->
+    <string name="misc_settings_label">Erweiterte Einstellungen</string>
+    <string name="account_settings_msg_list_on_delete">Zurück zur Nachrichtenliste</string>
+    <string name="account_settings_msg_list_on_delete_summary">Nach dem Löschen der aktuellen Email zur Nachrichtenliste zurückkehren</string>
+    <string name="account_settings_confirm_on_delete">Löschen bestätigen</string>
+    <string name="account_settings_confirm_on_delete_summary">Vor dem Löschen einen Dialog anzeigen</string>
+    <string name="account_settings_confirm_on_send">Senden bestätigen</string>
+    <string name="account_settings_confirm_on_send_summary">Vor dem Senden einen Dialog anzeigen</string>
+
     <string name="account_delete_dlg_title" msgid="6806087520856396608">"Konto entfernen"</string>
     <string name="account_delete_dlg_instructions_fmt" msgid="8236846322040271280">"Das Konto \"<xliff:g id="ACCOUNT">%s</xliff:g>\" wird aus Email entfernt."</string>
     <string name="upgrade_accounts_title" msgid="5444140226380754014">"Upgrade für Konten"</string>
     <string name="upgrade_accounts_error" msgid="7241661832029255715">"Konto-Upgrade nicht durchführbar"</string>
-    <string name="provider_note_live" msgid="3584841823811425060">"Nur einige \"Plus\"-Konten ermöglichen einen POP-Zugang und damit diesem Programm, eine Verbindung aufzubauen. Sollten Sie nicht dazu in der Lage sein, sich mit Ihrer korrekten E-Mail-Adresse und dem richtigen Password anzumelden, verfügen Sie möglicherweise nicht über ein kostenpflichtiges \"Plus\"-Konto. Starten Sie Ihren Webbrowser, um Zugriff auf diese Konten zu erlangen."</string>
     <string name="provider_note_t_online" msgid="1973701903400232774">"Vor Erstellung des E-Mail Kontos bitte \\\"eMail-Passwort\\\" für den POP3-Zugang auf der T-Online-Startseite einrichten."</string>
     <string name="exchange_name" msgid="1190783774800310346">"Geschäftlich"</string>
     <string name="exchange_name_alternate" msgid="5772529644749041052">"Microsoft Exchange ActiveSync"</string>
@@ -269,4 +290,16 @@
     <item quantity="other" msgid="7816121892960632123">"<xliff:g id="RESULTS">%1$d</xliff:g> Ergebnisse von <xliff:g id="DOMAIN">%2$s</xliff:g>"</item>
   </plurals>
     <string name="gal_completed_limited_fmt" msgid="2343791690766047585">"Erste <xliff:g id="RESULTS">%1$d</xliff:g> Ergebnisse von <xliff:g id="DOMAIN">%2$s</xliff:g>"</string>
+    <string name="sync_action">Synchronisation umschalten</string>
+    <string name="hide_action">Sichtbarkeit wechseln</string>
+    <string name="show_hidden_action">Versteckte Ordner zeigen</string>
+    <string name="hide_hidden_action">Versteckte Ordner verstecken</string>
+    <string name="toast_folder_sync_on">Synchronisiere Ordner:</string>
+    <string name="toast_folder_sync_off">Wird nicht mehr synchronisiert:</string>
+    <string name="toast_folder_sync_invalid">Ungültiger Ordner für Synchronisation</string>
+
+    <string name="toast_folder_hide_on">Verstecke Ordner:</string>
+    <string name="toast_folder_hide_off">Zeige Ordner:</string>
+    <string name="toast_folder_hide_invalid">Dieser Ordner kann nicht versteckt werden!</string>
+    <string name="sample_account_name">Beispielkonto</string>
 </resources>

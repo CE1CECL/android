@@ -185,6 +185,8 @@ ifneq ($(strip $(TARGET_BUILD_APPS)),)
   # An unbundled app build needs only the core product makefiles.
   $(call import-products,$(call get-product-makefiles,\
       $(SRC_TARGET_DIR)/product/AndroidProducts.mk))
+else ifneq ($(CM_BUILD),)
+  $(call import-products, vendor/cyanogen/products/cyanogen_$(CM_BUILD).mk)
 else
   # Read in all of the product definitions specified by the AndroidProducts.mk
   # files in the tree.
@@ -259,6 +261,9 @@ else
   TARGET_AAPT_CHARACTERISTICS := $(strip $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_CHARACTERISTICS))
 endif
 
+PRODUCT_SPECIFIC_DEFINES := \
+	$(strip $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_SPECIFIC_DEFINES))
+
 PRODUCT_DEFAULT_WIFI_CHANNELS := \
 	$(strip $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_DEFAULT_WIFI_CHANNELS))
 
@@ -278,6 +283,9 @@ PRODUCT_CONTRIBUTORS_FILE := \
 # whitespace characters on either side of the '='.
 PRODUCT_PROPERTY_OVERRIDES := \
 	$(strip $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_PROPERTY_OVERRIDES))
+
+PRODUCT_BUILD_PROP_OVERRIDES := \
+	$(strip $(PRODUCTS.$(INTERNAL_PRODUCT).PRODUCT_BUILD_PROP_OVERRIDES))
 
 # Should we use the default resources or add any product specific overlays
 PRODUCT_PACKAGE_OVERLAYS := \

@@ -530,8 +530,43 @@ public class TrackBrowserActivity extends ListActivity
                 mDeletedOneRow = true;
             } else {
                 // update a saved playlist
-                MediaStore.Audio.Playlists.Members.moveItem(getContentResolver(),
-                        Long.valueOf(mPlaylist), from, to);
+                Uri baseUri = MediaStore.Audio.Playlists.Members.getContentUri("external",
+                        Long.valueOf(mPlaylist));
+                ContentValues values = new ContentValues();
+                String where = MediaStore.Audio.Playlists.Members._ID + "=?";
+                String [] wherearg = new String[1];
+                ContentResolver res = getContentResolver();
+                int colidx = mTrackCursor.getColumnIndexOrThrow(
+                        MediaStore.Audio.Playlists.Members.PLAY_ORDER);
+                if (from < to) {
+                    // move the item to somewhere later in the list
+                    mTrackCursor.moveToPosition(to);
+                    long toidx = mTrackCursor.getLong(colidx);
+                    mTrackCursor.moveToPosition(from);
+                    values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, toidx);
+                    wherearg[0] = mTrackCursor.getString(0);
+                    res.update(baseUri, values, where, wherearg);
+                    for (int i = from + 1; i <= to; i++) {
+                        mTrackCursor.moveToPosition(i);
+                        values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, i - 1);
+                        wherearg[0] = mTrackCursor.getString(0);
+                        res.update(baseUri, values, where, wherearg);
+                    }
+                } else if (from > to) {
+                    // move the item to somewhere earlier in the list
+                    mTrackCursor.moveToPosition(to);
+                    long toidx = mTrackCursor.getLong(colidx);
+                    mTrackCursor.moveToPosition(from);
+                    values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, toidx);
+                    wherearg[0] = mTrackCursor.getString(0);
+                    res.update(baseUri, values, where, wherearg);
+                    for (int i = from - 1; i >= to; i--) {
+                        mTrackCursor.moveToPosition(i);
+                        values.put(MediaStore.Audio.Playlists.Members.PLAY_ORDER, i + 1);
+                        wherearg[0] = mTrackCursor.getString(0);
+                        res.update(baseUri, values, where, wherearg);
+                    }
+                }
             }
         }
     };
@@ -920,6 +955,7 @@ public class TrackBrowserActivity extends ListActivity
                 menu.add(0, CLEAR_PLAYLIST, 0, R.string.clear_playlist).setIcon(R.drawable.ic_menu_clear_playlist);
             }
         }
+        menu.add(0, SETTINGS, 0, R.string.settings).setIcon(android.R.drawable.ic_menu_preferences);
         return true;
     }
 
@@ -964,6 +1000,12 @@ public class TrackBrowserActivity extends ListActivity
             case CLEAR_PLAYLIST:
                 // We only clear the current playlist
                 MusicUtils.clearQueue();
+                return true;
+
+            case SETTINGS:
+                intent = new Intent();
+                intent.setClass(this, MusicSettingsActivity.class);
+                startActivityForResult(intent, SETTINGS);
                 return true;
         }
         return super.onOptionsItemSelected(item);

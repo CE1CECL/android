@@ -165,6 +165,8 @@ TEST(DisasmIa320) {
   __ mov(Operand(ebx, ecx, times_4, 10000), edx);
   __ nop();
   __ dec_b(edx);
+  __ dec_b(Operand(eax, 10));
+  __ dec_b(Operand(ebx, ecx, times_4, 10000));
   __ dec(edx);
   __ cdq();
 
@@ -194,6 +196,8 @@ TEST(DisasmIa320) {
 
   __ rcl(edx, 1);
   __ rcl(edx, 7);
+  __ rcr(edx, 1);
+  __ rcr(edx, 7);
   __ sar(edx, 1);
   __ sar(edx, 6);
   __ sar_cl(edx);
@@ -234,13 +238,19 @@ TEST(DisasmIa320) {
   __ imul(edx, ecx, 12);
   __ imul(edx, ecx, 1000);
 
+  __ cld();
   __ rep_movs();
+  __ rep_stos();
+  __ stos();
 
   __ sub(edx, Operand(ebx, ecx, times_4, 10000));
   __ sub(edx, Operand(ebx));
 
   __ test(edx, Immediate(12345));
   __ test(edx, Operand(ebx, ecx, times_8, 10000));
+  __ test(Operand(esi, edi, times_1, -20000000), Immediate(300000000));
+  __ test_b(edx, Operand(ecx, ebx, times_2, 1000));
+  __ test_b(Operand(eax, -20), 0x9A);
   __ nop();
 
   __ xor_(edx, 12345);
@@ -270,9 +280,11 @@ TEST(DisasmIa320) {
 
   __ jmp(&L1);
   __ jmp(Operand(ebx, ecx, times_4, 10000));
+#ifdef ENABLE_DEBUGGER_SUPPORT
   ExternalReference after_break_target =
       ExternalReference(Debug_Address::AfterBreakTarget());
   __ jmp(Operand::StaticVariable(after_break_target));
+#endif  // ENABLE_DEBUGGER_SUPPORT
   __ jmp(ic, RelocInfo::CODE_TARGET);
   __ nop();
 
@@ -324,8 +336,10 @@ TEST(DisasmIa320) {
   // 0xD9 instructions
   __ nop();
 
+  __ fld(1);
   __ fld1();
   __ fldz();
+  __ fldpi();
   __ fabs();
   __ fchs();
   __ fprem();
@@ -359,55 +373,75 @@ TEST(DisasmIa320) {
   __ fwait();
   __ nop();
   {
-    CHECK(CpuFeatures::IsSupported(SSE2));
-    CpuFeatures::Scope fscope(SSE2);
-    __ cvttss2si(edx, Operand(ebx, ecx, times_4, 10000));
-    __ cvtsi2sd(xmm1, Operand(ebx, ecx, times_4, 10000));
-    __ addsd(xmm1, xmm0);
-    __ mulsd(xmm1, xmm0);
-    __ subsd(xmm1, xmm0);
-    __ divsd(xmm1, xmm0);
-    __ movdbl(xmm1, Operand(ebx, ecx, times_4, 10000));
-    __ movdbl(Operand(ebx, ecx, times_4, 10000), xmm1);
-    __ comisd(xmm0, xmm1);
+    if (CpuFeatures::IsSupported(SSE2)) {
+      CpuFeatures::Scope fscope(SSE2);
+      __ cvttss2si(edx, Operand(ebx, ecx, times_4, 10000));
+      __ cvtsi2sd(xmm1, Operand(ebx, ecx, times_4, 10000));
+      __ addsd(xmm1, xmm0);
+      __ mulsd(xmm1, xmm0);
+      __ subsd(xmm1, xmm0);
+      __ divsd(xmm1, xmm0);
+      __ movdbl(xmm1, Operand(ebx, ecx, times_4, 10000));
+      __ movdbl(Operand(ebx, ecx, times_4, 10000), xmm1);
+      __ ucomisd(xmm0, xmm1);
 
-    // 128 bit move instructions.
-    __ movdqa(xmm0, Operand(ebx, ecx, times_4, 10000));
-    __ movdqa(Operand(ebx, ecx, times_4, 10000), xmm0);
-    __ movdqu(xmm0, Operand(ebx, ecx, times_4, 10000));
-    __ movdqu(Operand(ebx, ecx, times_4, 10000), xmm0);
+      // 128 bit move instructions.
+      __ movdqa(xmm0, Operand(ebx, ecx, times_4, 10000));
+      __ movdqa(Operand(ebx, ecx, times_4, 10000), xmm0);
+      __ movdqu(xmm0, Operand(ebx, ecx, times_4, 10000));
+      __ movdqu(Operand(ebx, ecx, times_4, 10000), xmm0);
+    }
   }
 
   // cmov.
   {
-    CHECK(CpuFeatures::IsSupported(CMOV));
-    CpuFeatures::Scope use_cmov(CMOV);
-    __ cmov(overflow, eax, Operand(eax, 0));
-    __ cmov(no_overflow, eax, Operand(eax, 1));
-    __ cmov(below, eax, Operand(eax, 2));
-    __ cmov(above_equal, eax, Operand(eax, 3));
-    __ cmov(equal, eax, Operand(ebx, 0));
-    __ cmov(not_equal, eax, Operand(ebx, 1));
-    __ cmov(below_equal, eax, Operand(ebx, 2));
-    __ cmov(above, eax, Operand(ebx, 3));
-    __ cmov(sign, eax, Operand(ecx, 0));
-    __ cmov(not_sign, eax, Operand(ecx, 1));
-    __ cmov(parity_even, eax, Operand(ecx, 2));
-    __ cmov(parity_odd, eax, Operand(ecx, 3));
-    __ cmov(less, eax, Operand(edx, 0));
-    __ cmov(greater_equal, eax, Operand(edx, 1));
-    __ cmov(less_equal, eax, Operand(edx, 2));
-    __ cmov(greater, eax, Operand(edx, 3));
+    if (CpuFeatures::IsSupported(CMOV)) {
+      CpuFeatures::Scope use_cmov(CMOV);
+      __ cmov(overflow, eax, Operand(eax, 0));
+      __ cmov(no_overflow, eax, Operand(eax, 1));
+      __ cmov(below, eax, Operand(eax, 2));
+      __ cmov(above_equal, eax, Operand(eax, 3));
+      __ cmov(equal, eax, Operand(ebx, 0));
+      __ cmov(not_equal, eax, Operand(ebx, 1));
+      __ cmov(below_equal, eax, Operand(ebx, 2));
+      __ cmov(above, eax, Operand(ebx, 3));
+      __ cmov(sign, eax, Operand(ecx, 0));
+      __ cmov(not_sign, eax, Operand(ecx, 1));
+      __ cmov(parity_even, eax, Operand(ecx, 2));
+      __ cmov(parity_odd, eax, Operand(ecx, 3));
+      __ cmov(less, eax, Operand(edx, 0));
+      __ cmov(greater_equal, eax, Operand(edx, 1));
+      __ cmov(less_equal, eax, Operand(edx, 2));
+      __ cmov(greater, eax, Operand(edx, 3));
+    }
+  }
+
+  // andpd, cmpltsd, movaps, psllq.
+  {
+    if (CpuFeatures::IsSupported(SSE2)) {
+      CpuFeatures::Scope fscope(SSE2);
+      __ andpd(xmm0, xmm1);
+      __ andpd(xmm1, xmm2);
+
+      __ cmpltsd(xmm0, xmm1);
+      __ cmpltsd(xmm1, xmm2);
+
+      __ movaps(xmm0, xmm1);
+      __ movaps(xmm1, xmm2);
+
+      __ psllq(xmm0, 17);
+      __ psllq(xmm1, 42);
+    }
   }
 
   __ ret(0);
 
   CodeDesc desc;
   assm.GetCode(&desc);
-  Object* code = Heap::CreateCode(desc,
-                                  NULL,
-                                  Code::ComputeFlags(Code::STUB),
-                                  Handle<Object>(Heap::undefined_value()));
+  Object* code = Heap::CreateCode(
+      desc,
+      Code::ComputeFlags(Code::STUB),
+      Handle<Object>(Heap::undefined_value()))->ToObjectChecked();
   CHECK(code->IsCode());
 #ifdef DEBUG
   Code::cast(code)->Print();

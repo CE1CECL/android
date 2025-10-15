@@ -46,6 +46,14 @@
 #include "egl_impl.h"
 #include "Loader.h"
 
+// Enable this define to allow querying vendor-specific GL extensions. This
+// currently will only work correctly for implementations which have a single
+// EGL backend; multiple EGL backends are not supported.
+// There's also an extra subtlety with the EGLimage entry points in GL, which
+// can't work properly if they're called directly (they have to go through
+// a wrapper).
+
+#define MAKE_CONFIG(_impl, _index)  ((EGLConfig)(((_impl)<<24) | (_index)))
 #define setError(_e, _r) setErrorEtc(__FUNCTION__, __LINE__, _e, _r)
 
 // ----------------------------------------------------------------------------
@@ -61,8 +69,14 @@ static char const * const gExtensionString  =
         "EGL_KHR_image "
         "EGL_KHR_image_base "
         "EGL_KHR_image_pixmap "
+#ifdef ENABLE_VENDOR_EXTENSIONS
+        "EGL_KHR_gl_texture_2D_image "
+        "EGL_KHR_gl_texture_cubemap_image "
+        "EGL_KHR_gl_renderbuffer_image "
+#endif
         "EGL_ANDROID_image_native_buffer "
         "EGL_ANDROID_swap_rectangle "
+        "EGL_ANDROID_get_render_buffer "
         ;
 
 // ----------------------------------------------------------------------------
@@ -414,6 +428,8 @@ static const extention_map_t gExtentionMap[] = {
             (__eglMustCastToProperFunctionPointerType)NULL },
     { "glEGLImageTargetRenderbufferStorageOES",
             (__eglMustCastToProperFunctionPointerType)NULL },
+    { "eglGetRenderBufferANDROID",
+            (__eglMustCastToProperFunctionPointerType)&eglGetRenderBufferANDROID },
 };
 
 extern const __eglMustCastToProperFunctionPointerType gExtensionForwarders[MAX_NUMBER_OF_GL_EXTENSIONS];
@@ -828,6 +844,7 @@ EGLBoolean eglGetConfigs(   EGLDisplay dpy,
 {
     egl_display_t const * const dp = get_display(dpy);
     if (!dp) return setError(EGL_BAD_DISPLAY, EGL_FALSE);
+    if (!num_config) return setError(EGL_BAD_PARAMETER, EGL_FALSE);
 
     GLint numConfigs = dp->numTotalConfigs;
     if (!configs) {
@@ -1390,6 +1407,31 @@ EGLint eglGetError(void)
     return result;
 }
 
+#ifdef ENABLE_VENDOR_EXTENSIONS
+// Note: Similar implementations of this function also exist in gl2.cpp and
+// gl.cpp, and are used by applications that call the exported entry points
+// directly.
+typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETTEXTURE2DOESPROC) (GLenum target, GLeglImageOES image);
+typedef void (GL_APIENTRYP PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC) (GLenum target, GLeglImageOES image);
+
+static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glEGLImageTargetTexture2DOES_impl = NULL;
+static PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC glEGLImageTargetRenderbufferStorageOES_impl = NULL;
+
+static void glEGLImageTargetTexture2DOES_wrapper(GLenum target, GLeglImageOES image)
+{
+    GLeglImageOES implImage =
+        (GLeglImageOES)egl_get_image_for_current_context((EGLImageKHR)image);
+    glEGLImageTargetTexture2DOES_impl(target, implImage);
+}
+
+static void glEGLImageTargetRenderbufferStorageOES_wrapper(GLenum target, GLeglImageOES image)
+{
+    GLeglImageOES implImage =
+        (GLeglImageOES)egl_get_image_for_current_context((EGLImageKHR)image);
+    glEGLImageTargetRenderbufferStorageOES_impl(target, implImage);
+}
+#endif
+
 __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
 {
     // eglGetProcAddress() could be the very first function called
@@ -1404,6 +1446,29 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
     __eglMustCastToProperFunctionPointerType addr;
     addr = findProcAddress(procname, gExtentionMap, NELEM(gExtentionMap));
     if (addr) return addr;
+
+#ifdef ENABLE_VENDOR_EXTENSIONS
+    addr = 0;
+    for (int i=0 ; i<IMPL_NUM_IMPLEMENTATIONS ; i++) {
+        egl_connection_t* const cnx = &gEGLImpl[i];
+        if (cnx->dso) {
+            if (cnx->egl.eglGetProcAddress) {
+                addr = cnx->egl.eglGetProcAddress(procname);
+                if (addr) {
+                    if (!strcmp(procname, "glEGLImageTargetTexture2DOES")) {
+                        glEGLImageTargetTexture2DOES_impl = (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)addr;
+                        return (__eglMustCastToProperFunctionPointerType)glEGLImageTargetTexture2DOES_wrapper;
+                    }
+                    if (!strcmp(procname, "glEGLImageTargetRenderbufferStorageOES")) {
+                        glEGLImageTargetRenderbufferStorageOES_impl = (PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC)addr;
+                        return (__eglMustCastToProperFunctionPointerType)glEGLImageTargetRenderbufferStorageOES_wrapper;
+                    }
+                    return addr;
+                }
+            }
+        }
+    }
+#endif
 
     // this protects accesses to gGLExtentionMap and gGLExtentionSlot
     pthread_mutex_lock(&gInitDriverMutex);
@@ -1842,4 +1907,20 @@ EGLBoolean eglSetSwapRectangleANDROID(EGLDisplay dpy, EGLSurface draw,
                 dp->disp[s->impl].dpy, s->surface, left, top, width, height);
     }
     return setError(EGL_BAD_DISPLAY, NULL);
+}
+
+EGLClientBuffer eglGetRenderBufferANDROID(EGLDisplay dpy, EGLSurface draw)
+{
+    SurfaceRef _s(draw);
+    if (!_s.get()) return setError(EGL_BAD_SURFACE, (EGLClientBuffer*)0);
+
+    if (!validate_display_surface(dpy, draw))
+        return 0;
+    egl_display_t const * const dp = get_display(dpy);
+    egl_surface_t const * const s = get_surface(draw);
+    if (s->cnx->egl.eglGetRenderBufferANDROID) {
+        return s->cnx->egl.eglGetRenderBufferANDROID(
+                dp->disp[s->impl].dpy, s->surface);
+    }
+    return setError(EGL_BAD_DISPLAY, (EGLClientBuffer*)0);
 }

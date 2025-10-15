@@ -35,57 +35,6 @@ namespace v8 {
 namespace internal {
 
 // ----------------------------------------------------------------------------
-// Implementation UseCount.
-
-UseCount::UseCount()
-  : nreads_(0),
-    nwrites_(0) {
-}
-
-
-void UseCount::RecordRead(int weight) {
-  ASSERT(weight > 0);
-  nreads_ += weight;
-  // We must have a positive nreads_ here. Handle
-  // any kind of overflow by setting nreads_ to
-  // some large-ish value.
-  if (nreads_ <= 0) nreads_ = 1000000;
-  ASSERT(is_read() & is_used());
-}
-
-
-void UseCount::RecordWrite(int weight) {
-  ASSERT(weight > 0);
-  nwrites_ += weight;
-  // We must have a positive nwrites_ here. Handle
-  // any kind of overflow by setting nwrites_ to
-  // some large-ish value.
-  if (nwrites_ <= 0) nwrites_ = 1000000;
-  ASSERT(is_written() && is_used());
-}
-
-
-void UseCount::RecordAccess(int weight) {
-  RecordRead(weight);
-  RecordWrite(weight);
-}
-
-
-void UseCount::RecordUses(UseCount* uses) {
-  if (uses->nreads() > 0) RecordRead(uses->nreads());
-  if (uses->nwrites() > 0) RecordWrite(uses->nwrites());
-}
-
-
-#ifdef DEBUG
-void UseCount::Print() {
-  // PrintF("r = %d, w = %d", nreads_, nwrites_);
-  PrintF("%du = %dr + %dw", nuses(), nreads(), nwrites());
-}
-#endif
-
-
-// ----------------------------------------------------------------------------
 // Implementation StaticType.
 
 
@@ -121,18 +70,19 @@ const char* Variable::Mode2String(Mode mode) {
 }
 
 
-Property* Variable::AsProperty() {
+Property* Variable::AsProperty() const {
   return rewrite_ == NULL ? NULL : rewrite_->AsProperty();
 }
 
 
-Variable* Variable::AsVariable()  {
-  return rewrite_ == NULL || rewrite_->AsSlot() != NULL ? this : NULL;
+Slot* Variable::AsSlot() const {
+  return rewrite_ == NULL ? NULL : rewrite_->AsSlot();
 }
 
 
-Slot* Variable::slot() const {
-  return rewrite_ != NULL ? rewrite_->AsSlot() : NULL;
+bool Variable::IsStackAllocated() const {
+  Slot* slot = AsSlot();
+  return slot != NULL && slot->IsStackAllocated();
 }
 
 
@@ -148,6 +98,7 @@ Variable::Variable(Scope* scope,
     kind_(kind),
     local_if_not_shadowed_(NULL),
     is_accessed_from_inner_scope_(false),
+    is_used_(false),
     rewrite_(NULL) {
   // names must be canonicalized for fast equality checks
   ASSERT(name->IsSymbol());

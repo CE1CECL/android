@@ -35,6 +35,14 @@ OMXCORE_CFLAGS += -D_ENABLE_QC_MSG_LOG_
 
 ifeq ($(TARGET_BOARD_PLATFORM),msm7x30)
     MM_CORE_TARGET = 7630
+else ifeq ($(TARGET_BOARD_PLATFORM),qsd8k)
+    MM_CORE_TARGET = 8250
+else ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
+    ifeq ($(TARGET_ARCH_VARIANT),armv6-vfp)
+        MM_CORE_TARGET = 7627
+    else
+        MM_CORE_TARGET = 7625
+    endif
 else
     $(error Unsupported target platform $(TARGET_BOARD_PLATFORM))
 endif
@@ -68,6 +76,7 @@ LOCAL_COPY_HEADERS      += inc/QOMX_AudioIndexExtensions.h
 LOCAL_C_INCLUDES        := $(LOCAL_PATH)/src/common
 LOCAL_C_INCLUDES        += $(LOCAL_PATH)/inc
 LOCAL_MODULE            := libOmxCore
+LOCAL_MODULE_TAGS       := optional
 LOCAL_SHARED_LIBRARIES  := liblog libdl
 LOCAL_CFLAGS            := $(OMXCORE_CFLAGS)
 
@@ -86,6 +95,7 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES        := $(LOCAL_PATH)/src/common
 LOCAL_C_INCLUDES        += $(LOCAL_PATH)/inc
 LOCAL_MODULE            := libmm-omxcore
+LOCAL_MODULE_TAGS       := optional
 LOCAL_SHARED_LIBRARIES  := liblog libdl
 LOCAL_CFLAGS            := $(OMXCORE_CFLAGS)
 

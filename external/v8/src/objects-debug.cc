@@ -30,6 +30,7 @@
 #include "disassembler.h"
 #include "disasm.h"
 #include "jsregexp.h"
+#include "objects-visiting.h"
 
 namespace v8 {
 namespace internal {
@@ -39,31 +40,37 @@ namespace internal {
 static const char* TypeToString(InstanceType type);
 
 
-void Object::Print() {
-  if (IsSmi()) {
-    Smi::cast(this)->SmiPrint();
-  } else if (IsFailure()) {
-    Failure::cast(this)->FailurePrint();
+void MaybeObject::Print() {
+  Object* this_as_object;
+  if (ToObject(&this_as_object)) {
+    if (this_as_object->IsSmi()) {
+      Smi::cast(this_as_object)->SmiPrint();
+    } else {
+      HeapObject::cast(this_as_object)->HeapObjectPrint();
+    }
   } else {
-    HeapObject::cast(this)->HeapObjectPrint();
+    Failure::cast(this)->FailurePrint();
   }
   Flush();
 }
 
 
-void Object::PrintLn() {
+void MaybeObject::PrintLn() {
   Print();
   PrintF("\n");
 }
 
 
-void Object::Verify() {
-  if (IsSmi()) {
-    Smi::cast(this)->SmiVerify();
-  } else if (IsFailure()) {
-    Failure::cast(this)->FailureVerify();
+void MaybeObject::Verify() {
+  Object* this_as_object;
+  if (ToObject(&this_as_object)) {
+    if (this_as_object->IsSmi()) {
+      Smi::cast(this_as_object)->SmiVerify();
+    } else {
+      HeapObject::cast(this_as_object)->HeapObjectVerify();
+    }
   } else {
-    HeapObject::cast(this)->HeapObjectVerify();
+    Failure::cast(this)->FailureVerify();
   }
 }
 
@@ -88,7 +95,7 @@ void Failure::FailureVerify() {
 
 
 void HeapObject::PrintHeader(const char* id) {
-  PrintF("%p: [%s]\n", this, id);
+  PrintF("%p: [%s]\n", reinterpret_cast<void*>(this), id);
 }
 
 
@@ -521,9 +528,9 @@ void JSObject::PrintElements() {
 
 
 void JSObject::JSObjectPrint() {
-  PrintF("%p: [JSObject]\n", this);
-  PrintF(" - map = %p\n", map());
-  PrintF(" - prototype = %p\n", GetPrototype());
+  PrintF("%p: [JSObject]\n", reinterpret_cast<void*>(this));
+  PrintF(" - map = %p\n", reinterpret_cast<void*>(map()));
+  PrintF(" - prototype = %p\n", reinterpret_cast<void*>(GetPrototype()));
   PrintF(" {\n");
   PrintProperties();
   PrintElements();
@@ -539,6 +546,10 @@ void JSObject::JSObjectVerify() {
              (map()->inobject_properties() + properties()->length() -
               map()->NextFreePropertyIndex()));
   }
+  ASSERT(map()->has_fast_elements() ==
+         (elements()->map() == Heap::fixed_array_map() ||
+          elements()->map() == Heap::fixed_cow_array_map()));
+  ASSERT(map()->has_fast_elements() == HasFastElements());
 }
 
 
@@ -552,12 +563,14 @@ static const char* TypeToString(InstanceType type) {
     case CONS_SYMBOL_TYPE: return "CONS_SYMBOL";
     case CONS_ASCII_SYMBOL_TYPE: return "CONS_ASCII_SYMBOL";
     case EXTERNAL_ASCII_SYMBOL_TYPE:
+    case EXTERNAL_SYMBOL_WITH_ASCII_DATA_TYPE:
     case EXTERNAL_SYMBOL_TYPE: return "EXTERNAL_SYMBOL";
     case ASCII_STRING_TYPE: return "ASCII_STRING";
     case STRING_TYPE: return "TWO_BYTE_STRING";
     case CONS_STRING_TYPE:
     case CONS_ASCII_STRING_TYPE: return "CONS_STRING";
     case EXTERNAL_ASCII_STRING_TYPE:
+    case EXTERNAL_STRING_WITH_ASCII_DATA_TYPE:
     case EXTERNAL_STRING_TYPE: return "EXTERNAL_STRING";
     case FIXED_ARRAY_TYPE: return "FIXED_ARRAY";
     case BYTE_ARRAY_TYPE: return "BYTE_ARRAY";
@@ -634,10 +647,41 @@ void Map::MapPrint() {
 void Map::MapVerify() {
   ASSERT(!Heap::InNewSpace(this));
   ASSERT(FIRST_TYPE <= instance_type() && instance_type() <= LAST_TYPE);
-  ASSERT(kPointerSize <= instance_size()
-         && instance_size() < Heap::Capacity());
+  ASSERT(instance_size() == kVariableSizeSentinel ||
+         (kPointerSize <= instance_size() &&
+          instance_size() < Heap::Capacity()));
   VerifyHeapPointer(prototype());
   VerifyHeapPointer(instance_descriptors());
+}
+
+
+void Map::SharedMapVerify() {
+  MapVerify();
+  ASSERT(is_shared());
+  ASSERT_EQ(Heap::empty_descriptor_array(), instance_descriptors());
+  ASSERT_EQ(Heap::empty_fixed_array(), code_cache());
+  ASSERT_EQ(0, pre_allocated_property_fields());
+  ASSERT_EQ(0, unused_property_fields());
+  ASSERT_EQ(StaticVisitorBase::GetVisitorId(instance_type(), instance_size()),
+      visitor_id());
+}
+
+
+void CodeCache::CodeCachePrint() {
+  HeapObject::PrintHeader("CodeCache");
+  PrintF("\n - default_cache: ");
+  default_cache()->ShortPrint();
+  PrintF("\n - normal_type_cache: ");
+  normal_type_cache()->ShortPrint();
+}
+
+
+void CodeCache::CodeCacheVerify() {
+  VerifyHeapPointer(default_cache());
+  VerifyHeapPointer(normal_type_cache());
+  ASSERT(default_cache()->IsFixedArray());
+  ASSERT(normal_type_cache()->IsUndefined()
+         || normal_type_cache()->IsCodeCacheHashTable());
 }
 
 
@@ -706,8 +750,7 @@ void String::StringVerify() {
 
 void JSFunction::JSFunctionPrint() {
   HeapObject::PrintHeader("Function");
-  PrintF(" - map = 0x%p\n", map());
-  PrintF(" - is boilerplate: %s\n", IsBoilerplate() ? "yes" : "no");
+  PrintF(" - map = 0x%p\n", reinterpret_cast<void*>(map()));
   PrintF(" - initial_map = ");
   if (has_initial_map()) {
     initial_map()->ShortPrint();
@@ -767,8 +810,9 @@ void SharedFunctionInfo::SharedFunctionInfoVerify() {
   CHECK(IsSharedFunctionInfo());
   VerifyObjectField(kNameOffset);
   VerifyObjectField(kCodeOffset);
+  VerifyObjectField(kScopeInfoOffset);
   VerifyObjectField(kInstanceClassNameOffset);
-  VerifyObjectField(kExternalReferenceDataOffset);
+  VerifyObjectField(kFunctionDataOffset);
   VerifyObjectField(kScriptOffset);
   VerifyObjectField(kDebugInfoOffset);
 }
@@ -789,7 +833,8 @@ void JSGlobalProxy::JSGlobalProxyVerify() {
   VerifyObjectField(JSGlobalProxy::kContextOffset);
   // Make sure that this object has no properties, elements.
   CHECK_EQ(0, properties()->length());
-  CHECK_EQ(0, elements()->length());
+  CHECK(HasFastElements());
+  CHECK_EQ(0, FixedArray::cast(elements())->length());
 }
 
 
@@ -866,7 +911,7 @@ void Code::CodePrint() {
 
 void Code::CodeVerify() {
   CHECK(IsAligned(reinterpret_cast<intptr_t>(instruction_start()),
-                  static_cast<intptr_t>(kCodeAlignment)));
+                  kCodeAlignment));
   Address last_gc_pc = NULL;
   for (RelocIterator it(this); !it.done(); it.next()) {
     it.rinfo()->Verify();
@@ -937,7 +982,6 @@ void AccessorInfo::AccessorInfoVerify() {
   VerifyPointer(name());
   VerifyPointer(data());
   VerifyPointer(flag());
-  VerifyPointer(load_stub_cache());
 }
 
 void AccessorInfo::AccessorInfoPrint() {
@@ -1009,6 +1053,7 @@ void CallHandlerInfo::CallHandlerInfoPrint() {
   callback()->ShortPrint();
   PrintF("\n - data: ");
   data()->ShortPrint();
+  PrintF("\n - call_stub_cache: ");
 }
 
 void TemplateInfo::TemplateInfoVerify() {
@@ -1185,9 +1230,9 @@ void BreakPointInfo::BreakPointInfoVerify() {
 
 void BreakPointInfo::BreakPointInfoPrint() {
   HeapObject::PrintHeader("BreakPointInfo");
-  PrintF("\n - code_position: %d", code_position());
-  PrintF("\n - source_position: %d", source_position());
-  PrintF("\n - statement_position: %d", statement_position());
+  PrintF("\n - code_position: %d", code_position()->value());
+  PrintF("\n - source_position: %d", source_position()->value());
+  PrintF("\n - statement_position: %d", statement_position()->value());
   PrintF("\n - break_point_objects: ");
   break_point_objects()->ShortPrint();
 }
@@ -1308,6 +1353,47 @@ bool DescriptorArray::IsSortedNoDuplicates() {
     current = hash;
   }
   return true;
+}
+
+
+void JSFunctionResultCache::JSFunctionResultCacheVerify() {
+  JSFunction::cast(get(kFactoryIndex))->Verify();
+
+  int size = Smi::cast(get(kCacheSizeIndex))->value();
+  ASSERT(kEntriesIndex <= size);
+  ASSERT(size <= length());
+  ASSERT_EQ(0, size % kEntrySize);
+
+  int finger = Smi::cast(get(kFingerIndex))->value();
+  ASSERT(kEntriesIndex <= finger);
+  ASSERT(finger < size || finger == kEntriesIndex);
+  ASSERT_EQ(0, finger % kEntrySize);
+
+  if (FLAG_enable_slow_asserts) {
+    for (int i = kEntriesIndex; i < size; i++) {
+      ASSERT(!get(i)->IsTheHole());
+      get(i)->Verify();
+    }
+    for (int i = size; i < length(); i++) {
+      ASSERT(get(i)->IsTheHole());
+      get(i)->Verify();
+    }
+  }
+}
+
+
+void NormalizedMapCache::NormalizedMapCacheVerify() {
+  FixedArray::cast(this)->Verify();
+  if (FLAG_enable_slow_asserts) {
+    for (int i = 0; i < length(); i++) {
+      Object* e = get(i);
+      if (e->IsMap()) {
+        Map::cast(e)->SharedMapVerify();
+      } else {
+        ASSERT(e->IsUndefined());
+      }
+    }
+  }
 }
 
 

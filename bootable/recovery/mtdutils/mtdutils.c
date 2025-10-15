@@ -28,13 +28,6 @@
 
 #include "mtdutils.h"
 
-struct MtdPartition {
-    int device_index;
-    unsigned int size;
-    unsigned int erase_size;
-    char *name;
-};
-
 struct MtdReadContext {
     const MtdPartition *partition;
     char *buffer;
@@ -345,7 +338,7 @@ ssize_t mtd_read_data(MtdReadContext *ctx, char *data, size_t len)
             read += ctx->partition->erase_size;
         }
 
-        if (read >= len) {
+        if (read >= (int)len) {
             return read;
         }
 
@@ -413,6 +406,11 @@ static int write_block(MtdWriteContext *ctx, const char *data)
     if (pos == (off_t) -1) return 1;
 
     ssize_t size = partition->erase_size;
+
+    char *verify = malloc(size);
+    if (verify == NULL)
+        return 1;
+
     while (pos + size <= (int) partition->size) {
         loff_t bpos = pos;
         int ret = ioctl(fd, MEMGETBADBLOCK, &bpos);
@@ -441,7 +439,6 @@ static int write_block(MtdWriteContext *ctx, const char *data)
                         pos, strerror(errno));
             }
 
-            char verify[size];
             if (lseek(fd, pos, SEEK_SET) != pos ||
                 read(fd, verify, size) != size) {
                 fprintf(stderr, "mtd: re-read error at 0x%08lx (%s)\n",
@@ -458,6 +455,7 @@ static int write_block(MtdWriteContext *ctx, const char *data)
                 fprintf(stderr, "mtd: wrote block after %d retries\n", retry);
             }
             fprintf(stderr, "mtd: successfully wrote block at %llx\n", pos);
+            free(verify);
             return 0;  // Success!
         }
 
@@ -467,6 +465,8 @@ static int write_block(MtdWriteContext *ctx, const char *data)
         ioctl(fd, MEMERASE, &erase_info);
         pos += partition->erase_size;
     }
+
+    free(verify);
 
     // Ran out of space on the device
     errno = ENOSPC;
@@ -568,4 +568,279 @@ off_t mtd_find_write_start(MtdWriteContext *ctx, off_t pos) {
         }
     }
     return pos;
+}
+
+#define BLOCK_SIZE    2048
+#define SPARE_SIZE    (BLOCK_SIZE >> 5)
+#define HEADER_SIZE 2048
+
+int cmd_mtd_restore_raw_partition(const char *partition_name, const char *filename)
+{
+    const MtdPartition *ptn;
+    MtdWriteContext *write;
+    void *data;
+    unsigned sz;
+
+    if (mtd_scan_partitions() <= 0)
+    {
+        printf("error scanning partitions");
+        return -1;
+    }
+    const MtdPartition *partition = mtd_find_partition_by_name(partition_name);
+    if (partition == NULL)
+    {
+        printf("can't find %s partition", partition_name);
+        return -1;
+    }
+
+    int fd = open(filename, O_RDONLY);
+    if (fd < 0)
+    {
+        printf("error opening %s", filename);
+        return -1;
+    }
+
+    char header[HEADER_SIZE];
+    int headerlen = read(fd, header, sizeof(header));
+    if (headerlen <= 0)
+    {
+        printf("error reading %s header", filename);
+        return -1;
+    }
+
+    // Skip the header (we'll come back to it), write everything else
+    printf("flashing %s from %s\n", partition_name, filename);
+
+    MtdWriteContext *out = mtd_write_partition(partition);
+    if (out == NULL)
+    {
+       printf("error writing %s", partition_name);
+       return -1;
+    }
+
+    char buf[HEADER_SIZE];
+    memset(buf, 0, headerlen);
+    int wrote = mtd_write_data(out, buf, headerlen);
+    if (wrote != headerlen)
+    {
+        printf("error writing %s", partition_name);
+        return -1;
+    }
+
+    int len;
+    while ((len = read(fd, buf, sizeof(buf))) > 0) {
+        wrote = mtd_write_data(out, buf, len);
+        if (wrote != len)
+        {
+            printf("error writing %s", partition_name);
+            return -1;
+        }
+    }
+    if (len < 0)
+    {
+       printf("error reading %s", filename);
+       return -1;
+    }
+
+    if (mtd_write_close(out))
+    {
+        printf("error closing %s", partition_name);
+        return -1;
+    }
+
+    // Now come back and write the header last
+
+    out = mtd_write_partition(partition);
+    if (out == NULL)
+    {
+        printf("error re-opening %s", partition_name);
+        return -1;
+    }
+
+    wrote = mtd_write_data(out, header, headerlen);
+    if (wrote != headerlen)
+    {
+        printf("error re-writing %s", partition_name);
+        return -1;
+    }
+
+    // Need to write a complete block, so write the rest of the first block
+    size_t block_size;
+    if (mtd_partition_info(partition, NULL, &block_size, NULL))
+    {
+        printf("error getting %s block size", partition_name);
+        return -1;
+    }
+
+    if (lseek(fd, headerlen, SEEK_SET) != headerlen)
+    {
+        printf("error rewinding %s", filename);
+        return -1;
+    }
+
+    int left = block_size - headerlen;
+    while (left < 0) left += block_size;
+    while (left > 0) {
+        len = read(fd, buf, left > (int)sizeof(buf) ? (int)sizeof(buf) : left);
+        if (len == 0)
+            break;
+        if (len < 0){
+            printf("error reading %s", filename);
+            return -1;
+        }
+        if (mtd_write_data(out, buf, len) != len)
+        {
+            printf("error writing %s", partition_name);
+            return -1;
+        }
+
+        left -= len;
+    }
+
+    if (mtd_write_close(out))
+    {
+        printf("error closing %s", partition_name);
+        return -1;
+    }
+    return 0;
+}
+
+
+int cmd_mtd_backup_raw_partition(const char *partition_name, const char *filename)
+{
+    MtdReadContext *in;
+    const MtdPartition *partition;
+    char buf[BLOCK_SIZE + SPARE_SIZE];
+    size_t partition_size;
+    size_t read_size;
+    size_t total;
+    int fd;
+    int wrote;
+    int len;
+
+    if (mtd_scan_partitions() <= 0)
+    {
+        printf("error scanning partitions");
+        return -1;
+    }
+
+    partition = mtd_find_partition_by_name(partition_name);
+    if (partition == NULL)
+    {
+        printf("can't find %s partition", partition_name);
+        return -1;
+    }
+
+    if (mtd_partition_info(partition, &partition_size, NULL, NULL)) {
+        printf("can't get info of partition %s", partition_name);
+        return -1;
+    }
+
+    if (!strcmp(filename, "-")) {
+        fd = fileno(stdout);
+    }
+    else {
+        fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+    }
+
+    if (fd < 0)
+    {
+       printf("error opening %s", filename);
+       return -1;
+    }
+
+    in = mtd_read_partition(partition);
+    if (in == NULL) {
+        close(fd);
+        unlink(filename);
+        printf("error opening %s: %s\n", partition_name, strerror(errno));
+        return -1;
+    }
+
+    total = 0;
+    while ((len = mtd_read_data(in, buf, BLOCK_SIZE)) > 0) {
+        wrote = write(fd, buf, len);
+        if (wrote != len) {
+            close(fd);
+            unlink(filename);
+            printf("error writing %s", filename);
+            return -1;
+        }
+        total += BLOCK_SIZE;
+    }
+
+    mtd_read_close(in);
+
+    if (close(fd)) {
+        unlink(filename);
+        printf("error closing %s", filename);
+        return -1;
+    }
+    return 0;
+}
+
+int cmd_mtd_erase_raw_partition(const char *partition_name)
+{
+    MtdWriteContext *out;
+    size_t erased;
+    size_t total_size;
+    size_t erase_size;
+
+    if (mtd_scan_partitions() <= 0)
+    {
+        printf("error scanning partitions");
+        return -1;
+    }
+    const MtdPartition *p = mtd_find_partition_by_name(partition_name);
+    if (p == NULL)
+    {
+        printf("can't find %s partition", partition_name);
+        return -1;
+    }
+
+    out = mtd_write_partition(p);
+    if (out == NULL)
+    {
+        printf("could not estabilish write context for %s", partition_name);
+        return -1;
+    }
+
+    // do the actual erase, -1 = full partition erase
+    erased = mtd_erase_blocks(out, -1);
+
+    // erased = bytes erased, if zero, something borked
+    if (!erased)
+    {
+        printf("error erasing %s", partition_name);
+        return -1;
+    }
+
+    return 0;
+}
+
+int cmd_mtd_erase_partition(const char *partition, const char *filesystem)
+{
+    return cmd_mtd_erase_raw_partition(partition);
+}
+
+
+int cmd_mtd_mount_partition(const char *partition, const char *mount_point, const char *filesystem, int read_only)
+{
+    mtd_scan_partitions();
+    const MtdPartition *p;
+    p = mtd_find_partition_by_name(partition);
+    if (p == NULL) {
+        return -1;
+    }
+    return mtd_mount_partition(p, mount_point, filesystem, read_only);
+}
+
+int cmd_mtd_get_partition_device(const char *partition, char *device)
+{
+    mtd_scan_partitions();
+    MtdPartition *p = mtd_find_partition_by_name(partition);
+    if (p == NULL)
+        return -1;
+    sprintf(device, "/dev/block/mtdblock%d", p->device_index);
+    return 0;
 }

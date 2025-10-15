@@ -194,6 +194,7 @@ public class EasSyncService extends AbstractSyncService {
     public String mHostAddress;
     public String mUserName;
     public String mPassword;
+    public int mPort;
     private boolean mSsl = true;
     private boolean mTrustSsl = false;
     public ContentResolver mContentResolver;
@@ -395,6 +396,7 @@ public class EasSyncService extends AbstractSyncService {
             svc.mHostAddress = hostAddress;
             svc.mUserName = userName;
             svc.mPassword = password;
+            svc.mPort = port;
             svc.mSsl = ssl;
             svc.mTrustSsl = trustCertificates;
             // We mustn't use the "real" device id or we'll screw up current accounts
@@ -801,6 +803,7 @@ public class EasSyncService extends AbstractSyncService {
                 svc.mHostAddress = ha.mAddress;
                 svc.mUserName = ha.mLogin;
                 svc.mPassword = ha.mPassword;
+                svc.mPort = ha.mPort;
                 svc.mSsl = (ha.mFlags & HostAuth.FLAG_SSL) != 0;
                 svc.mTrustSsl = (ha.mFlags & HostAuth.FLAG_TRUST_ALL_CERTIFICATES) != 0;
                 svc.mDeviceId = SyncManager.getDeviceId();
@@ -1102,6 +1105,7 @@ public class EasSyncService extends AbstractSyncService {
             cacheAuthAndCmdString();
         }
         String us = (mSsl ? (mTrustSsl ? "httpts" : "https") : "http") + "://" + mHostAddress +
+            ((mPort > 0) ? ":" + Long.toString(mPort) : "") +
             "/Microsoft-Server-ActiveSync";
         if (cmd != null) {
             us += "?Cmd=" + cmd + mCmdString;
@@ -1857,6 +1861,11 @@ public class EasSyncService extends AbstractSyncService {
                         // internal error, so let's not throw an exception (which leads to delays)
                         // but rather simply run through the loop again
                     } else {
+                        // Make sure we release the previously acquired wake lock otherwise we end up
+                        // in possible battery drain as explained at http://code.google.com/p/android/issues/detail?id=9307
+                        // comment #122
+                        SyncManager.runAsleep(mMailboxId, 0);
+
                         throw e;
                     }
                 }
@@ -2004,6 +2013,38 @@ public class EasSyncService extends AbstractSyncService {
         }
         return filter;
     }
+    // Create a string getCalFilter() which uses the same Eas.FILTER as Email. 
+    // Not all sync windows allowed for calendar, so limited to 2 weeks, 1 month, and all
+    private String getCalFilter() {
+        String filter = Eas.FILTER_2_WEEKS;
+        switch (mAccount.mSyncLookback) {
+            case com.android.email.Account.SYNC_WINDOW_1_DAY: {
+                filter = Eas.FILTER_2_WEEKS;
+                break;
+            }
+            case com.android.email.Account.SYNC_WINDOW_3_DAYS: {
+                filter = Eas.FILTER_2_WEEKS;
+                break;
+            }
+            case com.android.email.Account.SYNC_WINDOW_1_WEEK: {
+                filter = Eas.FILTER_2_WEEKS;
+                break;
+            }
+            case com.android.email.Account.SYNC_WINDOW_2_WEEKS: {
+                filter = Eas.FILTER_2_WEEKS;
+                break;
+            }
+            case com.android.email.Account.SYNC_WINDOW_1_MONTH: {
+                filter = Eas.FILTER_1_MONTH;
+                break;
+            }
+            case com.android.email.Account.SYNC_WINDOW_ALL: {
+                filter = Eas.FILTER_ALL;
+                break;
+            }
+        }
+        return filter;
+    }
 
     /**
      * Common code to sync E+PIM data
@@ -2085,8 +2126,7 @@ public class EasSyncService extends AbstractSyncService {
                 if (className.equals("Email")) {
                     s.data(Tags.SYNC_FILTER_TYPE, getEmailFilter());
                 } else if (className.equals("Calendar")) {
-                    // TODO Force two weeks for calendar until we can set this!
-                    s.data(Tags.SYNC_FILTER_TYPE, Eas.FILTER_2_WEEKS);
+                    s.data(Tags.SYNC_FILTER_TYPE, getCalFilter());
                 }
                 // Set the truncation amount for all classes
                 if (mProtocolVersionDouble >= Eas.SUPPORTED_PROTOCOL_EX2007_DOUBLE) {
@@ -2161,6 +2201,7 @@ public class EasSyncService extends AbstractSyncService {
         mHostAddress = ha.mAddress;
         mUserName = ha.mLogin;
         mPassword = ha.mPassword;
+        mPort = ha.mPort;
 
         // Set up our protocol version from the Account
         mProtocolVersion = mAccount.mProtocolVersion;

@@ -296,4 +296,19 @@
     <string name="website_settings_clear_all_dialog_ok_button" msgid="6401582240627669431">"すべてのデータを削除"</string>
     <string name="website_settings_clear_all_dialog_cancel_button" msgid="1896757051856611674">"キャンセル"</string>
     <string name="progress_dialog_setting_wallpaper" msgid="4871900779338536674">"壁紙を設定中..."</string>
+
+    <!-- Extra settings -->
+    <string name="pref_show_zoom_controls">"ズームボタンの表示"</string>
+    <string name="pref_content_invert_color">色反転</string>
+    <string name="pref_content_invert_color_summary">色を反転させてページを表示</string>
+    <string name="pref_full_screen_mode">フルスクリーン</string>
+    <string name="incog_tab">シークレットモード有効</string>
+    <string name="dis_incog_tab">シークレットモード無効</string>
+    <string name="pref_select_user_agent">ユーザーエージェント</string>
+
+    <string name="error_console_header_text_minimized">JavaScriptコンソールを表示</string>
+    <string name="error_console_header_text_maximized">JavaScriptコンソール</string>
+    <string name="error_console_eval_text_hint">JavaScriptを評価</string>
+    <string name="error_console_eval_button_text">評価</string>
+
 </resources>

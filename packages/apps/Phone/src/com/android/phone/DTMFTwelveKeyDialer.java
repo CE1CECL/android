@@ -462,11 +462,20 @@ public class DTMFTwelveKeyDialer implements
      */
     /* package */ void clearInCallScreenReference() {
         if (DBG) log("clearInCallScreenReference()...");
+        closeDialer(false);
         mInCallScreen = null;
         mDialerKeyListener = null;
         if (mDialerDrawer != null) {
             mDialerDrawer.setOnDrawerOpenListener(null);
             mDialerDrawer.setOnDrawerCloseListener(null);
+        }
+        if (mDialpadDigits != null) {
+            mDialpadDigits.setKeyListener(null);
+            mDialpadDigits = null;
+        }
+        if (mDialerView != null) {
+            mDialerView.setDialer(null);
+            mDialerView = null;
         }
         if (mCM.getFgPhone().getPhoneType() == Phone.PHONE_TYPE_CDMA) {
             mHandler.removeMessages(DTMF_SEND_CNF);
@@ -475,7 +484,6 @@ public class DTMFTwelveKeyDialer implements
                 mDTMFQueue.clear();
             }
         }
-        closeDialer(false);
     }
 
     /**
@@ -1021,6 +1029,7 @@ public class DTMFTwelveKeyDialer implements
                 mDTMFQueue.add(new Character(dtmfDigit));
             } else {
                 String dtmfStr = Character.toString(dtmfDigit);
+                Log.i(LOG_TAG, "dtmfsent = " + dtmfStr);
                 mCM.sendBurstDtmf(dtmfStr, 0, 0, mHandler.obtainMessage(DTMF_SEND_CNF));
                 // Set flag to indicate wait for Telephony confirmation.
                 mDTMFBurstCnfPending = true;

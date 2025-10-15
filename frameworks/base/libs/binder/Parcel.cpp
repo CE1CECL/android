@@ -17,6 +17,7 @@
 #define LOG_TAG "Parcel"
 //#define LOG_NDEBUG 0
 
+#define _INTERNAL_BINDER_PARCEL_
 #include <binder/Parcel.h>
 
 #include <binder/IPCThreadState.h>
@@ -452,9 +453,15 @@ status_t Parcel::writeInterfaceToken(const String16& interface)
     return writeString16(interface);
 }
 
+bool Parcel::enforceInterface(const String16& interface) const
+{
+	return enforceInterface(interface,NULL);
+}
+
+
 bool Parcel::checkInterface(IBinder* binder) const
 {
-    return enforceInterface(binder->getInterfaceDescriptor());
+    return enforceInterface(binder->getInterfaceDescriptor(),NULL);
 }
 
 bool Parcel::enforceInterface(const String16& interface,
@@ -619,7 +626,10 @@ status_t Parcel::writeCString(const char* str)
 status_t Parcel::writeString8(const String8& str)
 {
     status_t err = writeInt32(str.bytes());
-    if (err == NO_ERROR) {
+    // only write string if its length is more than zero characters,
+    // as readString8 will only read if the length field is non-zero.
+    // this is slightly different from how writeString16 works.
+    if (str.bytes() > 0 && err == NO_ERROR) {
         err = write(str.string(), str.bytes()+1);
     }
     return err;

@@ -39,7 +39,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
-
+    <!-- Grant permission to system apps to access receiver -->
+    <permission android:name="android.permission.MMS_PUSH"
+                android:protectionLevel="signatureOrSystem"
+                android:label="@string/label_mms_push"
+                android:description="@string/desc_mms_push"/>
+    <uses-permission android:name="android.permission.MMS_PUSH"/>
     <application android:name="MmsApp"
             android:label="@string/app_label"
             android:icon="@drawable/ic_launcher_smsmms"
@@ -98,6 +103,11 @@
                 <data android:scheme="mms" />
                 <data android:scheme="mmsto" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEARCH_LONG_PRESS"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
            <intent-filter>
                <action android:name="android.intent.action.SEND" />
                <category android:name="android.intent.category.DEFAULT" />
@@ -118,6 +128,9 @@
                <category android:name="android.intent.category.DEFAULT" />
                <data android:mimeType="*/*" />
            </intent-filter>
+           <intent-filter>
+                <action android:name="android.intent.action.PHONE_GOGGLES_COMMUNICATION" />
+            </intent-filter>
         </activity>
 
         <activity-alias android:name=".ui.ForwardMessageActivity"
@@ -179,6 +192,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <receiver android:name=".transaction.MmsSystemPushMsgReceiver"
+                  android:permission="android.permission.MMS_PUSH">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MMS_PUSH" />
+                  </intent-filter>
+	</receiver>
 
         <activity android:name=".ui.ManageSimMessages"
                   android:launchMode="singleTop"
@@ -262,6 +282,14 @@
                     android:pathPrefix="/search_suggest_shortcut"
                     android:readPermission="android.permission.GLOBAL_SEARCH" />
         </provider>
+
+        <activity android:name=".templates.TemplatesListActivity"
+            android:label="@string/template_list_title">
+        </activity>
+
+        <activity android:name=".templates.TemplateEditor"
+            android:label="@string/template_new_title">
+        </activity>
 
     </application>
 </manifest>

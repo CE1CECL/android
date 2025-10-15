@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +59,11 @@ final class WebViewCore {
         // Load libwebcore during static initialization. This happens in the
         // zygote process so it will be shared read-only across all app
         // processes.
-        System.loadLibrary("webcore");
+        try {
+            System.loadLibrary("webcore");
+        } catch (UnsatisfiedLinkError e) {
+            Log.e(LOGTAG, "Unable to load webcore library");
+        }
     }
 
     /*
@@ -139,6 +144,9 @@ final class WebViewCore {
         // subwindow creation.
         mContext = context;
 
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG, "Creating WebViewCore instance");
+
         // We need to wait for the initial thread creation before sending
         // a message to the WebCore thread.
         // XXX: This is the only time the UI thread will wait for the WebCore
@@ -179,6 +187,8 @@ final class WebViewCore {
     /* Initialize private data within the WebCore thread.
      */
     private void initialize() {
+        if (DebugFlags.WEB_VIEW_CORE)
+             Log.v(LOGTAG, " Initializing WebViewCore");
         /* Initialize our private BrowserFrame class to handle all
          * frame-related functions. We need to create a new view which
          * in turn creates a C level FrameView and attaches it to the frame.
@@ -198,6 +208,8 @@ final class WebViewCore {
         // WebCore thread handler.
         mEventHub.transferMessages();
 
+        DnsResolver.createDnsResolver();
+
         // Send a message back to WebView to tell it that we have set up the
         // WebCore thread.
         if (mWebView != null) {
@@ -205,6 +217,8 @@ final class WebViewCore {
                     WebView.WEBCORE_INITIALIZED_MSG_ID,
                     mNativeClass, 0).sendToTarget();
         }
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG,"WebViewCore Init complete");
 
     }
 
@@ -530,6 +544,8 @@ final class WebViewCore {
 
     private native void nativeSetBackgroundColor(int color);
 
+    private native void nativeSetColorInversion(boolean invert);
+
     private native void nativeDumpDomTree(boolean useFile);
 
     private native void nativeDumpRenderTree(boolean useFile);
@@ -779,6 +795,7 @@ final class WebViewCore {
             "ON_RESUME",    // = 144
             "FREE_MEMORY",  // = 145
             "VALID_NODE_BOUNDS", // = 146
+            "START_DNS_PREFETCH",  // = 151
         };
 
     class EventHub {
@@ -847,6 +864,7 @@ final class WebViewCore {
 
         // Network-based messaging
         static final int CLEAR_SSL_PREF_TABLE = 150;
+        static final int START_DNS_PREFETCH = 151;
 
         // Test harness messages
         static final int REQUEST_EXT_REPRESENTATION = 160;
@@ -952,6 +970,10 @@ final class WebViewCore {
                             break;
 
                         case LOAD_URL: {
+                            /* At this stage, DNS resolver should have been created. Check is safeguard
+                               against someone calling DNS resolver without creating DNS resolver */
+                            if(DnsResolver.getInstance() != null)
+                                DnsResolver.getInstance().pauseDnsResolverThreadPool();
                             GetUrlData param = (GetUrlData) msg.obj;
                             loadUrl(param.mUrl, param.mExtraHeaders);
                             break;
@@ -1008,6 +1030,10 @@ final class WebViewCore {
                             break;
 
                         case RELOAD:
+                            /* At this stage, DNS resolver should have been created. Check is safeguard
+                               against someone calling DNS resolver without creating DNS resolver */
+                            if(DnsResolver.getInstance() != null)
+                                DnsResolver.getInstance().pauseDnsResolverThreadPool();
                             mBrowserFrame.reload(false);
                             break;
 
@@ -1051,6 +1077,10 @@ final class WebViewCore {
                             if (!mBrowserFrame.committed() && msg.arg1 == -1 &&
                                     (mBrowserFrame.loadType() ==
                                     BrowserFrame.FRAME_LOADTYPE_STANDARD)) {
+                                /* At this stage, DNS resolver should have been created. Check is safeguard
+                                   against someone calling DNS resolver without creating DNS resolver */
+                                if(DnsResolver.getInstance() != null)
+                                    DnsResolver.getInstance().pauseDnsResolverThreadPool();
                                 mBrowserFrame.reload(true);
                             } else {
                                 mBrowserFrame.goBackOrForward(msg.arg1);
@@ -1365,6 +1395,10 @@ final class WebViewCore {
                             BrowserFrame.sJavaBridge.removePackageName(
                                     (String) msg.obj);
                             break;
+
+                        case START_DNS_PREFETCH:
+                            mBrowserFrame.startDnsPrefetch();
+                            break;
                     }
                 }
             };
@@ -1534,6 +1568,8 @@ final class WebViewCore {
         // We don't want anyone to post a message between removing pending
         // messages and sending the destroy message.
         synchronized (mEventHub) {
+             if (DebugFlags.WEB_VIEW_CORE)
+                 Log.v(LOGTAG, "Destroying WebViewCore");
             // RESUME_TIMERS and PAUSE_TIMERS are per process base. They need to
             // be preserved even the WebView is destroyed.
             // Note: we should not have more than one RESUME_TIMERS/PAUSE_TIMERS
@@ -1552,6 +1588,13 @@ final class WebViewCore {
             }
             mEventHub.blockMessages();
         }
+        /* At this stage, DNS resolver should have been created. Check is safeguard
+           against someone calling destroy without creating DNS resolver */
+        if(DnsResolver.getInstance() != null)
+            DnsResolver.getInstance().destroyDnsResolver();
+
+        if (DebugFlags.WEB_VIEW_CORE)
+            Log.v(LOGTAG, "Destroyed WebViewCore");
     }
 
     //-------------------------------------------------------------------------
@@ -1661,7 +1704,8 @@ final class WebViewCore {
             // ensure {@link #webkitDraw} is called as we were blocking in
             // {@link #contentDraw} when mCurrentViewWidth is 0
             if (DebugFlags.WEB_VIEW_CORE) Log.v(LOGTAG, "viewSizeChanged");
-            contentDraw();
+            //we pass false as the parameter paintHeader to contentDraw since here we are not painting a cached header
+            contentDraw(false);
         }
         mEventHub.sendMessage(Message.obtain(null,
                 EventHub.UPDATE_CACHE_AND_TEXT_ENTRY));
@@ -1791,6 +1835,7 @@ final class WebViewCore {
             df = mScrollFilter;
         }
         canvas.setDrawFilter(df);
+        nativeSetColorInversion(mSettings.getInvertColor());
         boolean tookTooLong = nativeDrawContent(canvas, color);
         canvas.setDrawFilter(null);
         if (tookTooLong && mSplitPictureIsScheduled == false) {
@@ -1848,7 +1893,8 @@ final class WebViewCore {
                 core.mDrawIsPaused = false;
                 if (core.mDrawIsScheduled) {
                     core.mDrawIsScheduled = false;
-                    core.contentDraw();
+                    //we pass false as the parameter paintHeader to contentDraw since here we are not painting a cached header
+                    core.contentDraw(false);
                 }
             }
         }
@@ -1872,12 +1918,16 @@ final class WebViewCore {
     //-------------------------------------------------------------------------
 
     // called from JNI or WebView thread
-    /* package */ void contentDraw() {
+    /* package */ void contentDraw(boolean paintHeader) {
         // don't update the Picture until we have an initial width and finish
         // the first layout
-        if (mCurrentViewWidth == 0 || !mBrowserFrame.firstLayoutDone()) {
+
+        if (mCurrentViewWidth == 0)
             return;
-        }
+
+        if (!paintHeader && !mBrowserFrame.firstLayoutDone())
+            return;
+
         // only fire an event if this is our first request
         synchronized (this) {
             if (mDrawIsScheduled) return;
@@ -1962,7 +2012,7 @@ final class WebViewCore {
                 WebViewWorker.MSG_CACHE_TRANSACTION_TICKER);
         WebViewWorker.getHandler().sendEmptyMessage(
                 WebViewWorker.MSG_CACHE_TRANSACTION_TICKER);
-        contentDraw();
+        contentDraw(false);
     }
 
     /*  Called by JNI. The coordinates are in doc coordinates, so they need to

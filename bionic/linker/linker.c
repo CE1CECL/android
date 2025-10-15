@@ -53,7 +53,7 @@
 #include "ba.h"
 
 #define ALLOW_SYMBOLS_FROM_MAIN 1
-#define SO_MAX 96
+#define SO_MAX 128
 
 /* Assume average path length of 64 and max 8 paths */
 #define LDPATH_BUFSIZE 512
@@ -438,9 +438,16 @@ static unsigned elfhash(const char *_name)
     while(*name) {
         h = (h << 4) + *name++;
         g = h & 0xf0000000;
-        h ^= g;
+        /* The hash algorithm in the ELF ABI is as follows:
+         *   if (g != 0)
+         *       h ^=g >> 24;
+         *   h &= ~g;
+         * But we can use the equivalent and faster implementation:
+         */
         h ^= g >> 24;
     }
+    /* Lift the operation out of the inner loop */
+    h &= 0x0fffffff;
     return h;
 }
 

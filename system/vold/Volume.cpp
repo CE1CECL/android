@@ -19,6 +19,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -40,6 +41,7 @@
 #include "VolumeManager.h"
 #include "ResponseCode.h"
 #include "Fat.h"
+#include "Ntfs.h"
 #include "Process.h"
 
 extern "C" void dos_partition_dec(void const *pp, struct dos_partition *d);
@@ -104,6 +106,7 @@ static const char *stateToStr(int state) {
 }
 
 Volume::Volume(VolumeManager *vm, const char *label, const char *mount_point) {
+    char switchable[PROPERTY_VALUE_MAX];
     mVm = vm;
     mDebug = false;
     mLabel = strdup(label);
@@ -111,6 +114,29 @@ Volume::Volume(VolumeManager *vm, const char *label, const char *mount_point) {
     mState = Volume::State_Init;
     mCurrentlyMountedKdev = -1;
     mPartIdx = -1;
+
+    property_get("persist.sys.vold.switchexternal", switchable, "0");
+    if (!strcmp(switchable,"1")) {
+        char *first, *second = NULL;
+        const char *delim = ",";
+
+        property_get("ro.vold.switchablepair", switchable, "");
+
+        if (!(first = strtok(switchable, delim))) {
+            SLOGE("Mount switch requested, but no switchable mountpoints found");
+            return;
+        } else if (!(second = strtok(NULL, delim))) {
+            SLOGE("Mount switch requested, but bad switchable mountpoints found");
+            return;
+        }
+        if (!strcmp(mount_point,first)) {
+                free(mMountpoint);
+                mMountpoint = strdup(second);
+        } else if (!strcmp(mount_point,second)) {
+                free(mMountpoint);
+                mMountpoint = strdup(first);
+        }
+    }
 }
 
 Volume::~Volume() {
@@ -218,6 +244,7 @@ int Volume::formatVol() {
 
     setState(Volume::State_Formatting);
 
+    int ret = -1;
     // Only initialize the MBR if we are formatting the entire device
     if (formatEntireDevice) {
         sprintf(devicePath, "/dev/block/vold/%d:%d",
@@ -232,6 +259,15 @@ int Volume::formatVol() {
     sprintf(devicePath, "/dev/block/vold/%d:%d",
             MAJOR(partNode), MINOR(partNode));
 
+#ifdef VOLD_EMMC_SHARES_DEV_MAJOR
+    // If emmc and sdcard share dev major number, vold may pick
+    // incorrectly based on partition nodes alone, formatting
+    // the wrong device. Use device nodes instead.
+    dev_t deviceNodes;
+    getDeviceNodes((dev_t *) &deviceNodes, 1);
+    sprintf(devicePath, "/dev/block/vold/%d:%d", MAJOR(deviceNodes), MINOR(deviceNodes));
+#endif
+
     if (mDebug) {
         SLOGI("Formatting volume %s (%s)", getLabel(), devicePath);
     }
@@ -241,10 +277,11 @@ int Volume::formatVol() {
         goto err;
     }
 
-    setState(Volume::State_Idle);
-    return 0;
+    ret = 0;
+
 err:
-    return -1;
+    setState(Volume::State_Idle);
+    return ret;
 }
 
 bool Volume::isMountpointMounted(const char *path) {
@@ -316,16 +353,46 @@ int Volume::mountVol() {
         errno = 0;
         setState(Volume::State_Checking);
 
+        bool isFatFs = true;
         if (Fat::check(devicePath)) {
             if (errno == ENODATA) {
-                SLOGW("%s does not contain a FAT filesystem\n", devicePath);
-                continue;
+                SLOGW("%s does not contain a FAT or EXT4 filesystem\n", devicePath);
+                isFatFs = false;
+            } else {
+                errno = EIO;
+                /* Badness - abort the mount */
+                SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                setState(Volume::State_Idle);
+                return -1;
             }
-            errno = EIO;
-            /* Badness - abort the mount */
-            SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
-            setState(Volume::State_Idle);
-            return -1;
+        }
+
+        if (access(getMountpoint(), F_OK)) {
+            char *myMountpoint = strdup(getMountpoint());
+            if (!myMountpoint) {
+                SLOGE("Allocation failure while mounting %s", devicePath);
+                return -1;
+            }
+            if (*myMountpoint) {
+                if (mDebug) SLOGD("Mount point prepare for \"%s\"", myMountpoint);
+                char *slash = myMountpoint;
+                while (slash) {
+                    slash = strchr(slash + 1, '/');
+                    if (slash)
+                        *slash = 0;
+                    if (mDebug) SLOGD("Check existence of %s", myMountpoint);
+                    if (access(myMountpoint, F_OK)) {
+                        if (mDebug) SLOGD("Create %s", myMountpoint);
+                        if (mkdir(myMountpoint, 0555)) {
+                            SLOGE("Failed to create %s", myMountpoint);
+                            return -1;
+                        }
+                    }
+                    if (slash)
+                        *slash = '/';
+                }
+            }
+            free (myMountpoint);
         }
 
         /*
@@ -333,17 +400,29 @@ int Volume::mountVol() {
          * muck with it before exposing it to non priviledged users.
          */
         errno = 0;
-        if (Fat::doMount(devicePath, "/mnt/secure/staging", false, false, false,
-                1000, 1015, 0702, true)) {
-            SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
-            continue;
+        if ( isFatFs ) {
+            if (Fat::doMount(devicePath, "/mnt/secure/staging", false, false, false,
+                    1000, 1015, 0602, true)) {
+                SLOGE("%s failed to mount (%s)\n", devicePath, strerror(errno));
+                continue;
+            }
+        } else {
+            if (Ntfs::doMount(devicePath, "/mnt/secure/staging", false, false, false,
+                    1000, 1015, 0602, true)) {
+                SLOGE("%s failed to mount via NTFS (%s)\n", devicePath, strerror(errno));
+                continue;
+            }
         }
 
         SLOGI("Device %s, target %s mounted @ /mnt/secure/staging", devicePath, getMountpoint());
 
         protectFromAutorunStupidity();
 
-        if (createBindMounts()) {
+        /* There can be only one SEC_ASECDIR, so let it be EXTERNAL_STORAGE */
+        const char *externalPath = getenv("EXTERNAL_STORAGE") ?: "/mnt/sdcard";
+        if (0 != strcmp(getMountpoint(), externalPath)) {
+            SLOGI("Skipping bindmounts for alternate volume (%s)", getMountpoint());
+        } else if (createBindMounts()) {
             SLOGE("Failed to create bindmounts (%s)", strerror(errno));
             umount("/mnt/secure/staging");
             setState(Volume::State_Idle);
@@ -526,24 +605,28 @@ int Volume::unmountVol(bool force) {
 
     protectFromAutorunStupidity();
 
-    /*
-     * Unmount the tmpfs which was obscuring the asec image directory
-     * from non root users
-     */
+    /* Undo createBindMounts(), which is only called for EXTERNAL_STORAGE */
+    const char *externalPath = getenv("EXTERNAL_STORAGE") ?: "/mnt/sdcard";
+    if (0 == strcmp(getMountpoint(), externalPath)) {
+        /*
+         * Unmount the tmpfs which was obscuring the asec image directory
+         * from non root users
+         */
 
-    if (doUnmount(Volume::SEC_STG_SECIMGDIR, force)) {
-        SLOGE("Failed to unmount tmpfs on %s (%s)", SEC_STG_SECIMGDIR, strerror(errno));
-        goto fail_republish;
-    }
+        if (doUnmount(Volume::SEC_STG_SECIMGDIR, force)) {
+            SLOGE("Failed to unmount tmpfs on %s (%s)", SEC_STG_SECIMGDIR, strerror(errno));
+            goto fail_republish;
+        }
 
-    /*
-     * Remove the bindmount we were using to keep a reference to
-     * the previously obscured directory.
-     */
+        /*
+         * Remove the bindmount we were using to keep a reference to
+         * the previously obscured directory.
+         */
 
-    if (doUnmount(Volume::SEC_ASECDIR, force)) {
-        SLOGE("Failed to remove bindmount on %s (%s)", SEC_ASECDIR, strerror(errno));
-        goto fail_remount_tmpfs;
+        if (doUnmount(Volume::SEC_ASECDIR, force)) {
+            SLOGE("Failed to remove bindmount on %s (%s)", SEC_ASECDIR, strerror(errno));
+            goto fail_remount_tmpfs;
+        }
     }
 
     /*

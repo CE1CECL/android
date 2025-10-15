@@ -103,7 +103,7 @@
     <string name="large_font">Large</string>
 
     <!-- Do not translate. label for font size preview.  Does not need to be translated. -->
-    <string name="font_size_preview_text">Servez à ce monsieur une bière et des kiwis.</string>
+    <string name="font_size_preview_text" translatable="false">Servez à ce monsieur une bière et des kiwis.</string>
     <!-- Button. Chosen when they want to save the chosen text size. -->
     <string name="font_size_save">OK</string>
 
@@ -188,10 +188,16 @@
     <string name="bluetooth_is_discoverable_always">Discoverable</string>
     <!-- Bluetooth settings screen, Discoverable checkbox summary text -->
     <string name="bluetooth_not_discoverable">Make device discoverable</string>
+    <!-- Bluetooth settings screen, toggle fast connections (on) -->
+    <string name="bluetooth_fast_connect_on">Fast Bluetooth connections</string>
+    <!-- Bluetooth settings screen, toggle fast connections (off) -->
+    <string name="bluetooth_fast_connect_off">Normal Bluetooth connections</string>
     <!-- Bluetooth settings screen, option name to pick discoverability timeout duration (a list dialog comes up) -->
     <string name="bluetooth_visibility_timeout">Discoverable timeout</string>
     <!-- Bluetooth settings screen, Discoverable timout list dialog summary text -->
     <string name="bluetooth_visibility_timeout_summary">Set how long device will be discoverable</string>
+    <!-- Bluetooth settings screen, toggle fast connections -->
+    <string name="bluetooth_fast_connect">Fast connections</string>
     <!-- Bluetooth settings screen, check box label whether or not to allow
         bluetooth voice dialing when lock screen is up-->
     <string name="bluetooth_lock_voice_dialing">Lock voice dialing</string>
@@ -261,16 +267,16 @@
     <string name="bluetooth_turning_on">"Turning on Bluetooth\u2026"</string>
 
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
-    <string name="bluetooth_scan_text">Empty button\u2026</string>
+    <string name="bluetooth_scan_text" translatable="false">Empty button\u2026</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
-    <string name="bluetooth_settings_text">Empty button\u2026</string>
+    <string name="bluetooth_settings_text" translatable="false">Empty button\u2026</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
-    <string name="bluetooth_enable_text">Empty button\u2026</string>
+    <string name="bluetooth_enable_text" translatable="false">Empty button\u2026</string>
 
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
-    <string name="bluetooth_device_info_connectButton_text">Turn on Bluetooth</string>
+    <string name="bluetooth_device_info_connectButton_text" translatable="false">Turn on Bluetooth</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
-    <string name="bluetooth_device_info_deviceInfo_text"></string>
+    <string name="bluetooth_device_info_deviceInfo_text" translatable="false"></string>
 
     <!-- Activity label of BluetoothPermissionActivity [CHAR LIMIT=none]-->
     <string name="bluetooth_connection_permission_request">"Bluetooth connection request"</string>
@@ -294,7 +300,7 @@
     <!-- The title of the activity to pick a time zone. -->
     <string name="choose_timezone">Select time zone</string>
     <!-- Do not translate. Used as the value for a setting. -->
-    <string name="default_date_format"><xliff:g id="default_date_format">MM/dd/yyyy</xliff:g></string>
+    <string name="default_date_format" translatable="false"><xliff:g id="default_date_format">MM/dd/yyyy</xliff:g></string>
 
     <!-- The option in the date-format picker for using the normal format
          called for by the user's locale. -->
@@ -464,11 +470,13 @@
     <!-- The title of the dialog to pick an activity.  This is shown when there are multiple activities that can do a particular action.  For example, suppose you click on the "Share" menu item in the Browser.  Since you can share the webpage URL via many communication methods, this dialog would come up with choices like "Email", "IM", etc.  This is a generic message, and the previous example is a single possible scenario (so please don't assume it's for the browser or anything :) ). -->
     <string name="activity_picker_label">Select activity</string>
     <!-- Do not translate. -->
-    <string name="debug_intent_sender_label">Debug intent sender</string>
+    <string name="debug_intent_sender_label" translatable="false">Debug intent sender</string>
     <!-- The title of the activity to see random device info. -->
     <string name="device_info_label">Device info</string>
     <!-- The title of the activity to see battery info. -->
     <string name="battery_info_label">Battery info</string>
+    <!-- The title of the activity to see battery history. -->
+    <string name="battery_history_label">Battery history</string>
     <!-- The title of the activity to adjust display settings -->
     <string name="display_label">Display</string>
     <!-- The title of the activity to see phone info -->
@@ -497,6 +505,8 @@
     <string name="airplane_mode">Airplane mode</string>
     <!-- Wireless controls settings screen, setting option summary text -->
     <string name="airplane_mode_summary">Disable all wireless connections</string>
+    <!-- Wireless controls settings screen, setting label -->
+    <string name="device_hostname">Device hostname</string>
     <!-- Wireless controls settings screen, setting option summary text as airplane mode is being enabled (so it is disabling all wireless connections)  -->
     <string name="airplane_mode_turning_on">Disabling wireless connections\u2026</string>
     <!-- Wireless controls settings screen, setting option summary text as airplane mode is being disabled (so it is re-enabling all the wireless conenctions) -->
@@ -723,13 +733,13 @@
     <string name="bluetooth_connecting_error_message">There was a problem connecting to <xliff:g id="device_name">%1$s</xliff:g>.</string>
 
     <!-- Do not translate -->
-    <string name="bluetooth_device_info_alias">Device alias</string>
+    <string name="bluetooth_device_info_alias" translatable="false">Device alias</string>
     <!-- Do not translate -->
-    <string name="bluetooth_device_info_no_alias">Type alias here\u2026</string>
+    <string name="bluetooth_device_info_no_alias" translatable="false">Type alias here\u2026</string>
     <!-- Do not translate -->
-    <string name="bluetooth_device_info_delete">Remove this device</string>
+    <string name="bluetooth_device_info_delete" translatable="false">Remove this device</string>
     <!-- Do not translate -->
-    <string name="bluetooth_device_info_sdp">List supported services</string>
+    <string name="bluetooth_device_info_sdp" translatable="false">List supported services</string>
 
     <!-- Bluetooth settings: The title of the preference (list item) that initiates a scan for devices -->
     <string name="bluetooth_preference_scan_title">Scan for devices</string>
@@ -756,13 +766,17 @@
     <string name="bluetooth_profile_headset">Phone</string>
     <!-- Bluetooth settings.  The user-visible string that is used whenever referring to the OPP profile. -->
     <string name="bluetooth_profile_opp">Transfer</string>
-
+    <!-- Bluetooth settings.  The user-visible string that is used whenever referring to the HID profile. -->
+    <string name="bluetooth_profile_hid">HID</string>
+    <string name="bluetooth_profile_network">Network</string>
     <!-- Bluetooth settings.  The summary string when a device is connected to the A2DP profile. -->
     <string name="bluetooth_summary_connected_to_a2dp">Connected to media audio</string>
     <!-- Bluetooth settings.  The summary string when a device is connected to the headset profile. -->
     <string name="bluetooth_summary_connected_to_headset">Connected to phone audio</string>
     <!-- Bluetooth settings.  The summary string when a device is connected to the A2DP and headset profiles. -->
     <string name="bluetooth_summary_connected_to_a2dp_headset">Connected to phone and media audio</string>
+    <!-- Bluetooth settings.  The summary string when a device is connected to the HID profile. -->
+    <string name="bluetooth_summary_connected_to_hid">Connected to hid device</string>
 
     <!-- Bluetooth settings.  Connection options screen.  The title of the screen. -->
     <string name="bluetooth_device_advanced_title"><xliff:g id="device_name">%1$s</xliff:g> options</string>
@@ -787,6 +801,11 @@
     <string name="bluetooth_headset_profile_summary_use_for">Use for phone audio</string>
     <!-- Bluetooth settings.  Connection options screen.  The summary for the OPP checkbox preference that describes how checking it will set the OPP profile as preferred. -->
     <string name="bluetooth_opp_profile_summary_use_for">Use for file transfer</string>
+    <!-- Bluetooth settings.  Connection options screen.  The summary for the HID checkbox preference when HID device is connected. -->
+    <string name="bluetooth_hid_profile_summary_connected">Connected to hid device</string>
+    <!-- Bluetooth settings.  Connection options screen.  The summary for the HID checkbox preference that describes how checking it will set the HID profile as preferred. -->
+    <string name="bluetooth_hid_profile_summary_use_for">Use for hid device</string>
+
 
     <!-- Bluetooth settings.  Dock Setting Title -->
     <string name="bluetooth_dock_settings">Dock Settings</string>
@@ -806,6 +825,12 @@
     <string name="nfc_quick_toggle_summary">Use Near Field Communication to read and exchange tags</string>
     <string name="nfc_toggle_error" msgid="8998642457947607263">An error occurred.</string>
 
+    <!-- Hostname Settings -->
+    <!-- Button when saving a device hostname -->
+    <string name="hostname_save">Save</string>
+    <!-- Button when cancelling hostname change -->
+    <string name="hostname_cancel">Cancel</string>
+
     <!-- Wi-Fi Settings --> <skip />
     <!-- Used in the 1st-level settings screen to turn on Wi-Fi -->
     <string name="wifi_quick_toggle_title">Wi-Fi</string>
@@ -813,9 +838,9 @@
     <string name="wifi_quick_toggle_summary">Turn on Wi-Fi</string>
     <!-- Used in the 1st-level settings screen to go to the 2nd-level settings screen -->
     <string name="wifi_settings">Wi-Fi settings</string>
-    <!-- Title of the Wi-fi settings screen -->
+    <!-- Title of the Wi-Fi settings screen -->
     <string name="wifi_settings_category">Wi-Fi settings</string>
-    <!-- Summary text of the Wi-fi settings screen -->
+    <!-- Summary text of the Wi-Fi settings screen -->
     <string name="wifi_settings_summary">Set up &amp; manage wireless access points</string>
     <!-- Summary text when turning Wi-Fi or bluetooth on -->
     <string name="wifi_starting">Turning on\u2026</string>
@@ -831,9 +856,9 @@
     <string name="wifi_notify_open_networks">Network notification</string>
     <!-- Checkbox summary for option to notify user when open networks are nearby -->
     <string name="wifi_notify_open_networks_summary">Notify me when an open network is available</string>
-    <!-- Action message to manually add a wifi network -->
+    <!-- Action message to manually add a Wi-Fi network -->
     <string name="wifi_add_network">Add Wi-Fi network</string>
-    <!-- Header for the list of wifi networks-->
+    <!-- Header for the list of Wi-Fi networks-->
     <string name="wifi_access_points">Wi-Fi networks</string>
     <!-- Menu option to scan Wi-Fi networks -->
     <string name="wifi_menu_scan">Scan</string>
@@ -899,7 +924,7 @@
     <string name="wifi_cancel">Cancel</string>
 
     <!-- Wi-Fi Advanced Settings --> <skip />
-    <!-- Wi-Fi settings screen, advanced, settings section.  This is a header shown above advanced wifi settings. -->
+    <!-- Wi-Fi settings screen, advanced, settings section.  This is a header shown above advanced Wi-Fi settings. -->
     <string name="wifi_advanced_titlebar">Advanced</string>
     <!-- Wi-Fi settings screen, setting title for choosing the number of channels to be used -->
     <string name="wifi_setting_num_channels_title">Regulatory domain</string>
@@ -909,9 +934,9 @@
     <string name="wifi_setting_num_channels_error">There was a problem setting the regulatory domain.</string>
     <!-- Wi-Fi settings screen, label to be appended to the count in displaying the list of valid channel counts -->
     <string name="wifi_setting_num_channels_channel_phrase"><xliff:g id="num_channels">%1$d</xliff:g> channels</string>
-    <!-- Wi-Fi settings screen, setting title for setting the wifi sleep policy -->
+    <!-- Wi-Fi settings screen, setting title for setting the Wi-Fi sleep policy -->
     <string name="wifi_setting_sleep_policy_title">Wi-Fi sleep policy</string>
-    <!-- Wi-Fi settings screen, setting summary for setting the wifi sleep policy -->
+    <!-- Wi-Fi settings screen, setting summary for setting the Wi-Fi sleep policy -->
     <string name="wifi_setting_sleep_policy_summary">Specify when to switch from Wi-Fi to mobile data</string>
     <!-- Wi-Fi settings screen, generic error message when the sleep policy could not be set. -->
     <string name="wifi_setting_sleep_policy_error">There was a problem setting the sleep policy.</string>
@@ -939,20 +964,20 @@
     <!-- Label for the netmask of the network -->
     <string name="wifi_netmask">Netmask</string>
 
-    <!-- Wifi AP settings-->
-    <!-- Label for wifi tether checkbox. Toggles Access Point on/off -->
+    <!-- Wi-Fi AP settings-->
+    <!-- Label for Wi-Fi tether checkbox. Toggles Access Point on/off -->
     <string name="wifi_tether_checkbox_text">Portable Wi-Fi hotspot</string>
-    <!-- Subtext for wifi tether checkbox on success -->
+    <!-- Subtext for Wi-Fi tether checkbox on success -->
     <string name="wifi_tether_enabled_subtext">Portable hotspot <xliff:g id="network_ssid">%1$s</xliff:g> active</string>
-    <!-- Subtext for wifi tether checkbox on failure -->
+    <!-- Subtext for Wi-Fi tether checkbox on failure -->
     <string name="wifi_tether_failed_subtext">Portable Wi-Fi hotspot error</string>
-    <!-- Label for Wi-fi tether settings preference -->
+    <!-- Label for Wi-Fi tether settings preference -->
     <string name="wifi_tether_settings_text">Portable Wi-Fi hotspot settings</string>
-    <!-- Subtext for Wi-fi tether settings preference -->
+    <!-- Subtext for Wi-Fi tether settings preference -->
     <string name="wifi_tether_settings_subtext">Set up &amp; manage portable Wi-Fi hotspot</string>
-    <!-- Title of the Wi-fi settings screen -->
+    <!-- Title of the Wi-Fi settings screen -->
     <string name="wifi_tether_settings_title">Portable Wi-Fi hotspot settings</string>
-    <!-- Used to open the ssid and security dialog for Wifi Access Point -->
+    <!-- Used to open the ssid and security dialog for Wi-Fi Access Point -->
     <string name="wifi_tether_configure_ap_text">Configure Wi-Fi hotspot</string>
     <!-- Subtext on configuration preference to indicate SSID and security chosen -->
     <string name="wifi_tether_configure_subtext"><xliff:g id="network_ssid">%1$s</xliff:g> <xliff:g id="network_security">%2$s</xliff:g> portable Wi-Fi hotspot</string>
@@ -962,69 +987,69 @@
 
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
          Wi-Fi Testing on the diagnostic screen-->
-    <string name="testing_wifi_info" translatable="false">Wifi information</string>
+    <string name="testing_wifi_info" translatable="false">Wi-Fi information</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item for WifiManager disableNetwork API-->
+         Menu item for Wi-FiManager disableNetwork API-->
     <string name="disableNetwork" translatable="false">disableNetwork</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item for WifiManager enableNetwork API-->
+         Menu item for Wi-FiManager enableNetwork API-->
     <string name="enableNetwork" translatable="false">enableNetwork</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item for WifiManager disconnect API-->
+         Menu item for Wi-FiManager disconnect API-->
     <string name="disconnect" translatable="false">disconnect</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item for WifiManager getConfiguredNetworks API-->
+         Menu item for Wi-FiManager getConfiguredNetworks API-->
     <string name="getConfiguredNetworks" translatable="false">getConfiguredNetworks</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item for WifiManager getConnectionInfo API-->
+         Menu item for Wi-FiManager getConnectionInfo API-->
     <string name="getConnectionInfo" translatable="false">getConnectionInfo</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item on Wifi information screen-->
+         Menu item on Wi-Fi information screen-->
     <string name="wifi_api_test" translatable="false">Wi-Fi API</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item on Wifi information screen-->
+         Menu item on Wi-Fi information screen-->
     <string name="wifi_status_test" translatable="false">Wi-Fi Status</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Button text on Wifi Status screen-->
+         Button text on Wi-Fi Status screen-->
     <string name="wifi_update" translatable="false">Refresh Stats</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="wifi_state_label" translatable="false">Wi-Fi State :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="network_state_label" translatable="false">Network State :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-        Label on Wifi Status screen-->
+        Label on Wi-Fi Status screen-->
     <string name="supplicant_state_label" translatable="false">Supplicant State :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="rssi_label" translatable="false">RSSI :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="bssid_label" translatable="false">BSSID :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="ssid_label" translatable="false">SSID :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="hidden_ssid_label" translatable="false">Hidden SSID :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="ipaddr_label" translatable="false">IPaddr :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="macaddr_label" translatable="false">MAC addr :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="networkid_label" translatable="false">Network ID :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="link_speed_label" translatable="false">Link Speed :</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Status screen-->
+         Label on Wi-Fi Status screen-->
     <string name="scan_list_label" translatable="false">Scan results :</string>
 
-    <!-- wifi state values-->
+    <!-- Wi-Fi state values-->
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
     <string name="wifi_state_disabling" translatable="false">Disabling</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary -->
@@ -1037,15 +1062,17 @@
     <string name="wifi_state_unknown" translatable="false">Unknown</string>
 
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Menu item on Wifi information screen-->
+         Menu item on Wi-Fi information screen-->
     <string name="wifi_config_info" translatable="false">Wi-Fi Config</string>
     <!-- Do not translate. Used for diagnostic screens, precise translation is not necessary
-         Label on Wifi Configuration screen-->
+         Label on Wi-Fi Configuration screen-->
     <string name="config_list_label" translatable="false">Configured Networks</string>
 
     <!-- Sound and alerts settings -->
     <!-- Main Settings screen setting option name to go into the sound settings screen -->
     <string name="sound_settings_title">Sound</string>
+    <!-- Main Settings screen setting option name to go into the profile settings screen -->
+    <string name="profile_settings_title">Profiles</string>
     <!-- Main Settings screen setting option name to go into the display settings screen -->
     <string name="display_settings_title">Display</string>
     <!-- Sound settings screen heading -->
@@ -1060,6 +1087,10 @@
     <string name="ringtone_title">Phone ringtone</string>
     <!-- Sound settings screen, setting option summary text -->
     <string name="ringtone_summary">""</string>
+    <!-- Sound settings screen, setting option name to pick ringtone (a list dialog comes up)-->
+    <string name="soundtone_title">Notification tone</string>
+    <!-- Sound settings screen, setting option summary text -->
+    <string name="soundtone_summary">""</string>
     <!-- Sound settings screen, volume title -->
     <string name="all_volume_title">Volume</string>
     <!-- Sound settings screen, setting option name -->
@@ -1081,7 +1112,19 @@
     <!-- Sound settings screen, notification light repeat pulsing title -->
     <string name="notification_pulse_title">Pulse notification light</string>
     <!-- Sound settings screen, notification light repeat pulsing summary -->
-    <string name="notification_pulse_summary">Pulse trackball light repeatedly for new notifications</string>
+    <string name="notification_pulse_summary">Pulse notification light repeatedly for new notifications</string>
+    <!-- Display settings screen, notification light repeat blinking title -->
+    <string name="notification_blink_title">Blink notification light</string>
+    <!-- Display settings screen, notification light repeat blinking summary -->
+    <string name="notification_blink_summary">Blink the green notifications repeatedly</string>
+    <!-- Display settings screen, notification light always on title -->
+    <string name="notification_always_on_title">Always enable notification light</string>
+    <!-- Display settings screen, notification light always on summary -->
+    <string name="notification_always_on_summary">Enable notification light while screen is on</string>
+    <!-- Display settings screen, notification light while charging title -->
+    <string name="notification_charging_title">Charging light</string>
+    <!-- Display settings screen, notification light while charging summary -->
+    <string name="notification_charging_summary">Enable the amber light while charging</string>
     <!-- Sound settings screen, the title of the volume bar to adjust the incoming call volume -->
     <string name="incoming_call_volume_title">Ringtone</string>
     <!-- Sound settings screen, the title of the volume bar to adjust the notification volume -->
@@ -1117,6 +1160,10 @@
     <string name="lock_sounds_enable_summary_on">Play sounds when locking and unlocking the screen</string>
     <!-- Sound settings screen, setting option summary text when check box is clear -->
     <string name="lock_sounds_enable_summary_off">Play sounds when locking and unlocking the screen</string>
+    <!-- Sound settings screen, setting check box label -->
+    <string name="power_sounds_enable_title">Low battery sound</string>
+    <!-- Sound settings screen, setting option summary text -->
+    <string name="power_sounds_enable_summary">Play sound with the low battery alert</string>
     <!-- Sound settings screen, setting check box label -->
     <string name="haptic_feedback_enable_title">Haptic feedback</string>
     <!-- Sound settings screen, setting option summary text when check box is selected -->
@@ -1240,6 +1287,10 @@
     <string name="system_update_settings_list_item_summary">""</string>
 
     <!-- About phone screen, status item label -->
+    <string name="cpu_info">CPU info</string>
+    <!-- About phone screen, status item label -->
+    <string name="mem_info">Mem info (avail/total)</string>
+    <!-- About phone screen, status item label -->
     <string name="firmware_version">Android version</string>
     <!-- About phone screen, status item label-->
     <string name="model_number">Model number</string>
@@ -1249,6 +1300,11 @@
     <string name="kernel_version">Kernel version</string>
     <!-- About phone screen,  setting option name-->
     <string name="build_number">Build number</string>
+    <!-- About phone screen,  setting option name-->
+    <string name="mod_version">Mod version</string>
+    <string name="mod_version_default">Unknown</string>
+    <!-- About phone screen,  setting option name-->
+    <string name="build_date">Build date</string>
 
     <!-- About phone screen, show when a value of some status item is unavailable. -->
     <string name="device_info_not_available">Not available</string>
@@ -1268,9 +1324,9 @@
     <!-- [CHAR LIMIT=100] Main settings screen item's summary for the SD card and storage settings -->
     <string name="storage_settings_summary" product="default">Unmount SD card, view available storage</string>
     <!-- Do not translate. About phone, status item title -->
-    <string name="status_imei">IMEI</string>
+    <string name="status_imei" translatable="false">IMEI</string>
     <!-- Do not translate. About phone, status item title -->
-    <string name="status_imei_sv">IMEI SV</string>
+    <string name="status_imei_sv" translatable="false">IMEI SV</string>
     <!-- About phone, status item title.  The phone number of the current device.-->
     <string name="status_number">My phone number</string>
     <!-- About phone, status item title.  The phone MIN number of the current device.-->
@@ -1305,6 +1361,8 @@
     <string name="status_awake_time">Awake time</string>
     <!-- SD card & phone storage settings screen heading. This is displayed above items that pertain to the phone's internal storage  -->
     <string name="internal_memory">Internal storage</string>
+    <!-- SD card & additional storage settings screen heading. This is displayed above items that pertain to the phone's additional storage  -->
+    <string name="additional_memory">Additional storage</string>
     <!-- SD card & phone storage settings screen heading. This is displayed above items that pertain to the SD card [CHAR LIMIT=30] -->
     <string name="sd_memory" product="nosdcard">USB storage</string>
     <!-- SD card & phone storage settings screen heading. This is displayed above items that pertain to the SD card -->
@@ -1544,7 +1602,7 @@
 
     <!-- Security & location settings screen, section header for settings relating to location -->
     <string name="location_title">My Location</string>
-    <!-- Security & location settings screen, setting check box label if the user wants to use wireless network-based positioning (cell ID, wifi, etc.) -->
+    <!-- Security & location settings screen, setting check box label if the user wants to use wireless network-based positioning (cell ID, Wi-Fi, etc.) -->
     <string name="location_network_based">Use wireless networks</string>
     <!-- Security & location settings screen, setting summary when Use wireless networks check box is clear -->
     <string name="location_networks_disabled">See location in applications (such as Maps) using wireless networks</string>
@@ -1562,7 +1620,12 @@
     <string name="assisted_gps_enabled">Use server to assist GPS (uncheck to reduce network usage)</string>
     <!-- Security & location settings screen, setting summary when Assisted GPS check box is clear -->
     <string name="assisted_gps_disabled">Use server to assist GPS (uncheck to improve GPS performance)</string>
-
+    <!-- GPS Source selection -->
+    <string name="location_gps_source_title">GPS Source</string>
+    <string name="location_gps_source_summary">Use external bluetooth gps mouse instead of internal as location provider.</string>
+    <string name="location_gps_source_notification_title">Alert</string>
+    <string name="location_gps_source_notification">GPS source has been switched! GPS will be disabled. Please re-enable before use!</string>
+    
     <!-- About --> <skip />
     <!-- Main settings screen, setting title for the user to go into the About phone screen -->
     <string name="about_settings">About phone</string>
@@ -1593,6 +1656,8 @@
     <string name="settings_license_activity_unavailable">There is a problem loading the licenses.</string>
     <!-- About phone settings screen, Open source license dialog title until license is fully loaded -->
     <string name="settings_license_activity_loading">Loading\u2026</string>
+    <!-- About phone settings, CM Legal information setting option name and title of dialog box holding license info -->
+    <string name="settings_cmlicense_activity_title">CyanogenMod licenses</string>
 
     <!-- About phone settings, Safety Legal information setting option name and title of dialog box holding safety legal info -->
     <string name="settings_safetylegal_title">Safety information</string>
@@ -1637,7 +1702,7 @@
     <!-- Security & location settings screen, change unlock pattern screen instruction if user draws incorrect pattern -->
     <string name="lockpattern_need_to_unlock_wrong">Sorry, try again:</string>
     <!-- Do not translate. -->
-    <string name="lockpattern_need_to_unlock_wrong_footer"></string>
+    <string name="lockpattern_need_to_unlock_wrong_footer" translatable="false"></string>
     <!-- Security & location settings screen, change unlock pattern screen instruction on top of screen.  This si when they are supposed to draw a new unlock pattern (for example, if they are changing their unlock patterns)..-->
     <string name="lockpattern_recording_intro_header">Draw an unlock pattern</string>
     <!-- Security & location settings screen, change unlock pattern screen hint on bottom of screen.  We are telling them to press the menu button to see more options or help. -->
@@ -1667,6 +1732,8 @@
     <string name="lockpattern_settings_enable_summary">Must draw pattern to unlock screen</string>
     <!-- Security & location settings screen, setting check box title. This setting controls whether a visible green line is drawn as the user moves his finger around while drawing the unlock pattern.  If checked, this line is drawn.  If unchecked, there is nothing drawn so the user does not reveal his pattern while he unlocks the phone.-->
     <string name="lockpattern_settings_enable_visible_pattern_title">Use visible pattern</string>
+    <!-- Security & location settings screen, setting check box title. This setting controls whether a visible red line will be drawn after the user has drawn the unlock pattern incorrectly.  If checked, this line is drawn.  If unchecked, there is nothing drawn so the user does not reveal his pattern while he unlocks the phone.-->
+    <string name="lockpattern_settings_enable_error_path_title">Show pattern error</string>
     <!-- Security & location settings screen, setting check box title. This setting controls whether tactile feedback will be produced when the user draws the pattern.-->
     <string name="lockpattern_settings_enable_tactile_feedback_title">Use tactile feedback</string>
     <!-- Security & location settings screen, setting option name when user has never set an unlock pattern -->
@@ -1718,7 +1785,7 @@
     <!-- Applications settings screen, setting check box title. If checked, the system allows installation of applications that are downloaded from random places, such as web sites.  -->
     <string name="install_applications">Unknown sources</string>
     <!-- Applications settings screen, setting check box summary.  This is the summary for "Unknown sources" checkbox  -->
-    <string name="install_unknown_applications">Allow installation of non-Market applications</string>
+    <string name="install_unknown_applications">Allow installation of non-Play Store applications</string>
     <!-- Applications settings screen, message text of alert that appears if user selects the "Unknown sources" check box -->
     <string name="install_all_warning">Your phone and personal data are more vulnerable to attack by applications
  from unknown sources. You agree that you are solely responsible for any
@@ -1794,7 +1861,7 @@
     <string name="filter_apps_onsdcard" product="nosdcard">USB storage</string>
     <!-- Text for filter option in ManageApps screen to display list of
     packages installed on sdcard. -->
-    <string name="filter_apps_onsdcard" product="default">On SD card</string>
+    <string name="filter_apps_onsdcard" product="default">SD card</string>
     <!-- [CHAR LIMIT=25] Manage applications, text telling using an application is disabled. -->
     <string name="disabled">Disabled</string>
     <!-- [CHAR LIMIT=25] Text shown when there are no applications to display. -->
@@ -1948,7 +2015,7 @@ found in the list of installed applications.</string>
     <string name="runningservicedetails_stop_dlg_text">Are you sure you want to stop this system service? If you do, some
         features of your phone may stop working correctly until you power it off
         and then on again.</string>
-    
+
     <!-- Language Settings --> <skip />
     <!-- Title of setting on main settings screen.  This item will take the user to the screen to tweak settings realted to locale and text -->
     <string name="language_settings">Language &amp; keyboard</string>
@@ -2014,8 +2081,10 @@ found in the list of installed applications.</string>
     <string name="testing_phone_info">Phone information</string>
     <!-- In the Testing screen. The item title of the activity that shows a bunch of battery-related information.  -->
     <string name="testing_battery_info">Battery information</string>
+    <!-- In the Testing screen. The item title of the activity that shows a bunch of historical battery-related information. -->
+    <string name="testing_battery_history">Battery history</string>
     <!-- Do not translate. In the Testing screen. The item title of the activity that shows a bunch of SIM-related operations.  -->
-    <string name="testing_sim_toolkit">SIM toolkit</string>
+    <string name="testing_sim_toolkit" translatable="false">SIM toolkit</string>
 
     <!-- The title of the item to go into the Quick launch settings. -->
     <string name="quick_launch_title">Quick launch</string>
@@ -2056,10 +2125,20 @@ found in the list of installed applications.</string>
     <string name="development_settings_title">Development</string>
     <!-- Development Settings summary.  The summary of the item to take the user to Development settings.  Development settings are settings meant for application developers. -->
     <string name="development_settings_summary">Set options for application development</string>
-    <!-- Setting checkbox title for Whether to enable USB debugging support on the phone. -->
-    <string name="enable_adb">USB debugging</string>
-    <!-- Setting checkbox summary for Whether to enable USB debugging support on the phone -->
-    <string name="enable_adb_summary">Debug mode when USB is connected</string>
+    <!-- Setting checkbox title for Whether to enable debugging support on the phone. -->
+    <string name="enable_adb">Android debugging</string>
+    <!-- Setting checkbox summary for Whether to enable debugging support on the phone -->
+    <string name="enable_adb_summary">Allow Android debug mode (ADB)</string>
+    <!-- Setting checkbox title for Whether debugging should run over USB and Network. -->
+    <string name="adb_over_network">ADB over network</string>
+    <!-- Setting checkbox summary for Whether to enable network debugging support -->
+    <string name="adb_over_network_summary">Use debugging over Network (e.g. Wi-Fi) instead of USB. This setting is reset on reboot.</string>
+    <!-- Warning for Adb over Network -->
+    <string name="adb_over_network_warning">WARNING: When ADB over Network is enabled, your phone is open for intrusions on all connected networks, including GSM data network!\n\nOnly use this feature when you are connected on trusted networks.\n\nDo you really want to enable this function?</string>
+    <!-- Setting checkbox title for displaying debugging notification -->
+    <string name="adb_notify">Debugging notify</string>
+    <!-- Setting checkbox summary for displaying debugging notification -->
+    <string name="adb_notify_summary">Display a notification when debugging is connected</string>
     <!-- Setting Checkbox title whether to keep the screen on when plugged in to a power source -->
     <string name="keep_screen_on">Stay awake</string>
     <!-- setting Checkbox summary whether to keep the screen on when plugged in  -->
@@ -2068,6 +2147,10 @@ found in the list of installed applications.</string>
     <string name="allow_mock_location">Allow mock locations</string>
     <!-- setting Checkbox summary whether to allow mock locations  -->
     <string name="allow_mock_location_summary">Allow mock locations</string>
+    <!-- Setting checkbox title whether to allow killing foreground app by longpress on BACK. -->
+    <string name="kill_app_longpress_back">Stop app via long-press</string>
+    <!-- Setting checkbox summary whether to allow killing foreground app by longpress on BACK. -->
+    <string name="kill_app_longpress_back_summary">Long-pressing the BACK button will kill the foreground application.</string>
     <!-- Title of warning dialog about the implications of enabling USB debugging -->
     <string name="adb_warning_title">Allow USB debugging?</string>
     <!-- Warning text to user about the implications of enabling USB debugging -->
@@ -2083,6 +2166,39 @@ found in the list of installed applications.</string>
          the final name for Gadgets/Widgets, so please translate both for now. -->
     <string name="widget_picker_title">Choose widget</string>
 
+<!-- Used to display "Details for UID 1234" in BatteryHistory -->
+    <string name="battery_history_details_for">Details for UID <xliff:g id="number" example="1234">%d</xliff:g></string>
+
+    <!-- Used to name a set of apps that share a user id in BatteryHistory -->
+    <string name="battery_history_uid">UID <xliff:g id="user_id">%1$d</xliff:g></string>
+
+    <!-- Used as a title for the network usage details screen in BatteryHistory -->
+    <string name="battery_history_network_usage">Network usage details for <xliff:g id="app_name">%1$s</xliff:g>:</string>
+
+    <!-- Used to show the number of bytes received by an app over the network in BatteryHistory -->
+    <string name="battery_history_bytes_received">Bytes received: <xliff:g id="bytes">%1$d</xliff:g></string>
+
+    <!-- Used to show the number of bytes sent by an app over the network in BatteryHistory -->
+    <string name="battery_history_bytes_sent">Bytes sent: <xliff:g id="bytes">%1$d</xliff:g></string>
+
+    <!-- Used to show the number of bytes sent and received by an app over the network in BatteryHistory -->
+    <string name="battery_history_bytes_total">Total bytes: <xliff:g id="bytes">%1$d</xliff:g></string>
+
+    <!-- Used as a title for the cpu usage details screen in BatteryHistory -->
+    <string name="battery_history_cpu_usage">CPU usage details for <xliff:g id="app_name">%1$s</xliff:g>:</string>
+
+    <!-- Used to show the time spent in user code for a given app in BatteryHistory -->
+    <string name="battery_history_user_time">User time: </string>
+
+    <!-- Used to show the time spent in system code for a given app in BatteryHistory -->
+    <string name="battery_history_system_time">System time: </string>
+
+    <!-- Used to show the time spent in user or system code for a given app in BatteryHistory -->
+    <string name="battery_history_total_time">Total time: </string>
+
+    <!-- Used to show the number of times an app has been started in BatteryHistory -->
+    <string name="battery_history_starts">Starts: <xliff:g id="starts">%1$d</xliff:g></string>
+
     <!-- Used to show an amount of time in the form "d days, h hours, m minutes, s seconds" in BatteryHistory -->
     <string name="battery_history_days"><xliff:g id="days">%1$d</xliff:g>d <xliff:g id="hours">%2$d</xliff:g>h <xliff:g id="minutes">%3$d</xliff:g>m <xliff:g id="seconds">%4$d</xliff:g>s</string>
 
@@ -2094,6 +2210,69 @@ found in the list of installed applications.</string>
 
     <!-- Used to show an amount of time in the form "s seconds" in BatteryHistory -->
     <string name="battery_history_seconds"><xliff:g id="seconds">%1$d</xliff:g>s</string>
+
+    <!-- Used to head a list of packages that share a given user id BatteryHistory -->
+    <string name="battery_history_packages_sharing_this_uid">Packages sharing this UID:</string>
+
+    <!-- Used when no battery data available in BatteryHistory -->
+    <string name="battery_history_no_data">No battery usage data available</string>
+
+    <!-- Used for Sensor detail screen in BatteryHistory -->
+    <string name="battery_history_sensor">Sensor:</string>
+
+    <!-- Used for Wakelock detail screen in BatteryHistory -->
+    <string name="battery_history_wakelock">Partial Wakelock:</string>
+
+    <!-- Used for Sensor detail screen in BatteryHistory -->
+    <string name="battery_history_used_by_packages">Sensor used by packages:</string>
+
+    <!-- Used for Sensor detail screen in BatteryHistory -->
+    <string name="battery_history_sensor_usage">Used <xliff:g id="count">%1$d</xliff:g> times by <xliff:g id="package">%2$s</xliff:g></string>
+
+    <!-- Used for Sensor detail screen in BatteryHistory -->
+    <string name="battery_history_sensor_usage_multi">Used <xliff:g id="count">%1$d</xliff:g> times by one of:</string>
+
+    <!-- Used for label of awake bar in BatteryHistory -->
+    <string name="battery_history_awake_label">Running</string>
+
+    <!-- Used for label of screen on bar in BatteryHistory -->
+    <string name="battery_history_screen_on_label">Screen on</string>
+
+    <!-- Used for label of phone on bar in BatteryHistory -->
+    <string name="battery_history_phone_on_label">Phone on</string>
+
+    <!-- Used for label of wifi on bar in BatteryHistory -->
+    <string name="battery_history_wifi_on_label">Wifi On</string>
+
+    <!-- Used for label of wifi running bar in BatteryHistory -->
+    <string name="battery_history_wifi_running_label">Wifi Running</string>
+
+    <!-- Used for label of bluetooth on bar in BatteryHistory -->
+    <string name="battery_history_bluetooth_on_label">Bluetooth On</string>
+
+    <!-- Used for awake time message in BatteryHistory -->
+    <string name="battery_history_awake">Time spent without sleeping:</string>
+
+    <!-- Used for Screen on time message in BatteryHistory -->
+    <string name="battery_history_screen_on">Time spent with screen on:</string>
+
+    <!-- Used for Phone on time message in BatteryHistory -->
+    <string name="battery_history_phone_on">Time spent with phone on:</string>
+
+    <!-- Used for Wifi on time message in BatteryHistory -->
+    <string name="battery_history_wifi_on">Time spent with Wifi on:</string>
+
+    <!-- Used for Wifi running time message in BatteryHistory -->
+    <string name="battery_history_wifi_running">Time spent with Wifi running:</string>
+
+    <!-- Used for Bluetooth on time message in BatteryHistory -->
+    <string name="battery_history_bluetooth_on">Time spent with Bluetooth on:</string>
+
+    <!-- Used for Screen on time message in BatteryHistory -->
+    <string name="battery_history_screen_on_battery">On battery:</string>
+
+    <!-- XXX remove? Used for Screen on time message in BatteryHistory -->
+    <string name="battery_history_screen_on_plugged">Plugged in:</string>
     
     <!-- XXX remove? Strings used for displaying usage statistics -->
     <string name="usage_stats_label">Usage statistics</string>
@@ -2134,14 +2313,14 @@ found in the list of installed applications.</string>
          selects to disable accessibility. This avoids accidental disabling. -->
     <string name="accessibility_service_disable_warning">Disable accessibility?</string>
     <!-- Title for the prompt that lets users know that they have no accessibility related apps
-         installed and that they can install TalkBack from Market. -->
+         installed and that they can install TalkBack from Play Store. -->
     <string name="accessibility_service_no_apps_title">No accessibility related applications found
         </string>
     <!-- Message for the prompt that lets users know that they have no accessibility related apps
-         installed and that they can install TalkBack from Market. -->
+         installed and that they can install TalkBack from Play Store. -->
     <string name="accessibility_service_no_apps_message">You do not have any accessibility related
-        applications installed.\n\nYou can download a screen reader for your device from Android
-        Market.\n\nClick "OK" to install the screen reader.</string>
+        applications installed.\n\nYou can download a screen reader for your device from Google
+        Play.\n\nClick "OK" to install the screen reader.</string>
 
     <!-- Accessibility settings: Power button category -->
     <string name="accessibility_power_button_category">Power button</string>
@@ -2171,7 +2350,7 @@ found in the list of installed applications.</string>
     <string name="battery_stats_screen_on_label">Screen on</string>
     <!-- [CHAR LIMIT=25] Label for battery stats gps on state graph -->
     <string name="battery_stats_gps_on_label">GPS on</string>
-    <!-- [CHAR LIMIT=25] Label for battery stats wifi running state graph -->
+    <!-- [CHAR LIMIT=25] Label for battery stats Wi-Fi running state graph -->
     <string name="battery_stats_wifi_running_label">Wi-Fi</string>
     <!-- [CHAR LIMIT=25] Label for battery stats wake lock state graph -->
     <string name="battery_stats_wake_lock_label">Awake</string>
@@ -2181,7 +2360,7 @@ found in the list of installed applications.</string>
     <string name="battery_stats_last_duration">@string/menu_stats_last_unplugged</string>
     <!-- CPU awake time title -->
     <string name="awake">Device awake time</string>
-    <!-- Wifi on time -->
+    <!-- Wi-Fi on time -->
     <string name="wifi_on_time">Wi-Fi on time</string>
     <!-- Bluetooth on time -->
     <string name="bluetooth_on_time">Wi-Fi on time</string>
@@ -2200,7 +2379,7 @@ found in the list of installed applications.</string>
 
     <!-- Label for power consumed by the screen -->
     <string name="power_screen">Display</string>
-    <!-- Label for power consumed by WiFi -->
+    <!-- Label for power consumed by Wi-Fi -->
     <string name="power_wifi">Wi-Fi</string>
     <!-- Label for power consumed by Bluetooth -->
     <string name="power_bluetooth">Bluetooth</string>
@@ -2219,7 +2398,7 @@ found in the list of installed applications.</string>
     <string name="usage_type_wake_lock">Keep awake</string>
     <!-- Label for GPU usage time -->
     <string name="usage_type_gps">GPS</string>
-    <!-- [CHAR LIMIT=25] Label for WIFI usage time -->
+    <!-- [CHAR LIMIT=25] Label for Wi-Fi usage time -->
     <string name="usage_type_wifi_running">Wi-Fi running</string>
     <!-- Label for Phone usage time -->
     <string name="usage_type_phone">Phone</string>
@@ -2243,7 +2422,7 @@ found in the list of installed applications.</string>
     <string name="battery_action_app_settings">Application settings</string>
     <!-- Label for display settings -->
     <string name="battery_action_display">Display settings</string>
-    <!-- Label for wifi settings -->
+    <!-- Label for Wi-Fi settings -->
     <string name="battery_action_wifi">Wi-Fi settings</string>
     <!-- Label for bluetooth settings -->
     <string name="battery_action_bluetooth">Bluetooth settings</string>
@@ -2264,9 +2443,9 @@ found in the list of installed applications.</string>
     <!-- Suggestion for reducing display power -->
     <string name="battery_sugg_display">Reduce the screen brightness and/or screen timeout</string>
 
-    <!-- Description for wifi connectivity -->
+    <!-- Description for Wi-Fi connectivity -->
     <string name="battery_desc_wifi">Battery used by Wi-Fi</string>
-    <!-- Suggestion for wifi connectivity power drain -->
+    <!-- Suggestion for Wi-Fi connectivity power drain -->
     <string name="battery_sugg_wifi">Turn off Wi-Fi when not using it or where it is not available</string>
 
     <!-- Description for bluetooth power consumption detail -->
@@ -2458,9 +2637,9 @@ found in the list of installed applications.</string>
     <!-- Preference group title for a list of VPN profiles -->
     <string name="vpns">VPNs</string>
     <!-- Preference summary text when VPN is connecting -->
-    <string name="vpn_connecting">Connecting...</string>
+    <string name="vpn_connecting">Connecting\u2026</string>
     <!-- Preference summary text when VPN is disconnecting -->
-    <string name="vpn_disconnecting">Disconnecting...</string>
+    <string name="vpn_disconnecting">Disconnecting\u2026</string>
     <!-- Preference summary text when VPN is connected -->
     <string name="vpn_connected">Connected</string>
     <!-- Preference summary text when VPN is not connected -->
@@ -2493,6 +2672,33 @@ found in the list of installed applications.</string>
     <string name="vpn_a_l2tp_secret">an L2TP secret</string>
     <string name="vpn_pptp_encryption_title">encryption</string>
     <string name="vpn_pptp_encryption">PPTP encryption</string>
+    <string name="vpn_openvpn_port">Server port</string>
+    <string name="vpn_openvpn_protocol">Protocol to use</string>
+    <string name="vpn_openvpn_device">Device to use</string>
+    <string name="vpn_openvpn_userauth">User authentication</string>
+    <string name="vpn_openvpn_userauth_summary">Set if additional username/password authentication needs to be used</string>
+    <string name="vpn_openvpn_advanced_titlebar">Advanced Openvpn Settings</string>
+    <string name="vpn_openvpn_comp_lzo">LZO compression</string>
+    <string name="vpn_openvpn_comp_lzo_summary">Force LZO compression to be set to on</string>
+    <string name="vpn_openvpn_set_use_tls_auth">TLS-Auth</string>
+    <string name="vpn_openvpn_set_use_tls_auth_summary">Use a tls-auth key</string>
+    <string name="vpn_openvpn_set_tls_auth_key">TA key file location</string>
+    <string name="vpn_openvpn_set_tls_auth_key_summary"></string>
+    <string name="vpn_openvpn_set_tls_auth_key_direction">Tls-Auth key direction</string>
+    <string name="vpn_openvpn_redirect_gateway_title">Redirect gateway</string>
+    <string name="vpn_openvpn_redirect_gateway_summary">Force all traffic to be routed through the VPN tunnel</string>
+    <string name="vpn_openvpn_set_addr">Remote Sets Addresses</string>
+    <string name="vpn_openvpn_set_addr_summary">Uncheck to set tunnel addresses manually</string>
+    <string name="vpn_openvpn_set_local_addr">Local IP Address</string>
+    <string name="vpn_openvpn_set_remote_addr">Remote IP Address</string>
+    <string name="vpn_openvpn_set_cipher">Cipher algorithm</string>
+    <string name="vpn_openvpn_set_cipher_message">Leave empty to use default cipher</string>
+    <string name="vpn_openvpn_set_cipher_default">default</string>
+    <string name="vpn_openvpn_set_keysize">Size of cipher key</string>
+    <string name="vpn_openvpn_set_keysize_message">Leave empty to use cipher-specific default</string>
+    <string name="vpn_openvpn_set_keysize_default">default</string>
+    <string name="vpn_openvpn_set_extra">Extra arguments</string>
+    <string name="vpn_openvpn_set_extra_message">Enter the extra command line arguments</string>
 
     <!-- Preference title -->
     <string name="vpn_ipsec_presharedkey_title">Set IPSec pre-shared key</string>
@@ -2615,6 +2821,92 @@ found in the list of installed applications.</string>
     <!-- Sound settings screen, setting option summary text -->
     <string name="emergency_tone_summary">Set behavior when an emergency call is placed</string>
 
+    <!-- Profile Settings screen --><skip/>
+    <!-- Profile Settings profile config screen title -->
+    <string name="profile_title">Configure profiles</string>
+    <!-- Profile Settings apgroup config screen title -->
+    <string name="profile_appgroup_list_title">Configure application groups</string>
+    <!-- Profile Settings sound mode label -->
+    <string name="sound_mode">Notification mode</string>
+    <!-- Profile Settings ringer mode label -->
+    <string name="ringer_mode">Ring mode</string>
+    <!-- Profile Settings lights mode label -->
+    <string name="lights_mode">Lights mode</string>
+    <!-- Profile Settings vibrate mode label -->
+    <string name="vibrate_mode">Vibrate mode</string>
+    <!-- Profile notification tone -->
+    <string name="choose_soundtone">Choose notification tone</string>
+    <!-- Profile ringtone -->
+    <string name="choose_ringtone">Choose ringtone</string>
+    <!-- Profile settings screen, section header for settings related to notification profiles -->
+    <string name="profile_settings">Profile settings</string>
+    <!-- Name of the profile, setting caption -->
+    <string name="profile_name">Profile name</string>
+    <!-- Default name of a new profile: "<new profile>" -->
+    <string name="new_profile_name">&lt;new profile&gt;</string>
+    <!-- Profile summary - hint that touching configures profile -->
+    <string name="profile_summary">Touch to configure profile</string>
+    <!-- If the logo should be displayed in the status bar, setting caption -->
+    <string name="profile_statusbar">Status Bar Indicator</string>
+    <!-- Title for application group setting screen -->
+    <string name="profile_appgroup_title">Application group: %s</string>
+    <!-- Title for application group list screen -->
+    <string name="profile_appgroups_title">Application groups</string>
+    <!-- Title for connection overrides via profiles -->
+    <string name="profile_connectionoverrides_title">Connection overrides</string>
+    <!-- Summary for connection overrides via profiles -->
+    <string name="profile_connectionoverrides_summary">Touch to set enabled/disabled</string>
+    <!-- Title for application group list screen -->
+    <string name="profile_volumeoverrides_title">Volume overrides</string>
+    <!-- Title for application group list screen -->
+    <string name="profile_volumeoverrides_summary">Touch to set volume.</string>
+    <!-- Title for application group list section, hint at delete action -->
+    <string name="profile_applist_title">Applications - click to remove from group</string>
+    <!-- Prompt for name when adding a new app group -->
+    <string name="profile_appgroup_name_prompt">Enter name for app group</string>
+    <!-- Delete profile setting item -->
+    <string name="profile_delete">Delete profile</string>
+    <!-- Delete profile confimation message -->
+    <string name="profile_delete_confirm">Are you sure you want to delete this profile</string>
+    <!-- Delete application from group confirm message -->
+    <string name="profile_app_delete_confirm">Are you sure you want to remove this application</string>
+    <!-- Add application dialog box title -->
+    <string name="profile_choose_app">Choose application</string>
+    <!-- Title for profile settings screen -->
+    <string name="profile_settings_header">Profile settings: %s</string>
+    <!-- Profile category settings heading -->
+    <string name="profile_group_header">Profile: %1$s category: %2$s</string>
+    <!-- Menu item for managing app groups -->
+    <string name="menu_appgroups">Manage app groups</string>
+    <!-- Menu item for adding a new profile -->
+    <string name="menu_new_profile">New profile</string>
+    <!-- Menu item for adding a new profile - summary -->
+    <string name="menu_new_profile_summary">Add and configure a new profile</string>
+    <!-- Delete an item context menu item -->
+    <string name="profile_menu_delete">Delete</string>
+    <!-- Message when trying to delete the active profile -->
+    <string name="profile_cannot_delete">You cannot delete the active profile.</string>
+    <!-- Menu item for adding a new app group -->
+    <string name="profile_new_appgroup">New application group</string>
+    <!-- Menu item for deleting an app group -->
+    <string name="profile_delete_appgroup">Delete this application group</string>
+    <!-- Menu item for adding an app -->
+    <string name="profile_add_app">Add application</string>
+    <!-- Menu item for managing profiles -->
+    <string name="profile_manage">Manage profiles</string>
+    <!-- Menu item for managing app groups -->
+    <string name="profile_appgroups_manage">Manage application groups</string>
+    <!-- Menu item for managing app list -->
+    <string name="profile_applist_manage">Manage application list</string>
+    <!-- Menu item for reset -->
+    <string name="profile_reset_title">Reset</string>
+    <!-- Menu item for reset all -->
+    <string name="profile_reset_all_title">Reset all</string>
+    <!-- Menu item for reset all - summary -->
+    <string name="profile_reset_all_summary">Delete and restore all profiles and application groups to default</string>
+    <!-- Dialog confirming reset all - message -->
+    <string name="profile_reset_all_message">Do you want to delete all profiles and application groups, and restore them to default?</string>
+
     <!-- Privacy Settings screen --><skip/>
     <!-- Privacy settings menu title -->
     <string name="privacy_settings">Privacy</string>
@@ -2672,6 +2964,97 @@ found in the list of installed applications.</string>
     <string name="sound_category_notification_title">Notifications</string>
     <string name="sound_category_feedback_title">Feedback</string>
 
+    <string name="launcher_settings_title">ADWLauncher</string>
+
+    <string name="possibleButtons">Possible Buttons</string>
+    <string name="toggleWifi">Wi-Fi</string>
+    <string name="toggleWifiAp">Portable Wi-Fi hotspot</string>
+    <string name="toggleBluetooth">Bluetooth</string>
+    <string name="toggleGPS">GPS</string>
+    <string name="toggleData">Mobile Data</string>
+    <string name="toggleSync">Data Sync</string>
+    <string name="toggle2g3g">2G/3G</string>
+    <string name="toggleSound">Ring Mode</string>
+    <string name="toggleBrightness">Brightness</string>
+    <string name="toggleAutoRotate">Orientation</string>
+    <string name="toggleScreenTimeout">Screen Timeout</string>
+    <string name="toggleAirplane">Airplane</string>
+    <string name="toggleFlashlight">Flashlight</string>
+    <string name="toggleLockScreen">Lock Screen</string>
+    <string name="toggleWimax">WiMAX</string>
+
+    <string name="toggleWifiDescription">Enable/disable Wi-Fi</string>
+    <string name="toggleWifiApDescription">Enable/disable the portable Wi-Fi hotspot</string>
+    <string name="toggleBluetoothDescription">Enable/disable Bluetooth</string>
+    <string name="toggleGPSDescription">Enable/disable GPS</string>
+    <string name="toggleDataDescription">Enable/disable mobile data</string>
+    <string name="toggleSyncDescription">Enable/disable data sync</string>
+    <string name="toggle2g3gDescription">Switch between 2G and 3G</string>
+    <string name="toggleSoundDescription">Switch between ring and vibrate only</string>
+    <string name="toggleBrightnessDescription">Switch between brightness levels</string>
+    <string name="toggleAutoRotateDescription">Enable/disable orientation sensor</string>
+    <string name="toggleScreenTimeoutDescription">Set different screen timeouts</string>
+    <string name="toggleAirplaneDescription">Enable/disable airplane mode</string>
+    <string name="toggleFlashlightDescription">Enable/disable flashlight mode</string>
+    <string name="toggleLockScreenDescription">Enable/disable lock screen</string>
+    <string name="toggleWimaxDescription">Enable/disable WiMAX</string>
+
+    <string name="widgetSettings">Widget Instance Settings</string>
+    <string name="wifiSettings">Wi-Fi Events settings</string>
+    <string name="dataSettings">Data Events settings</string>
+    <string name="powerSettings">Power Events settings</string>
+
+    <string name="generalSettings">General Settings</string>
+
+    <string name="autoDisable3G">Data disables 3G</string>
+    <string name="autoEnable3G">Data enables 3G</string>
+    <string name="autoDisable3GWithWifi">Wi-Fi disables 3G</string>
+    <string name="autoEnable3GWithWifi">Wi-Fi enables 3G</string>
+    <string name="useRoundCorners">Round corners</string>
+    <string name="useVertical">Vertical Layout</string>
+    <string name="useTransparent">Transparent Widget</string>
+    <string name="autoEnableSyncWithWifi">Wi-Fi enables Sync</string>
+    <string name="autoDisableSyncWithWifi">Wi-Fi disables Sync</string>
+    <string name="ringModeVibrateAsOn">Vibrate as ON</string>
+    <string name="monitorDataRoaming">Monitor Data Roaming</string>
+    <string name="autoEnableBluetoothWithPower">Ext. PWR enables Bluetooth</string>
+    <string name="autoDisableBluetoothWithPower">Ext. PWR disables Bluetooth</string>
+    <string name="autoEnableWifiWithPower">Ext. PWR enables Wi-Fi</string>
+    <string name="autoDisableWifiWithPower">Ext. PWR disables Wi-Fi</string>
+
+    <string name="autoDisable3GDescription">2G when mobile data is disabled</string>
+    <string name="autoEnable3GDescription">3G when mobile data is enabled</string>
+    <string name="autoDisable3GWithWifiDescription">2G when Wi-Fi is enabled</string>
+    <string name="autoEnable3GWithWifiDescription">3G when Wi-Fi is disabled</string>
+    <string name="useRoundCornersDescription">Use round widget icons</string>
+    <string name="useTransparentDescription">No widget background</string>
+    <string name="useVerticalDescription">Show with vertical orientation</string>
+    <string name="autoEnableSyncWithWifiDescription">Enable sync when Wi-Fi is enabled</string>
+    <string name="autoDisableSyncWithWifiDescription">Disable sync when Wi-Fi is disabled</string>
+    <string name="ringModeVibrateAsOnDescription">Show Sound as on when vibrate only</string>
+    <string name="monitorDataRoamingDescription">Data status red if data roaming is enabled</string>
+    <string name="autoEnableBluetoothWithPowerDescription">Bluetooth enabled when Power connected</string>
+    <string name="autoDisableBluetoothWithPowerDescription">Bluetooth disabled when Power disconnected</string>
+    <string name="autoEnableWifiWithPowerDescription">Wi-Fi enabled when Power connected</string>
+    <string name="autoDisableWifiWithPowerDescription">Wi-Fi disabled when Power disconnected</string>
+
+    <string name="networkModeSpinner">Choose Network Modes</string>
+    <string name="brightnessSpinner">Choose Brightness levels</string>
+    <string name="ringModeSpinner">Choose Ring modes</string>
+    <string name="screenTimeoutSpinner">Choose Screen Timeout</string>
+    <string name="backgroundImageSpinner">Choose background</string>
+
+    <string name="notConfigured">Not configured. Please add again</string>
+
+    <string name="ok">Ok</string>
+
+
+    <!-- Widget Picker -->
+    <string name="widget_count">(%d widgets)</string>
+
+    <string name="cm_settings_title">CyanogenMod settings</string>
+    <string name="device_settings_title">Device settings</string>
+
     <string name="wimax_settings">4G settings</string>
     <string name="wimax_settings_summary">Set up &amp; manage 4G network and modem</string>
     <string name="status_wimax_mac_address">4G MAC address</string>
@@ -2680,4 +3063,95 @@ found in the list of installed applications.</string>
     from their cell phone carrier. The use of the string is similar to the string
     "system_update_settings_list_item_title" in this project. [CHAR LIMIT=25] -->
     <string name="additional_system_update_settings_list_item_title">Additional system updates</string>
+
+    <!-- Title and Summary for PreferenceScreen to launch Enrollment -->
+    <string name ="finger_enrollment">Finger Enrollment</string>
+    <string name ="start_finger_enrollment_summary">Registers fingers for use with lock screen and other applications</string>
+
+    <!-- Summary for PreferenceScreen to launch picker for security method when there is none -->
+    <string name="lockfinger_unlock_set_unlock_launch_picker_summary">Lock screen with a pattern, finger, PIN, or password</string>
+
+    <!-- Summary for PreferenceScreen to change security method: None/Pattern/Finger/PIN/Password -->
+    <string name="lockfinger_unlock_set_unlock_launch_picker_change_summary">Change or disable pattern, finger, PIN, or password security</string>
+
+    <!--  Title and summary for preference that guides the user through creating an unlock finger -->
+    <string name="lockfinger_unlock_set_unlock_finger_title">Finger</string>
+    <string name="lockfinger_unlock_set_unlock_finger_summary">Swipe finger to unlock screen</string>
+
+    <!-- Title for unlock finger settings screen -->
+    <string name="lockfinger_finger_settings_title">Screen unlock fingerprint</string>
+
+    <!-- Title for preference that sets or changes unlock finger -->
+    <string name="lockfinger_set_finger_unlock_title">Set fingerprint unlock</string>
+    <string name="lockfinger_change_finger_unlock_title">Change fingerprint unlock</string>
+
+    <!-- Title and summary for preference that toggles the finger unlock -->
+    <string name="lockfinger_toggle_unlock_finger_title">Require fingerprint</string>
+    <string name="lockfinger_toggle_unlock_finger_summary">Must use fingerprint to unlock screen</string>
+
+    <!-- Title for preference that start True Suite Administration -->
+    <string name="lockfinger_dbadmin_title">True Suite Administration</string>
+
+    <!-- Summary shown under unlock_disable_lock_title when finger is in use and can be removed -->
+    <string name="lockfinger_unlock_disable_lock_finger_summary">Remove unlock finger</string>
+
+    <!-- Title shown on security settings to allow the user to change their lockscreen finger -->
+    <string name="unlock_change_lock_finger_title">Change unlock finger</string>
+
+    <!-- Toast shown if setting finger was successful -->
+    <string name="lockpassword_finger_set_toast">Finger has been set</string>
+
+    <!-- Security & location settings screen, setting option name for finger -->
+    <string name="lockpattern_change_lock_finger_label">Change unlock finger</string>
+
+    <!-- Unlock finger settings screen, Toast shown if there is a semaphore failure. -->
+    <string name="lockfinger_semaphore_failure_toast">Semaphore failure</string>
+
+    <!-- Unlock finger settings screen, Toast shown a successful enrollment. -->
+    <string name="lockfinger_enrollment_succeeded_toast">Enrollment Succeeded.</string>
+
+    <!-- Unlock finger settings screen, Toast shown the TSM library is not available. -->
+    <string name="lockfinger_tsm_library_not_available_toast">TSM Library failed to load... cannot proceed!</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the user canneled the enrollment. -->
+    <string name="lockfinger_enrollment_canceled_toast">Enrollment Canceled.</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the enrollment runs timeout. -->
+    <string name="lockfinger_enrollment_timeout_toast">Enrollment Timed Out.</string>
+
+    <!-- Unlock finger settings screen, Toast shown an unknow error happened. -->
+    <string name="lockfinger_enrollment_unknown_error_toast">Unknown error.\nFailure to connect is likely.</string>
+
+    <!-- Unlock finger settings screen, Toast shown other errors returned by the enrollment. -->
+    <string name="lockfinger_enrollment_failure_default_toast">Enroll Not Successful. failure = %d.</string>
+
+    <!-- Unlock finger settings screen, Toast shown when the database has been full. -->
+    <string name="lockfinger_enrollment_database_full">Enroll Not Successful. Database is full.</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after UI timeout -->
+    <string name="lockfinger_dbadmin_failure_default_toast">Database Administration operation failure: %d.</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after UI timeout -->
+    <string name="lockfinger_ui_timeout_header">UI timeout!</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen instruction on top of screen after too many bad swipes -->
+    <string name="lockfinger_too_many_bad_swipes_header">Too many bad swipes!</string>
+
+    <!-- Unlock finger settings screen, change unlock finger screen countdown hint on bottom of screen when the screen is locked out -->
+    <string name="lockfinger_lockout_countdown_footer">Try again in %d seconds.</string>
+
+    <string name="increasing_ring_title">Increasing ring volume</string>
+    <!-- Sound settings screen, the caption of the checkbox for making incoming calls increas in volume -->
+    <string name="checkbox_increasing_ring">Enable volume increase</string>
+    <!-- Sound settings screen, the title of the volume bar to adjust the minimum increasing ring volume -->
+    <string name="increasing_ring_min_volume_title">Ringing start volume</string>
+    <string name="increasing_ring_volume_notice">Notice:\nAs the start volume is set higher than the ringer volume, the ring tone will be played using the ringer volume.</string>
+    <string name="increasing_ring_interval_title">Increase interval</string>
+    <string name="increasing_ring_interval_eachring">On each ring</string>
+    <string name="increasing_ring_interval_half_second">0.5 seconds</string>
+    <string name="increasing_ring_interval_1second">1 second</string>
+    <string name="increasing_ring_interval_2seconds">2 seconds</string>
+    <string name="increasing_ring_interval_3seconds">3 seconds</string>
+    <string name="increasing_ring_interval_5seconds">5 seconds</string>
+    <string name="increasing_ring_interval_10seconds">10 seconds</string>
 </resources>

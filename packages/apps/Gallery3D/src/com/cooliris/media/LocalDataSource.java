@@ -281,25 +281,34 @@ public class LocalDataSource implements DataSource {
 
     public boolean performOperation(int operation, ArrayList<MediaBucket> mediaBuckets, Object data) {
         int numBuckets = mediaBuckets.size();
+        int unselectedItems;
         ContentResolver cr = mContext.getContentResolver();
         switch (operation) {
         case MediaFeed.OPERATION_DELETE:
             for (int i = 0; i < numBuckets; ++i) {
+                unselectedItems = -1;
                 MediaBucket bucket = mediaBuckets.get(i);
                 MediaSet set = bucket.mediaSet;
                 ArrayList<MediaItem> items = bucket.mediaItems;
-                if (set != null && items == null) {
-                    // TODO bulk delete
-                    // remove the entire bucket
+
+                // MediaSet.mItem holds all the items that
+                // are not selected and not to be deleted.
+                if (set != null && set.getItems() != null)
+                    unselectedItems = set.getItems().size();
+
+                //If there are no unselected Items, then delete the entire bucket.
+                if ((set != null && items == null)
+                    || (set != null && items != null && unselectedItems  == 0) ) {
+
                     final Uri uriImages = Images.Media.EXTERNAL_CONTENT_URI;
                     final Uri uriVideos = Video.Media.EXTERNAL_CONTENT_URI;
                     final String whereImages = Images.ImageColumns.BUCKET_ID + "=" + Long.toString(set.mId);
                     final String whereVideos = Video.VideoColumns.BUCKET_ID + "=" + Long.toString(set.mId);
                     cr.delete(uriImages, whereImages, null);
                     cr.delete(uriVideos, whereVideos, null);
-                    //CacheService.markDirty();
+                    CacheService.markDirty();
                 }
-                if (set != null && items != null) {
+                else if (set != null && items != null) {
                     // We need to remove these items from the set.
                     int numItems = items.size();
                     try {
@@ -313,7 +322,7 @@ public class LocalDataSource implements DataSource {
                     }
                     set.updateNumExpectedItems();
                     set.generateTitle(true);
-                    //CacheService.markDirty(set.mId);
+                    CacheService.markDirty(set.mId);
                 }
             }
             break;
@@ -393,6 +402,7 @@ public class LocalDataSource implements DataSource {
                 if (cursor.moveToFirst()) {
                     item = new MediaItem();
                     CacheService.populateMediaItemFromCursor(item, cr, cursor, uri.toString() + "/");
+                    item.mId = id;
                 }
                 cursor.close();
                 cursor = null;
@@ -401,6 +411,10 @@ public class LocalDataSource implements DataSource {
             // If the database operation failed for any reason.
             ;
         }
+
+        if (item == null)
+            return null;
+
         item.mId = id;
         return item;
     }

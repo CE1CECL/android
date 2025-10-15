@@ -725,7 +725,7 @@
     <string name="applications_settings_summary" msgid="2714215108369119717">"Gerir aplicações, configurar atalhos de iniciação rápida"</string>
     <string name="applications_settings_header" msgid="6018266337275422250">"Definições da aplicação"</string>
     <string name="install_applications" msgid="4872012136210802181">"Fontes desconhecidas"</string>
-    <string name="install_unknown_applications" msgid="6612824788917283662">"Permitir instalação de aplicações não Market"</string>
+    <string name="install_unknown_applications" msgid="6612824788917283662">"Permitir instalação de aplicações não Play Store"</string>
     <string name="install_all_warning" msgid="1923717607319933741">"O seu telefone e dados pessoais estão mais vulneráveis a ataques por aplicações de fontes desconhecidas. O utilizador reconhece ser o único responsável por danos no telefone ou perda de dados que possam resultar da utilização destas aplicações."</string>
     <string name="application_info_label" msgid="1150486628158409543">"Informações da aplicação"</string>
     <string name="storage_label" msgid="8700867073480107253">"Armazenamento"</string>
@@ -808,8 +808,8 @@
     <string name="service_started_by_app" msgid="6575184738671598131">"Iniciado pela aplicação."</string>
     <!-- no translation found for service_client_name (4037193625611815517) -->
     <skip />
-    <string name="service_background_processes" msgid="6844156253576174488">"<xliff:g id="MEMORY">%1$s</xliff:g> gratuito"</string>
-    <string name="service_foreground_processes" msgid="7583975676795574276">"<xliff:g id="MEMORY">%1$s</xliff:g> utiliz."</string>
+    <string name="service_background_processes" msgid="6844156253576174488">"<xliff:g id="MEMORY">%1$s</xliff:g> livres"</string>
+    <string name="service_foreground_processes" msgid="7583975676795574276">"<xliff:g id="MEMORY">%1$s</xliff:g> utilizados"</string>
     <string name="memory" msgid="6609961111091483458">"RAM"</string>
     <!-- no translation found for service_process_name (4098932168654826656) -->
     <skip />
@@ -908,7 +908,7 @@
     <string name="accessibility_service_security_warning" msgid="4066258132331302670">"Este serviço de acessibilidade pode captar todo o texto que escrever, incluindo dados pessoais e números de cartões de crédito, com excepção de palavras-passe. Também pode registar as interacções com a interface do utilizador. O serviço é fornecido com a aplicação <xliff:g id="ACCESSIBILITY_SERVICE_NAME">%1$s</xliff:g>. Utilizar este serviço de acessibilidade?"</string>
     <string name="accessibility_service_disable_warning" msgid="8930591383312775132">"Desactivar acessibilidade?"</string>
     <string name="accessibility_service_no_apps_title" msgid="898893674114288531">"Não foram encontradas aplicações relacionadas com acessibilidade"</string>
-    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"Não tem nenhuma aplicação relacionada com acessibilidade instalada."\n\n"Pode transferir um leitor de ecrã para o dispositivo a partir do Android Market."\n\n"Clique em OK para instalar o leitor de ecrã."</string>
+    <string name="accessibility_service_no_apps_message" msgid="2450056749545404807">"Não tem nenhuma aplicação relacionada com acessibilidade instalada."\n\n"Pode transferir um leitor de ecrã para o dispositivo a partir do Play Store."\n\n"Clique em OK para instalar o leitor de ecrã."</string>
     <string name="accessibility_power_button_category" msgid="8545885236482339928">"Botão de ligar/desligar"</string>
     <string name="accessibility_power_button_ends_call" msgid="7698764194501089533">"O botão de ligar/desligar termina a chamada"</string>
     <string name="accessibility_power_button_ends_call_summary" msgid="8878097632186291462">"Durante uma chamada, premir o botão de ligar/desligar termina a chamada em vez de desligar o ecrã"</string>
@@ -920,9 +920,9 @@
     <string name="battery_stats_duration" msgid="7464501326709469282">"<xliff:g id="TIME">%1$s</xliff:g> desde que foi desligado"</string>
     <string name="battery_stats_charging_label" msgid="4223311142875178785">"A carregar"</string>
     <string name="battery_stats_screen_on_label" msgid="7150221809877509708">"Ecrã activo"</string>
-    <string name="battery_stats_gps_on_label" msgid="1193657533641951256">"GPS activado"</string>
+    <string name="battery_stats_gps_on_label" msgid="1193657533641951256">"GPS activo"</string>
     <string name="battery_stats_wifi_running_label" msgid="3093545080361658269">"Wi-Fi"</string>
-    <string name="battery_stats_wake_lock_label" msgid="1908942681902324095">"Despertar"</string>
+    <string name="battery_stats_wake_lock_label" msgid="1908942681902324095">"Activo"</string>
     <string name="battery_stats_phone_signal_label" msgid="6822042940376636775">"Sinal telefónico"</string>
     <!-- no translation found for battery_stats_last_duration (1535831453827905957) -->
     <skip />
@@ -1169,6 +1169,7 @@
     <string name="sound_category_calls_title" msgid="3688531959256239012">"Chamadas recebidas"</string>
     <string name="sound_category_notification_title" msgid="3502115998790286943">"Notificações"</string>
     <string name="sound_category_feedback_title" msgid="4399742321363475393">"Comentários"</string>
+    <string name="device_settings_title">Conf. Dispositivo</string>
     <string name="wimax_settings" msgid="1574837328738396794">"Definições de 4G"</string>
     <string name="wimax_settings_summary" msgid="3207355006084135453">"Configurar e gerir modem e rede 4G"</string>
     <string name="status_wimax_mac_address" msgid="8390791848661413416">"Endereço MAC de 4G"</string>

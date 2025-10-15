@@ -29,6 +29,7 @@
 #define V8_TOP_H_
 
 #include "frames-inl.h"
+#include "simulator.h"
 
 namespace v8 {
 namespace internal {
@@ -40,6 +41,8 @@ namespace internal {
 // Top has static variables used for JavaScript execution.
 
 class SaveContext;  // Forward declaration.
+class ThreadVisitor;  // Defined in v8threads.h
+class VMState;  // Defined in vm-state.h
 
 class ThreadLocalTop BASE_EMBEDDED {
  public:
@@ -82,7 +85,7 @@ class ThreadLocalTop BASE_EMBEDDED {
   // lookups.
   Context* context_;
   int thread_id_;
-  Object* pending_exception_;
+  MaybeObject* pending_exception_;
   bool has_pending_message_;
   const char* pending_message_;
   Object* pending_message_obj_;
@@ -92,7 +95,7 @@ class ThreadLocalTop BASE_EMBEDDED {
   // Use a separate value for scheduled exceptions to preserve the
   // invariants that hold about pending_exception.  We may want to
   // unify them later.
-  Object* scheduled_exception_;
+  MaybeObject* scheduled_exception_;
   bool external_caught_exception_;
   SaveContext* save_context_;
   v8::TryCatch* catcher_;
@@ -100,12 +103,22 @@ class ThreadLocalTop BASE_EMBEDDED {
   // Stack.
   Address c_entry_fp_;  // the frame pointer of the top c entry frame
   Address handler_;   // try-blocks are chained through the stack
+
+#ifdef USE_SIMULATOR
+#ifdef V8_TARGET_ARCH_ARM
+  assembler::arm::Simulator* simulator_;
+#elif V8_TARGET_ARCH_MIPS
+  assembler::mips::Simulator* simulator_;
+#endif
+#endif  // USE_SIMULATOR
+
 #ifdef ENABLE_LOGGING_AND_PROFILING
   Address js_entry_sp_;  // the stack pointer of the bottom js entry frame
 #endif
-  bool stack_is_cooked_;
-  inline bool stack_is_cooked() { return stack_is_cooked_; }
-  inline void set_stack_is_cooked(bool value) { stack_is_cooked_ = value; }
+
+#ifdef ENABLE_VMSTATE_TRACKING
+  VMState* current_vm_state_;
+#endif
 
   // Generated code scratch locations.
   int32_t formal_count_;
@@ -161,21 +174,21 @@ class Top {
   static void set_thread_id(int id) { thread_local_.thread_id_ = id; }
 
   // Interface to pending exception.
-  static Object* pending_exception() {
+  static MaybeObject* pending_exception() {
     ASSERT(has_pending_exception());
     return thread_local_.pending_exception_;
   }
   static bool external_caught_exception() {
     return thread_local_.external_caught_exception_;
   }
-  static void set_pending_exception(Object* exception) {
+  static void set_pending_exception(MaybeObject* exception) {
     thread_local_.pending_exception_ = exception;
   }
   static void clear_pending_exception() {
     thread_local_.pending_exception_ = Heap::the_hole_value();
   }
 
-  static Object** pending_exception_address() {
+  static MaybeObject** pending_exception_address() {
     return &thread_local_.pending_exception_;
   }
   static bool has_pending_exception() {
@@ -204,11 +217,11 @@ class Top {
     return &thread_local_.external_caught_exception_;
   }
 
-  static Object** scheduled_exception_address() {
+  static MaybeObject** scheduled_exception_address() {
     return &thread_local_.scheduled_exception_;
   }
 
-  static Object* scheduled_exception() {
+  static MaybeObject* scheduled_exception() {
     ASSERT(has_scheduled_exception());
     return thread_local_.scheduled_exception_;
   }
@@ -225,6 +238,11 @@ class Top {
         (thread_local_.catcher_ != NULL) &&
         (try_catch_handler() == thread_local_.catcher_);
   }
+
+  static void SetCaptureStackTraceForUncaughtExceptions(
+      bool capture,
+      int frame_limit,
+      StackTrace::StackTraceOptions options);
 
   // Tells whether the current context has experienced an out of memory
   // exception.
@@ -251,20 +269,27 @@ class Top {
   }
 #endif
 
+#ifdef ENABLE_VMSTATE_TRACKING
+  static VMState* current_vm_state() {
+    return thread_local_.current_vm_state_;
+  }
+
+  static void set_current_vm_state(VMState* state) {
+    thread_local_.current_vm_state_ = state;
+  }
+#endif
+
   // Generated code scratch locations.
   static void* formal_count_address() { return &thread_local_.formal_count_; }
 
-  static void MarkCompactPrologue(bool is_compacting);
-  static void MarkCompactEpilogue(bool is_compacting);
-  static void MarkCompactPrologue(bool is_compacting,
-                                  char* archived_thread_data);
-  static void MarkCompactEpilogue(bool is_compacting,
-                                  char* archived_thread_data);
   static void PrintCurrentStackTrace(FILE* out);
   static void PrintStackTrace(FILE* out, char* thread_data);
   static void PrintStack(StringStream* accumulator);
   static void PrintStack();
-  static Handle<String> StackTrace();
+  static Handle<String> StackTraceString();
+  static Handle<JSArray> CaptureCurrentStackTrace(
+      int frame_limit,
+      StackTrace::StackTraceOptions options);
 
   // Returns if the top context may access the given global object. If
   // the result is false, the pending exception is guaranteed to be
@@ -286,21 +311,19 @@ class Top {
   // Re-throw an exception.  This involves no error reporting since
   // error reporting was handled when the exception was thrown
   // originally.
-  static Failure* ReThrow(Object* exception, MessageLocation* location = NULL);
+  static Failure* ReThrow(MaybeObject* exception,
+                          MessageLocation* location = NULL);
   static void ScheduleThrow(Object* exception);
   static void ReportPendingMessages();
   static Failure* ThrowIllegalOperation();
 
   // Promote a scheduled exception to pending. Asserts has_scheduled_exception.
-  static Object* PromoteScheduledException();
-  static void DoThrow(Object* exception,
+  static Failure* PromoteScheduledException();
+  static void DoThrow(MaybeObject* exception,
                       MessageLocation* location,
                       const char* message);
   static bool ShouldReturnException(bool* is_caught_externally,
                                     bool catchable_by_javascript);
-  static void ReportUncaughtException(Handle<Object> exception,
-                                      MessageLocation* location,
-                                      Handle<String> stack_trace);
 
   // Attempts to compute the current source location, storing the
   // result in the target out parameter.
@@ -319,6 +342,8 @@ class Top {
   static void Iterate(ObjectVisitor* v);
   static void Iterate(ObjectVisitor* v, ThreadLocalTop* t);
   static char* Iterate(ObjectVisitor* v, char* t);
+  static void IterateThread(ThreadVisitor* v);
+  static void IterateThread(ThreadVisitor* v, char* t);
 
   // Returns the global object of the current context. It could be
   // a builtin object, or a js global object.
@@ -341,11 +366,6 @@ class Top {
   static Handle<JSBuiltinsObject> builtins() {
     return Handle<JSBuiltinsObject>(thread_local_.context_->builtins());
   }
-
-  static bool CanHaveSpecialFunctions(JSObject* object);
-  static Object* LookupSpecialFunction(JSObject* receiver,
-                                       JSObject* prototype,
-                                       JSFunction* value);
 
   static void RegisterTryCatchHandler(v8::TryCatch* that);
   static void UnregisterTryCatchHandler(v8::TryCatch* that);

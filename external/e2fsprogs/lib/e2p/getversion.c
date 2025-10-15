@@ -5,8 +5,10 @@
  *                           Laboratoire MASI, Institut Blaise Pascal
  *                           Universite Pierre et Marie Curie (Paris VI)
  *
- * This file can be redistributed under the terms of the GNU Library General
- * Public License
+ * %Begin-Header%
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
+ * %End-Header%
  */
 
 /*
@@ -25,7 +27,7 @@ int getversion (int fd, unsigned long * version)
 {
 #if HAVE_EXT2_IOCTLS
 	int	r, ver;
-	
+
 	r = ioctl (fd, EXT2_IOC_GETVERSION, &ver);
 	*version = ver;
 	return 0;

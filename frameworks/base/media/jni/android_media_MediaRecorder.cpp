@@ -119,9 +119,11 @@ static bool process_media_recorder_call(JNIEnv *env, status_t opStatus, const ch
     if (opStatus == (status_t)INVALID_OPERATION) {
         jniThrowException(env, "java/lang/IllegalStateException", NULL);
         return true;
+#ifndef USE_BOARD_MEDIARECORDER
     } else if (opStatus != (status_t)OK) {
         jniThrowException(env, exception, message);
         return true;
+#endif
     }
     return false;
 }
@@ -242,6 +244,29 @@ android_media_MediaRecorder_setParameter(JNIEnv *env, jobject thiz, jstring para
     }
 
     process_media_recorder_call(env, mr->setParameters(String8(params8)), "java/lang/RuntimeException", "setParameter failed.");
+    env->ReleaseStringUTFChars(params,params8);
+}
+
+static void
+android_media_MediaRecorder_setCameraParameters(JNIEnv *env, jobject thiz, jstring params)
+{
+    LOGV("setCameraParameters()");
+    if (params == NULL)
+    {
+        LOGE("Invalid or empty params string.  This parameter will be ignored.");
+        return;
+    }
+
+    sp<MediaRecorder> mr = getMediaRecorder(env, thiz);
+
+    const char* params8 = env->GetStringUTFChars(params, NULL);
+    if (params8 == NULL)
+    {
+        LOGE("Failed to covert jstring to String8.  This parameter will be ignored.");
+        return;
+    }
+
+    process_media_recorder_call(env, mr->setCameraParameters(String8(params8)), "java/lang/RuntimeException", "setCameraParameters failed.");
     env->ReleaseStringUTFChars(params,params8);
 }
 
@@ -465,6 +490,7 @@ static JNINativeMethod gMethods[] = {
     {"setVideoEncoder",      "(I)V",                            (void *)android_media_MediaRecorder_setVideoEncoder},
     {"setAudioEncoder",      "(I)V",                            (void *)android_media_MediaRecorder_setAudioEncoder},
     {"setParameter",         "(Ljava/lang/String;)V",           (void *)android_media_MediaRecorder_setParameter},
+    {"setCameraParameters",         "(Ljava/lang/String;)V",           (void *)android_media_MediaRecorder_setCameraParameters},
     {"_setOutputFile",       "(Ljava/io/FileDescriptor;JJ)V",   (void *)android_media_MediaRecorder_setOutputFileFD},
     {"setVideoSize",         "(II)V",                           (void *)android_media_MediaRecorder_setVideoSize},
     {"setVideoFrameRate",    "(I)V",                            (void *)android_media_MediaRecorder_setVideoFrameRate},

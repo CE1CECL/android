@@ -28,9 +28,7 @@ PRODUCT_PACKAGES := \
 
 # Additional settings used in all AOSP builds
 PRODUCT_PROPERTY_OVERRIDES := \
-    keyguard.no_require_sim=true \
-    ro.com.android.dateformat=MM-dd-yyyy \
-    ro.com.android.dataroaming=true
+    keyguard.no_require_sim=true
 
 # Put en_US first in the list, to make it default.
 PRODUCT_LOCALES := en_US
@@ -43,6 +41,6 @@ $(call inherit-product-if-exists, frameworks/base/data/sounds/OriginalAudio.mk)
 $(call inherit-product-if-exists, external/svox/pico/lang/all_pico_languages.mk)
 
 # Get the list of languages.
-$(call inherit-product, $(SRC_TARGET_DIR)/product/locales_full.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/languages_full.mk)
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/generic.mk)

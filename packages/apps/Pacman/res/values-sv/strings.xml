@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Installatör av Play Butik-appar</string>
+    <string name="activity_title">Välj vilka appar som ska installeras</string>
+
+    <!-- Buttons -->
+    <string name="main_btn_ok">OK</string>
+    <string name="main_btn_selectall">Välj alla</string>
+    <string name="main_btn_cancel">Avbryt</string>
+
+    <!-- Alert Dialog -->
+    <string name="alert_dialog_title">VIKTIGT: Läs detta!</string>
+    <string name="alert_dialog_message">Detta program kommer bara visas en gång och används för att söka efter applikationer i Market.  Många användare vill dock kanske senarelägga denna applikation av olika anledningar (t. ex. för att ansluta till Wifi).  Om du vill att detta program ska visas vid ett senare tillfälle, tryck AVBRYT nedan.</string>
+
+    <!-- Names of applications from Google that have been translated -->
+    <string name="com_google_android_street">Street View i Google Maps</string>
+    <string name="com_google_android_voicesearch">Röstsökning</string>
+</resources>

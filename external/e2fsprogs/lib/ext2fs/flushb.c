@@ -1,12 +1,12 @@
 /*
  * flushb.c --- Hides system-dependent information for both syncing a
  * 	device to disk and to flush any buffers from disk cache.
- * 
+ *
  * Copyright (C) 2000 Theodore Ts'o.
  *
  * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
  * %End-Header%
  */
 
@@ -29,7 +29,7 @@
 #include "ext2fs.h"
 
 /*
- * For Linux, define BLKFLSBUF and FDFLUSH if necessary, since 
+ * For Linux, define BLKFLSBUF and FDFLUSH if necessary, since
  * not all portable header file does so for us.  This really should be
  * fixed in the glibc header files.  (Recent glibcs appear to define
  * BLKFLSBUF in sys/mount.h, but FDFLUSH still doesn't seem to be

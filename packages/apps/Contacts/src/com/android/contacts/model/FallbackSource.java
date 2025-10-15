@@ -17,10 +17,13 @@
 package com.android.contacts.model;
 
 import com.android.contacts.R;
+import com.android.contacts.datepicker.DatePicker;
+import com.android.contacts.datepicker.DatePickerDialog;
 import com.google.android.collect.Lists;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.provider.ContactsContract.CommonDataKinds.BaseTypes;
@@ -36,9 +39,17 @@ import android.provider.ContactsContract.CommonDataKinds.SipAddress;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.CommonDataKinds.StructuredPostal;
 import android.provider.ContactsContract.CommonDataKinds.Website;
+import android.text.format.DateFormat;
 import android.view.inputmethod.EditorInfo;
+import android.view.View;
+import android.widget.EditText;
 
+import java.text.ParsePosition;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class FallbackSource extends ContactsSource {
     protected static final int FLAGS_PHONE = EditorInfo.TYPE_CLASS_PHONE;
@@ -60,6 +71,8 @@ public class FallbackSource extends ContactsSource {
     protected static final int FLAGS_SIP_ADDRESS = EditorInfo.TYPE_CLASS_TEXT
             | EditorInfo.TYPE_TEXT_VARIATION_EMAIL_ADDRESS;  // since SIP addresses have the same
                                                              // basic format as email addresses
+    protected static final int FLAGS_DATE = EditorInfo.TYPE_CLASS_DATETIME
+            | EditorInfo.TYPE_DATETIME_VARIATION_DATE;
 
     public FallbackSource() {
         this.accountType = null;
@@ -105,6 +118,10 @@ public class FallbackSource extends ContactsSource {
 
     protected EditType buildOrgType(int type) {
         return new EditType(type, Organization.getTypeLabelResource(type));
+    }
+
+    protected EditType buildEventType(int type) {
+        return new EditType(type, Event.getTypeResource(type));
     }
 
     protected DataKind inflateStructuredName(Context context, int inflateLevel) {
@@ -193,6 +210,7 @@ public class FallbackSource extends ContactsSource {
 
         if (inflateLevel >= ContactsSource.LEVEL_CONSTRAINTS) {
             kind.typeColumn = Phone.TYPE;
+            
             kind.typeList = Lists.newArrayList();
             kind.typeList.add(buildPhoneType(Phone.TYPE_HOME));
             kind.typeList.add(buildPhoneType(Phone.TYPE_MOBILE));
@@ -256,8 +274,12 @@ public class FallbackSource extends ContactsSource {
         if (kind == null) {
             kind = addKind(new DataKind(StructuredPostal.CONTENT_ITEM_TYPE,
                     R.string.postalLabelsGroup, R.drawable.sym_action_map, 25, true));
+                    
+            //Wysie: Add navigation icon as alternate
+            kind.iconAltRes = R.drawable.sym_action_navi;
+            
             kind.actionHeader = new PostalActionInflater();
-            kind.actionBody = new SimpleInflater(StructuredPostal.FORMATTED_ADDRESS);
+            kind.actionBody = new SimpleInflater(StructuredPostal.FORMATTED_ADDRESS);            
         }
 
         if (inflateLevel >= ContactsSource.LEVEL_CONSTRAINTS) {
@@ -427,14 +449,25 @@ public class FallbackSource extends ContactsSource {
         return kind;
     }
 
-    protected DataKind inflateEvent(Context context, int inflateLevel) {
+    protected DataKind inflateEvent(final Context context, int inflateLevel) {
         DataKind kind = getKindForMimetype(Event.CONTENT_ITEM_TYPE);
         if (kind == null) {
             kind = addKind(new DataKind(Event.CONTENT_ITEM_TYPE,
-                    R.string.eventLabelsGroup, -1, 150, false));
+                    R.string.eventLabelsGroup, R.drawable.sym_action_event, 150, true));
             kind.secondary = true;
             kind.actionHeader = new EventActionInflater();
-            kind.actionBody = new SimpleInflater(Event.START_DATE);
+            kind.actionBody = new EventDateInflater();
+        }
+
+        if (inflateLevel >= ContactsSource.LEVEL_CONSTRAINTS) {
+            kind.typeColumn = Event.TYPE;
+            kind.typeList = Lists.newArrayList();
+            kind.typeList.add(buildEventType(Event.TYPE_BIRTHDAY));
+            kind.typeList.add(buildEventType(Event.TYPE_ANNIVERSARY));
+            kind.typeList.add(buildEventType(Event.TYPE_OTHER));
+
+            kind.fieldList = Lists.newArrayList();
+            kind.fieldList.add(new EventDateEditField(context, false, true));
         }
 
         return kind;
@@ -476,7 +509,7 @@ public class FallbackSource extends ContactsSource {
      */
     public static class SimpleInflater implements StringInflater {
         private final int mStringRes;
-        private final String mColumnName;
+        protected final String mColumnName;
 
         public SimpleInflater(int stringRes) {
             this(stringRes, null);
@@ -700,6 +733,233 @@ public class FallbackSource extends ContactsSource {
             }
         }
     }
+
+    public static class EventDateInflater extends SimpleInflater {
+        private SimpleDateFormat mNoYearFormat;
+
+        public EventDateInflater() {
+            super(Event.START_DATE);
+        }
+
+        private CharSequence parseDate(Context context, CharSequence value) {
+            EventDateConverter.ParseResult result = EventDateConverter.parseDateFromDb(value);
+            if (result == null) {
+                return value;
+            }
+
+            java.text.DateFormat format;
+
+            if (!result.hasYear) {
+                if (mNoYearFormat == null) {
+                    mNoYearFormat = new SimpleDateFormat(
+                            context.getResources().getString(R.string.date_format_full_no_year));
+                }
+                format = mNoYearFormat;
+            } else {
+                format = DateFormat.getLongDateFormat(context);
+            }
+            format.setTimeZone(EventDateConverter.sUtcTimeZone);
+
+            return format.format(result.date);
+        }
+
+        public CharSequence inflateUsing(Context context, Cursor cursor) {
+            final int index = mColumnName != null ? cursor.getColumnIndex(mColumnName) : -1;
+            final CharSequence columnValue = index != -1 ? cursor.getString(index) : null;
+
+            return parseDate(context, columnValue);
+        }
+
+        public CharSequence inflateUsing(Context context, ContentValues values) {
+            final boolean validColumn = values.containsKey(mColumnName);
+            final CharSequence columnValue = validColumn ? values.getAsString(mColumnName) : null;
+
+            return parseDate(context, columnValue);
+        }
+    }
+
+    private static class EventDateConverter {
+        private static SimpleDateFormat sDateFormat =
+                new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        private static SimpleDateFormat sDateFormatNoYear =
+                new SimpleDateFormat("--MM-dd", Locale.US);
+        private static SimpleDateFormat sFullDateFormat =
+                new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+
+        public static final TimeZone sUtcTimeZone = TimeZone.getTimeZone("UTC");
+
+        public static class ParseResult {
+            public ParseResult(Date date, boolean hasYear) {
+                this.date = date;
+                this.hasYear = hasYear;
+            }
+            Date date;
+            boolean hasYear;
+        }
+
+        static {
+            sDateFormat.setLenient(true);
+            sDateFormat.setTimeZone(sUtcTimeZone);
+            sDateFormatNoYear.setLenient(true);
+            sDateFormatNoYear.setTimeZone(sUtcTimeZone);
+            sFullDateFormat.setLenient(true);
+            sFullDateFormat.setTimeZone(sUtcTimeZone);
+        }
+
+        public static ParseResult parseDateFromDb(CharSequence value) {
+            if (value == null) {
+                return null;
+            }
+
+            String valueString = value.toString();
+            Date date = parseDate(valueString, sFullDateFormat);
+            if (date != null) {
+                return new ParseResult(date, true);
+            }
+
+            date = parseDate(valueString, sDateFormat);
+            if (date != null) {
+                return new ParseResult(date, true);
+            }
+
+            date = parseDate(valueString, sDateFormatNoYear);
+            if (date != null) {
+                return new ParseResult(date, false);
+            }
+
+            return null;
+        }
+
+        private static Date parseDate(String value, SimpleDateFormat format) {
+            ParsePosition position = new ParsePosition(0);
+            Date date = format.parse(value, position);
+
+            if (position.getIndex() == value.length()) {
+                return date;
+            }
+
+            return null;
+        }
+
+        public static CharSequence formatDateForDb(Date date, boolean withYear) {
+            SimpleDateFormat format = withYear ? sDateFormat : sDateFormatNoYear;
+            return format.format(date);
+        }
+    }
+
+    protected static class EventDateEditField extends EditField {
+        private View.OnClickListener mListener;
+        private boolean mAllowClear;
+        private boolean mYearOptional;
+        private Date mDate;
+        private boolean mHasYear;
+        private java.text.DateFormat mFormat;
+        private java.text.DateFormat mFormatNoYear;
+
+        public EventDateEditField(final Context context, boolean allowClear, boolean yearOptional) {
+            super(Event.START_DATE, R.string.label_date, FLAGS_DATE);
+
+            mFormat = DateFormat.getDateFormat(context);
+            mFormat.setTimeZone(EventDateConverter.sUtcTimeZone);
+
+            mFormatNoYear = new SimpleDateFormat(
+                    context.getResources().getString(R.string.date_format_short_no_year));
+            mFormatNoYear.setTimeZone(EventDateConverter.sUtcTimeZone);
+
+            mAllowClear = allowClear;
+            mYearOptional = yearOptional;
+
+            mListener = new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    final EditText edit = (EditText) v;
+                    openDatePicker(edit);
+                }
+            };
+        }
+
+        private void openDatePicker(final EditText edit) {
+            final Context context = edit.getContext();
+            String value = edit.getText().toString();
+            final Calendar cal = Calendar.getInstance(EventDateConverter.sUtcTimeZone, Locale.US);
+
+            if (mDate != null) {
+                cal.setTime(mDate);
+                if (!mHasYear) {
+                    cal.set(Calendar.YEAR, 1900);
+                }
+            }
+
+            final DatePickerDialog.OnDateSetListener dateListener =
+                    new DatePickerDialog.OnDateSetListener() {
+                @Override
+                public void onDateSet(DatePicker view, int year, int month, int day) {
+                    mHasYear = year != 0;
+                    cal.set(year == 0 ? 1900 : year, month, day);
+                    mDate = cal.getTime();
+                    edit.setText(formatDate());
+                }
+            };
+
+            DatePickerDialog dp = new DatePickerDialog(context, dateListener,
+                                                       mHasYear ? cal.get(Calendar.YEAR) : 0,
+                                                       cal.get(Calendar.MONTH),
+                                                       cal.get(Calendar.DAY_OF_MONTH),
+                                                       mYearOptional);
+
+            if (mAllowClear) {
+                dp.setButton3(context.getString(R.string.button_clear_date),
+                        new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        edit.setText(null);
+                        mDate = null;
+                    }
+                });
+            }
+
+            dp.show();
+        }
+
+        private CharSequence formatDate() {
+            if (mDate == null) {
+                return null;
+            }
+            if (mHasYear) {
+                return mFormat.format(mDate);
+            }
+            return mFormatNoYear.format(mDate);
+        }
+
+        @Override
+        public CharSequence fromValue(Context context, CharSequence value) {
+            EventDateConverter.ParseResult result = EventDateConverter.parseDateFromDb(value);
+            if (result != null) {
+                mDate = result.date;
+                mHasYear = result.hasYear;
+            } else {
+                mDate = null;
+            }
+            if (mDate != null) {
+                return formatDate();
+            }
+            return null;
+        }
+
+        @Override
+        public CharSequence toValue(Context context, CharSequence value) {
+            if (mDate != null) {
+                return EventDateConverter.formatDateForDb(mDate, mHasYear && mYearOptional);
+            }
+            return null;
+        }
+
+        @Override
+        public View.OnClickListener getOnClickListener() {
+            return mListener;
+        }
+    }
+
 
     @Override
     public int getHeaderColor(Context context) {

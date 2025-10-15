@@ -70,7 +70,13 @@ enum {
     QUERY_EFFECT,
     GET_EFFECT_DESCRIPTOR,
     CREATE_EFFECT,
-    MOVE_EFFECTS
+    MOVE_EFFECTS,
+#ifdef HAVE_FM_RADIO
+    SET_FM_VOLUME,
+#endif
+#ifdef OMAP_ENHANCEMENT
+    SET_FMRX_ACTIVE
+#endif
 };
 
 class BpAudioFlinger : public BpInterface<IAudioFlinger>
@@ -270,7 +276,16 @@ public:
         remote()->transact(SET_STREAM_MUTE, data, &reply);
         return reply.readInt32();
     }
-
+#ifdef OMAP_ENHANCEMENT
+    virtual status_t setFMRxActive( bool state)
+    {
+        Parcel data, reply;
+        data.writeInterfaceToken(IAudioFlinger::getInterfaceDescriptor());
+        data.writeInt32(state);
+        remote()->transact(SET_FMRX_ACTIVE, data, &reply);
+        return reply.readInt32();
+    }
+#endif
     virtual float streamVolume(int stream, int output) const
     {
         Parcel data, reply;
@@ -688,6 +703,17 @@ public:
         remote()->transact(MOVE_EFFECTS, data, &reply);
         return reply.readInt32();
     }
+
+#ifdef HAVE_FM_RADIO
+    virtual status_t setFmVolume(float volume)
+    {
+        Parcel data, reply;
+        data.writeInterfaceToken(IAudioFlinger::getInterfaceDescriptor());
+        data.writeFloat(volume);
+        remote()->transact(SET_FM_VOLUME, data, &reply);
+        return reply.readInt32();
+    }
+#endif
 };
 
 IMPLEMENT_META_INTERFACE(AudioFlinger, "android.media.IAudioFlinger");
@@ -796,6 +822,13 @@ status_t BnAudioFlinger::onTransact(
             reply->writeInt32( setStreamMute(stream, data.readInt32()) );
             return NO_ERROR;
         } break;
+#ifdef OMAP_ENHANCEMENT
+        case SET_FMRX_ACTIVE: {
+            CHECK_INTERFACE(IAudioFlinger, data, reply);
+            reply->writeInt32( setFMRxActive(data.readInt32()) );
+            return NO_ERROR;
+        } break;
+#endif
         case STREAM_VOLUME: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
             int stream = data.readInt32();
@@ -1044,6 +1077,14 @@ status_t BnAudioFlinger::onTransact(
             reply->writeInt32(moveEffects(session, srcOutput, dstOutput));
             return NO_ERROR;
         } break;
+#ifdef HAVE_FM_RADIO
+        case SET_FM_VOLUME: {
+            CHECK_INTERFACE(IAudioFlinger, data, reply);
+            float volume = data.readFloat();
+            reply->writeInt32( setFmVolume(volume) );
+            return NO_ERROR;
+        } break;
+#endif
         default:
             return BBinder::onTransact(code, data, reply, flags);
     }

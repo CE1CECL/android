@@ -41,6 +41,7 @@ import javax.sip.address.URI;
 public class SipProfile implements Parcelable, Serializable, Cloneable {
     private static final long serialVersionUID = 1L;
     private static final int DEFAULT_PORT = 5060;
+    private static final int DEFAULT_KEEPALIVE_INTERVAL = 15;
     private static final String TCP = "TCP";
     private static final String UDP = "UDP";
     private Address mAddress;
@@ -49,9 +50,11 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
     private String mDomain;
     private String mProtocol = UDP;
     private String mProfileName;
+    private String mUserAgent;
     private String mAuthUserName;
     private int mPort = DEFAULT_PORT;
     private boolean mSendKeepAlive = false;
+    private int mKeepAliveInterval = DEFAULT_KEEPALIVE_INTERVAL;
     private boolean mAutoRegistration = true;
     private transient int mCallingUid = 0;
 
@@ -75,6 +78,7 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
         private SipURI mUri;
         private String mDisplayName;
         private String mProxyAddress;
+        private String mUserAgent;
 
         {
             try {
@@ -100,6 +104,7 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
             mUri.setUserPassword(profile.getPassword());
             mDisplayName = profile.getDisplayName();
             mProxyAddress = profile.getProxyAddress();
+            mUserAgent = profile.getUserAgent();
             mProfile.mPort = profile.getPort();
         }
 
@@ -252,6 +257,18 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
             return this;
         }
 
+        /**
+         * Sets the send keep-alive interval.
+         *
+         * @param interval in seconds
+         * @return this builder object
+         * @hide
+         */
+        public Builder setKeepAliveInterval(int interval) {
+            mProfile.mKeepAliveInterval = interval;
+            return this;
+        }
+
 
         /**
          * Sets the auto. registration flag.
@@ -262,6 +279,18 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
          */
         public Builder setAutoRegistration(boolean flag) {
             mProfile.mAutoRegistration = flag;
+            return this;
+        }
+
+        /**
+         * Sets the user-agent header for SIP calls
+         *
+         * @param userAgent the string that'll be placed in the headers
+         * @return this builder object
+         * @hide
+         */
+        public Builder setUserAgent(String userAgent) {
+            mUserAgent = userAgent;
             return this;
         }
 
@@ -287,6 +316,11 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
                         mUri.setPort(mProfile.mPort);
                     }
                 }
+                if (!TextUtils.isEmpty(mUserAgent)) {
+                    mProfile.mUserAgent = mUserAgent;
+                } else {
+                    mProfile.mUserAgent = "SIPAUA/0.1.001";
+                }
                 mProfile.mAddress = mAddressFactory.createAddress(
                         mDisplayName, mUri);
             } catch (InvalidArgumentException e) {
@@ -309,7 +343,9 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
         mDomain = in.readString();
         mProtocol = in.readString();
         mProfileName = in.readString();
+        mUserAgent = in.readString();
         mSendKeepAlive = (in.readInt() == 0) ? false : true;
+        mKeepAliveInterval = in.readInt();
         mAutoRegistration = (in.readInt() == 0) ? false : true;
         mCallingUid = in.readInt();
         mPort = in.readInt();
@@ -324,7 +360,9 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
         out.writeString(mDomain);
         out.writeString(mProtocol);
         out.writeString(mProfileName);
+        out.writeString(mUserAgent);
         out.writeInt(mSendKeepAlive ? 1 : 0);
+        out.writeInt(mKeepAliveInterval);
         out.writeInt(mAutoRegistration ? 1 : 0);
         out.writeInt(mCallingUid);
         out.writeInt(mPort);
@@ -464,12 +502,32 @@ public class SipProfile implements Parcelable, Serializable, Cloneable {
     }
 
     /**
+     * Gets the value of 'Keep-alive interval'.
+     *
+     * @return the Keep-alive interval in seconds.
+     * @hide
+     */
+    public int getKeepAliveInterval() {
+        return mKeepAliveInterval;
+    }
+
+    /**
      * Gets the flag of 'Auto Registration'.
      *
      * @return the flag of registering the profile automatically.
      */
     public boolean getAutoRegistration() {
         return mAutoRegistration;
+    }
+
+    /**
+     * Gets the user-agent to apply to requests
+     *
+     * @return the UA string
+     * @hide
+     */
+    public String getUserAgent() {
+        return mUserAgent;
     }
 
     /**

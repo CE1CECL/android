@@ -2,10 +2,10 @@
  * This testing program makes sure the bitops functions work
  *
  * Copyright (C) 2001 by Theodore Ts'o.
- * 
+ *
  * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
  * %End-Header%
  */
 
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("ext2fs_clear_bit test succeed.\n");
-		
+
 
 	/* Do bigarray test */
 	bigarray = malloc(1 << 29);
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("ext2fs_clear_bit test succeed.\n");
-		
+
 
         bigarray[BIG_TEST_BIT >> 3] = 0;
 

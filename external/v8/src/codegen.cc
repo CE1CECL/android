@@ -1,4 +1,4 @@
-// Copyright 2009 the V8 project authors. All rights reserved.
+// Copyright 2010 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -31,7 +31,6 @@
 #include "codegen-inl.h"
 #include "compiler.h"
 #include "debug.h"
-#include "liveedit.h"
 #include "oprofile-agent.h"
 #include "prettyprinter.h"
 #include "register-allocator-inl.h"
@@ -39,6 +38,7 @@
 #include "runtime.h"
 #include "scopeinfo.h"
 #include "stub-cache.h"
+#include "virtual-frame-inl.h"
 
 namespace v8 {
 namespace internal {
@@ -65,55 +65,33 @@ Comment::~Comment() {
 CodeGenerator* CodeGeneratorScope::top_ = NULL;
 
 
-DeferredCode::DeferredCode()
-    : masm_(CodeGeneratorScope::Current()->masm()),
-      statement_position_(masm_->current_statement_position()),
-      position_(masm_->current_position()) {
-  ASSERT(statement_position_ != RelocInfo::kNoPosition);
-  ASSERT(position_ != RelocInfo::kNoPosition);
-
-  CodeGeneratorScope::Current()->AddDeferred(this);
-#ifdef DEBUG
-  comment_ = "";
-#endif
-
-  // Copy the register locations from the code generator's frame.
-  // These are the registers that will be spilled on entry to the
-  // deferred code and restored on exit.
-  VirtualFrame* frame = CodeGeneratorScope::Current()->frame();
-  int sp_offset = frame->fp_relative(frame->stack_pointer_);
-  for (int i = 0; i < RegisterAllocator::kNumRegisters; i++) {
-    int loc = frame->register_location(i);
-    if (loc == VirtualFrame::kIllegalIndex) {
-      registers_[i] = kIgnore;
-    } else if (frame->elements_[loc].is_synced()) {
-      // Needs to be restored on exit but not saved on entry.
-      registers_[i] = frame->fp_relative(loc) | kSyncedFlag;
-    } else {
-      int offset = frame->fp_relative(loc);
-      registers_[i] = (offset < sp_offset) ? kPush : offset;
-    }
-  }
-}
-
-
 void CodeGenerator::ProcessDeferred() {
   while (!deferred_.is_empty()) {
     DeferredCode* code = deferred_.RemoveLast();
     ASSERT(masm_ == code->masm());
     // Record position of deferred code stub.
-    masm_->RecordStatementPosition(code->statement_position());
+    masm_->positions_recorder()->RecordStatementPosition(
+        code->statement_position());
     if (code->position() != RelocInfo::kNoPosition) {
-      masm_->RecordPosition(code->position());
+      masm_->positions_recorder()->RecordPosition(code->position());
     }
     // Generate the code.
     Comment cmnt(masm_, code->comment());
     masm_->bind(code->entry_label());
-    code->SaveRegisters();
+    if (code->AutoSaveAndRestore()) {
+      code->SaveRegisters();
+    }
     code->Generate();
-    code->RestoreRegisters();
-    masm_->jmp(code->exit_label());
+    if (code->AutoSaveAndRestore()) {
+      code->RestoreRegisters();
+      code->Exit();
+    }
   }
+}
+
+
+void DeferredCode::Exit() {
+  masm_->jmp(exit_label());
 }
 
 
@@ -194,9 +172,7 @@ Handle<Code> CodeGenerator::MakeCodeEpilogue(MacroAssembler* masm,
   // Allocate and install the code.
   CodeDesc desc;
   masm->GetCode(&desc);
-  ZoneScopeInfo sinfo(info->scope());
-  Handle<Code> code =
-      Factory::NewCode(desc, &sinfo, flags, masm->CodeObject());
+  Handle<Code> code = Factory::NewCode(desc, flags, masm->CodeObject());
 
 #ifdef ENABLE_DISASSEMBLER
   bool print_code = Bootstrapper::IsActive()
@@ -231,11 +207,9 @@ Handle<Code> CodeGenerator::MakeCodeEpilogue(MacroAssembler* masm,
 }
 
 
-// Generate the code. Takes a function literal, generates code for it, assemble
-// all the pieces into a Code object. This function is only to be called by
-// the compiler.cc code.
-Handle<Code> CodeGenerator::MakeCode(CompilationInfo* info) {
-  LiveEditFunctionTracker live_edit_tracker(info->function());
+// Generate the code.  Compile the AST and assemble all the pieces into a
+// Code object.
+bool CodeGenerator::MakeCode(CompilationInfo* info) {
   Handle<Script> script = info->script();
   if (!script->IsUndefined() && !script->source()->IsUndefined()) {
     int len = String::cast(script->source())->length();
@@ -247,18 +221,17 @@ Handle<Code> CodeGenerator::MakeCode(CompilationInfo* info) {
   MacroAssembler masm(NULL, kInitialBufferSize);
   CodeGenerator cgen(&masm);
   CodeGeneratorScope scope(&cgen);
-  live_edit_tracker.RecordFunctionScope(info->function()->scope());
   cgen.Generate(info);
   if (cgen.HasStackOverflow()) {
     ASSERT(!Top::has_pending_exception());
-    return Handle<Code>::null();
+    return false;
   }
 
-  InLoopFlag in_loop = (cgen.loop_nesting() != 0) ? IN_LOOP : NOT_IN_LOOP;
+  InLoopFlag in_loop = info->is_in_loop() ? IN_LOOP : NOT_IN_LOOP;
   Code::Flags flags = Code::ComputeFlags(Code::FUNCTION, in_loop);
-  Handle<Code> result = MakeCodeEpilogue(cgen.masm(), flags, info);
-  live_edit_tracker.RecordFunctionCode(result);
-  return result;
+  Handle<Code> code = MakeCodeEpilogue(cgen.masm(), flags, info);
+  info->SetCode(code);  // May be an empty handle.
+  return !code.is_null();
 }
 
 
@@ -266,7 +239,7 @@ Handle<Code> CodeGenerator::MakeCode(CompilationInfo* info) {
 
 bool CodeGenerator::ShouldGenerateLog(Expression* type) {
   ASSERT(type != NULL);
-  if (!Logger::is_logging()) return false;
+  if (!Logger::is_logging() && !CpuProfiler::is_profiling()) return false;
   Handle<String> name = Handle<String>::cast(type->AsLiteral()->handle());
   if (FLAG_log_regexp) {
     static Vector<const char> kRegexp = CStrVector("regexp");
@@ -279,28 +252,13 @@ bool CodeGenerator::ShouldGenerateLog(Expression* type) {
 #endif
 
 
-Handle<Code> CodeGenerator::ComputeCallInitialize(
-    int argc,
-    InLoopFlag in_loop) {
-  if (in_loop == IN_LOOP) {
-    // Force the creation of the corresponding stub outside loops,
-    // because it may be used when clearing the ICs later - it is
-    // possible for a series of IC transitions to lose the in-loop
-    // information, and the IC clearing code can't generate a stub
-    // that it needs so we need to ensure it is generated already.
-    ComputeCallInitialize(argc, NOT_IN_LOOP);
-  }
-  CALL_HEAP_FUNCTION(StubCache::ComputeCallInitialize(argc, in_loop), Code);
-}
-
-
 void CodeGenerator::ProcessDeclarations(ZoneList<Declaration*>* declarations) {
   int length = declarations->length();
   int globals = 0;
   for (int i = 0; i < length; i++) {
     Declaration* node = declarations->at(i);
     Variable* var = node->proxy()->var();
-    Slot* slot = var->slot();
+    Slot* slot = var->AsSlot();
 
     // If it was not possible to allocate the variable at compile
     // time, we need to "declare" it at runtime to make sure it
@@ -321,7 +279,7 @@ void CodeGenerator::ProcessDeclarations(ZoneList<Declaration*>* declarations) {
   for (int j = 0, i = 0; i < length; i++) {
     Declaration* node = declarations->at(i);
     Variable* var = node->proxy()->var();
-    Slot* slot = var->slot();
+    Slot* slot = var->AsSlot();
 
     if ((slot != NULL && slot->type() == Slot::LOOKUP) || !var->is_global()) {
       // Skip - already processed.
@@ -335,10 +293,13 @@ void CodeGenerator::ProcessDeclarations(ZoneList<Declaration*>* declarations) {
           array->set_undefined(j++);
         }
       } else {
-        Handle<JSFunction> function =
-            Compiler::BuildBoilerplate(node->fun(), script(), this);
+        Handle<SharedFunctionInfo> function =
+            Compiler::BuildFunctionInfo(node->fun(), script());
         // Check for stack-overflow exception.
-        if (HasStackOverflow()) return;
+        if (function.is_null()) {
+          SetStackOverflow();
+          return;
+        }
         array->set(j++, *function);
       }
     }
@@ -350,80 +311,39 @@ void CodeGenerator::ProcessDeclarations(ZoneList<Declaration*>* declarations) {
 }
 
 
-
-// Special cases: These 'runtime calls' manipulate the current
-// frame and are only used 1 or two places, so we generate them
-// inline instead of generating calls to them.  They are used
-// for implementing Function.prototype.call() and
-// Function.prototype.apply().
-CodeGenerator::InlineRuntimeLUT CodeGenerator::kInlineRuntimeLUT[] = {
-  {&CodeGenerator::GenerateIsSmi, "_IsSmi"},
-  {&CodeGenerator::GenerateIsNonNegativeSmi, "_IsNonNegativeSmi"},
-  {&CodeGenerator::GenerateIsArray, "_IsArray"},
-  {&CodeGenerator::GenerateIsRegExp, "_IsRegExp"},
-  {&CodeGenerator::GenerateIsConstructCall, "_IsConstructCall"},
-  {&CodeGenerator::GenerateArgumentsLength, "_ArgumentsLength"},
-  {&CodeGenerator::GenerateArgumentsAccess, "_Arguments"},
-  {&CodeGenerator::GenerateClassOf, "_ClassOf"},
-  {&CodeGenerator::GenerateValueOf, "_ValueOf"},
-  {&CodeGenerator::GenerateSetValueOf, "_SetValueOf"},
-  {&CodeGenerator::GenerateFastCharCodeAt, "_FastCharCodeAt"},
-  {&CodeGenerator::GenerateObjectEquals, "_ObjectEquals"},
-  {&CodeGenerator::GenerateLog, "_Log"},
-  {&CodeGenerator::GenerateRandomPositiveSmi, "_RandomPositiveSmi"},
-  {&CodeGenerator::GenerateIsObject, "_IsObject"},
-  {&CodeGenerator::GenerateIsFunction, "_IsFunction"},
-  {&CodeGenerator::GenerateIsUndetectableObject, "_IsUndetectableObject"},
-  {&CodeGenerator::GenerateStringAdd, "_StringAdd"},
-  {&CodeGenerator::GenerateSubString, "_SubString"},
-  {&CodeGenerator::GenerateStringCompare, "_StringCompare"},
-  {&CodeGenerator::GenerateRegExpExec, "_RegExpExec"},
-  {&CodeGenerator::GenerateNumberToString, "_NumberToString"},
-  {&CodeGenerator::GenerateMathSin, "_Math_sin"},
-  {&CodeGenerator::GenerateMathCos, "_Math_cos"},
-};
-
-
-CodeGenerator::InlineRuntimeLUT* CodeGenerator::FindInlineRuntimeLUT(
-    Handle<String> name) {
-  const int entries_count =
-      sizeof(kInlineRuntimeLUT) / sizeof(InlineRuntimeLUT);
-  for (int i = 0; i < entries_count; i++) {
-    InlineRuntimeLUT* entry = &kInlineRuntimeLUT[i];
-    if (name->IsEqualTo(CStrVector(entry->name))) {
-      return entry;
-    }
-  }
-  return NULL;
+void CodeGenerator::VisitIncrementOperation(IncrementOperation* expr) {
+  UNREACHABLE();
 }
+
+
+// Lookup table for code generators for special runtime calls which are
+// generated inline.
+#define INLINE_FUNCTION_GENERATOR_ADDRESS(Name, argc, ressize)          \
+    &CodeGenerator::Generate##Name,
+
+const CodeGenerator::InlineFunctionGenerator
+    CodeGenerator::kInlineFunctionGenerators[] = {
+        INLINE_FUNCTION_LIST(INLINE_FUNCTION_GENERATOR_ADDRESS)
+        INLINE_RUNTIME_FUNCTION_LIST(INLINE_FUNCTION_GENERATOR_ADDRESS)
+};
+#undef INLINE_FUNCTION_GENERATOR_ADDRESS
 
 
 bool CodeGenerator::CheckForInlineRuntimeCall(CallRuntime* node) {
   ZoneList<Expression*>* args = node->arguments();
   Handle<String> name = node->name();
-  if (name->length() > 0 && name->Get(0) == '_') {
-    InlineRuntimeLUT* entry = FindInlineRuntimeLUT(name);
-    if (entry != NULL) {
-      ((*this).*(entry->method))(args);
-      return true;
-    }
+  Runtime::Function* function = node->function();
+  if (function != NULL && function->intrinsic_type == Runtime::INLINE) {
+    int lookup_index = static_cast<int>(function->function_id) -
+        static_cast<int>(Runtime::kFirstInlineFunction);
+    ASSERT(lookup_index >= 0);
+    ASSERT(static_cast<size_t>(lookup_index) <
+           ARRAY_SIZE(kInlineFunctionGenerators));
+    InlineFunctionGenerator generator = kInlineFunctionGenerators[lookup_index];
+    (this->*generator)(args);
+    return true;
   }
   return false;
-}
-
-
-bool CodeGenerator::PatchInlineRuntimeEntry(Handle<String> name,
-    const CodeGenerator::InlineRuntimeLUT& new_entry,
-    CodeGenerator::InlineRuntimeLUT* old_entry) {
-  InlineRuntimeLUT* entry = FindInlineRuntimeLUT(name);
-  if (entry == NULL) return false;
-  if (old_entry != NULL) {
-    old_entry->name = entry->name;
-    old_entry->method = entry->method;
-  }
-  entry->name = new_entry.name;
-  entry->method = new_entry.method;
-  return true;
 }
 
 
@@ -446,35 +366,44 @@ CodeGenerator::ConditionAnalysis CodeGenerator::AnalyzeCondition(
 }
 
 
-void CodeGenerator::RecordPositions(MacroAssembler* masm, int pos) {
+bool CodeGenerator::RecordPositions(MacroAssembler* masm,
+                                    int pos,
+                                    bool right_here) {
   if (pos != RelocInfo::kNoPosition) {
-    masm->RecordStatementPosition(pos);
-    masm->RecordPosition(pos);
+    masm->positions_recorder()->RecordStatementPosition(pos);
+    masm->positions_recorder()->RecordPosition(pos);
+    if (right_here) {
+      return masm->positions_recorder()->WriteRecordedPositions();
+    }
   }
+  return false;
 }
 
 
 void CodeGenerator::CodeForFunctionPosition(FunctionLiteral* fun) {
-  if (FLAG_debug_info) RecordPositions(masm(), fun->start_position());
+  if (FLAG_debug_info) RecordPositions(masm(), fun->start_position(), false);
 }
 
 
 void CodeGenerator::CodeForReturnPosition(FunctionLiteral* fun) {
-  if (FLAG_debug_info) RecordPositions(masm(), fun->end_position());
+  if (FLAG_debug_info) RecordPositions(masm(), fun->end_position() - 1, false);
 }
 
 
 void CodeGenerator::CodeForStatementPosition(Statement* stmt) {
-  if (FLAG_debug_info) RecordPositions(masm(), stmt->statement_pos());
+  if (FLAG_debug_info) RecordPositions(masm(), stmt->statement_pos(), false);
 }
 
+
 void CodeGenerator::CodeForDoWhileConditionPosition(DoWhileStatement* stmt) {
-  if (FLAG_debug_info) RecordPositions(masm(), stmt->condition_position());
+  if (FLAG_debug_info)
+    RecordPositions(masm(), stmt->condition_position(), false);
 }
+
 
 void CodeGenerator::CodeForSourcePosition(int pos) {
   if (FLAG_debug_info && pos != RelocInfo::kNoPosition) {
-    masm()->RecordPosition(pos);
+    masm()->positions_recorder()->RecordPosition(pos);
   }
 }
 
@@ -482,11 +411,17 @@ void CodeGenerator::CodeForSourcePosition(int pos) {
 const char* GenericUnaryOpStub::GetName() {
   switch (op_) {
     case Token::SUB:
-      return overwrite_
-          ? "GenericUnaryOpStub_SUB_Overwrite"
-          : "GenericUnaryOpStub_SUB_Alloc";
+      if (negative_zero_ == kStrictNegativeZero) {
+        return overwrite_ == UNARY_OVERWRITE
+            ? "GenericUnaryOpStub_SUB_Overwrite_Strict0"
+            : "GenericUnaryOpStub_SUB_Alloc_Strict0";
+      } else {
+        return overwrite_ == UNARY_OVERWRITE
+            ? "GenericUnaryOpStub_SUB_Overwrite_Ignore0"
+            : "GenericUnaryOpStub_SUB_Alloc_Ignore0";
+      }
     case Token::BIT_NOT:
-      return overwrite_
+      return overwrite_ == UNARY_OVERWRITE
           ? "GenericUnaryOpStub_BIT_NOT_Overwrite"
           : "GenericUnaryOpStub_BIT_NOT_Alloc";
     default:
@@ -498,7 +433,6 @@ const char* GenericUnaryOpStub::GetName() {
 
 void ArgumentsAccessStub::Generate(MacroAssembler* masm) {
   switch (type_) {
-    case READ_LENGTH: GenerateReadLength(masm); break;
     case READ_ELEMENT: GenerateReadElement(masm); break;
     case NEW_OBJECT: GenerateNewObject(masm); break;
   }
@@ -506,29 +440,12 @@ void ArgumentsAccessStub::Generate(MacroAssembler* masm) {
 
 
 int CEntryStub::MinorKey() {
-  ASSERT(result_size_ <= 2);
+  ASSERT(result_size_ == 1 || result_size_ == 2);
 #ifdef _WIN64
-  return ExitFrameModeBits::encode(mode_)
-         | IndirectResultBits::encode(result_size_ > 1);
+  return result_size_ == 1 ? 0 : 1;
 #else
-  return ExitFrameModeBits::encode(mode_);
+  return 0;
 #endif
-}
-
-
-bool ApiGetterEntryStub::GetCustomCache(Code** code_out) {
-  Object* cache = info()->load_stub_cache();
-  if (cache->IsUndefined()) {
-    return false;
-  } else {
-    *code_out = Code::cast(cache);
-    return true;
-  }
-}
-
-
-void ApiGetterEntryStub::SetCustomCache(Code* value) {
-  info()->set_load_stub_cache(value);
 }
 
 

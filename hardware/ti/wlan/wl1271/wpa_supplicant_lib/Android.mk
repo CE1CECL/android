@@ -67,6 +67,7 @@ INCLUDES = $(STAD)/Export_Inc \
 	$(DK_ROOT)/../lib
   
 L_CFLAGS = -DCONFIG_DRIVER_CUSTOM -DHOST_COMPILE -D__BYTE_ORDER_LITTLE_ENDIAN
+#L_CFLAGS += -DCONFIG_CONNECTION_SCAN
 L_CFLAGS += -DWPA_SUPPLICANT_$(WPA_SUPPLICANT_VERSION)
 OBJS = driver_ti.c $(LIB)/scanmerge.c $(LIB)/shlist.c
 
@@ -95,9 +96,15 @@ ifdef CONFIG_WPS
 L_CFLAGS += -DCONFIG_WPS
 endif
 
+# used to fix wifi signal refresh on rssi-approx
+ifeq ($(WPA_SUPPL_APPROX_USE_RSSI),true)
+L_CFLAGS += -DAPPROX_USE_RSSI_COMMAND
+endif
+
 ########################
  
 include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE := libCustomWifi
 LOCAL_SHARED_LIBRARIES := libc libcutils
 LOCAL_CFLAGS := $(L_CFLAGS)

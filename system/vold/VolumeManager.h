@@ -27,6 +27,10 @@
 /* The length of an MD5 hash when encoded into ASCII hex characters */
 #define MD5_ASCII_LENGTH_PLUS_NULL ((MD5_DIGEST_LENGTH*2)+1)
 
+#ifndef CUSTOM_SECOND_LUN_NUM
+#define CUSTOM_SECOND_LUN_NUM 1
+#endif
+
 typedef enum { ASEC, OBB } container_type_t;
 
 class ContainerData {
@@ -50,6 +54,10 @@ public:
 typedef android::List<ContainerData*> AsecIdCollection;
 
 class VolumeManager {
+
+public:
+    static const int SECOND_LUN_NUM = CUSTOM_SECOND_LUN_NUM;
+
 private:
     static VolumeManager *sInstance;
 
@@ -58,8 +66,13 @@ private:
 
     VolumeCollection      *mVolumes;
     AsecIdCollection      *mActiveContainers;
+
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    bool                   mUsbMassStorageConnected;
+#else
     bool                   mUsbMassStorageEnabled;
     bool                   mUsbConnected;
+#endif
     bool                   mDebug;
 
     // for adjusting /proc/sys/vm/dirty_ratio when UMS is active
@@ -75,7 +88,9 @@ public:
 
     void handleBlockEvent(NetlinkEvent *evt);
     void handleSwitchEvent(NetlinkEvent *evt);
+#ifndef USE_USB_MASS_STORAGE_SWITCH
     void handleUsbCompositeEvent(NetlinkEvent *evt);
+#endif
 
     int addVolume(Volume *v);
 
@@ -111,6 +126,9 @@ public:
 
     void setDebug(bool enable);
 
+#ifdef USE_USB_MASS_STORAGE_SWITCH
+    void notifyUmsConnected(bool connected);
+#endif
     // XXX: Post froyo this should be moved and cleaned up
     int cleanupAsec(Volume *v, bool force);
 
@@ -123,11 +141,14 @@ public:
 
 private:
     VolumeManager();
-    void readInitialState();
+
     Volume *lookupVolume(const char *label);
     bool isMountpointMounted(const char *mp);
-
+#ifndef USE_USB_MASS_STORAGE_SWITCH
+    void readInitialState();
     inline bool massStorageAvailable() const { return mUsbMassStorageEnabled && mUsbConnected; }
     void notifyUmsAvailable(bool available);
+#endif
+    int openLun(int number);
 };
 #endif

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">マーケットアプリインストーラ</string>
+    <string name="activity_title">インストールするアプリを選択</string>
+
+    <!-- Buttons -->
+    <string name="main_btn_ok">OK</string>
+    <string name="main_btn_selectall">全て選択</string>
+    <string name="main_btn_cancel">キャンセル</string>
+
+    <!-- Alert Dialog -->
+    <string name="alert_dialog_title">重要: 読んでください!</string>
+    <string name="alert_dialog_message">このプログラムはマーケットアプリの検索に利用され、最初の一度しか表示されません。しかしながら、多くのユーザーがこのプログラムの起動をあとで行いたいかもしれません(例えばWi-Fiに繋いでからなど)。もし、あなたが適切なステップを踏んだあとでこのプログラムを起動したいなら、キャンセルをクリックしてください。</string>
+</resources>

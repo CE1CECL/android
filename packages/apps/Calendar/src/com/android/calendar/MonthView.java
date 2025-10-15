@@ -32,8 +32,8 @@ import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
-import android.os.SystemClock;
 import android.text.format.DateFormat;
 import android.text.format.DateUtils;
 import android.text.format.Time;
@@ -58,8 +58,6 @@ import java.util.Calendar;
 
 public class MonthView extends View implements View.OnCreateContextMenuListener {
 
-    private static final boolean PROFILE_LOAD_TIME = false;
-
     private static float mScale = 0; // Used for supporting different screen densities
     private static int WEEK_GAP = 0;
     private static int MONTH_DAY_GAP = 1;
@@ -74,7 +72,7 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
     private static int EVENT_DOT_W_H = 10;
     private static int EVENT_NUM_DAYS = 31;
     private static int TEXT_TOP_MARGIN = 7;
-    private static int BUSY_BITS_WIDTH = 6;
+    private static int BUSY_BITS_WIDTH = 8;
     private static int BUSY_BITS_MARGIN = 4;
     private static int DAY_NUMBER_OFFSET = 10;
 
@@ -249,7 +247,7 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
         mViewCalendar.monthDay = 1;
         long millis = mViewCalendar.normalize(true /* ignore DST */);
         mFirstJulianDay = Time.getJulianDay(millis, mViewCalendar.gmtoff);
-        mStartDay = Utils.getFirstDayOfWeek();
+        mStartDay = Utils.getFirstDayOfWeek(getContext());
         mViewCalendar.set(now);
 
         mCursor = new DayOfMonthCursor(mViewCalendar.year,  mViewCalendar.month,
@@ -467,17 +465,9 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
         monthStart.minute = 0;
         monthStart.second = 0;
         long millis = monthStart.normalize(true /* ignore isDst */);
-        int startDay = Time.getJulianDay(millis, monthStart.gmtoff);
 
         // Load the days with events in the background
         mParentActivity.startProgressSpinner();
-        final long startMillis;
-        if (PROFILE_LOAD_TIME) {
-            startMillis = SystemClock.uptimeMillis();
-        } else {
-            // To avoid a compiler error that this variable might not be initialized.
-            startMillis = 0;
-        }
 
         final ArrayList<Event> events = new ArrayList<Event>();
         mEventLoader.loadEventsInBackground(EVENT_NUM_DAYS, events, millis, new Runnable() {
@@ -710,25 +700,6 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
     }
 
     /**
-     * Create a bitmap at the origin and draw the drawable to it using the bounds specified by rect.
-     *
-     * @param drawable the drawable we wish to render
-     * @param width the width of the resulting bitmap
-     * @param height the height of the resulting bitmap
-     * @return a new bitmap
-     */
-    private Bitmap createBitmap(Drawable drawable, int width, int height) {
-        // Create a bitmap with the same format as mBitmap (should be Bitmap.Config.ARGB_8888)
-        Bitmap bitmap = Bitmap.createBitmap(width, height, mBitmap.getConfig());
-
-        // Draw the drawable into the bitmap at the origin.
-        Canvas canvas = new Canvas(bitmap);
-        drawable.setBounds(0, 0, width, height);
-        drawable.draw(canvas);
-        return bitmap;
-    }
-
-    /**
      * Clears the bitmap cache. Generally only needed when the screen size changed.
      */
     private void clearBitmapCache() {
@@ -907,7 +878,17 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
                 p.setColor(mMonthDayNumberColor);
             }
             //bolds the day if there's an event that day
-            p.setFakeBoldText(eventDay[day-mFirstJulianDay]);
+            p.setFakeBoldText(false);
+            ArrayList<Event> events = mEvents;
+            if (eventDay[day-mFirstJulianDay]) {
+                for(int e = 0;e < events.size();e++) {
+                    Event event = events.get(e);
+                    if (event.startDay <= day && event.endDay >= day && event.allDay) {
+                        p.setFakeBoldText(true);
+                        p.setColor(event.color);
+                    }
+                }
+            }
         }
         /*Drawing of day number is done here
          *easy to find tags draw number draw day*/
@@ -924,9 +905,6 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
         int top = rect.top + TEXT_TOP_MARGIN + BUSY_BITS_MARGIN;
         int left = rect.right - BUSY_BITS_MARGIN - BUSY_BITS_WIDTH;
 
-        Style oldStyle = p.getStyle();
-        int oldColor = p.getColor();
-
         ArrayList<Event> events = mEvents;
         int numEvents = events.size();
         EventGeometry geometry = mEventGeometry;
@@ -940,7 +918,7 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
 
             p.setColor(mMonthBgColor);
             p.setStyle(Style.FILL);
-            canvas.drawRect(rf, p);
+            canvas.drawRoundRect(rf, 6, 6, p);
         }
 
         for (int i = 0; i < numEvents; i++) {
@@ -950,13 +928,19 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
             }
             drawEventRect(rect, event, canvas, p);
         }
+        //Draw BusyBits backgrouind for 3D effect
+        Bitmap bmp=((BitmapDrawable) getResources().getDrawable(R.drawable.dna_empty) ).getBitmap();
+        bmp = bmp.createScaledBitmap(bmp,BUSY_BITS_WIDTH,(rect.bottom - BUSY_BITS_MARGIN - top),false);
+        canvas.drawBitmap( bmp, left, top, p);
 
     }
 
     // Draw busybits for a single event
     private RectF drawEventRect(Rect rect, Event event, Canvas canvas, Paint p) {
 
-        p.setColor(mBusybitsColor);
+        //p.setColor(mBusybitsColor);
+        //Set Calendar Color
+        p.setColor(event.color);
 
         int left = rect.right - BUSY_BITS_MARGIN - BUSY_BITS_WIDTH;
         int bottom = rect.bottom - BUSY_BITS_MARGIN;
@@ -968,19 +952,9 @@ public class MonthView extends View implements View.OnCreateContextMenuListener 
         rf.left = left;
         rf.right = left + BUSY_BITS_WIDTH;
 
-        canvas.drawRect(rf, p);
+        canvas.drawRoundRect(rf, 4, 4, p);
 
         return rf;
-    }
-
-    private boolean isFirstDayOfNextMonth(int row, int column) {
-        if (column == 0) {
-            column = 6;
-            row--;
-        } else {
-            column--;
-        }
-        return mCursor.isWithinCurrentMonth(row, column);
     }
 
     private int getWeekOfYear(int row, int column, boolean isWithinCurrentMonth,

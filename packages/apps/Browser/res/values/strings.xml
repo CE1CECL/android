@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright (C) 2007 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -319,6 +319,10 @@
     <string name="pref_content_landscape_only">Landscape-only display</string>
     <!-- Settings summary -->
     <string name="pref_content_landscape_only_summary">Display pages only in the wider, landscape screen orientation</string>
+    <!-- Settings label -->
+    <string name="pref_content_invert_color">Invert color</string>
+    <!-- Settings summary -->
+    <string name="pref_content_invert_color_summary">Display pages in inverted color</string>
     <!-- Settings screen, section title -->
     <string name="pref_privacy_title">Privacy settings</string>
     <!-- Settings label -->
@@ -452,18 +456,24 @@
     <!-- Do not tranlsate.  Development option -->
     <string-array name="pref_development_ua_choices" translatable="false">
         <item>Android</item>
-        <item>Desktop</item>
+        <item>Froyo</item>
+        <item>Eclair</item>
+        <item>Linux Desktop</item>
+        <item>Mac Desktop</item>
         <item>iPhone</item>
         <item>iPad</item>
-        <item>Froyo-N1</item>
+        <item>IE6</item>
     </string-array>
     <!-- Do not tranlsate.  Development option -->
     <string-array name="pref_development_ua_values" translatable="false">
         <item>0</item>
+        <item>4</item>
+        <item>7</item>
+        <item>5</item>
         <item>1</item>
         <item>2</item>
         <item>3</item>
-        <item>4</item>
+        <item>6</item>
     </string-array>
     <string name="pref_development_error_console" translatable="false">Show JavaScript Console</string>
     <!-- Settings screen, setting option name -->
@@ -491,7 +501,11 @@
         <item>SHIFT_JIS</item>
         <item>EUC-JP</item>
     </string-array>
-    <string name="pref_default_text_encoding_default" translatable="false">Latin-1</string>
+    <!-- Do not translate this string. Actual encoding value. Must be valid text encodings understandable from WebKit.
+            If you need to set a different default encoding in your locale, create a donottranslate-strings.xml in
+            your "values-<locale>" folder and use one of the "pref_default_text_encoding_values" string-array above.
+            Check "values-ja/donottranslate-strings.xml" for an example -->
+    <string name="pref_default_text_encoding_default">Latin-1</string>
     <!-- Title for a dialog displayed when the browser has a data connectivity
             problem -->
     <string name="browserFrameNetworkErrorLabel">Data connectivity problem</string>
@@ -746,12 +760,19 @@
     <string name="website_settings_clear_all_dialog_cancel_button">Cancel</string>
 
     <!-- Text in the progress dialog when we are setting an image as the home screen wallpaper. -->
-    <string name="progress_dialog_setting_wallpaper">Setting wallpaper...</string>
+    <string name="progress_dialog_setting_wallpaper">Setting wallpaper\u2026</string>
 
-    <string name="error_console_header_text_minimized" translatable="false">Show JavaScript console</string>
-    <string name="error_console_header_text_maximized" translatable="false">JavaScript console</string>
-    <string name="error_console_eval_text_hint" translatable="false">Evaluate JavaScript</string>
-    <string name="error_console_eval_button_text" translatable="false">Evaluate</string>
+    <string name="error_console_header_text_minimized">Show JavaScript console</string>
+    <string name="error_console_header_text_maximized">JavaScript console</string>
+    <string name="error_console_eval_text_hint">Evaluate JavaScript</string>
+    <string name="error_console_eval_button_text">Evaluate</string>
+
+    <string name="pref_show_zoom_controls">Show visual zoom controls</string>
+    <string name="pref_full_screen_mode">Full screen</string>
+
+    <string name="incog_tab">Enable Incognito Mode</string>
+    <string name="dis_incog_tab">Disable Incognito Mode</string>
+    <string name="pref_select_user_agent">Select User Agent</string>
 
     <!-- Access point for RLZ tracking. -->
     <string name="rlz_access_point" translatable="false">Y1</string>

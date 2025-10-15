@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name">Témaválasztó</string>
+    <string name="app_title">Témaválasztó</string>
+    <string name="apply">Alkalmaz</string>
+
+    <string name="menu_header">Téma beállításai</string>
+    <string name="menu_uninstall">Eltávolítás</string>
+    <string name="theme_current">%s (jelenlegi)</string>
+    <string name="theme_change_dialog_title">Alkalmazás</string>
+    <string name="switching_to_theme">Váltás %s témára...</string>
+    <string name="item_count" formatted="false">%1$d/%2$d</string>
+
+    <string name="dialog_theme_error_title">Téma hiba</string>
+    <string name="dialog_missing_host_density_msg">A választott téma nem erre a felbontásra készült.</string>
+    <string name="dialog_missing_theme_package_scope_msg">Ez a téma nem megfelelően összeállított, és nem alkalmazható. Kérjük, jelentse az esetet a téma szerzőjének.</string>
+    <string name="dialog_apply_anyway_btn">Alkalmazás</string>
+    <string name="dialog_bummer_btn">Mégse</string>
+</resources>

@@ -26,12 +26,17 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.SystemClock;
+import android.provider.Settings;
 import android.util.Log;
 
 import java.io.IOException;
 import java.lang.IllegalStateException;
 import java.lang.Thread;
 import java.util.LinkedList;
+import android.content.Intent;
+/* TI FM UI port -start */
+import android.os.SystemProperties;
+/* TI FM UI port -stop */
 
 /**
  * @hide
@@ -88,7 +93,9 @@ public class NotificationPlayer implements OnCompletionListener {
                     player.setDataSource(mCmd.context, mCmd.uri);
                     player.setLooping(mCmd.looping);
                     player.prepare();
-                    if ((mCmd.uri != null) && (mCmd.uri.getEncodedPath() != null)
+                    boolean requestFocus = Settings.System.getInt(mCmd.context.getContentResolver(),
+                            Settings.System.NOTIFICATIONS_AUDIO_FOCUS, 1) != 0;
+                    if (requestFocus && (mCmd.uri != null) && (mCmd.uri.getEncodedPath() != null)
                             && (mCmd.uri.getEncodedPath().length() > 0)) {
                         if (mCmd.looping) {
                             audioManager.requestAudioFocus(null, mCmd.stream,
@@ -207,6 +214,18 @@ public class NotificationPlayer implements OnCompletionListener {
     }
 
     public void onCompletion(MediaPlayer mp) {
+
+        /* TI FM UI port -start */
+        if (SystemProperties.OMAP_ENHANCEMENT) {
+               String FM_UNMUTE_CMD = "com.ti.server.fmunmutecmd";
+               Log.v(mTag,"sending unmute to fm");
+               /* Tell the FM playback service to resume,as the notification playback is over*/
+               // TODO: these constants need to be published somewhere in the framework.
+               Intent fmunmute = new Intent(FM_UNMUTE_CMD);
+               mCompletionThread.mCmd.context.sendBroadcast(fmunmute);
+        }
+        /* TI FM UI port -stop */
+
         if (mAudioManager != null) {
             mAudioManager.abandonAudioFocus(null);
         }

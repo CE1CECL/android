@@ -768,6 +768,7 @@ public class CalendarUtilities {
             } else {
                 TimeZoneDate dstStart = getTimeZoneDateFromSystemTime(timeZoneBytes,
                         MSFT_TIME_ZONE_DAYLIGHT_DATE_OFFSET);
+                if(dstStart == null) return null;
                 // See comment above for bias...
                 long dstSavings =
                     -1 * getLong(timeZoneBytes, MSFT_TIME_ZONE_DAYLIGHT_BIAS_OFFSET) * MINUTES;
@@ -950,6 +951,12 @@ public class CalendarUtilities {
         return toCalendar.getTimeInMillis();
     }
 
+    /* TODO BKBK This end ups making a string that I don't think is right!
+     * BYDAY=-1MO,-1TU,-1WE,-1TH,-1FR
+     * I think that should be
+     * BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1
+     * http://www.ietf.org/rfc/rfc2445.txt
+     */
     static void addByDay(StringBuilder rrule, int dow, int wom) {
         rrule.append(";BYDAY=");
         boolean addComma = false;
@@ -961,12 +968,15 @@ public class CalendarUtilities {
                 if (wom > 0) {
                     // 5 = last week -> -1
                     // So -1SU = last sunday
-                    rrule.append(wom == 5 ? -1 : wom);
+                    rrule.append(wom == 5 ? "" : wom);
                 }
                 rrule.append(sDayTokens[i]);
                 addComma = true;
             }
             dow >>= 1;
+        }
+        if (wom == 5) {
+            rrule.append(";BYSETPOS=-1");
         }
     }
 
@@ -1031,12 +1041,16 @@ public class CalendarUtilities {
     }
 
     /**
-     * Convenience method to add "until" to an EAS calendar stream
+     * Convenience method to add "until" or COUNT to an EAS calendar stream
      */
     static void addUntil(String rrule, Serializer s) throws IOException {
         String until = tokenFromRrule(rrule, "UNTIL=");
         if (until != null) {
             s.data(Tags.CALENDAR_RECURRENCE_UNTIL, recurrenceUntilToEasUntil(until));
+        }
+        String count = tokenFromRrule(rrule, "COUNT=");
+        if (count != null) {
+            s.data(Tags.CALENDAR_RECURRENCE_OCCURRENCES, count);
         }
     }
 
@@ -1200,7 +1214,6 @@ public class CalendarUtilities {
     static public long createCalendar(EasSyncService service, Account account, Mailbox mailbox) {
         // Create a Calendar object
         ContentValues cv = new ContentValues();
-        // TODO How will this change if the user changes his account display name?
         cv.put(Calendars.DISPLAY_NAME, account.mDisplayName);
         cv.put(Calendars._SYNC_ACCOUNT, account.mEmailAddress);
         cv.put(Calendars._SYNC_ACCOUNT_TYPE, Email.EXCHANGE_ACCOUNT_MANAGER_TYPE);
@@ -1209,14 +1222,11 @@ public class CalendarUtilities {
         cv.put(Calendars.HIDDEN, 0);
         // Don't show attendee status if we're the organizer
         cv.put(Calendars.ORGANIZER_CAN_RESPOND, 0);
-
-        // TODO Coordinate account colors w/ Calendar, if possible
         // Make Email account color opaque
-        cv.put(Calendars.COLOR, 0xFF000000 | Email.getAccountColor(account.mId));
+        cv.put(Calendars.COLOR, 0xFF000000 | account.getAccountColor());
         cv.put(Calendars.TIMEZONE, Time.getCurrentTimezone());
         cv.put(Calendars.ACCESS_LEVEL, Calendars.OWNER_ACCESS);
         cv.put(Calendars.OWNER_ACCOUNT, account.mEmailAddress);
-
         Uri uri = service.mContentResolver.insert(Calendars.CONTENT_URI, cv);
         // We save the id of the calendar into mSyncStatus
         if (uri != null) {
@@ -1225,6 +1235,25 @@ public class CalendarUtilities {
             return Long.parseLong(stringId);
         }
         return -1;
+    }
+
+    /**
+     * Update calendar object customizable settings - display name and account color
+     * @param calendar the exchange calendar we're updating
+     * @param service the sync service requesting Calendar creation
+     * @param account the account being synced
+     * @param mailbox the Exchange mailbox for the calendar
+     * @hide
+     */
+
+    static public void updateCalendar(long calendarId, EasSyncService service, Account account) {
+    // Update Calendar object
+    ContentValues cv = new ContentValues();
+    Uri uri = ContentUris.withAppendedId(Calendars.CONTENT_URI, calendarId);
+    cv.put(Calendars.DISPLAY_NAME, account.mDisplayName);
+    cv.put(Calendars.COLOR, 0xFF000000 | account.getAccountColor());
+    service.mContentResolver.update(uri, cv, null, null);
+    service.mContentResolver.notifyChange(uri, null, true);
     }
 
     /**

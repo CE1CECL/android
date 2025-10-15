@@ -154,7 +154,7 @@ public class ProcessStats {
 
     private boolean mFirst = true;
 
-    private byte[] mBuffer = new byte[256];
+    private byte[] mBuffer = new byte[1024];
 
     /**
      * The time in microseconds that the CPU has been running at each speed.
@@ -554,12 +554,12 @@ public class ProcessStats {
     }
 
     private long[] getCpuSpeedTimes(long[] out) {
-        long[] tempTimes = out;
-        long[] tempSpeeds = mCpuSpeeds;
-        final int MAX_SPEEDS = 20;
-        if (out == null) {
-            tempTimes = new long[MAX_SPEEDS]; // Hopefully no more than that
-            tempSpeeds = new long[MAX_SPEEDS];
+        final int MAX_SPEEDS = 30;
+        long[] tempTimes = new long[MAX_SPEEDS]; // Hopefully no more than that
+        long[] tempSpeeds = new long[MAX_SPEEDS];
+        if (out != null) {
+            System.arraycopy(out, 0, tempTimes, 0, out.length);
+            System.arraycopy(mCpuSpeeds, 0, tempSpeeds, 0, mCpuSpeeds.length);
         }
         int speed = 0;
         String file = readFile("/sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state", '\0');
@@ -568,29 +568,31 @@ public class ProcessStats {
             StringTokenizer st = new StringTokenizer(file, "\n ");
             while (st.hasMoreElements()) {
                 String token = st.nextToken();
-                try {
-                    long val = Long.parseLong(token);
-                    tempSpeeds[speed] = val;
-                    token = st.nextToken();
-                    val = Long.parseLong(token);
-                    tempTimes[speed] = val;
-                    speed++;
-                    if (speed == MAX_SPEEDS) break; // No more
-                    if (localLOGV && out == null) {
-                        Slog.v(TAG, "First time : Speed/Time = " + tempSpeeds[speed - 1]
-                              + "\t" + tempTimes[speed - 1]);
+                if (st.hasMoreElements()) {
+                    try {
+                        long val = Long.parseLong(token);
+                        tempSpeeds[speed] = val;
+                        token = st.nextToken();
+                        val = Long.parseLong(token);
+                        tempTimes[speed] = val;
+                        speed++;
+                        if (speed == MAX_SPEEDS) break; // No more
+                        if (localLOGV && out == null) {
+                            Slog.v(TAG, "First time : Speed/Time = " + tempSpeeds[speed - 1]
+                                    + "\t" + tempTimes[speed - 1]);
+                        }
+                    } catch (NumberFormatException nfe) {
+                        Slog.i(TAG, "Unable to parse time_in_state");
                     }
-                } catch (NumberFormatException nfe) {
-                    Slog.i(TAG, "Unable to parse time_in_state");
                 }
             }
         }
         if (out == null) {
             out = new long[speed];
-            mCpuSpeeds = new long[speed];
-            System.arraycopy(tempSpeeds, 0, mCpuSpeeds, 0, speed);
             System.arraycopy(tempTimes, 0, out, 0, speed);
         }
+        mCpuSpeeds = new long[speed];
+        System.arraycopy(tempSpeeds, 0, mCpuSpeeds, 0, speed);
         return out;
     }
 
@@ -699,11 +701,13 @@ public class ProcessStats {
 
         long sampleTime = mCurrentSampleTime - mLastSampleTime;
         long sampleRealTime = mCurrentSampleRealTime - mLastSampleRealTime;
-        long percAwake = (sampleTime*100) / sampleRealTime;
-        if (percAwake != 100) {
-            pw.print(" with ");
-            pw.print(percAwake);
-            pw.print("% awake");
+        if (sampleRealTime > 0) {
+            long percAwake = (sampleTime*100) / sampleRealTime;
+            if (percAwake != 100) {
+                pw.print(" with ");
+                pw.print(percAwake);
+                pw.print("% awake");
+            }
         }
         pw.println(":");
         

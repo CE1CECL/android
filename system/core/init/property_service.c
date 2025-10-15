@@ -58,19 +58,21 @@ struct {
     unsigned int uid;
     unsigned int gid;
 } property_perms[] = {
-    { "net.rmnet0.",      AID_RADIO,    0 },
+    { "net.rmnet",        AID_RADIO,    0 },
     { "net.gprs.",        AID_RADIO,    0 },
     { "net.ppp",          AID_RADIO,    0 },
     { "ril.",             AID_RADIO,    0 },
     { "gsm.",             AID_RADIO,    0 },
     { "persist.radio",    AID_RADIO,    0 },
     { "net.dns",          AID_RADIO,    0 },
+    { "net.gannet",       AID_RADIO,    0 },
     { "net.",             AID_SYSTEM,   0 },
     { "dev.",             AID_SYSTEM,   0 },
     { "runtime.",         AID_SYSTEM,   0 },
     { "hw.",              AID_SYSTEM,   0 },
     { "sys.",             AID_SYSTEM,   0 },
     { "service.",         AID_SYSTEM,   0 },
+    { "service.",         AID_RADIO,    0 },
     { "wlan.",            AID_SYSTEM,   0 },
     { "dhcp.",            AID_SYSTEM,   0 },
     { "dhcp.",            AID_DHCP,     0 },
@@ -81,7 +83,18 @@ struct {
     { "service.adb.root", AID_SHELL,    0 },
     { "persist.sys.",     AID_SYSTEM,   0 },
     { "persist.service.", AID_SYSTEM,   0 },
-    { "persist.security.", AID_SYSTEM,   0 },
+    { "persist.service.", AID_RADIO,    0 },
+    { "persist.security.",AID_SYSTEM,   0 },
+    { "wimax.",           AID_SYSTEM,   1000 },
+    { "net.pdp0",         AID_RADIO,    0 },
+    { "net.pdp1",         AID_RADIO,    AID_RADIO },
+    { "net.pdp2",         AID_RADIO,    AID_RADIO },
+    { "net.pdp3",         AID_RADIO,    AID_RADIO },
+    { "net.pdp4",         AID_RADIO,    AID_RADIO },
+    { "net.vsnet0",       AID_RADIO,    AID_RADIO },
+    { "net.vsnet1",       AID_RADIO,    AID_RADIO },
+    { "net.vsnet2",       AID_RADIO,    AID_RADIO },
+    { "net.vsnet3",       AID_RADIO,    AID_RADIO },
     { NULL, 0, 0 }
 };
 
@@ -94,7 +107,13 @@ struct {
     unsigned int uid;
     unsigned int gid;
 } control_perms[] = {
-    { "dumpstate",AID_SHELL, AID_LOG },
+    { "dumpstate",   AID_SHELL, AID_LOG   },
+    { "rawip_vsnet1",AID_RADIO, AID_RADIO },
+    { "rawip_vsnet2",AID_RADIO, AID_RADIO },
+    { "rawip_vsnet3",AID_RADIO, AID_RADIO },
+    { "rawip_vsnet4",AID_RADIO, AID_RADIO },
+    { "rawip_rmnet1",AID_RADIO, AID_RADIO },
+    { "rmnet1_down", AID_RADIO, AID_RADIO },
      {NULL, 0, 0 }
 };
 
@@ -144,9 +163,20 @@ out:
 /* (8 header words + 247 toc words) = 1020 bytes */
 /* 1024 bytes header and toc + 247 prop_infos @ 128 bytes = 32640 bytes */
 
+#ifdef BOARD_HAS_EXTRA_SYS_PROPS
+/* This is for boards that have an excessive number of system props set. */
+
+#define PA_COUNT_MAX  494
+#define PA_INFO_START 2048
+#define PA_SIZE       65536
+
+#else
+
 #define PA_COUNT_MAX  247
 #define PA_INFO_START 1024
 #define PA_SIZE       32768
+
+#endif
 
 static workspace pa_workspace;
 static prop_info *pa_info_array;
@@ -381,15 +411,21 @@ void handle_property_set_fd()
     }
 
     r = recv(s, &msg, sizeof(msg), 0);
-    close(s);
+    if(msg.cmd != PROP_MSG_SETPROP_SYNC) {
+        close(s);
+    }
     if(r != sizeof(prop_msg)) {
         ERROR("sys_prop: mis-match msg size recieved: %d expected: %d\n",
               r, sizeof(prop_msg));
+        if(msg.cmd == PROP_MSG_SETPROP_SYNC) {
+            close(s);
+        }
         return;
     }
 
     switch(msg.cmd) {
     case PROP_MSG_SETPROP:
+    case PROP_MSG_SETPROP_SYNC:
         msg.name[PROP_NAME_MAX-1] = 0;
         msg.value[PROP_VALUE_MAX-1] = 0;
 
@@ -412,6 +448,11 @@ void handle_property_set_fd()
 
     default:
         break;
+    }
+
+    //close socket until we've fnished setting property
+    if(msg.cmd == PROP_MSG_SETPROP_SYNC) {
+        close(s);
     }
 }
 

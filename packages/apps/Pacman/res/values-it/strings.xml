@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Play Store Apps Installer</string>
+    <string name="activity_title">Scegli le applicazioni da installare</string>
+
+    <!-- Buttons -->
+    <string name="main_btn_ok">OK</string>
+    <string name="main_btn_selectall">Sel. tutto</string>
+    <string name="main_btn_cancel">Annulla</string>
+
+    <!-- Alert Dialog -->
+    <string name="alert_dialog_title">IMPORTANTE: Leggi attentamente!</string>
+    <string name="alert_dialog_message">Questo programma verrà eseguito una sola volta e ha la funzione di cercare le applicazioni nel market. Molti utenti, per diverse ragioni, possono preferire di utilizzare questa applicazione in un secondo momento (dopo essersi connessi al Wi-Fi per esempio). Se vuoi visualizzare questo programma più tardi clicca Annulla.</string>
+
+    <!-- Names of applications from Google that have been translated -->
+    <string name="com_google_android_street">Street View su Google Maps</string>
+    <string name="com_google_android_voicesearch">Ricerca Vocale</string>
+</resources>

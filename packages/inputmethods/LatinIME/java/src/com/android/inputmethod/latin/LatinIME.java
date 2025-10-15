@@ -38,6 +38,7 @@ import android.preference.PreferenceManager;
 import android.speech.SpeechRecognizer;
 import android.text.ClipboardManager;
 import android.text.TextUtils;
+import android.text.AndroidCharacter;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.PrintWriterPrinter;
@@ -90,6 +91,7 @@ public class LatinIME extends InputMethodService
     static final boolean ENABLE_VOICE_BUTTON = true;
 
     private static final String PREF_VIBRATE_ON = "vibrate_on";
+    private static final String PREF_OBEY_HAPTIC = "obey_haptic";
     private static final String PREF_SOUND_ON = "sound_on";
     private static final String PREF_POPUP_ON = "popup_on";
     private static final String PREF_AUTO_CAP = "auto_cap";
@@ -129,6 +131,7 @@ public class LatinIME extends InputMethodService
 
     public static final String PREF_SELECTED_LANGUAGES = "selected_languages";
     public static final String PREF_INPUT_LANGUAGE = "input_language";
+    public static final String PREF_VOLUME_KEYS_AS_CURSOR = "volume_cursor";
     private static final String PREF_RECORRECTION_ENABLED = "recorrection_enabled";
 
     private static final int MSG_UPDATE_SUGGESTIONS = 0;
@@ -194,14 +197,18 @@ public class LatinIME extends InputMethodService
     private boolean mReCorrectionEnabled;
     // Bigram Suggestion is disabled in this version.
     private final boolean mBigramSuggestionEnabled = false;
+
     private boolean mAutoCorrectOn;
     // TODO move this state variable outside LatinIME
     private boolean mCapsLock;
     private boolean mPasswordText;
     private boolean mVibrateOn;
+    private boolean mObeyHapticFeedback;
     private boolean mSoundOn;
     private boolean mPopupOn;
     private boolean mAutoCap;
+    private boolean mEnableVolumeCursor;
+    private int     mLongPressDelay;
     private boolean mQuickFixes;
     private boolean mHasUsedVoiceInput;
     private boolean mHasUsedVoiceInputUnsupportedLocale;
@@ -360,6 +367,7 @@ public class LatinIME extends InputMethodService
         }
         mReCorrectionEnabled = prefs.getBoolean(PREF_RECORRECTION_ENABLED,
                 getResources().getBoolean(R.bool.default_recorrection_enabled));
+        mObeyHapticFeedback = prefs.getBoolean(PREF_OBEY_HAPTIC, false);
 
         LatinIMEUtil.GCUtils.getInstance().reset();
         boolean tryGC = true;
@@ -676,6 +684,7 @@ public class LatinIME extends InputMethodService
         updateCorrectionMode();
 
         inputView.setPreviewEnabled(mPopupOn);
+        inputView.setLongPressDelay(mLongPressDelay);
         inputView.setProximityCorrectionEnabled(true);
         mPredictionOn = mPredictionOn && (mCorrectionMode > 0 || mShowSuggestions);
         // If we just entered a text field, maybe it has some old text that requires correction
@@ -971,6 +980,16 @@ public class LatinIME extends InputMethodService
                     return true;
                 }
                 break;
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (mKeyboardSwitcher.getInputView() != null) {
+                    if (mKeyboardSwitcher.getInputView().isShown() && mEnableVolumeCursor) {
+                        sendDownUpKeyEvents((keyCode == KeyEvent.KEYCODE_VOLUME_UP ? KeyEvent.KEYCODE_DPAD_RIGHT
+                                : KeyEvent.KEYCODE_DPAD_LEFT));
+                        return true;
+                    }
+                }
+                break;
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -999,6 +1018,12 @@ public class LatinIME extends InputMethodService
                     return true;
                 }
                 break;
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                if (mKeyboardSwitcher.getInputView() != null) {
+                    if (mKeyboardSwitcher.getInputView().isShown() && mEnableVolumeCursor)
+                        return true;
+                }
         }
         return super.onKeyUp(keyCode, event);
     }
@@ -1279,6 +1304,46 @@ public class LatinIME extends InputMethodService
         mKeyboardSwitcher.onCancelInput();
     }
 
+    private void backspaceWord(InputConnection ic) {
+        CharSequence chars = ic.getTextBeforeCursor(256, 0);
+        if (chars == null || chars.length() == 0)
+            return;
+
+        Log.d(TAG, "Text (" + chars.length() + "): \"" + chars.toString() + "\"");
+
+        // Always delete at least one character.
+        int lastCharToDelete = chars.length() - 1;
+
+        // Delete consecutive separators at the end, eg. "text...".
+        if (isWordSeparator(chars.charAt(lastCharToDelete))) {
+            while (lastCharToDelete > 0) {
+                char c = chars.charAt(lastCharToDelete-1);
+                if (!isWordSeparator(c))
+                    break;
+                --lastCharToDelete;
+            }
+        }
+
+        // Delete all consecutive non-word-separators at the cursor.
+        while (lastCharToDelete > 0) {
+            char c = chars.charAt(lastCharToDelete-1);
+            if (isWordSeparator(c))
+                break;
+            --lastCharToDelete;
+        }
+
+        int charsToDelete = chars.length() - lastCharToDelete;
+
+        // If mEnteredText is set, always delete the entire string.
+        if (mEnteredText != null && sameAsTextBeforeCursor(ic, mEnteredText)) {
+            if (mEnteredText.length() > charsToDelete)
+                charsToDelete = mEnteredText.length();
+        }
+
+        Log.d(TAG, "Backspace " + charsToDelete + " chars");
+        ic.deleteSurroundingText(charsToDelete, 0);
+    }
+
     private void handleBackspace() {
         if (VOICE_INSTALLED && mVoiceInputHighlighted) {
             mVoiceInput.incrementTextModificationDeleteCount(
@@ -1304,7 +1369,25 @@ public class LatinIME extends InputMethodService
             }
         }
 
-        if (mPredicting) {
+        // On shift-backspace, delete a word.
+        if (mShiftKeyState.isMomentary()) {
+            // If we're composing, finalize it.
+            mComposing.setLength(0);
+            ic.finishComposingText();
+            mWord.reset();
+            mVoiceInputHighlighted = false;
+            mPredicting = false;
+
+            // In case we're in "touch again to save":
+            mCandidateView.clear();
+
+            TextEntryState.reset();
+
+            backspaceWord(ic);
+
+            // Make sure we don't delete mEnteredText again below.
+            mEnteredText = null;
+        } else if (mPredicting) {
             final int length = mComposing.length();
             if (length > 0) {
                 mComposing.delete(length - 1, length);
@@ -2263,6 +2346,8 @@ public class LatinIME extends InputMethodService
         } else if (PREF_RECORRECTION_ENABLED.equals(key)) {
             mReCorrectionEnabled = sharedPreferences.getBoolean(PREF_RECORRECTION_ENABLED,
                     getResources().getBoolean(R.bool.default_recorrection_enabled));
+        } else if (PREF_OBEY_HAPTIC.equals(key)) {
+            mObeyHapticFeedback = sharedPreferences.getBoolean(PREF_OBEY_HAPTIC, false);
         }
     }
 
@@ -2273,10 +2358,13 @@ public class LatinIME extends InputMethodService
             if (!TextUtils.isEmpty(text)) {
                 mKeyboardSwitcher.getInputView().startPlaying(text.toString());
             }
+        } else {
+            changeKeyboardMode();
         }
     }
 
     public void swipeLeft() {
+        changeKeyboardMode();
     }
 
     public void swipeDown() {
@@ -2285,6 +2373,13 @@ public class LatinIME extends InputMethodService
 
     public void swipeUp() {
         //launchSettings();
+        if (mCapsLock) {
+            mCapsLock = false;
+            mKeyboardSwitcher.setShifted(false);
+        } else {
+            mCapsLock = true;
+            mKeyboardSwitcher.setShiftLocked(true);
+        }
     }
 
     public void onPress(int primaryCode) {
@@ -2301,8 +2396,8 @@ public class LatinIME extends InputMethodService
             mSymbolKeyState.onPress();
             mKeyboardSwitcher.setAutoModeSwitchStateMomentary();
         } else {
-            mShiftKeyState.onOtherKeyPressed();
-            mSymbolKeyState.onOtherKeyPressed();
+            mShiftKeyState.onOtherKeyPressed(primaryCode);
+            mSymbolKeyState.onOtherKeyPressed(primaryCode);
         }
     }
 
@@ -2312,7 +2407,7 @@ public class LatinIME extends InputMethodService
         //vibrate();
         final boolean distinctMultiTouch = mKeyboardSwitcher.hasDistinctMultitouch();
         if (distinctMultiTouch && primaryCode == Keyboard.KEYCODE_SHIFT) {
-            if (mShiftKeyState.isMomentary())
+            if (mShiftKeyState.isMomentary() && mShiftKeyState.getOtherKeyCode() != Keyboard.KEYCODE_DELETE)
                 resetShift();
             mShiftKeyState.onRelease();
         } else if (distinctMultiTouch && primaryCode == Keyboard.KEYCODE_MODE_CHANGE) {
@@ -2397,7 +2492,7 @@ public class LatinIME extends InputMethodService
         if (mKeyboardSwitcher.getInputView() != null) {
             mKeyboardSwitcher.getInputView().performHapticFeedback(
                     HapticFeedbackConstants.KEYBOARD_TAP,
-                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+                    mObeyHapticFeedback ? 0 : HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
         }
     }
 
@@ -2480,6 +2575,10 @@ public class LatinIME extends InputMethodService
         mPopupOn = sp.getBoolean(PREF_POPUP_ON,
                 mResources.getBoolean(R.bool.default_popup_preview));
         mAutoCap = sp.getBoolean(PREF_AUTO_CAP, true);
+        mEnableVolumeCursor = sp.getBoolean(PREF_VOLUME_KEYS_AS_CURSOR, false);
+        mLongPressDelay = sp.getInt(LatinIMESettings.PREF_LONG_PRESS_DELAY,
+                getResources().getInteger(R.integer.config_long_press_key_timeout));
+        Log.d(TAG, "mLongPressDelay = " + mLongPressDelay);
         mQuickFixes = sp.getBoolean(PREF_QUICK_FIXES, true);
         mHasUsedVoiceInput = sp.getBoolean(PREF_HAS_USED_VOICE_INPUT, false);
         mHasUsedVoiceInputUnsupportedLocale =
@@ -2607,6 +2706,7 @@ public class LatinIME extends InputMethodService
         p.println("  mSoundOn=" + mSoundOn);
         p.println("  mVibrateOn=" + mVibrateOn);
         p.println("  mPopupOn=" + mPopupOn);
+        p.println("  mEnableVolumeCursor=" + mEnableVolumeCursor);
     }
 
     // Characters per second measurement

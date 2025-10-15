@@ -64,6 +64,23 @@
          could not be performed because FDN is enabled. This will be displayed in a toast. -->
     <string name="mmiFdnError">Operation is restricted to fixed dialing numbers only.</string>
 
+    <!-- Names of default profiles. -->
+    <string name="profileNameDefault">Default</string>
+    <string name="profileNameWork">Work</string>
+    <string name="profileNameHome">Home</string>
+    <string name="profileNameSilent">Silent</string>
+    <string name="profileNameNight">Night</string>
+
+    <!-- Names of application groups. -->
+    <string name="profileGroupPhone">Phone</string>
+    <string name="profileGroupCalendar">Calendar</string>
+    <string name="profileGroupGmail">Gmail</string>
+    <string name="profileGroupEmail">Email</string>
+    <string name="profileGroupSMS">SMS</string>
+
+    <!-- Name of wildcard profile. -->
+    <string name="wildcardProfile">Other</string>
+
     <!-- Displayed when a phone feature such as call barring was activated. -->
     <string name="serviceEnabled">Service was enabled.</string>
     <!-- Displayed in front of the list of a set of service classes
@@ -276,12 +293,32 @@
     <string name="screen_lock">Screen lock</string>
     <!-- Button to turn off the phone, within the Phone Options dialog -->
     <string name="power_off">Power off</string>
+    <!-- Button to reboot the phone, within the Phone Options dialog -->
+    <string name="reboot_system">Reboot phone</string>
+    <!-- Button to reboot the phone, within the Reboot Options dialog -->
+    <string name="reboot_reboot">Reboot</string>
+    <!-- Button to reboot the phone into recovery, within the Reboot Options dialog -->
+    <string name="reboot_recovery">Recovery</string>
+    <!-- Button to reboot the phone into bootloader, within the Reboot Options dialog -->
+    <string name="reboot_bootloader">Bootloader</string>
+    <!-- Button to reboot the phone into bootmenu, within the Reboot Options dialog -->
+    <string name="reboot_bootmenu">Bootmenu</string>
+    <!-- Button to reboot the phone into fastboot, within the Reboot Options dialog -->
+    <string name="reboot_fastboot">Fastboot</string>
+    <!-- Button to reboot the phone into download, within the Reboot Options dialog -->
+    <string name="reboot_download">Download</string>
 
     <!-- Shutdown Progress Dialog. This is shown if the user chooses to power off the phone. -->
     <string name="shutdown_progress">Shutting down\u2026</string>
 
+    <!-- Reboot Progress Dialog. This is shown if the user chooses to reboot the phone. -->
+    <string name="reboot_progress">Rebooting\u2026</string>
+
     <!-- Shutdown Confirmation Dialog.  When the user chooses to power off the phone, there will be a confirmation dialog.  This is the message. -->
     <string name="shutdown_confirm">Your phone will shut down.</string>
+
+    <!-- Reboot Confirmation Dialog.  When the user chooses to reboot the phone, there will be a confirmation dialog.  This is the message. -->
+    <string name="reboot_confirm">Your phone will reboot.</string>
 
     <!-- Recent Tasks dialog: title -->
     <string name="recent_tasks_title">Recent</string>
@@ -291,11 +328,26 @@
     <!-- Title of the Global Actions Dialog -->
     <string name="global_actions">Phone options</string>
 
+    <!-- label for item that emulates the hardware button: home -->
+    <string name="global_action_home">Home</string>
+
+    <!-- label for item that emulates the hardware button: menu -->
+    <string name="global_action_menu">Menu</string>
+
+    <!-- label for item that emulates the hardware button: back -->
+    <string name="global_action_back">Back</string>
+
     <!-- label for item that locks the phone in the phone options dialog -->
     <string name="global_action_lock">Screen lock</string>
 
     <!-- label for item that turns off power in phone options dialog -->
     <string name="global_action_power_off">Power off</string>
+
+    <!-- label for item that reboots the phone in phone options dialog -->
+    <string name="global_action_reboot">Reboot</string>
+
+    <!-- label for item that reboots the phone in phone options dialog -->
+    <string name="global_action_choose_profile">Choose profile</string>
 
     <!-- label for item that enables silent mode in phone options dialog -->
     <string name="global_action_toggle_silent_mode">Silent mode</string>
@@ -314,6 +366,9 @@
 
     <!-- status message in phone options dialog for when airplane mode is off -->
     <string name="global_actions_airplane_mode_off_status">Airplane mode is OFF</string>
+
+    <!-- label for item that screenshots in phone options dialog -->
+    <string name="global_action_screenshot">Screenshot</string>
 
     <!-- Displayed to the user to tell them that they have started up the phone in "safe mode" -->
     <string name="safeMode">Safe mode</string>
@@ -721,6 +776,11 @@
         including personal or private information.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_preventpower">prevent power key</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_preventpower">Allows an application to override the power key</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_diagnostic">read/write to resources owned by diag</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_diagnostic">Allows an application to read and write to
@@ -872,6 +932,11 @@
     <string name="permdesc_camera">Allows application to take pictures and videos
         with the camera. This allows the application at any time to collect
         images the camera is seeing.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_rawAudio">low-level audio access</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_rawAudio">Gives the application complete access to the audio hardware.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_brick">permanently disable phone</string>
@@ -1503,6 +1568,7 @@
     <!-- When the lock screen is showing and the phone plugged in, and the battery
          is not fully charged, show the current charge %.  -->
     <string name="lockscreen_plugged_in">Charging (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)</string>
+    <string name="lockscreen_discharging">Battery (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)</string>
     <!-- When the lock screen is showing, the phone is plugged in and the battery is fully
          charged, say that it is charged. -->
     <string name="lockscreen_charged">Charged.</string>
@@ -1511,7 +1577,7 @@
 
     <!-- When the lock screen is showing and the battery is low, warn user to plug
          in the phone soon. -->
-    <string name="lockscreen_low_battery">Connect your charger.</string>
+    <string name="lockscreen_low_battery">Connect your charger (<xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>)</string>
 
     <!-- Shown in the lock screen when there is no SIM card. -->
     <string name="lockscreen_missing_sim_message_short">No SIM card.</string>
@@ -1590,6 +1656,9 @@
     <string name="lockscreen_sound_on_label">Sound on</string>
     <!-- Displayed on lock screen's right tab - turn sound off -->
     <string name="lockscreen_sound_off_label">Sound off</string>
+
+    <!-- Displayed on lock screen's extra left tab - phone -->
+    <string name="lockscreen_phone_label">Phone</string>
 
     <!-- Password keyboard strings. Used by LockScreen and Settings --><skip />
     <!-- Label for "switch to symbols" key.  Must be short to fit on key! -->
@@ -1890,6 +1959,9 @@
     <!-- Item on EditText context menu. This action is used to select all text in the edit field. -->
     <string name="selectAll">Select all</string>
 
+    <!-- Item on EditText context menu. This action is used to copy all text in the edit field. -->
+    <string name="copyAll">Copy all</string>
+
     <!-- Item on EditText context menu. This action is used to start selecting text in the edit field. [CHAR LIMIT=20] -->
     <string name="selectText">Select word</string>
 
@@ -1959,6 +2031,12 @@
     <string name="aerr_process">The process <xliff:g id="process">%1$s</xliff:g> has
         stopped unexpectedly. Please try again.</string>
     <!-- Title of the alert when an application is not responding. -->
+    <string name="aerr_revoked_application">The application <xliff:g id="application">%1$s</xliff:g>
+        (process <xliff:g id="process">%2$s</xliff:g>) has stopped unexpectedly.\nWARNING!\nThis application has one or more of its permissions REVOKED which may cause it to malfunction. Please grant its permissions and try again.</string>
+    <!-- Text of the alert that is displayed when an application has crashed. -->
+    <string name="aerr_revoked_process">The process <xliff:g id="process">%1$s</xliff:g> has
+        stopped unexpectedly.\nWARNING!\nThis process has one or more of its permissions REVOKED which may cause it to malfunction. Please grant its permissions and try again.</string>
+    <!-- Title of the alert when an application is not responding. -->
     <string name="anr_title">Sorry!</string>
     <!-- Text of the alert that is displayed when an application is not responding. -->
     <string name="anr_activity_application">Activity <xliff:g id="activity">%1$s</xliff:g> (in application <xliff:g id="application">%2$s</xliff:g>) is not responding.</string>
@@ -1972,6 +2050,10 @@
     <string name="force_close">Force close</string>
     <!-- Button allowing the user to send a bug report for application which has encountered an error. -->
     <string name="report">Report</string>
+    <!-- Button allowing the user to open the application settings screen to edit permissions. -->
+    <string name="edit_perms">Edit permissions</string>
+    <!-- Button allowing the user reset the revoked permissions for application which has encountered an error. -->
+    <string name="reset_perms">Reset permissions</string>
     <!-- Button allowing the user to choose to wait for an application that is not responding to become responsive again. -->
     <string name="wait">Wait</string>
     <!-- [CHAR LIMIT=25] Title of the alert when application launches on top of another. -->
@@ -2079,7 +2161,7 @@
     <!-- The default permission group for any permissions that have not explicitly set a group. -->
     <string name="default_permission_group">Default</string>
     <!-- Do not translate. -->
-    <string name="permissions_format"><xliff:g id="perm_line1">%1$s</xliff:g>, <xliff:g id="perm_line2">%2$s</xliff:g></string>
+    <string name="permissions_format" translatable="false"><xliff:g id="perm_line1">%1$s</xliff:g>, <xliff:g id="perm_line2">%2$s</xliff:g></string>
     <!-- Shown for an application when it doesn't require any permission grants. -->
     <string name="no_permissions">No permissions required</string>
     <!-- When installing an application, the less-dangerous permissions are hidden.  If the user showed those, this is the text to hide them again.  -->
@@ -2153,12 +2235,15 @@
     <!-- Message of notification shown when ADB is actively connected to the phone. -->
     <string name="adb_active_notification_message">Select to disable USB debugging.</string>
 
+    <string name="adb_net_enabled_notification_title">Network debugging enabled</string>
+    <string name="adb_net_enabled_notification_message">Select to disable network debugging.</string>
+
     <!-- Used to replace %s in urls retreived from the signin server with locales.  For Some        -->
     <!-- devices we don't support all the locales we ship to and need to replace the '%s' with a    -->
     <!-- locale string based on mcc values.  By default (0-length string) we don't replace the %s   -->
     <!-- at all and later replace it with a locale string based on the users chosen locale          -->
     <!-- DO NOT TRANSLATE -->
-    <string name="locale_replacement">""</string>
+    <string name="locale_replacement" translatable="false">""</string>
 
     <!-- Title of the pop-up dialog in which the user switches input method components. -->
     <string name="select_input_method">Select input method</string>
@@ -2300,12 +2385,13 @@
     <string name="chooser_wallpaper">Change wallpaper</string>
 
     <!-- Do Not Translate: Alternate eri.xml -->
-    <string name="alternate_eri_file">/data/eri.xml</string>
+    <string name="alternate_eri_file" translatable="false">/data/eri.xml</string>
 
     <string name="pptp_vpn_description">Point-to-Point Tunneling Protocol</string>
     <string name="l2tp_vpn_description">Layer 2 Tunneling Protocol</string>
     <string name="l2tp_ipsec_psk_vpn_description">Pre-shared key based L2TP/IPSec VPN</string>
     <string name="l2tp_ipsec_crt_vpn_description">Certificate based L2TP/IPSec VPN</string>
+    <string name="openvpn_vpn_description">OpenVPN SSL VPN</string>
 
     <!-- Localized strings for WebView -->
     <!-- Label for button in a WebView that will open a chooser to choose a file to upload -->
@@ -2368,5 +2454,93 @@
     <string name="media_shared" product="default">SD card is currently in use by a computer.</string>
     <!-- Text for message for an unknown external media state [CHAR LIMIT=NONE] -->
     <string name="media_unknown_state">External media in unknown state.</string>
+
+    <!--Application killed toast -->
+    <string name="app_killed_message">Application killed</string>
+
+    <!-- Phone goggles -->
+    <string name="phone_goggles_problem_count">Problem #%1$d: </string>
+    <string name="phone_goggles_description">Solve the %1$d following maths problems in less than %2$d seconds in order to perform your communication.</string>
+    <plurals name="phone_goggles_countdown">
+        <item quantity="one">%d second left</item>
+        <item quantity="other">%d seconds left</item>
+    </plurals>
+
+    <!-- Title of an application permission that lets an application view/edit revoked permissions. -->
+    <string name="permlab_revokePermissions">Allows view and edit of revoked permissions. Not for use by normal applications.</string>
+    <!-- Description of an application permission that lets lets an application view/edit revoked permissions. -->
+    <string name="permdesc_revokePermissions">Allows read and write for revoked permissions. Not for use by normal applications.</string>
+
+    <string name="keyguard_finger_please_swipe">Swipe finger over sensor to unlock</string>
+    <string name="keyguard_finger_ui_timeout">UI timeout!</string>
+    <string name="keyguard_finger_failed_to_unlock">Failed to unlock!</string>
+    <string name="keyguard_finger_screen_off">Screen off</string>
+    <string name="keyguard_finger_screen_on">Screen on</string>
+    <string name="keyguard_finger_match">Finger match, unlock screen...</string>
+    <string name="keyguard_finger_not_match">Finger did not match...</string>
+    <string name="keyguard_finger_swipe_too_far_right">Swipe in the center.</string>
+    <string name="keyguard_finger_swipe_too_far_left">Swipe in the center.</string>
+    <string name="keyguard_finger_swipe_too_fast">Swipe was too fast.</string>
+    <string name="keyguard_finger_swipe_too_short">Swipe was too short.</string>
+    <string name="keyguard_finger_swipe_too_slow">Swipe was too slow.</string>
+    <string name="keyguard_finger_swipe_too_skewed">Swipe was too skewed.</string>
+    <string name="lockscreen_too_many_failed_fingers_dialog_message">Your fingerprint failed to identify you %1$d times.\n\nPlease try again in %2$d seconds.</string>
+    <string name="lockscreen_failed_fingers_almost_glogin">Your fingerprint failed to identify you %1$d times. After %2$d more unsuccessful identifications, you will be asked to unlock your phone using your Google sign-in.\n\n Please try again in %3$d seconds.</string>
+    <string name="lockscreen_forgot_finger_button_text">Forgot finger?</string>
+
+    <!-- Options that show upon long-pressing a key on the physical keyboard -->
+    <string name="symbol_picker_A">\u00C0\u00C1\u00C2\u00C4\u00C6\u00C3\u00C5\u0104\u0100</string>
+    <string name="symbol_picker_C">\u00C7\u0106\u010C</string>
+    <string name="symbol_picker_D">\u010E</string>
+    <string name="symbol_picker_E">\u00C8\u00C9\u00CA\u00CB\u0118\u011A\u0112</string>
+    <string name="symbol_picker_G">\u011E</string>
+    <string name="symbol_picker_L">\u0141</string>
+    <string name="symbol_picker_I">\u00CC\u00CD\u00CE\u00CF\u012A\u0130</string>
+    <string name="symbol_picker_N">\u00D1\u0143\u0147</string>
+    <string name="symbol_picker_O">\u00D8\u0152\u00D5\u00D2\u00D3\u00D4\u00D6\u014C</string>
+    <string name="symbol_picker_R">\u0158</string>
+    <string name="symbol_picker_S">\u015A\u0160\u015E</string>
+    <string name="symbol_picker_T">\u0164</string>
+    <string name="symbol_picker_U">\u00D9\u00DA\u00DB\u00DC\u016E\u016A</string>
+    <string name="symbol_picker_Y">\u00DD\u0178</string>
+    <string name="symbol_picker_Z">\u0179\u017B\u017D</string>
+    <string name="symbol_picker_a">\u00E0\u00E1\u00E2\u00E4\u00E6\u00E3\u00E5\u0105\u0101</string>
+    <string name="symbol_picker_c">\u00E7\u0107\u010D</string>
+    <string name="symbol_picker_d">\u010F</string>
+    <string name="symbol_picker_e">\u00E8\u00E9\u00EA\u00EB\u0119\u011B\u0113</string>
+    <string name="symbol_picker_g">\u011F</string>
+    <string name="symbol_picker_i">\u00EC\u00ED\u00EE\u00EF\u012B\u0131</string>
+    <string name="symbol_picker_l">\u0142</string>
+    <string name="symbol_picker_n">\u00F1\u0144\u0148</string>
+    <string name="symbol_picker_o">\u00F8\u0153\u00F5\u00F2\u00F3\u00F4\u00F6\u014D</string>
+    <string name="symbol_picker_r">\u0159</string>
+    <string name="symbol_picker_s">\u00A7\u00DF\u015B\u0161\u015F</string>
+    <string name="symbol_picker_t">\u0165</string>
+    <string name="symbol_picker_u">\u00F9\u00FA\u00FB\u00FC\u016F\u016B</string>
+    <string name="symbol_picker_y">\u00FD\u00FF</string>
+    <string name="symbol_picker_z">\u017A\u017C\u017E</string>
+    <string name="symbol_picker_sym">\u2026\u00A5\u2022\u00AE\u00A9\u00B1[]{}\u003C>`^\\|</string>
+    <string name="symbol_picker_slash">\\</string>
+    <string name="symbol_picker_1">\u00b9\u00bd\u2153\u00bc\u215b</string>
+    <string name="symbol_picker_2">\u00b2\u2154</string>
+    <string name="symbol_picker_3">\u00b3\u00be\u215c</string>
+    <string name="symbol_picker_4">\u2074</string>
+    <string name="symbol_picker_5">\u215d</string>
+    <string name="symbol_picker_7">\u215e</string>
+    <string name="symbol_picker_0">\u207f\u2205</string>
+    <string name="symbol_picker_dollar">\u00a2\u00a3\u20ac\u00a5\u20a3\u20a4\u20b1</string>
+    <string name="symbol_picker_percent">\u2030</string>
+    <string name="symbol_picker_star">\u2020\u2021</string>
+    <string name="symbol_picker_minus">\u2013\u2014</string>
+    <string name="symbol_picker_plus">\u00b1</string>
+    <string name="symbol_picker_opening_parenthesis">[{\u003C</string>
+    <string name="symbol_picker_closing_parenthesis">]}></string>
+    <string name="symbol_picker_exclamation">\u00a1</string>
+    <string name="symbol_picker_quote">\u201c\u201d\u00ab\u00bb\u02dd</string>
+    <string name="symbol_picker_question">\u00bf</string>
+    <string name="symbol_picker_comma">\u201a\u201e</string>
+    <string name="symbol_picker_equal">\u2260\u2248\u221e</string>
+    <string name="symbol_picker_lt">\u2264\u00ab\u2039</string>
+    <string name="symbol_picker_gt">\u2265\u00bb\u203a</string>
 
 </resources>

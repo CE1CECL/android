@@ -230,10 +230,13 @@ public class BluetoothOppObexServerSession extends ServerRequestHandler implemen
             }
 
             // Reject policy: anything outside the "white list" plus unspecified
-            // MIME Types.
+            // MIME Types. Also reject everything in the "black list".
             if (!pre_reject
-                    && (mimeType == null || (!Constants.mimeTypeMatches(mimeType,
-                            Constants.ACCEPTABLE_SHARE_INBOUND_TYPES)))) {
+                    && (mimeType == null
+                            || !Constants.mimeTypeMatches(mimeType,
+                                    Constants.ACCEPTABLE_SHARE_INBOUND_TYPES)
+                            || Constants.mimeTypeMatches(mimeType,
+                                    Constants.UNACCEPTABLE_SHARE_INBOUND_TYPES))) {
                 if (D) Log.w(TAG, "mimeType is null or in unacceptable list, reject the transfer");
                 pre_reject = true;
                 obexResponse = ResponseCodes.OBEX_HTTP_UNSUPPORTED_TYPE;
@@ -444,6 +447,10 @@ public class BluetoothOppObexServerSession extends ServerRequestHandler implemen
             int readLength = 0;
             long timestamp = 0;
             try {
+                ContentValues updateValues = new ContentValues();
+                final int onePercent = Math.max((int)(fileInfo.mLength / 100), 1);
+                int percentPosition = 0;
+
                 while ((!mInterrupted) && (position != fileInfo.mLength)) {
 
                     if (V) timestamp = System.currentTimeMillis();
@@ -457,6 +464,7 @@ public class BluetoothOppObexServerSession extends ServerRequestHandler implemen
 
                     bos.write(b, 0, readLength);
                     position += readLength;
+                    percentPosition += readLength;
 
                     if (V) {
                         Log.v(TAG, "Receive file position = " + position + " readLength "
@@ -464,9 +472,12 @@ public class BluetoothOppObexServerSession extends ServerRequestHandler implemen
                                 + (System.currentTimeMillis() - timestamp) + " ms");
                     }
 
-                    ContentValues updateValues = new ContentValues();
-                    updateValues.put(BluetoothShare.CURRENT_BYTES, position);
-                    mContext.getContentResolver().update(contentUri, updateValues, null, null);
+                    // Limit the number of update() calls to once per percent as it is expensive.
+                    if (percentPosition >= onePercent) {
+                        updateValues.put(BluetoothShare.CURRENT_BYTES, position);
+                        mContext.getContentResolver().update(contentUri, updateValues, null, null);
+                        percentPosition = percentPosition % onePercent;
+                    }
                 }
             } catch (IOException e1) {
                 Log.e(TAG, "Error when receiving file");

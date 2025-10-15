@@ -254,6 +254,21 @@ err:
     this->reset();
 }
 
+#ifdef OMAP_ENHANCEMENT
+//S3D
+void SkBitmap::setConfig(Config c, int width, int height, S3D_DESC_INFO frame, int rowBytes) {
+
+    // Call the original set config
+    setConfig(c,width,height,rowBytes);
+
+    // Setting S3D params
+    jpsHeader = frame;
+
+    SkDEBUGCODE(this->validate_s3d_params();)
+    return;
+}
+#endif
+
 void SkBitmap::updatePixelsFromRef() const {
     if (NULL != fPixelRef) {
         if (fPixelLockCount > 0) {
@@ -686,6 +701,7 @@ bool SkBitmap::extractSubset(SkBitmap* result, const SkIRect& subset) const {
 
     SkBitmap dst;
     dst.setConfig(this->config(), r.width(), r.height(), this->rowBytes());
+    dst.setIsOpaque( this->isOpaque());
 
     if (fPixelRef) {
         // share the pixelref with a custom offset
@@ -1340,5 +1356,16 @@ void SkBitmap::validate() const {
     }
 #endif
 }
+
+#ifdef OMAP_ENHANCEMENT
+//S3D
+void SkBitmap::validate_s3d_params() const {
+    SkASSERT(jpsHeader.nType  <= 0x1);
+    SkASSERT(jpsHeader.nLayout <= 0x04);
+    SkASSERT(jpsHeader.nFrameOrder <= 0x3);
+    SkASSERT(jpsHeader.nSubSampling <= 1);
+    SkASSERT(jpsHeader.nSeparation >= 0);
+}
 #endif
 
+#endif

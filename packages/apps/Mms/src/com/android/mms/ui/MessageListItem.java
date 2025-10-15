@@ -36,6 +36,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.Browser;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.Sms;
@@ -103,16 +104,10 @@ public class MessageListItem extends LinearLayout implements
     private QuickContactBadge mAvatar;
     private Handler mHandler;
     private MessageItem mMessageItem;
+    private boolean mBlackBackground;
 
     public MessageListItem(Context context) {
         super(context);
-    }
-
-    public MessageListItem(Context context, AttributeSet attrs) {
-        super(context, attrs);
-
-        int color = mContext.getResources().getColor(R.color.timestamp_color);
-        mColorSpan = new ForegroundColorSpan(color);
     }
 
     @Override
@@ -121,6 +116,7 @@ public class MessageListItem extends LinearLayout implements
 
         mMsgListItem = findViewById(R.id.msg_list_item);
         mBodyTextView = (TextView) findViewById(R.id.text_view);
+        mBodyTextView.setTextSize(Integer.parseInt(PreferenceManager.getDefaultSharedPreferences(getContext()).getString(MessagingPreferenceActivity.MESSAGE_FONT_SIZE, "18")));
         mLockedIndicator = (ImageView) findViewById(R.id.locked_indicator);
         mDeliveredIndicator = (ImageView) findViewById(R.id.delivered_indicator);
         mDetailsIndicator = (ImageView) findViewById(R.id.details_indicator);
@@ -151,8 +147,9 @@ public class MessageListItem extends LinearLayout implements
 
     }
 
-    public void bind(MessageListAdapter.AvatarCache avatarCache, MessageItem msgItem) {
+    public void bind(MessageListAdapter.AvatarCache avatarCache, MessageItem msgItem, Boolean blackBackground) {
         mMessageItem = msgItem;
+        mBlackBackground = blackBackground;
 
         setLongClickable(false);
 
@@ -164,6 +161,13 @@ public class MessageListItem extends LinearLayout implements
                 bindCommonMessage(avatarCache, msgItem);
                 break;
         }
+    }
+
+    public MessageListItem(Context context, AttributeSet attrs) {
+        super(context, attrs);
+
+        int color = mContext.getResources().getColor(R.color.timestamp_color);
+        mColorSpan = new ForegroundColorSpan(color);
     }
 
     public MessageItem getMessageItem() {
@@ -402,7 +406,12 @@ public class MessageListItem extends LinearLayout implements
         buf.setSpan(mSpan, startOffset+1, buf.length(), 0);
 
         // Make the timestamp text not as dark
-        buf.setSpan(mColorSpan, startOffset, buf.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if(mBlackBackground) {
+          int colorc = mContext.getResources().getColor(R.color.timestamp_color_grey);
+          buf.setSpan(new ForegroundColorSpan(colorc), startOffset, buf.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        } else {
+          buf.setSpan(mColorSpan, startOffset, buf.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
 
         if (highlight != null) {
             Matcher m = highlight.matcher(buf.toString());
@@ -549,18 +558,30 @@ public class MessageListItem extends LinearLayout implements
     private void drawLeftStatusIndicator(int msgBoxId) {
         switch (msgBoxId) {
             case Mms.MESSAGE_BOX_INBOX:
-                mMsgListItem.setBackgroundResource(R.drawable.listitem_background_lightblue);
+                if(!mBlackBackground) {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background_lightblue);
+                } else {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background_lightgrey);
+                }
                 break;
 
             case Mms.MESSAGE_BOX_DRAFTS:
             case Sms.MESSAGE_TYPE_FAILED:
             case Sms.MESSAGE_TYPE_QUEUED:
             case Mms.MESSAGE_BOX_OUTBOX:
-                mMsgListItem.setBackgroundResource(R.drawable.listitem_background);
+                if(!mBlackBackground) {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background);
+                } else {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background_black);
+                }
                 break;
 
             default:
-                mMsgListItem.setBackgroundResource(R.drawable.listitem_background);
+                if(!mBlackBackground) {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background);
+                } else {
+                    mMsgListItem.setBackgroundResource(R.drawable.listitem_background_black);
+                }
                 break;
         }
     }

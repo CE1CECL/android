@@ -176,6 +176,11 @@ public abstract class ContentResolver {
     }
 
     /** @hide */
+    public final Context getContext() {
+        return mContext;
+    }
+
+    /** @hide */
     protected abstract IContentProvider acquireProvider(Context c, String name);
     /** Providing a default implementation of this, to avoid having to change
      * a lot of other things, but implementations of ContentResolver should
@@ -201,6 +206,7 @@ public abstract class ContentResolver {
             } catch (RemoteException e) {
                 return null;
             } catch (java.lang.Exception e) {
+                Log.w(TAG, "Failed to get type for: " + url + " (" + e.getMessage() + ")");
                 return null;
             } finally {
                 releaseProvider(provider);
@@ -215,6 +221,9 @@ public abstract class ContentResolver {
             String type = ActivityManagerNative.getDefault().getProviderMimeType(url);
             return type;
         } catch (RemoteException e) {
+            return null;
+        } catch (java.lang.Exception e) {
+            Log.w(TAG, "Failed to get type for: " + url + " (" + e.getMessage() + ")");
             return null;
         }
     }
@@ -1396,7 +1405,7 @@ public abstract class ContentResolver {
         protected void finalize() throws Throwable {
             try {
                 if(!mCloseFlag) {
-                    ContentResolver.this.releaseProvider(mContentProvider);
+                    this.close();
                 }
             } finally {
                 super.finalize();

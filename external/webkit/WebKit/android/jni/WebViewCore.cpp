@@ -29,6 +29,7 @@
 #include "WebViewCore.h"
 
 #include "AtomicString.h"
+#include "Cache.h"
 #include "CachedNode.h"
 #include "CachedRoot.h"
 #include "Chrome.h"
@@ -69,6 +70,7 @@
 #include "InlineTextBox.h"
 #include "KeyboardCodes.h"
 #include "Navigator.h"
+#include "loader.h"
 #include "Node.h"
 #include "NodeList.h"
 #include "Page.h"
@@ -138,6 +140,12 @@ FILE* gRenderTreeFile = 0;
 #if USE(ACCELERATED_COMPOSITING)
 #include "GraphicsLayerAndroid.h"
 #include "RenderLayerCompositor.h"
+#endif
+
+
+
+#if ENABLE(ACCELERATED_SCROLLING)
+#include "Renderer.h"
 #endif
 
 /*  We pass this flag when recording the actual content, so that we don't spend
@@ -313,16 +321,22 @@ WebViewCore::WebViewCore(JNIEnv* env, jobject javaWebViewCore, WebCore::Frame* m
     m_forwardingTouchEvents = false;
 #endif
     m_isPaused = false;
+    m_invertColor = false;
+
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    m_scrollRenderer = Renderer::createRenderer();
+#endif
 
     LOG_ASSERT(m_mainFrame, "Uh oh, somehow a frameview was made without an initial frame!");
 
     jclass clazz = env->GetObjectClass(javaWebViewCore);
     m_javaGlue = new JavaGlue;
-    m_javaGlue->m_obj = env->NewWeakGlobalRef(javaWebViewCore);
+    m_javaGlue->m_obj = env->NewGlobalRef(javaWebViewCore);
     m_javaGlue->m_spawnScrollTo = GetJMethod(env, clazz, "contentSpawnScrollTo", "(II)V");
     m_javaGlue->m_scrollTo = GetJMethod(env, clazz, "contentScrollTo", "(II)V");
     m_javaGlue->m_scrollBy = GetJMethod(env, clazz, "contentScrollBy", "(IIZ)V");
-    m_javaGlue->m_contentDraw = GetJMethod(env, clazz, "contentDraw", "()V");
+    m_javaGlue->m_contentDraw = GetJMethod(env, clazz, "contentDraw", "(Z)V");
     m_javaGlue->m_requestListBox = GetJMethod(env, clazz, "requestListBox", "([Ljava/lang/String;[I[I)V");
     m_javaGlue->m_openFileChooser = GetJMethod(env, clazz, "openFileChooser", "()Ljava/lang/String;");
     m_javaGlue->m_requestSingleListBox = GetJMethod(env, clazz, "requestListBox", "([Ljava/lang/String;[II)V");
@@ -383,12 +397,16 @@ WebViewCore::~WebViewCore()
 
     if (m_javaGlue->m_obj) {
         JNIEnv* env = JSC::Bindings::getJNIEnv();
-        env->DeleteWeakGlobalRef(m_javaGlue->m_obj);
+        env->DeleteGlobalRef(m_javaGlue->m_obj);
         m_javaGlue->m_obj = 0;
     }
     delete m_javaGlue;
     delete m_frameCacheKit;
     delete m_navPictureKit;
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    m_scrollRenderer->release();
+#endif
 }
 
 WebViewCore* WebViewCore::getWebViewCore(const WebCore::FrameView* view)
@@ -761,6 +779,10 @@ void WebViewCore::clearContent()
     DBG_SET_LOG("");
     m_contentMutex.lock();
     m_content.clear();
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    m_scrollRenderer->clearContent();
+#endif
     m_contentMutex.unlock();
     m_addInval.setEmpty();
     m_rebuildInval.setEmpty();
@@ -769,6 +791,10 @@ void WebViewCore::clearContent()
 void WebViewCore::copyContentToPicture(SkPicture* picture)
 {
     DBG_SET_LOG("start");
+#if ENABLE(ACCELERATED_SCROLLING)
+    if (m_scrollRenderer)
+        m_scrollRenderer->finish();
+#endif
     m_contentMutex.lock();
     PictureSet copyContent = PictureSet(m_content);
     m_contentMutex.unlock();
@@ -786,21 +812,48 @@ bool WebViewCore::drawContent(SkCanvas* canvas, SkColor color)
     TimeCounterAuto counter(TimeCounter::WebViewUIDrawTimeCounter);
 #endif
     DBG_SET_LOG("start");
+
     m_contentMutex.lock();
     PictureSet copyContent = PictureSet(m_content);
     m_contentMutex.unlock();
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    bool split = false;
+    if (!m_scrollRenderer->drawContent(canvas, color,
+#if ENABLE(COLOR_INVERSION)
+        m_invertColor,
+#else
+        false,
+#endif
+        copyContent, split))
+    {
+#endif //ACCELERATED_SCROLLING
+
     int sc = canvas->save(SkCanvas::kClip_SaveFlag);
     SkRect clip;
     clip.set(0, 0, copyContent.width(), copyContent.height());
     canvas->clipRect(clip, SkRegion::kDifference_Op);
     canvas->drawColor(color);
     canvas->restoreToCount(sc);
+#if ENABLE(COLOR_INVERSION)
+    bool tookTooLong = copyContent.draw(canvas, m_invertColor);
+#else
     bool tookTooLong = copyContent.draw(canvas);
-    m_contentMutex.lock();
-    m_content.setDrawTimes(copyContent);
-    m_contentMutex.unlock();
+#endif //COLOR_INVERSION
+#if !ENABLE(ACCELERATED_SCROLLING)
     DBG_SET_LOG("end");
     return tookTooLong;
+#else //ACCELERATED_SCROLLING
+    }
+    else
+    {
+        m_contentMutex.lock();
+        m_content.setDrawTimes(copyContent);
+        m_contentMutex.unlock();
+    }
+    DBG_SET_LOG("end");
+    return split;
+#endif //ACCELERATED_SCROLLING
 }
 
 bool WebViewCore::focusBoundsChanged()
@@ -889,6 +942,13 @@ bool WebViewCore::recordContent(SkRegion* region, SkIPoint* point)
     m_contentMutex.lock();
     contentCopy.setDrawTimes(m_content);
     m_content.set(contentCopy);
+
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    WebCore::FrameLoader* loader = m_mainFrame->loader();
+    bool loading = (!loader)? false : loader->isLoading();
+    m_scrollRenderer->setContent(m_content, region, loading);
+#endif
     point->fX = m_content.width();
     point->fY = m_content.height();
     m_contentMutex.unlock();
@@ -910,6 +970,10 @@ void WebViewCore::splitContent()
     rebuildPictureSet(&tempPictureSet);
     m_contentMutex.lock();
     m_content.set(tempPictureSet);
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    m_scrollRenderer->setContent(m_content, 0, false);
+#endif
     m_contentMutex.unlock();
 }
 
@@ -976,14 +1040,18 @@ void WebViewCore::setUIRootLayer(const LayerAndroid* layer)
 
 #endif // USE(ACCELERATED_COMPOSITING)
 
-void WebViewCore::contentDraw()
+void WebViewCore::contentDraw(bool paintHeader)
 {
     JNIEnv* env = JSC::Bindings::getJNIEnv();
-    env->CallVoidMethod(m_javaGlue->object(env).get(), m_javaGlue->m_contentDraw);
+    AutoJObject obj = m_javaGlue->object(env);
+
+    if (!obj.get())
+        return;
+    env->CallVoidMethod(obj.get(), m_javaGlue->m_contentDraw);
     checkException(env);
 }
 
-void WebViewCore::contentInvalidate(const WebCore::IntRect &r)
+void WebViewCore::contentInvalidate(const WebCore::IntRect &r, bool paintHeader)
 {
     DBG_SET_LOGD("rect={%d,%d,w=%d,h=%d}", r.x(), r.y(), r.width(), r.height());
     SkIRect rect(r);
@@ -994,7 +1062,7 @@ void WebViewCore::contentInvalidate(const WebCore::IntRect &r)
         m_addInval.getBounds().fLeft, m_addInval.getBounds().fTop,
         m_addInval.getBounds().fRight, m_addInval.getBounds().fBottom);
     if (!m_skipContentDraw)
-        contentDraw();
+        contentDraw(paintHeader);
 }
 
 void WebViewCore::offInvalidate(const WebCore::IntRect &r)
@@ -1168,6 +1236,9 @@ void WebViewCore::setScrollOffset(int moveGeneration, int dx, int dy)
     Frame* frame = (Frame*) m_cursorFrame;
     IntPoint location = m_cursorLocation;
     gCursorBoundsMutex.unlock();
+
+    cache()->loader()->setVisiblePosition(IntPoint(dx, dy));
+
     if (!hasCursorBounds)
         return;
     moveMouseIfLatest(moveGeneration, frame, location.x(), location.y());
@@ -1177,6 +1248,8 @@ void WebViewCore::setGlobalBounds(int x, int y, int h, int v)
 {
     DBG_NAV_LOGD("{%d,%d}", x, y);
     m_mainFrame->view()->platformWidget()->setWindowBounds(x, y, h, v);
+
+    cache()->loader()->setVisibleRect(IntRect(x, y, v, h));
 }
 
 void WebViewCore::setSizeScreenWidthAndScale(int width, int height,
@@ -1237,10 +1310,14 @@ void WebViewCore::setSizeScreenWidthAndScale(int width, int height,
                     }
                 }
             }
+            Frame* frame = 0;
+            if (node)
+                frame = node->document()->frame();
+
             r->setNeedsLayoutAndPrefWidthsRecalc();
             m_mainFrame->view()->forceLayout();
             // scroll to restore current screen center
-            if (node) {
+            if (node && CacheBuilder::validNode(m_mainFrame, frame, node)) {
                 const WebCore::IntRect& newBounds = node->getRect();
                 DBG_NAV_LOGD("nb:(x=%d,y=%d,w=%d,"
                     "h=%d)", newBounds.x(), newBounds.y(),
@@ -2441,6 +2518,17 @@ void WebViewCore::setBackgroundColor(SkColor c)
         view->setTransparent(true);
 }
 
+void WebViewCore::setColorInversion(bool invert)
+{
+    if (m_invertColor != invert) {
+        m_invertColor = invert;
+        if (invert)
+            DBG_SET_LOG("color invert active");
+        else
+            DBG_SET_LOG("no color invert");
+    }
+}
+
 jclass WebViewCore::getPluginClass(const WebCore::String& libName, const char* className)
 {
     JNIEnv* env = JSC::Bindings::getJNIEnv();
@@ -2511,6 +2599,9 @@ jobject WebViewCore::getContext()
 {
     JNIEnv* env = JSC::Bindings::getJNIEnv();
     AutoJObject obj = m_javaGlue->object(env);
+
+    if (!obj.get())
+        return 0;
 
     jobject result = env->CallObjectMethod(obj.get(), m_javaGlue->m_getContext);
     checkException(env);
@@ -2962,6 +3053,14 @@ static void SetBackgroundColor(JNIEnv *env, jobject obj, jint color)
     viewImpl->setBackgroundColor((SkColor) color);
 }
 
+static void SetColorInversion(JNIEnv *env, jobject obj, jboolean invert)
+{
+    WebViewCore* viewImpl = GET_NATIVE_VIEW(env, obj);
+    LOG_ASSERT(viewImpl, "viewImpl not set in %s", __FUNCTION__);
+
+    viewImpl->setColorInversion(invert);
+}
+
 static void DumpDomTree(JNIEnv *env, jobject obj, jboolean useFile)
 {
     WebViewCore* viewImpl = GET_NATIVE_VIEW(env, obj);
@@ -3093,12 +3192,23 @@ static void Pause(JNIEnv* env, jobject obj)
             geolocation->suspend();
     }
 
+    // If the current tab is about to be paused, just cancel the IDLE GC timer if
+    // it is active. We do not want GC occuring because of the background tab
+    // while the foreground tab is still loading.
+    WebFrame* webFrame = WebFrame::getWebFrame(mainFrame);
+    if (webFrame)
+        webFrame->stopIdleGCTimer();
+
     ANPEvent event;
     SkANP::InitEvent(&event, kLifecycle_ANPEventType);
     event.data.lifecycle.action = kPause_ANPLifecycleAction;
     GET_NATIVE_VIEW(env, obj)->sendPluginEvent(event);
 
     GET_NATIVE_VIEW(env, obj)->setIsPaused(true);
+
+#if ENABLE(ACCELERATED_SCROLLING)
+    GET_NATIVE_VIEW(env, obj)->m_scrollRenderer->pause();
+#endif
 }
 
 static void Resume(JNIEnv* env, jobject obj)
@@ -3241,6 +3351,8 @@ static JNINativeMethod gJavaWebViewCoreMethods[] = {
         (void*) SplitContent },
     { "nativeSetBackgroundColor", "(I)V",
         (void*) SetBackgroundColor },
+    { "nativeSetColorInversion", "(Z)V",
+        (void*) SetColorInversion },
     { "nativeRegisterURLSchemeAsLocal", "(Ljava/lang/String;)V",
         (void*) RegisterURLSchemeAsLocal },
     { "nativeDumpDomTree", "(Z)V",

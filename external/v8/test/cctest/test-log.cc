@@ -13,6 +13,7 @@
 
 #include "v8.h"
 #include "log.h"
+#include "cpu-profiler.h"
 #include "v8threads.h"
 #include "cctest.h"
 
@@ -52,13 +53,9 @@ TEST(GetMessages) {
   CHECK_EQ(0, Logger::GetLogLines(0, NULL, 0));
   char log_lines[100];
   memset(log_lines, 0, sizeof(log_lines));
-  // Requesting data size which is smaller than first log message length.
-  CHECK_EQ(0, Logger::GetLogLines(0, log_lines, 3));
   // See Logger::StringEvent.
   const char* line_1 = "aaa,\"bbb\"\n";
   const int line_1_len = StrLength(line_1);
-  // Still smaller than log message length.
-  CHECK_EQ(0, Logger::GetLogLines(0, log_lines, line_1_len - 1));
   // The exact size.
   CHECK_EQ(line_1_len, Logger::GetLogLines(0, log_lines, line_1_len));
   CHECK_EQ(line_1, log_lines);
@@ -72,8 +69,6 @@ TEST(GetMessages) {
   const int line_2_len = StrLength(line_2);
   // Now start with line_2 beginning.
   CHECK_EQ(0, Logger::GetLogLines(line_1_len, log_lines, 0));
-  CHECK_EQ(0, Logger::GetLogLines(line_1_len, log_lines, 3));
-  CHECK_EQ(0, Logger::GetLogLines(line_1_len, log_lines, line_2_len - 1));
   CHECK_EQ(line_2_len, Logger::GetLogLines(line_1_len, log_lines, line_2_len));
   CHECK_EQ(line_2, log_lines);
   memset(log_lines, 0, sizeof(log_lines));
@@ -144,6 +139,12 @@ namespace internal {
 class LoggerTestHelper : public AllStatic {
  public:
   static bool IsSamplerActive() { return Logger::IsProfilerSamplerActive(); }
+  static void ResetSamplesTaken() {
+    reinterpret_cast<Sampler*>(Logger::ticker_)->ResetSamplesTaken();
+  }
+  static bool has_samples_taken() {
+    return reinterpret_cast<Sampler*>(Logger::ticker_)->samples_taken() > 0;
+  }
 };
 
 }  // namespace v8::internal
@@ -152,34 +153,15 @@ class LoggerTestHelper : public AllStatic {
 using v8::internal::LoggerTestHelper;
 
 
-// Under Linux, we need to check if signals were delivered to avoid false
-// positives.  Under other platforms profiling is done via a high-priority
-// thread, so this case never happen.
-static bool was_sigprof_received = true;
-#ifdef __linux__
-
-struct sigaction old_sigprof_handler;
-pthread_t our_thread;
-
-static void SigProfSignalHandler(int signal, siginfo_t* info, void* context) {
-  if (signal != SIGPROF || !pthread_equal(pthread_self(), our_thread)) return;
-  was_sigprof_received = true;
-  old_sigprof_handler.sa_sigaction(signal, info, context);
-}
-
-#endif  // __linux__
-
-
 namespace {
 
 class ScopedLoggerInitializer {
  public:
-  explicit ScopedLoggerInitializer(bool log, bool prof_lazy)
-      : saved_log_(i::FLAG_log),
-        saved_prof_lazy_(i::FLAG_prof_lazy),
+  explicit ScopedLoggerInitializer(bool prof_lazy)
+      : saved_prof_lazy_(i::FLAG_prof_lazy),
         saved_prof_(i::FLAG_prof),
         saved_prof_auto_(i::FLAG_prof_auto),
-        trick_to_run_init_flags_(init_flags_(log, prof_lazy)),
+        trick_to_run_init_flags_(init_flags_(prof_lazy)),
         need_to_set_up_logger_(i::V8::IsRunning()),
         scope_(),
         env_(v8::Context::New()) {
@@ -193,14 +175,12 @@ class ScopedLoggerInitializer {
     i::FLAG_prof_lazy = saved_prof_lazy_;
     i::FLAG_prof = saved_prof_;
     i::FLAG_prof_auto = saved_prof_auto_;
-    i::FLAG_log = saved_log_;
   }
 
   v8::Handle<v8::Context>& env() { return env_; }
 
  private:
-  static bool init_flags_(bool log, bool prof_lazy) {
-    i::FLAG_log = log;
+  static bool init_flags_(bool prof_lazy) {
     i::FLAG_prof = true;
     i::FLAG_prof_lazy = prof_lazy;
     i::FLAG_prof_auto = false;
@@ -208,7 +188,6 @@ class ScopedLoggerInitializer {
     return prof_lazy;
   }
 
-  const bool saved_log_;
   const bool saved_prof_lazy_;
   const bool saved_prof_;
   const bool saved_prof_auto_;
@@ -267,6 +246,9 @@ class LogBufferMatcher {
 
 
 static void CheckThatProfilerWorks(LogBufferMatcher* matcher) {
+  CHECK(!LoggerTestHelper::IsSamplerActive());
+  LoggerTestHelper::ResetSamplesTaken();
+
   Logger::ResumeProfiler(v8::PROFILER_MODULE_CPU, 0);
   CHECK(LoggerTestHelper::IsSamplerActive());
 
@@ -274,19 +256,6 @@ static void CheckThatProfilerWorks(LogBufferMatcher* matcher) {
   CHECK_GT(matcher->GetNextChunk(), 0);
   const char* code_creation = "\ncode-creation,";  // eq. to /^code-creation,/
   CHECK_NE(NULL, matcher->Find(code_creation));
-
-#ifdef __linux__
-  // Intercept SIGPROF handler to make sure that the test process
-  // had received it. Under load, system can defer it causing test failure.
-  // It is important to execute this after 'ResumeProfiler'.
-  our_thread = pthread_self();
-  was_sigprof_received = false;
-  struct sigaction sa;
-  sa.sa_sigaction = SigProfSignalHandler;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_SIGINFO;
-  CHECK_EQ(0, sigaction(SIGPROF, &sa, &old_sigprof_handler));
-#endif  // __linux__
 
   // Force compiler to generate new code by parametrizing source.
   EmbeddedVector<char, 100> script_src;
@@ -315,12 +284,12 @@ static void CheckThatProfilerWorks(LogBufferMatcher* matcher) {
   CHECK_NE(NULL, matcher->Find(code_creation));
   const char* tick = "\ntick,";
   const bool ticks_found = matcher->Find(tick) != NULL;
-  CHECK_EQ(was_sigprof_received, ticks_found);
+  CHECK_EQ(LoggerTestHelper::has_samples_taken(), ticks_found);
 }
 
 
 TEST(ProfLazyMode) {
-  ScopedLoggerInitializer initialize_logger(false, true);
+  ScopedLoggerInitializer initialize_logger(true);
 
   // No sampling should happen prior to resuming profiler.
   CHECK(!LoggerTestHelper::IsSamplerActive());
@@ -346,8 +315,8 @@ TEST(ProfLazyMode) {
 }
 
 
-// Profiling multiple threads that use V8 is currently only available on Linux.
-#ifdef __linux__
+// BUG(913). Need to implement support for profiling multiple VM threads.
+#if 0
 
 namespace {
 
@@ -394,19 +363,19 @@ class LoopingThread : public v8::internal::Thread {
 class LoopingJsThread : public LoopingThread {
  public:
   void RunLoop() {
-    {
-      v8::Locker locker;
-      CHECK(v8::internal::ThreadManager::HasId());
-      SetV8ThreadId();
-    }
+    v8::Locker locker;
+    CHECK(v8::internal::ThreadManager::HasId());
+    SetV8ThreadId();
     while (IsRunning()) {
-      v8::Locker locker;
       v8::HandleScope scope;
       v8::Persistent<v8::Context> context = v8::Context::New();
-      v8::Context::Scope context_scope(context);
-      SignalRunning();
-      CompileAndRunScript(
-          "var j; for (var i=0; i<10000; ++i) { j = Math.sin(i); }");
+      CHECK(!context.IsEmpty());
+      {
+        v8::Context::Scope context_scope(context);
+        SignalRunning();
+        CompileAndRunScript(
+            "var j; for (var i=0; i<10000; ++i) { j = Math.sin(i); }");
+      }
       context.Dispose();
       i::OS::Sleep(1);
     }
@@ -478,7 +447,7 @@ TEST(ProfMultipleThreads) {
   CHECK(!sampler.WasSampleStackCalled());
   nonJsThread.WaitForRunning();
   nonJsThread.SendSigProf();
-  CHECK(sampler.WaitForTick());
+  CHECK(!sampler.WaitForTick());
   CHECK(!sampler.WasSampleStackCalled());
   sampler.Stop();
 
@@ -540,7 +509,7 @@ static v8::Handle<v8::Value> ObjMethod1(const v8::Arguments& args) {
 }
 
 TEST(LogCallbacks) {
-  ScopedLoggerInitializer initialize_logger(false, false);
+  ScopedLoggerInitializer initialize_logger(false);
   LogBufferMatcher matcher;
 
   v8::Persistent<v8::FunctionTemplate> obj =
@@ -590,7 +559,7 @@ static v8::Handle<v8::Value> Prop2Getter(v8::Local<v8::String> property,
 }
 
 TEST(LogAccessorCallbacks) {
-  ScopedLoggerInitializer initialize_logger(false, false);
+  ScopedLoggerInitializer initialize_logger(false);
   LogBufferMatcher matcher;
 
   v8::Persistent<v8::FunctionTemplate> obj =
@@ -625,7 +594,7 @@ TEST(LogAccessorCallbacks) {
 
 
 TEST(LogTags) {
-  ScopedLoggerInitializer initialize_logger(true, false);
+  ScopedLoggerInitializer initialize_logger(false);
   LogBufferMatcher matcher;
 
   const char* open_tag = "open-tag,";
@@ -707,6 +676,35 @@ TEST(LogTags) {
   // Must be no tags, because logging must be disabled.
   CHECK_EQ(NULL, matcher.Find(open_tag3));
   CHECK_EQ(NULL, matcher.Find(close_tag3));
+}
+
+
+TEST(IsLoggingPreserved) {
+  ScopedLoggerInitializer initialize_logger(false);
+
+  CHECK(Logger::is_logging());
+  Logger::ResumeProfiler(v8::PROFILER_MODULE_CPU, 1);
+  CHECK(Logger::is_logging());
+  Logger::PauseProfiler(v8::PROFILER_MODULE_CPU, 1);
+  CHECK(Logger::is_logging());
+
+  CHECK(Logger::is_logging());
+  Logger::ResumeProfiler(
+      v8::PROFILER_MODULE_HEAP_STATS | v8::PROFILER_MODULE_JS_CONSTRUCTORS, 1);
+  CHECK(Logger::is_logging());
+  Logger::PauseProfiler(
+      v8::PROFILER_MODULE_HEAP_STATS | v8::PROFILER_MODULE_JS_CONSTRUCTORS, 1);
+  CHECK(Logger::is_logging());
+
+  CHECK(Logger::is_logging());
+  Logger::ResumeProfiler(
+      v8::PROFILER_MODULE_CPU |
+      v8::PROFILER_MODULE_HEAP_STATS | v8::PROFILER_MODULE_JS_CONSTRUCTORS, 1);
+  CHECK(Logger::is_logging());
+  Logger::PauseProfiler(
+      v8::PROFILER_MODULE_CPU |
+      v8::PROFILER_MODULE_HEAP_STATS | v8::PROFILER_MODULE_JS_CONSTRUCTORS, 1);
+  CHECK(Logger::is_logging());
 }
 
 

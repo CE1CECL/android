@@ -47,7 +47,7 @@ import com.android.camera.R;
 public class HeadUpDisplay extends GLView {
     private static final int INDICATOR_BAR_TIMEOUT = 5500;
     private static final int POPUP_WINDOW_TIMEOUT = 5000;
-    private static final int INDICATOR_BAR_RIGHT_MARGIN = 10;
+    private static final int INDICATOR_BAR_RIGHT_MARGIN = 100;
     private static final int POPUP_WINDOW_OVERLAP = 20;
     private static final int POPUP_TRIANGLE_OFFSET = 16;
 
@@ -178,12 +178,12 @@ public class HeadUpDisplay extends GLView {
         }
     }
 
-    public void initialize(Context context, PreferenceGroup preferenceGroup) {
+    public void initialize(Context context, PreferenceGroup preferenceGroup, Parameters parameters) {
         mPreferenceGroup = preferenceGroup;
         mSharedPrefs = ComboPreferences.get(context);
         mPopupWindow = null;
         clearComponents();
-        initializeIndicatorBar(context, preferenceGroup);
+        initializeIndicatorBar(context, preferenceGroup, parameters);
         requestLayout();
     }
 
@@ -338,7 +338,7 @@ public class HeadUpDisplay extends GLView {
     }
 
     protected void initializeIndicatorBar(
-            Context context, PreferenceGroup group) {
+            Context context, PreferenceGroup group, Parameters parameters) {
         mIndicatorBar = new IndicatorBar();
 
         mIndicatorBar.setBackground(new NinePatchTexture(
@@ -429,5 +429,9 @@ public class HeadUpDisplay extends GLView {
             mPreferenceGroup.reloadValue();
             mIndicatorBar.reloadPreferences();
         }
+    }
+
+    public boolean isActive() {
+        return mIndicatorBar.isActivated();
     }
 }

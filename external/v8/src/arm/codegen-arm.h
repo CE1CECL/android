@@ -28,17 +28,24 @@
 #ifndef V8_ARM_CODEGEN_ARM_H_
 #define V8_ARM_CODEGEN_ARM_H_
 
+#include "ast.h"
+#include "code-stubs-arm.h"
+#include "ic-inl.h"
+
 namespace v8 {
 namespace internal {
 
 // Forward declarations
 class CompilationInfo;
 class DeferredCode;
+class JumpTarget;
 class RegisterAllocator;
 class RegisterFile;
 
 enum InitState { CONST_INIT, NOT_CONST_INIT };
 enum TypeofState { INSIDE_TYPEOF, NOT_INSIDE_TYPEOF };
+enum GenerateInlineSmi { DONT_GENERATE_INLINE_SMI, GENERATE_INLINE_SMI };
+enum WriteBarrierCharacter { UNLIKELY_SMI, LIKELY_SMI, NEVER_NEWSPACE };
 
 
 // -------------------------------------------------------------------------
@@ -90,16 +97,17 @@ class Reference BASE_EMBEDDED {
   // If the reference is not consumed, it is left in place under its value.
   void GetValue();
 
-  // Generate code to pop a reference, push the value of the reference,
-  // and then spill the stack frame.
-  inline void GetValueAndSpill();
-
   // Generate code to store the value on top of the expression stack in the
   // reference.  The reference is expected to be immediately below the value
   // on the expression stack.  The  value is stored in the location specified
   // by the reference, and is left on top of the stack, after the reference
   // is popped from beneath it (unloaded).
-  void SetValue(InitState init_state);
+  void SetValue(InitState init_state, WriteBarrierCharacter wb);
+
+  // This is in preparation for something that uses the reference on the stack.
+  // If we need this reference afterwards get then dup it now.  Otherwise mark
+  // it as used.
+  inline void DupIfPersist();
 
  private:
   CodeGenerator* cgen_;
@@ -124,24 +132,65 @@ class CodeGenState BASE_EMBEDDED {
   // leaves the code generator with a NULL state.
   explicit CodeGenState(CodeGenerator* owner);
 
-  // Create a code generator state based on a code generator's current
-  // state.  The new state has its own pair of branch labels.
-  CodeGenState(CodeGenerator* owner,
-               JumpTarget* true_target,
-               JumpTarget* false_target);
-
   // Destroy a code generator state and restore the owning code generator's
   // previous state.
-  ~CodeGenState();
+  virtual ~CodeGenState();
 
-  JumpTarget* true_target() const { return true_target_; }
-  JumpTarget* false_target() const { return false_target_; }
+  virtual JumpTarget* true_target() const { return NULL; }
+  virtual JumpTarget* false_target() const { return NULL; }
+
+ protected:
+  inline CodeGenerator* owner() { return owner_; }
+  inline CodeGenState* previous() const { return previous_; }
 
  private:
   CodeGenerator* owner_;
+  CodeGenState* previous_;
+};
+
+
+class ConditionCodeGenState : public CodeGenState {
+ public:
+  // Create a code generator state based on a code generator's current
+  // state.  The new state has its own pair of branch labels.
+  ConditionCodeGenState(CodeGenerator* owner,
+                        JumpTarget* true_target,
+                        JumpTarget* false_target);
+
+  virtual JumpTarget* true_target() const { return true_target_; }
+  virtual JumpTarget* false_target() const { return false_target_; }
+
+ private:
   JumpTarget* true_target_;
   JumpTarget* false_target_;
-  CodeGenState* previous_;
+};
+
+
+class TypeInfoCodeGenState : public CodeGenState {
+ public:
+  TypeInfoCodeGenState(CodeGenerator* owner,
+                       Slot* slot_number,
+                       TypeInfo info);
+  ~TypeInfoCodeGenState();
+
+  virtual JumpTarget* true_target() const { return previous()->true_target(); }
+  virtual JumpTarget* false_target() const {
+    return previous()->false_target();
+  }
+
+ private:
+  Slot* slot_;
+  TypeInfo old_type_info_;
+};
+
+
+// -------------------------------------------------------------------------
+// Arguments allocation mode
+
+enum ArgumentsAllocationMode {
+  NO_ARGUMENTS_ALLOCATION,
+  EAGER_ARGUMENTS_ALLOCATION,
+  LAZY_ARGUMENTS_ALLOCATION
 };
 
 
@@ -150,9 +199,7 @@ class CodeGenState BASE_EMBEDDED {
 
 class CodeGenerator: public AstVisitor {
  public:
-  // Takes a function literal, generates code for it. This function should only
-  // be called by compiler.cc.
-  static Handle<Code> MakeCode(CompilationInfo* info);
+  static bool MakeCode(CompilationInfo* info);
 
   // Printing of AST, etc. as requested by flags.
   static void MakeCodePrologue(CompilationInfo* info);
@@ -171,7 +218,9 @@ class CodeGenerator: public AstVisitor {
                               bool is_toplevel,
                               Handle<Script> script);
 
-  static void RecordPositions(MacroAssembler* masm, int pos);
+  static bool RecordPositions(MacroAssembler* masm,
+                              int pos,
+                              bool right_here = false);
 
   // Accessors
   MacroAssembler* masm() { return masm_; }
@@ -193,28 +242,65 @@ class CodeGenerator: public AstVisitor {
   CodeGenState* state() { return state_; }
   void set_state(CodeGenState* state) { state_ = state; }
 
+  TypeInfo type_info(Slot* slot) {
+    int index = NumberOfSlot(slot);
+    if (index == kInvalidSlotNumber) return TypeInfo::Unknown();
+    return (*type_info_)[index];
+  }
+
+  TypeInfo set_type_info(Slot* slot, TypeInfo info) {
+    int index = NumberOfSlot(slot);
+    ASSERT(index >= kInvalidSlotNumber);
+    if (index != kInvalidSlotNumber) {
+      TypeInfo previous_value = (*type_info_)[index];
+      (*type_info_)[index] = info;
+      return previous_value;
+    }
+    return TypeInfo::Unknown();
+  }
+
   void AddDeferred(DeferredCode* code) { deferred_.Add(code); }
 
-  static const int kUnknownIntValue = -1;
+  // Constants related to patching of inlined load/store.
+  static int GetInlinedKeyedLoadInstructionsAfterPatch() {
+    return FLAG_debug_code ? 32 : 13;
+  }
+  static const int kInlinedKeyedStoreInstructionsAfterPatch = 5;
+  static int GetInlinedNamedStoreInstructionsAfterPatch() {
+    ASSERT(inlined_write_barrier_size_ != -1);
+    return inlined_write_barrier_size_ + 4;
+  }
 
  private:
+  // Type of a member function that generates inline code for a native function.
+  typedef void (CodeGenerator::*InlineFunctionGenerator)
+      (ZoneList<Expression*>*);
+
+  static const InlineFunctionGenerator kInlineFunctionGenerators[];
+
   // Construction/Destruction
   explicit CodeGenerator(MacroAssembler* masm);
 
   // Accessors
   inline bool is_eval();
-  Scope* scope();
+  inline Scope* scope();
 
   // Generating deferred code.
   void ProcessDeferred();
 
-  // State
-  bool has_cc() const  { return cc_reg_ != al; }
-  JumpTarget* true_target() const  { return state_->true_target(); }
-  JumpTarget* false_target() const  { return state_->false_target(); }
+  static const int kInvalidSlotNumber = -1;
 
-  // We don't track loop nesting level on ARM yet.
-  int loop_nesting() const { return 0; }
+  int NumberOfSlot(Slot* slot);
+
+  // State
+  bool has_cc() const { return cc_reg_ != al; }
+  JumpTarget* true_target() const { return state_->true_target(); }
+  JumpTarget* false_target() const { return state_->false_target(); }
+
+  // Track loop nesting level.
+  int loop_nesting() const { return loop_nesting_; }
+  void IncrementLoopNesting() { loop_nesting_++; }
+  void DecrementLoopNesting() { loop_nesting_--; }
 
   // Node visitors.
   void VisitStatements(ZoneList<Statement*>* statements);
@@ -224,26 +310,24 @@ class CodeGenerator: public AstVisitor {
   AST_NODE_LIST(DEF_VISIT)
 #undef DEF_VISIT
 
-  // Visit a statement and then spill the virtual frame if control flow can
-  // reach the end of the statement (ie, it does not exit via break,
-  // continue, return, or throw).  This function is used temporarily while
-  // the code generator is being transformed.
-  inline void VisitAndSpill(Statement* statement);
-
-  // Visit a list of statements and then spill the virtual frame if control
-  // flow can reach the end of the list.
-  inline void VisitStatementsAndSpill(ZoneList<Statement*>* statements);
-
   // Main code generation function
   void Generate(CompilationInfo* info);
+
+  // Generate the return sequence code.  Should be called no more than
+  // once per compiled function, immediately after binding the return
+  // target (which can not be done more than once).  The return value should
+  // be in r0.
+  void GenerateReturnSequence();
+
+  // Returns the arguments allocation mode.
+  ArgumentsAllocationMode ArgumentsMode();
+
+  // Store the arguments object and allocate it if necessary.
+  void StoreArgumentsObject(bool initial);
 
   // The following are used by class Reference.
   void LoadReference(Reference* ref);
   void UnloadReference(Reference* ref);
-
-  static MemOperand ContextOperand(Register context, int index) {
-    return MemOperand(context, Context::SlotOffset(index));
-  }
 
   MemOperand SlotOperand(Slot* slot, Register tmp);
 
@@ -253,10 +337,6 @@ class CodeGenerator: public AstVisitor {
                                                JumpTarget* slow);
 
   // Expressions
-  static MemOperand GlobalObject()  {
-    return ContextOperand(cp, Context::GLOBAL_INDEX);
-  }
-
   void LoadCondition(Expression* x,
                      JumpTarget* true_target,
                      JumpTarget* false_target,
@@ -265,32 +345,47 @@ class CodeGenerator: public AstVisitor {
   void LoadGlobal();
   void LoadGlobalReceiver(Register scratch);
 
-  // Generate code to push the value of an expression on top of the frame
-  // and then spill the frame fully to memory.  This function is used
-  // temporarily while the code generator is being transformed.
-  inline void LoadAndSpill(Expression* expression);
-
-  // Call LoadCondition and then spill the virtual frame unless control flow
-  // cannot reach the end of the expression (ie, by emitting only
-  // unconditional jumps to the control targets).
-  inline void LoadConditionAndSpill(Expression* expression,
-                                    JumpTarget* true_target,
-                                    JumpTarget* false_target,
-                                    bool force_control);
-
   // Read a value from a slot and leave it on top of the expression stack.
   void LoadFromSlot(Slot* slot, TypeofState typeof_state);
+  void LoadFromSlotCheckForArguments(Slot* slot, TypeofState state);
+
   // Store the value on top of the stack to a slot.
   void StoreToSlot(Slot* slot, InitState init_state);
+
+  // Support for compiling assignment expressions.
+  void EmitSlotAssignment(Assignment* node);
+  void EmitNamedPropertyAssignment(Assignment* node);
+  void EmitKeyedPropertyAssignment(Assignment* node);
+
+  // Load a named property, returning it in r0. The receiver is passed on the
+  // stack, and remains there.
+  void EmitNamedLoad(Handle<String> name, bool is_contextual);
+
+  // Store to a named property. If the store is contextual, value is passed on
+  // the frame and consumed. Otherwise, receiver and value are passed on the
+  // frame and consumed. The result is returned in r0.
+  void EmitNamedStore(Handle<String> name, bool is_contextual);
+
   // Load a keyed property, leaving it in r0.  The receiver and key are
   // passed on the stack, and remain there.
-  void EmitKeyedLoad(bool is_global);
+  void EmitKeyedLoad();
+
+  // Store a keyed property. Key and receiver are on the stack and the value is
+  // in r0. Result is returned in r0.
+  void EmitKeyedStore(StaticType* key_type, WriteBarrierCharacter wb_info);
 
   void LoadFromGlobalSlotCheckExtensions(Slot* slot,
                                          TypeofState typeof_state,
-                                         Register tmp,
-                                         Register tmp2,
                                          JumpTarget* slow);
+
+  // Support for loading from local/global variables and arguments
+  // whose location is known unless they are shadowed by
+  // eval-introduced bindings. Generates no code for unsupported slot
+  // types and therefore expects to fall through to the slow jump target.
+  void EmitDynamicLoadFromSlotFastCase(Slot* slot,
+                                       TypeofState typeof_state,
+                                       JumpTarget* slow,
+                                       JumpTarget* done);
 
   // Special code for typeof expressions: Unfortunately, we must
   // be careful when loading the expression in 'typeof'
@@ -302,9 +397,14 @@ class CodeGenerator: public AstVisitor {
 
   void ToBoolean(JumpTarget* true_target, JumpTarget* false_target);
 
+  // Generate code that computes a shortcutting logical operation.
+  void GenerateLogicalBooleanOperation(BinaryOperation* node);
+
   void GenericBinaryOperation(Token::Value op,
                               OverwriteMode overwrite_mode,
-                              int known_rhs = kUnknownIntValue);
+                              GenerateInlineSmi inline_smi,
+                              int known_rhs =
+                                  GenericBinaryOpStub::kUnknownIntValue);
   void Comparison(Condition cc,
                   Expression* left,
                   Expression* right,
@@ -319,32 +419,30 @@ class CodeGenerator: public AstVisitor {
                          CallFunctionFlags flags,
                          int position);
 
+  // An optimized implementation of expressions of the form
+  // x.apply(y, arguments).  We call x the applicand and y the receiver.
+  // The optimization avoids allocating an arguments object if possible.
+  void CallApplyLazy(Expression* applicand,
+                     Expression* receiver,
+                     VariableProxy* arguments,
+                     int position);
+
   // Control flow
   void Branch(bool if_true, JumpTarget* target);
   void CheckStack();
 
-  struct InlineRuntimeLUT {
-    void (CodeGenerator::*method)(ZoneList<Expression*>*);
-    const char* name;
-  };
-
-  static InlineRuntimeLUT* FindInlineRuntimeLUT(Handle<String> name);
   bool CheckForInlineRuntimeCall(CallRuntime* node);
-  static bool PatchInlineRuntimeEntry(Handle<String> name,
-                                      const InlineRuntimeLUT& new_entry,
-                                      InlineRuntimeLUT* old_entry);
 
   static Handle<Code> ComputeLazyCompile(int argc);
   void ProcessDeclarations(ZoneList<Declaration*>* declarations);
-
-  static Handle<Code> ComputeCallInitialize(int argc, InLoopFlag in_loop);
 
   // Declare global variables and functions in the given array of
   // name/value pairs.
   void DeclareGlobals(Handle<FixedArray> pairs);
 
-  // Instantiate the function boilerplate.
-  void InstantiateBoilerplate(Handle<JSFunction> boilerplate);
+  // Instantiate the function based on the shared function info.
+  void InstantiateFunction(Handle<SharedFunctionInfo> function_info,
+                           bool pretenure);
 
   // Support for type checks.
   void GenerateIsSmi(ZoneList<Expression*>* args);
@@ -352,15 +450,18 @@ class CodeGenerator: public AstVisitor {
   void GenerateIsArray(ZoneList<Expression*>* args);
   void GenerateIsRegExp(ZoneList<Expression*>* args);
   void GenerateIsObject(ZoneList<Expression*>* args);
+  void GenerateIsSpecObject(ZoneList<Expression*>* args);
   void GenerateIsFunction(ZoneList<Expression*>* args);
   void GenerateIsUndetectableObject(ZoneList<Expression*>* args);
+  void GenerateIsStringWrapperSafeForDefaultValueOf(
+      ZoneList<Expression*>* args);
 
   // Support for construct call checks.
   void GenerateIsConstructCall(ZoneList<Expression*>* args);
 
   // Support for arguments.length and arguments[?].
   void GenerateArgumentsLength(ZoneList<Expression*>* args);
-  void GenerateArgumentsAccess(ZoneList<Expression*>* args);
+  void GenerateArguments(ZoneList<Expression*>* args);
 
   // Support for accessing the class and value fields of an object.
   void GenerateClassOf(ZoneList<Expression*>* args);
@@ -368,7 +469,13 @@ class CodeGenerator: public AstVisitor {
   void GenerateSetValueOf(ZoneList<Expression*>* args);
 
   // Fast support for charCodeAt(n).
-  void GenerateFastCharCodeAt(ZoneList<Expression*>* args);
+  void GenerateStringCharCodeAt(ZoneList<Expression*>* args);
+
+  // Fast support for string.charAt(n) and string[n].
+  void GenerateStringCharFromCode(ZoneList<Expression*>* args);
+
+  // Fast support for string.charAt(n) and string[n].
+  void GenerateStringCharAt(ZoneList<Expression*>* args);
 
   // Fast support for object equality testing.
   void GenerateObjectEquals(ZoneList<Expression*>* args);
@@ -376,7 +483,7 @@ class CodeGenerator: public AstVisitor {
   void GenerateLog(ZoneList<Expression*>* args);
 
   // Fast support for Math.random().
-  void GenerateRandomPositiveSmi(ZoneList<Expression*>* args);
+  void GenerateRandomHeapNumber(ZoneList<Expression*>* args);
 
   // Fast support for StringAdd.
   void GenerateStringAdd(ZoneList<Expression*>* args);
@@ -390,12 +497,31 @@ class CodeGenerator: public AstVisitor {
   // Support for direct calls from JavaScript to native RegExp code.
   void GenerateRegExpExec(ZoneList<Expression*>* args);
 
+  void GenerateRegExpConstructResult(ZoneList<Expression*>* args);
+
+  // Support for fast native caches.
+  void GenerateGetFromCache(ZoneList<Expression*>* args);
+
   // Fast support for number to string.
   void GenerateNumberToString(ZoneList<Expression*>* args);
 
-  // Fast call to sine function.
+  // Fast swapping of elements.
+  void GenerateSwapElements(ZoneList<Expression*>* args);
+
+  // Fast call for custom callbacks.
+  void GenerateCallFunction(ZoneList<Expression*>* args);
+
+  // Fast call to math functions.
+  void GenerateMathPow(ZoneList<Expression*>* args);
   void GenerateMathSin(ZoneList<Expression*>* args);
   void GenerateMathCos(ZoneList<Expression*>* args);
+  void GenerateMathSqrt(ZoneList<Expression*>* args);
+
+  void GenerateIsRegExpEquivalent(ZoneList<Expression*>* args);
+
+  void GenerateHasCachedArrayIndex(ZoneList<Expression*>* args);
+  void GenerateGetCachedArrayIndex(ZoneList<Expression*>* args);
+  void GenerateFastAsciiArrayJoin(ZoneList<Expression*>* args);
 
   // Simple condition analysis.
   enum ConditionAnalysis {
@@ -431,6 +557,9 @@ class CodeGenerator: public AstVisitor {
   RegisterAllocator* allocator_;
   Condition cc_reg_;
   CodeGenState* state_;
+  int loop_nesting_;
+
+  Vector<TypeInfo>* type_info_;
 
   // Jump targets
   BreakTarget function_return_;
@@ -440,7 +569,8 @@ class CodeGenerator: public AstVisitor {
   // to some unlinking code).
   bool function_return_is_shadowed_;
 
-  static InlineRuntimeLUT kInlineRuntimeLUT[];
+  // Size of inlined write barriers generated by EmitNamedStore.
+  static int inlined_write_barrier_size_;
 
   friend class VirtualFrame;
   friend class JumpTarget;
@@ -450,173 +580,6 @@ class CodeGenerator: public AstVisitor {
   friend class FullCodeGenSyntaxChecker;
 
   DISALLOW_COPY_AND_ASSIGN(CodeGenerator);
-};
-
-
-class GenericBinaryOpStub : public CodeStub {
- public:
-  GenericBinaryOpStub(Token::Value op,
-                      OverwriteMode mode,
-                      int constant_rhs = CodeGenerator::kUnknownIntValue)
-      : op_(op),
-        mode_(mode),
-        constant_rhs_(constant_rhs),
-        specialized_on_rhs_(RhsIsOneWeWantToOptimizeFor(op, constant_rhs)),
-        name_(NULL) { }
-
- private:
-  Token::Value op_;
-  OverwriteMode mode_;
-  int constant_rhs_;
-  bool specialized_on_rhs_;
-  char* name_;
-
-  static const int kMaxKnownRhs = 0x40000000;
-
-  // Minor key encoding in 16 bits.
-  class ModeBits: public BitField<OverwriteMode, 0, 2> {};
-  class OpBits: public BitField<Token::Value, 2, 6> {};
-  class KnownIntBits: public BitField<int, 8, 8> {};
-
-  Major MajorKey() { return GenericBinaryOp; }
-  int MinorKey() {
-    // Encode the parameters in a unique 16 bit value.
-    return OpBits::encode(op_)
-           | ModeBits::encode(mode_)
-           | KnownIntBits::encode(MinorKeyForKnownInt());
-  }
-
-  void Generate(MacroAssembler* masm);
-  void HandleNonSmiBitwiseOp(MacroAssembler* masm);
-
-  static bool RhsIsOneWeWantToOptimizeFor(Token::Value op, int constant_rhs) {
-    if (constant_rhs == CodeGenerator::kUnknownIntValue) return false;
-    if (op == Token::DIV) return constant_rhs >= 2 && constant_rhs <= 3;
-    if (op == Token::MOD) {
-      if (constant_rhs <= 1) return false;
-      if (constant_rhs <= 10) return true;
-      if (constant_rhs <= kMaxKnownRhs && IsPowerOf2(constant_rhs)) return true;
-      return false;
-    }
-    return false;
-  }
-
-  int MinorKeyForKnownInt() {
-    if (!specialized_on_rhs_) return 0;
-    if (constant_rhs_ <= 10) return constant_rhs_ + 1;
-    ASSERT(IsPowerOf2(constant_rhs_));
-    int key = 12;
-    int d = constant_rhs_;
-    while ((d & 1) == 0) {
-      key++;
-      d >>= 1;
-    }
-    return key;
-  }
-
-  const char* GetName();
-
-#ifdef DEBUG
-  void Print() {
-    if (!specialized_on_rhs_) {
-      PrintF("GenericBinaryOpStub (%s)\n", Token::String(op_));
-    } else {
-      PrintF("GenericBinaryOpStub (%s by %d)\n",
-             Token::String(op_),
-             constant_rhs_);
-    }
-  }
-#endif
-};
-
-
-class StringStubBase: public CodeStub {
- public:
-  // Generate code for copying characters using a simple loop. This should only
-  // be used in places where the number of characters is small and the
-  // additional setup and checking in GenerateCopyCharactersLong adds too much
-  // overhead. Copying of overlapping regions is not supported.
-  // Dest register ends at the position after the last character written.
-  void GenerateCopyCharacters(MacroAssembler* masm,
-                              Register dest,
-                              Register src,
-                              Register count,
-                              Register scratch,
-                              bool ascii);
-
-  // Generate code for copying a large number of characters. This function
-  // is allowed to spend extra time setting up conditions to make copying
-  // faster. Copying of overlapping regions is not supported.
-  // Dest register ends at the position after the last character written.
-  void GenerateCopyCharactersLong(MacroAssembler* masm,
-                                  Register dest,
-                                  Register src,
-                                  Register count,
-                                  Register scratch1,
-                                  Register scratch2,
-                                  Register scratch3,
-                                  Register scratch4,
-                                  Register scratch5,
-                                  int flags);
-};
-
-
-// Flag that indicates how to generate code for the stub StringAddStub.
-enum StringAddFlags {
-  NO_STRING_ADD_FLAGS = 0,
-  NO_STRING_CHECK_IN_STUB = 1 << 0  // Omit string check in stub.
-};
-
-
-class StringAddStub: public StringStubBase {
- public:
-  explicit StringAddStub(StringAddFlags flags) {
-    string_check_ = ((flags & NO_STRING_CHECK_IN_STUB) == 0);
-  }
-
- private:
-  Major MajorKey() { return StringAdd; }
-  int MinorKey() { return string_check_ ? 0 : 1; }
-
-  void Generate(MacroAssembler* masm);
-
-  // Should the stub check whether arguments are strings?
-  bool string_check_;
-};
-
-
-class SubStringStub: public StringStubBase {
- public:
-  SubStringStub() {}
-
- private:
-  Major MajorKey() { return SubString; }
-  int MinorKey() { return 0; }
-
-  void Generate(MacroAssembler* masm);
-};
-
-
-
-class StringCompareStub: public CodeStub {
- public:
-  StringCompareStub() { }
-
-  // Compare two flat ASCII strings and returns result in r0.
-  // Does not use the stack.
-  static void GenerateCompareFlatAsciiStrings(MacroAssembler* masm,
-                                              Register left,
-                                              Register right,
-                                              Register scratch1,
-                                              Register scratch2,
-                                              Register scratch3,
-                                              Register scratch4);
-
- private:
-  Major MajorKey() { return StringCompare; }
-  int MinorKey() { return 0; }
-
-  void Generate(MacroAssembler* masm);
 };
 
 

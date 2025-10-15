@@ -66,10 +66,24 @@
 # define CAN_USE_THUMB_INSTRUCTIONS 1
 #endif
 
-// Simulator should support ARM5 instructions.
+// Simulator should support ARM5 instructions and unaligned access by default.
 #if !defined(__arm__)
 # define CAN_USE_ARMV5_INSTRUCTIONS 1
 # define CAN_USE_THUMB_INSTRUCTIONS 1
+
+# ifndef CAN_USE_UNALIGNED_ACCESSES
+#  define CAN_USE_UNALIGNED_ACCESSES 1
+# endif
+
+#endif
+
+#if CAN_USE_UNALIGNED_ACCESSES
+#define V8_TARGET_CAN_READ_UNALIGNED 1
+#endif
+
+// Using blx may yield better code, so use it when required or when available
+#if defined(USE_THUMB_INTERWORK) || defined(CAN_USE_ARMV5_INSTRUCTIONS)
+#define USE_BLX 1
 #endif
 
 namespace assembler {
@@ -79,7 +93,10 @@ namespace arm {
 static const int kNumRegisters = 16;
 
 // VFP support.
-static const int kNumVFPRegisters = 48;
+static const int kNumVFPSingleRegisters = 32;
+static const int kNumVFPDoubleRegisters = 16;
+static const int kNumVFPRegisters =
+    kNumVFPSingleRegisters + kNumVFPDoubleRegisters;
 
 // PC is register 15.
 static const int kPCRegister = 15;
@@ -143,22 +160,17 @@ enum Opcode {
 };
 
 
-// Some special instructions encoded as a TEQ with S=0 (bit 20).
-enum Opcode9Bits {
+// The bits for bit 7-4 for some type 0 miscellaneous instructions.
+enum MiscInstructionsBits74 {
+  // With bits 22-21 01.
   BX   =  1,
   BXJ  =  2,
   BLX  =  3,
-  BKPT =  7
-};
+  BKPT =  7,
 
-
-// Some special instructions encoded as a CMN with S=0 (bit 20).
-enum Opcode11Bits {
+  // With bits 22-21 11.
   CLZ  =  1
 };
-
-
-// S
 
 
 // Shifter types for Data-processing operands as defined in section A5.1.2.
@@ -174,13 +186,33 @@ enum Shift {
 
 // Special Software Interrupt codes when used in the presence of the ARM
 // simulator.
+// svc (formerly swi) provides a 24bit immediate value. Use bits 22:0 for
+// standard SoftwareInterrupCode. Bit 23 is reserved for the stop feature.
 enum SoftwareInterruptCodes {
   // transition to C code
   call_rt_redirected = 0x10,
   // break point
-  break_point = 0x20
+  break_point = 0x20,
+  // stop
+  stop = 1 << 23
+};
+static const int32_t kStopCodeMask = stop - 1;
+static const uint32_t kMaxStopCode = stop - 1;
+
+
+// Type of VFP register. Determines register encoding.
+enum VFPRegPrecision {
+  kSinglePrecision = 0,
+  kDoublePrecision = 1
 };
 
+// VFP rounding modes. See ARM DDI 0406B Page A2-29.
+enum FPSCRRoundingModes {
+  RN,   // Round to Nearest.
+  RP,   // Round towards Plus Infinity.
+  RM,   // Round towards Minus Infinity.
+  RZ    // Round towards zero.
+};
 
 typedef int32_t instr_t;
 
@@ -249,6 +281,23 @@ class Instr {
   inline int RtField() const { return Bits(15, 12); }
   inline int PField() const { return Bit(24); }
   inline int UField() const { return Bit(23); }
+  inline int Opc1Field() const { return (Bit(23) << 2) | Bits(21, 20); }
+  inline int Opc2Field() const { return Bits(19, 16); }
+  inline int Opc3Field() const { return Bits(7, 6); }
+  inline int SzField() const { return Bit(8); }
+  inline int VLField() const { return Bit(20); }
+  inline int VCField() const { return Bit(8); }
+  inline int VAField() const { return Bits(23, 21); }
+  inline int VBField() const { return Bits(6, 5); }
+  inline int VFPNRegCode(VFPRegPrecision pre) {
+    return VFPGlueRegCode(pre, 16, 7);
+  }
+  inline int VFPMRegCode(VFPRegPrecision pre) {
+    return VFPGlueRegCode(pre, 0, 5);
+  }
+  inline int VFPDRegCode(VFPRegPrecision pre) {
+    return VFPGlueRegCode(pre, 12, 22);
+  }
 
   // Fields used in Data processing instructions
   inline Opcode OpcodeField() const {
@@ -264,6 +313,9 @@ class Instr {
     // with immediate
   inline int RotateField() const { return Bits(11, 8); }
   inline int Immed8Field() const { return Bits(7, 0); }
+  inline int Immed4Field() const { return Bits(19, 16); }
+  inline int ImmedMovwMovtField() const {
+      return Immed4Field() << 12 | Offset12Field(); }
 
   // Fields used in Load/Store instructions
   inline int PUField() const { return Bits(24, 23); }
@@ -286,13 +338,19 @@ class Instr {
   inline int SImmed24Field() const { return ((InstructionBits() << 8) >> 8); }
 
   // Fields used in Software interrupt instructions
-  inline SoftwareInterruptCodes SwiField() const {
+  inline SoftwareInterruptCodes SvcField() const {
     return static_cast<SoftwareInterruptCodes>(Bits(23, 0));
   }
 
   // Test for special encodings of type 0 instructions (extra loads and stores,
   // as well as multiplications).
   inline bool IsSpecialType0() const { return (Bit(7) == 1) && (Bit(4) == 1); }
+
+  // Test for miscellaneous instructions encodings of type 0 instructions.
+  inline bool IsMiscType0() const { return (Bit(24) == 1)
+                                           && (Bit(23) == 0)
+                                           && (Bit(20) == 0)
+                                           && ((Bit(7) == 0)); }
 
   // Special accessors that test for existence of a value.
   inline bool HasS()    const { return SField() == 1; }
@@ -304,6 +362,9 @@ class Instr {
   inline bool HasH()    const { return HField() == 1; }
   inline bool HasLink() const { return LinkField() == 1; }
 
+  // Decoding the double immediate in the vmov instruction.
+  double DoubleImmedVmov() const;
+
   // Instructions are read of out a code stream. The only way to get a
   // reference to an instruction is to convert a pointer. There is no way
   // to allocate or create instances of class Instr.
@@ -311,6 +372,17 @@ class Instr {
   static Instr* At(byte* pc) { return reinterpret_cast<Instr*>(pc); }
 
  private:
+  // Join split register codes, depending on single or double precision.
+  // four_bit is the position of the least-significant bit of the four
+  // bit specifier. one_bit is the position of the additional single bit
+  // specifier.
+  inline int VFPGlueRegCode(VFPRegPrecision pre, int four_bit, int one_bit) {
+    if (pre == kSinglePrecision) {
+      return (Bits(four_bit + 3, four_bit) << 1) | Bit(one_bit);
+    }
+    return (Bit(one_bit) << 4) | Bits(four_bit + 3, four_bit);
+  }
+
   // We need to prevent the creation of instances of class Instr.
   DISALLOW_IMPLICIT_CONSTRUCTORS(Instr);
 };
@@ -339,7 +411,12 @@ class Registers {
 class VFPRegisters {
  public:
   // Return the name of the register.
-  static const char* Name(int reg);
+  static const char* Name(int reg, bool is_double);
+
+  // Lookup the register number for the name provided.
+  // Set flag pointed by is_double to true if register
+  // is double-precision.
+  static int Number(const char* name, bool* is_double);
 
  private:
   static const char* names_[kNumVFPRegisters];

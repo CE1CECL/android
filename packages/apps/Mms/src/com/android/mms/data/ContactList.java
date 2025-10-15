@@ -123,6 +123,13 @@ public class ContactList extends ArrayList<Contact>  {
         return numbers.toArray(new String[numbers.size()]);
     }
 
+    public boolean anyExistInDatabase() {
+        for (Contact contact : this) {
+            if (contact.existsInDatabase()) return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean equals(Object obj) {
         try {

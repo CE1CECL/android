@@ -16,7 +16,7 @@ EXTRA_SRCS :=
 ifeq ($(HOST_OS),linux)
   USB_SRCS := usb_linux.c
   EXTRA_SRCS := get_my_path_linux.c
-  LOCAL_LDLIBS += -lrt -lncurses -lpthread
+  LOCAL_LDLIBS += -lrt -lpthread
 endif
 
 ifeq ($(HOST_OS),darwin)
@@ -134,6 +134,18 @@ LOCAL_CFLAGS += -D_XOPEN_SOURCE -D_GNU_SOURCE
 # the gadget driver; rather than relying on the architecture type.
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_CFLAGS += -DANDROID_GADGET=1
+endif
+
+ifneq ($(TARGET_RECOVERY_PRE_COMMAND),)
+	LOCAL_CFLAGS += -DRECOVERY_PRE_COMMAND='$(TARGET_RECOVERY_PRE_COMMAND)'
+endif
+
+ifeq ($(BOARD_USE_SCREENCAP),true)
+	LOCAL_CFLAGS += -DUSE_SCREENCAP
+endif
+
+ifeq ($(BOARD_ALWAYS_INSECURE),true)
+	LOCAL_CFLAGS += -DBOARD_ALWAYS_INSECURE
 endif
 
 LOCAL_MODULE := adbd

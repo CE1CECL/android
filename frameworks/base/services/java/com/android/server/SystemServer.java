@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,7 @@ import com.android.internal.app.ShutdownThread;
 import com.android.internal.os.BinderInternal;
 import com.android.internal.os.SamplingProfilerIntegration;
 
+import dalvik.system.DexClassLoader;
 import dalvik.system.VMRuntime;
 import dalvik.system.Zygote;
 
@@ -30,12 +32,15 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.ContentService;
+import android.content.ContextWrapper;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.IPackageManager;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.media.AudioService;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -45,6 +50,8 @@ import android.os.SystemProperties;
 import android.provider.Contacts.People;
 import android.provider.Settings;
 import android.server.BluetoothA2dpService;
+import android.server.BluetoothHidService;
+import android.server.BluetoothNetworkService;
 import android.server.BluetoothService;
 import android.server.search.SearchManagerService;
 import android.util.EventLog;
@@ -55,6 +62,10 @@ import android.accounts.AccountManagerService;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.lang.reflect.Constructor;
+
+/* TI-OMAP custom package */
+import com.ti.omap.omap_mm_library.UiCloningService;
 
 class ServerThread extends Thread {
     private static final String TAG = "SystemServer";
@@ -73,7 +84,20 @@ class ServerThread extends Thread {
             boolean enableAdb = (Settings.Secure.getInt(mContentResolver,
                 Settings.Secure.ADB_ENABLED, 0) > 0);
             // setting this secure property will start or stop adbd
-           SystemProperties.set("persist.service.adb.enable", enableAdb ? "1" : "0");
+            SystemProperties.set("persist.service.adb.enable", enableAdb ? "1" : "0");
+        }
+    }
+
+    private class AdbPortObserver extends ContentObserver {
+        public AdbPortObserver() {
+            super(null);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            int adbPort = Settings.Secure.getInt(mContentResolver,
+                Settings.Secure.ADB_PORT, 0);
+            // setting this will control whether ADB runs on TCP/IP or USB
+            SystemProperties.set("service.adb.tcp.port", Integer.toString(adbPort));
         }
     }
 
@@ -121,12 +145,17 @@ class ServerThread extends Thread {
         WindowManagerService wm = null;
         BluetoothService bluetooth = null;
         BluetoothA2dpService bluetoothA2dp = null;
+        BluetoothHidService bluetoothHid = null;
+        BluetoothNetworkService bluetoothNetwork = null;
         HeadsetObserver headset = null;
+        HDMIObserver hdmi = null;
         DockObserver dock = null;
         UsbService usb = null;
         UiModeManagerService uiMode = null;
         RecognitionManagerService recognition = null;
         ThrottleService throttle = null;
+        UiCloningService uiCloning = null;
+        RingerSwitchObserver ringer = null;
 
         // Critical services...
         try {
@@ -216,6 +245,13 @@ class ServerThread extends Thread {
                 bluetoothA2dp = new BluetoothA2dpService(context, bluetooth);
                 ServiceManager.addService(BluetoothA2dpService.BLUETOOTH_A2DP_SERVICE,
                                           bluetoothA2dp);
+                bluetoothHid = new BluetoothHidService(context, bluetooth);
+                ServiceManager.addService(BluetoothHidService.BLUETOOTH_HID_SERVICE,
+                                          bluetoothHid);
+                bluetoothNetwork = new BluetoothNetworkService(context, bluetooth);
+                ServiceManager.addService(BluetoothNetworkService.BLUETOOTH_NETWORK_SERVICE,
+                                          bluetoothNetwork);
+                Log.v(TAG, "Bluetooth Network Service");
 
                 int bluetoothOn = Settings.Secure.getInt(mContentResolver,
                     Settings.Secure.BLUETOOTH_ON, 0);
@@ -232,6 +268,7 @@ class ServerThread extends Thread {
         StatusBarManagerService statusBar = null;
         InputMethodManagerService imm = null;
         AppWidgetService appWidget = null;
+        ProfileManagerService profile = null;
         NotificationManagerService notification = null;
         WallpaperManagerService wallpaper = null;
         LocationManagerService location = null;
@@ -322,6 +359,14 @@ class ServerThread extends Thread {
             }
 
             try {
+                Slog.i(TAG, "Profile Manager");
+                profile = new ProfileManagerService(context);
+                ServiceManager.addService(Context.PROFILE_SERVICE, profile);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting Profile Manager", e);
+            }
+
+            try {
                 Slog.i(TAG, "Notification Manager");
                 notification = new NotificationManagerService(context, statusBar, lights);
                 ServiceManager.addService(Context.NOTIFICATION_SERVICE, notification);
@@ -390,6 +435,24 @@ class ServerThread extends Thread {
             }
 
             try {
+                if (SystemProperties.get("ro.config.ringerswitch").equals("1")) {
+                    Slog.i(TAG, "RingerSwitch Observer");
+                    // Listen for hard ringer switch changes
+                    ringer = new RingerSwitchObserver(context);
+                }
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting RingerSwitchObserver", e);
+            }
+
+            try {
+                Slog.i(TAG, "HDMI Observer");
+                // Listen for hdmi changes
+                hdmi = new HDMIObserver(context);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting HDMIObserver", e);
+            }
+
+            try {
                 Slog.i(TAG, "Dock Observer");
                 // Listen for dock station changes
                 dock = new DockObserver(context, power);
@@ -443,13 +506,71 @@ class ServerThread extends Thread {
             } catch (Throwable e) {
                 Slog.e(TAG, "Failure starting DiskStats Service", e);
             }
+
+            try {
+                Slog.i(TAG, "AssetRedirectionManager Service");
+                ServiceManager.addService("assetredirection", new AssetRedirectionManagerService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting AssetRedirectionManager Service", e);
+            }
+
+            String[] vendorServices = context.getResources().getStringArray(
+                    com.android.internal.R.array.config_vendorServices);
+
+            if (vendorServices != null && vendorServices.length > 0) {
+                String cachePath = new ContextWrapper(context).getCacheDir().getAbsolutePath();
+                ClassLoader parentLoader = ClassLoader.getSystemClassLoader();
+
+                for (String service : vendorServices) {
+                    String[] parts = service.split(":");
+                    if (parts.length != 2) {
+                        Slog.e(TAG, "Found invalid vendor service " + service);
+                        continue;
+                    }
+
+                    String jarPath = parts[0];
+                    String className = parts[1];
+
+                    try {
+                        /* Intentionally skipping all null checks in this block, as we also want an
+                           error message if class loading or ctor resolution failed. The catch block
+                           conveniently provides that for us also for NullPointerException */
+                        DexClassLoader loader = new DexClassLoader(jarPath, cachePath, null, parentLoader);
+                        Class<?> klass = loader.loadClass(className);
+                        Constructor<?> ctor = klass.getDeclaredConstructors()[0];
+                        Object instance = ctor.newInstance(context);
+
+                        ServiceManager.addService(klass.getSimpleName(), (IBinder) instance);
+                        Slog.i(TAG, "Vendor service " + className + " started.");
+                    } catch (Exception e) {
+                        Slog.e(TAG, "Starting vendor service " + className + " failed.", e);
+                    }
+                }
+            }
+
+            if (SystemProperties.OMAP_ENHANCEMENT ) {
+                if(SystemProperties.getBoolean("tv.hdmi.uicloning.enable", false)) {
+                    try {
+                        Slog.i(TAG, "UiCloningService");
+                        uiCloning = new UiCloningService(context);
+                    } catch (Throwable e) {
+                        Slog.e(TAG, "Failure starting UiCloningService", e);
+                    }
+                }
+            }
         }
 
         // make sure the ADB_ENABLED setting value matches the secure property value
+        Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_PORT,
+                Integer.parseInt(SystemProperties.get("service.adb.tcp.port", "-1")));
+
         Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_ENABLED,
                 "1".equals(SystemProperties.get("persist.service.adb.enable")) ? 1 : 0);
 
         // register observer to listen for settings changes
+        mContentResolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.ADB_PORT),
+                false, new AdbPortObserver());
+
         mContentResolver.registerContentObserver(Settings.Secure.getUriFor(Settings.Secure.ADB_ENABLED),
                 false, new AdbSettingsObserver());
 
@@ -489,6 +610,15 @@ class ServerThread extends Thread {
             pm.systemReady();
         } catch (RemoteException e) {
         }
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE);
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE_RESET);
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addCategory(Intent.CATEGORY_THEME_PACKAGE_INSTALLED_STATE_CHANGE);
+        filter.addDataScheme("package");
+        context.registerReceiver(new AppsLaunchFailureReceiver(), filter);
 
         // These are needed to propagate to the runnable below.
         final StatusBarManagerService statusBarF = statusBar;

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--  Copyright (C) 2010 The Android Open Source Project
+<!-- Copyright (C) 2010 The Android Open Source Project
+     Copyright (C) 2013 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -12,16 +13,70 @@
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
      limitations under the License.
- -->
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string-array name="tips">
+    <!-- Set of tips to show the user.
+
+        First line is the tip title, which is shown in bold on its own line.
+
+        All subsequent text is placed into the tip body.
+
+        The occurrence of @drawable/foo causes the bitmap drawable named "foo"
+        to be displayed to the right of the tip text.
+
+        Example for tip #1:
+         _____________________________________________     \_/
+        |                                             |   /._.\
+        |  See all your apps.         [all_apps.png]   > U|   |U
+        |  Touch the Launcher icon.                   |   |___|
+        |_____________________________________________|    U U
+    -->
+    <string-array name="tips">
+    <!-- Tip (1 of 15) : Where the launcher icon is and what it does. With icon. -->
     <item msgid="4457112202911142877">"Accéder aux applications"\n" Appuyez sur le lanceur d\'applications. @drawable/all_apps"</item>
+
+    <!-- Tip (2 of 15) : How to survive in CyanogenMod. -->
+    <item>"Règles"\n" La seule règle de CyanogenMod\u00A0: Vous ne demandez pas d'ETAs."</item>
+
+    <!-- Tip (3 of 15) : How to get nightly builds. -->
+    <item>"Nightly Builds (Avancé)"\n" Disponible sur ROM Manager. Ne soumettez pas de questions sur Google Code lorsque vous les utilisez. @drawable/rommanager"</item>
+
+    <!-- Tip (4 of 15) : Longpress in Launcher (all apps) to drag apps to the home screen. -->
     <item msgid="8842580895829057430">"Ajouter des applications à l\'écran d\'accueil"\n" Appuyez sur une application du lanceur jusqu\'à ce qu\'elle vibre, puis faites-la glisser."</item>
+
+    <!-- Tip (5 of 15) : DrKmobs -->
+    <item>"N\'écoutez pas le Dr Kmobs"\n" Ce n\'est pas un vrai médecin, et ceci n\'est pas un thermomètre. @drawable/stethoscope"</item>
+
+    <!-- Tip (6 of 15) : Longpress to move icons/widgets around. -->
     <item msgid="8903218961940756528">"Organiser l\'écran d\'accueil"\n" Appuyez sur un élément et maintenez. Lorsqu\'il vibre, placez-le à l\'endroit souhaité."</item>
+
+    <!-- Tip (7 of 15) : Teach them how to become better programmers -->
+    <item>"Pic de Ballmer"\n" La capacité optimale pour programmer se manifeste avec un taux d'alcoolémie compris entre 0,129 et 0,138."</item>
+
+    <!-- Tip (8 of 15) : Longpress icons/widgets and drag to trash to remove them. -->
     <item msgid="3123213860439458492">"Supprimer un élément"\n" Appuyez sur l\'élément et maintenez. Lorsqu\'il vibre, déplacez-le vers la corbeille. @drawable/trash"</item>
-    <item msgid="1000948398885889319">"Écrans d\'accueil multiples"\n" Faites glisser l\'écran vers la droite/gauche. Déplacez les icônes d\'un écran à l\'autre."</item>
+
+    <!-- Tip (9 of 15) : Explain what is wrong with the iPhone. -->
+    <item>"iPhone"\n" Vous le tenez dans le mauvais sens. Constamment."</item>
+
+    <!-- Tip (10 of 15) : Swipe to switch workspaces; drag items to move them to other workspaces. -->
+    <item msgid="1000948398885889319">"Écrans d\'accueil multiples"\n" Faites glisser l\'écran vers la gauche ou la droite. Déplacez les icônes d\'un écran à l\'autre."</item>
+
+    <!-- Tip (11 of 15) : Winzip must be kept up to date. -->
+    <item>"Priorité numéro 1"\n" N\'oubliez pas de garder votre WinZip à jour."</item>
+
+    <!-- Tip (12 of 15) : Find out what it means to kang. -->
+    <item>"Kang [kayng]\u00A0-\u00A0(verbe)"\n" J\'ai mis à jour WinZip br0. Merci à ma patiente femme de m\'avoir supporté avec mon devvin. @drawable/kang_truck"</item>
+
+    <!-- Tip (13 of 15) : The Definition of Open. -->
+    <item>"Définition de l\'Open Source"\n" repo init -u git://android.git.kernel.org/platform/manifest.git ; repo sync ; make. @drawable/android_open"</item>
+
+    <!-- Tip (14 of 15) : A tribute to Cyanogen's cat -->
+    <item>"Rôti de chat"\n" Toujours tenir vos appareils électroniques éloignés des chats, les chats sont capables de faire pipi dessus. @drawable/cat_attack"</item>
+
+    <!-- Tip (15 of 15) : Reminder about how to delete widgets, reinforcing that this technique can be used to remove the tips widget iteself. -->
     <item msgid="424487960942281801">"Supprimer un widget"\n" Appuyez dessus et maintenez. Quand il vibre, déplacez-le vers la corbeille."</item>
-  </string-array>
+    </string-array>
 </resources>

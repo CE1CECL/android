@@ -65,6 +65,8 @@ static const uint32_t SND_DEVICE_HANDSET_BACK_MIC = 20;
 static const uint32_t SND_DEVICE_SPEAKER_BACK_MIC = 21;
 static const uint32_t SND_DEVICE_NO_MIC_HEADSET_BACK_MIC = 28;
 static const uint32_t SND_DEVICE_HEADSET_AND_SPEAKER_BACK_MIC = 30;
+static const uint32_t SND_DEVICE_I2S_SPEAKER = 32;
+
 namespace android {
 static int support_a1026 = 1;
 static bool support_tpa2018d1 = true;
@@ -202,6 +204,7 @@ AudioHardware::AudioHardware() :
     hac_enable = atoi(value);
     LOGV("Enable HAC function: %d", hac_enable);
 
+    mRecordState = false;
     mInit = true;
 }
 
@@ -503,6 +506,17 @@ status_t AudioHardware::setParameters(const String8& keyValuePairs)
         }
      }
 
+#ifdef HAVE_FM_RADIO
+    key = String8(AudioParameter::keyFmOn);
+    int devices;
+    if (param.getInt(key, devices) == NO_ERROR) {
+       setFmOnOff(true);
+    }
+    key = String8(AudioParameter::keyFmOff);
+    if (param.getInt(key, devices) == NO_ERROR) {
+       setFmOnOff(false);
+    }
+#endif
     return NO_ERROR;
 }
 
@@ -592,6 +606,56 @@ size_t AudioHardware::getInputBufferSize(uint32_t sampleRate, int format, int ch
     return getBufferSize(sampleRate, channelCount);
 }
 
+#ifdef HAVE_FM_RADIO
+static status_t set_volume_fm(uint32_t volume)
+{
+    int returnval = 0;
+    float ratio = 2.5;
+
+     char s1[100] = "hcitool cmd 0x3f 0xa 0x5 0xc0 0x41 0xf 0 0x20 0 0 0";
+     char s2[100] = "hcitool cmd 0x3f 0xa 0x5 0xe4 0x41 0xf 0 0x00 0 0 0";
+     char s3[100] = "hcitool cmd 0x3f 0xa 0x5 0xe0 0x41 0xf 0 ";
+
+     char stemp[10] = "";
+     char *pstarget = s3;
+
+     volume = (unsigned int)(volume * ratio);
+
+     sprintf(stemp, "0x%x ", volume);
+     pstarget = strcat(s3, stemp);
+     pstarget = strcat(s3, "0 0 0");
+
+     system(s1);
+     system(s2);
+     system(s3);
+
+     return returnval;
+}
+
+status_t AudioHardware::setFmOnOff(bool onoff)
+{
+    int fd = -1;
+    fd = open("/dev/msm_audio_ctl", O_RDWR);
+    if (fd < 0) {
+        LOGE("Cannot open msm_audio_ctl device\n");
+        return -1;
+    }
+
+    if (onoff) {
+        if (ioctl(fd, AUDIO_START_FM, NULL)) {
+            LOGE("Cannot start fm \n");
+        }
+    } else {
+        if (ioctl(fd, AUDIO_STOP_FM, NULL)) {
+            LOGE("Cannot stop fm \n");
+        }
+    }
+
+    close(fd);
+    return NO_ERROR;
+}
+#endif
+
 static status_t set_volume_rpc(uint32_t volume)
 {
     int fd = -1;
@@ -641,6 +705,16 @@ status_t AudioHardware::setMasterVolume(float v)
     // return error - software mixer will handle it
     return -1;
 }
+
+#ifdef HAVE_FM_RADIO
+status_t AudioHardware::setFmVolume(float v)
+{
+    int vol = AudioSystem::logToLinear(v);
+    LOGV("setFmVolume %d", vol);
+    set_volume_fm(vol);
+    return NO_ERROR;
+}
+#endif
 
 static status_t do_route_audio_dev_ctrl(uint32_t device, bool inCall, uint32_t rx_acdb_id, uint32_t tx_acdb_id)
 {
@@ -714,6 +788,9 @@ static status_t do_route_audio_dev_ctrl(uint32_t device, bool inCall, uint32_t r
         out_device = SPKR_PHONE_MONO;
         mic_device = TTY_HEADSET_MIC;
         LOGD("TTY HCO headset");
+    } else if (device == SND_DEVICE_I2S_SPEAKER) {
+        out_device = HDMI_SPKR;
+        LOGD("TTY I2S SPEAKER");
     } else {
         LOGE("unknown device %d", device);
         return -1;
@@ -1420,6 +1497,9 @@ status_t AudioHardware::doRouting()
         } else if (outputDevices & AudioSystem::DEVICE_OUT_BLUETOOTH_SCO_CARKIT) {
             LOGI("Routing audio to Bluetooth PCM\n");
             sndDevice = SND_DEVICE_CARKIT;
+        } else if (outputDevices & AudioSystem::DEVICE_OUT_HDMI) {
+            LOGI("Routing audio to HDMI\n");
+            sndDevice = SND_DEVICE_I2S_SPEAKER;
         } else if ((outputDevices & AudioSystem::DEVICE_OUT_WIRED_HEADSET) &&
                 (outputDevices & AudioSystem::DEVICE_OUT_SPEAKER)) {
                     LOGI("Routing audio to Wired Headset and Speaker\n");

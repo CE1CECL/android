@@ -680,12 +680,14 @@ class Tab {
             }
             final ContentResolver cr = mActivity.getContentResolver();
             final String newUrl = url;
-            new AsyncTask<Void, Void, Void>() {
-                protected Void doInBackground(Void... unused) {
-                    Browser.updateVisitedHistory(cr, newUrl, true);
-                    return null;
-                }
-            }.execute();
+            if (!mActivity.getIncognito()){
+                new AsyncTask<Void, Void, Void>() {
+                    protected Void doInBackground(Void... unused) {
+                        Browser.updateVisitedHistory(cr, newUrl, true);
+                        return null;
+                    }
+                }.execute();
+            }
             WebIconDatabase.getInstance().retainIconForPageUrl(url);
         }
 
@@ -952,7 +954,9 @@ class Tab {
         public void onProgressChanged(WebView view, int newProgress) {
             if (newProgress == 100) {
                 // sync cookies and cache promptly here.
-                CookieSyncManager.getInstance().sync();
+                if(!mActivity.getIncognito()){
+                    CookieSyncManager.getInstance().sync();
+                }
             }
             if (mInForeground) {
                 mActivity.onProgressChanged(view, newProgress);
@@ -1327,7 +1331,7 @@ class Tab {
     Tab(BrowserActivity activity, WebView w, boolean closeOnExit, String appId,
             String url) {
         mActivity = activity;
-        mCloseOnExit = closeOnExit;
+        mCloseOnExit = (activity.getIncognito()) ? true : closeOnExit;
         mAppId = appId;
         mOriginalUrl = url;
         mLockIconType = BrowserActivity.LOCK_ICON_UNSECURE;

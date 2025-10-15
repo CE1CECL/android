@@ -15,6 +15,7 @@
  */
 
 #define LOG_TAG "wifi"
+//#define LOG_NDEBUG 0
 
 #include "jni.h"
 #include <utils/misc.h>
@@ -49,16 +50,25 @@ static struct fieldIds {
 
 static int doCommand(const char *cmd, char *replybuf, int replybuflen)
 {
+    int err=0;
     size_t reply_len = replybuflen - 1;
 
-    if (::wifi_command(cmd, replybuf, &reply_len) != 0)
+    LOGV(LOG_TAG " doCommand: ->[[%s], buflen=%d", cmd, replybuflen);
+
+    if ((err = ::wifi_command(cmd, replybuf, &reply_len)) != 0) {
+
+        LOGD(LOG_TAG " doCommand: ret=%d", err);
         return -1;
-    else {
+
+    } else {
+
         // Strip off trailing newline
         if (reply_len > 0 && replybuf[reply_len-1] == '\n')
             replybuf[reply_len-1] = '\0';
         else
             replybuf[reply_len] = '\0';
+
+        LOGV(LOG_TAG " doCommand: <--[%s]], reply len=%d", replybuf, reply_len);
         return 0;
     }
 }
@@ -106,6 +116,16 @@ static jboolean android_net_wifi_loadDriver(JNIEnv* env, jobject clazz)
 static jboolean android_net_wifi_unloadDriver(JNIEnv* env, jobject clazz)
 {
     return (jboolean)(::wifi_unload_driver() == 0);
+}
+
+static jboolean android_net_hotspot_loadDriver(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::hotspot_load_driver() == 0);
+}
+
+static jboolean android_net_hotspot_unloadDriver(JNIEnv* env, jobject clazz)
+{
+    return (jboolean)(::hotspot_unload_driver() == 0);
 }
 
 static jboolean android_net_wifi_startSupplicant(JNIEnv* env, jobject clazz)
@@ -456,8 +476,6 @@ static jboolean android_net_wifi_setBluetoothCoexistenceScanModeCommand(JNIEnv* 
 
 static jboolean android_net_wifi_saveConfigCommand(JNIEnv* env, jobject clazz)
 {
-    // Make sure we never write out a value for AP_SCAN other than 1
-    (void)doBooleanCommand("AP_SCAN 1", "OK");
     return doBooleanCommand("SAVE_CONFIG", "OK");
 }
 
@@ -536,6 +554,8 @@ static JNINativeMethod gWifiMethods[] = {
 
     { "loadDriver", "()Z",  (void *)android_net_wifi_loadDriver },
     { "unloadDriver", "()Z",  (void *)android_net_wifi_unloadDriver },
+    { "loadHotspotDriver", "()Z",  (void *)android_net_hotspot_loadDriver },
+    { "unloadHotspotDriver", "()Z",  (void *)android_net_hotspot_unloadDriver },
     { "startSupplicant", "()Z",  (void *)android_net_wifi_startSupplicant },
     { "stopSupplicant", "()Z",  (void *)android_net_wifi_stopSupplicant },
     { "connectToSupplicant", "()Z",  (void *)android_net_wifi_connectToSupplicant },

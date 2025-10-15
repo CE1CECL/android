@@ -75,6 +75,7 @@ namespace android {
     class CachedNode;
     class CachedRoot;
     class ListBoxReply;
+    class Renderer;
 
     class WebCoreReply : public WebCoreRefObject {
     public:
@@ -127,13 +128,13 @@ namespace android {
         /**
          * Record the invalid rectangle
          */
-        void contentInvalidate(const WebCore::IntRect &rect);
+        void contentInvalidate(const WebCore::IntRect &rect, bool paintHeader = false);
 
         /**
          * Satisfy any outstanding invalidates, so that the current state
          * of the DOM is drawn.
          */
-        void contentDraw();
+        void contentDraw(bool paintHeader = false);
 
 #if USE(ACCELERATED_COMPOSITING)
         GraphicsLayerAndroid* graphicsRootLayer() const;
@@ -358,6 +359,7 @@ namespace android {
         jobject getWebViewJavaObject();
 
         void setBackgroundColor(SkColor c);
+        void setColorInversion(bool invert);
         void updateFrameCache();
         void updateCacheOnNodeChange();
         void dumpDomTree(bool);
@@ -378,7 +380,7 @@ namespace android {
         // send the current screen size/zoom to all of the plugins in our list
         void sendPluginVisibleScreen();
 
-	// send onLoad event to plugins who are descendents of the given frame
+        // send onLoad event to plugins who are descendents of the given frame
         void notifyPluginsOnFrameLoad(const Frame*);
 
         // send this event to all of the plugins in our list
@@ -487,6 +489,10 @@ namespace android {
         void setIsPaused(bool isPaused) { m_isPaused = isPaused; }
         // end of shared members
 
+#if ENABLE(ACCELERATED_SCROLLING)
+        Renderer* m_scrollRenderer;
+#endif
+
         // internal functions
     private:
         CacheBuilder& cacheBuilder();
@@ -542,6 +548,7 @@ namespace android {
         bool m_check_domtree_version;
         PageGroup* m_groupForVisitedLinks;
         bool m_isPaused;
+        bool m_invertColor;
 
         SkTDArray<PluginWidgetAndroid*> m_plugins;
         WebCore::Timer<WebViewCore> m_pluginInvalTimer;

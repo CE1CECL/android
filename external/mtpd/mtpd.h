@@ -17,6 +17,11 @@
 #ifndef __MTPD_H__
 #define __MTPD_H__
 
+#ifdef NEW_PPPOX
+#define PX_PROTO_OLAC  3
+#define PX_PROTO_OPNS  4
+#endif
+
 /* The socket to the server. */
 extern int the_socket;
 
@@ -43,6 +48,7 @@ enum log_level {
 void log_print(int level, char *format, ...);
 void create_socket(int family, int type, char *server, char *port);
 void start_pppd(int pppox);
+void start_daemon(char *name, char *args[], int pppox);
 
 /* Each protocol must implement everything defined in this structure. Note that
  * timeout intervals are in milliseconds, where zero means forever. To indicate

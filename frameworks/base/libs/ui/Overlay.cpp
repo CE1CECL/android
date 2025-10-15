@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,10 +78,24 @@ status_t Overlay::setCrop(uint32_t x, uint32_t y, uint32_t w, uint32_t h)
     return mOverlayData->setCrop(mOverlayData, x, y, w, h);
 }
 
+#ifdef OMAP_ENHANCEMENT
+status_t Overlay::set_s3d_params(int32_t s3d_mode, uint32_t s3d_fmt, uint32_t s3d_order, uint32_t s3d_subsampling)
+{
+    if (mStatus != NO_ERROR) return mStatus;
+    return mOverlayData->set_s3d_params(mOverlayData, s3d_mode, s3d_fmt, s3d_order, s3d_subsampling);
+}
+#endif
+
 status_t Overlay::getCrop(uint32_t* x, uint32_t* y, uint32_t* w, uint32_t* h)
 {
     if (mStatus != NO_ERROR) return mStatus;
     return mOverlayData->getCrop(mOverlayData, x, y, w, h);
+}
+
+status_t Overlay::setFd(int fd)
+{
+    if (mStatus != NO_ERROR) return mStatus;
+    return mOverlayData->setFd(mOverlayData, fd);
 }
 
 int32_t Overlay::getBufferCount() const
@@ -96,7 +111,6 @@ void* Overlay::getBufferAddress(overlay_buffer_t buffer)
 }
 
 void Overlay::destroy() {  
-    if (mStatus != NO_ERROR) return;
 
     // Must delete the objects in reverse creation order, thus the
     //  data side must be closed first and then the destroy send to
@@ -104,9 +118,15 @@ void Overlay::destroy() {
     if (mOverlayData) {
         overlay_data_close(mOverlayData);
         mOverlayData = NULL;
+    } else {
+        LOGD("Overlay::destroy mOverlayData is NULL");
     }
 
-    mOverlayRef->mOverlayChannel->destroy();
+    if (mOverlayRef != 0) {
+        mOverlayRef->mOverlayChannel->destroy();
+    } else {
+        LOGD("Overlay::destroy mOverlayRef is NULL");
+    }
 }
 
 status_t Overlay::getStatus() const {

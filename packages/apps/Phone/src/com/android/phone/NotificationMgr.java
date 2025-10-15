@@ -21,10 +21,13 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.StatusBarManager;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.AudioManager;
@@ -49,7 +52,6 @@ import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneBase;
 import com.android.internal.telephony.CallManager;
-
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -89,6 +91,8 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
     private boolean mShowingSpeakerphoneIcon;
     private boolean mShowingMuteIcon;
 
+private static CallFeaturesSetting mSettings;
+
     // used to track the missed call counter, default to 0.
     private int mNumberMissedCalls = 0;
 
@@ -108,9 +112,15 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
     private QueryHandler mQueryHandler = null;
     private static final int CALL_LOG_TOKEN = -1;
     private static final int CONTACT_TOKEN = -2;
+    private static final int CLEAR_TOKEN = -3;
+    private static final String CLEAR_MISSED_CALLS = "com.android.phone.clearmissedcalls";
+
+    // Was the screen on when the incoming call arrived?
+    private static boolean wasScreenOn = false;
 
     NotificationMgr(Context context) {
         mContext = context;
+        mSettings = CallFeaturesSetting.getInstance(context.getApplicationContext());
         mNotificationMgr = (NotificationManager)
             context.getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -119,6 +129,9 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
         PhoneApp app = PhoneApp.getInstance();
         mPhone = app.phone;
         mCM = app.mCM;
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(CLEAR_MISSED_CALLS);
+        context.registerReceiver(mClearReceiver, filter);
     }
 
     static void init(Context context) {
@@ -131,6 +144,32 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
     static NotificationMgr getDefault() {
         return sMe;
     }
+
+    // state of screen when call arrived, set by CallNotifier
+    static void setScreenStateAtIncomingCall(boolean isScreenOn) {
+        wasScreenOn = isScreenOn;
+    }
+
+    /**
+     * Executed when the user presses the "Clear all notifications" button.
+     * Updates the provider to reflect the fact these calls aren't regared as
+     * "new" missed calls anymore by the user and shouldn't show up on reboot.
+     * Code taken from Contacts.
+     */
+    private BroadcastReceiver mClearReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (CLEAR_MISSED_CALLS.equals(intent.getAction())) {
+                StringBuilder where = new StringBuilder("type=");
+                where.append(Calls.MISSED_TYPE);
+                where.append(" AND new=1");
+                ContentValues values = new ContentValues(1);
+                values.put(Calls.NEW, "0");
+                mQueryHandler.startUpdate(CLEAR_TOKEN, null, Calls.CONTENT_URI,
+                        values, where.toString(), null);
+            }
+        }
+    };
 
     /**
      * Class that controls the status bar.  This class maintains a set
@@ -367,8 +406,10 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
      * missed-call signal.
      */
     private static void configureLedNotification(Notification note) {
-        note.flags |= Notification.FLAG_SHOW_LIGHTS;
-        note.defaults |= Notification.DEFAULT_LIGHTS;
+        if (mSettings.mLedNotify) {
+            note.flags |= Notification.FLAG_SHOW_LIGHTS;
+            note.defaults |= Notification.DEFAULT_LIGHTS;
+        }
     }
 
     /**
@@ -422,6 +463,7 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
                 intent // contentIntent
                 );
         configureLedNotification(note);
+        note.deleteIntent = PendingIntent.getBroadcast(mContext, -1, new Intent(CLEAR_MISSED_CALLS), 0);
         mNotificationMgr.notify(MISSED_CALL_NOTIFICATION, note);
     }
 
@@ -631,7 +673,11 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
             } else {
                 // Normal ongoing call.
                 // Format string with a "%s" where the current call time should go.
+if (callDurationMsec > 0) {
                 expandedViewLine1 = mContext.getString(R.string.notification_ongoing_call_format);
+} else {
+    expandedViewLine1 = mContext.getString(R.string.notification_ongoing_calling_format);
+}
             }
 
             if (DBG) log("- Updating expanded view: line 1 '" + /*expandedViewLine1*/ "xxxxxxx" + "'");
@@ -689,8 +735,14 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
             // (rather than just posting a notification to the status bar).
             // Setting fullScreenIntent will cause the InCallScreen to be
             // launched immediately.
-            if (DBG) log("- Setting fullScreenIntent: " + inCallPendingIntent);
-            notification.fullScreenIntent = inCallPendingIntent;
+            if (!mSettings.mBgIncall || !wasScreenOn ||
+                    PhoneApp.mDockState == Intent.EXTRA_DOCK_STATE_DESK ||
+                    PhoneApp.mDockState == Intent.EXTRA_DOCK_STATE_CAR) {
+                if (DBG) log("- Setting fullScreenIntent: " + inCallPendingIntent);
+                notification.fullScreenIntent = inCallPendingIntent;
+            } else {
+                notification.tickerText = expandedViewLine2;
+            }
 
             // Ugly hack alert:
             //
@@ -787,7 +839,12 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
      */
     /* package */ void updateMwi(boolean visible) {
         if (DBG) log("updateMwi(): " + visible);
-        if (visible) {
+
+        boolean notificationEnabled =
+            PreferenceManager.getDefaultSharedPreferences(mContext)
+              .getBoolean(CallFeaturesSetting.BUTTON_VOICEMAIL_NOTIFICATION_KEY, true);
+
+        if (visible && notificationEnabled) {
             int resId = android.R.drawable.stat_notify_voicemail;
 
             // This Notification can get a lot fancier once we have more
@@ -880,7 +937,6 @@ public class NotificationMgr implements CallerInfoAsyncQuery.OnQueryCompleteList
                     pendingIntent  // contentIntent
                     );
             notification.defaults |= Notification.DEFAULT_SOUND;
-            notification.flags |= Notification.FLAG_NO_CLEAR;
             configureLedNotification(notification);
             mNotificationMgr.notify(VOICEMAIL_NOTIFICATION, notification);
         } else {

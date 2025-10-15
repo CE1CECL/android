@@ -47,6 +47,14 @@
     <string name="menu_viewAddress" msgid="1814744325763202024">"Indirizzo su mappa"</string>
     <string name="menu_makeDefaultNumber" msgid="4838759253316649534">"Rendi numero predefinito"</string>
     <string name="menu_makeDefaultEmail" msgid="2599044610375789994">"Rendi ind. email predefinito"</string>
+    <!-- Menu item used to share the plain-text representation of a specific phone number -->
+    <string name="menu_shareNumber">Condividi numero</string>
+
+    <!-- Menu item used to share the plain-text representation of a specific email address -->
+    <string name="menu_shareEmail">Condividi email</string>
+
+    <!-- Menu item used to share the plain-text representation of a specific address -->
+    <string name="menu_shareAddress">Condividi indirizzo</string>
     <string name="menu_splitAggregate" msgid="8368636463748691868">"Separa"</string>
     <string name="contactsSplitMessage" msgid="5253490235863170269">"Contatti separati"</string>
     <string name="splitConfirmation_title" msgid="6716467920283502570">"Separa contatto"</string>
@@ -142,6 +150,8 @@
     <string name="menu_sendTextMessage" msgid="6937343460284499306">"Invia messaggio di testo"</string>
     <string name="recentCalls_callNumber" msgid="1756372533999226126">"Chiama <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="recentCalls_editNumberBeforeCall" msgid="7756171675833267857">"Modifica prima di chiamare"</string>
+    <!--Menu item used to add a number from the call log to Blacklist  -->
+    <string name="recentCalls_addToBlacklist">Aggiungi a Blacklist</string>
     <string name="recentCalls_addToContact" msgid="1429899535546487008">"Aggiungi a contatti"</string>
     <string name="recentCalls_removeFromRecentList" msgid="401662244636511330">"Rimuovi da registro"</string>
     <string name="recentCalls_deleteAll" msgid="6352364392762163704">"Cancella registro chiamate"</string>
@@ -264,6 +274,8 @@
     <string name="quickcontact_missing_app" msgid="4600366393134289038">"Nessuna applicazione trovata in grado di gestire questa azione"</string>
     <string name="quickcontact_remember_choice" msgid="5964536411579749424">"Memorizza questa scelta"</string>
     <string name="quickcontact_missing_name" msgid="5590266114306996632">"Sconosciuto"</string>
+    <!-- Text that is shown in the Badge, when there is no data to display -->
+    <string name="quickcontact_no_data">Nessun dato</string>
     <string name="menu_accounts" msgid="8499114602017077970">"Account"</string>
     <string name="menu_import_export" msgid="3765725645491577190">"Importa/esporta"</string>
     <string name="dialog_import_export" msgid="4771877268244096596">"Importa/esporta contatti"</string>
@@ -367,6 +379,13 @@
     <string name="name_phonetic_given" msgid="6853570431394449191">"Nome fonetico fornito"</string>
     <string name="name_phonetic_middle" msgid="8643721493320405200">"Secondo nome fonetico"</string>
     <string name="name_phonetic_family" msgid="462095502140180305">"Cognome fonetico"</string>
+
+    <!-- Field title for the date for an event -->
+    <string name="label_date">Data</string>
+
+    <!-- Title of clear button in date picker -->
+    <string name="button_clear_date">Cancella</string>
+
     <string name="account_type_format" msgid="718948015590343010">"Contatto da <xliff:g id="SOURCE">%1$s</xliff:g>"</string>
     <string name="from_account_format" msgid="687567483928582084">"da <xliff:g id="SOURCE">%1$s</xliff:g>"</string>
     <string name="use_photo_as_primary" msgid="8807110122951157246">"Utilizza questa foto"</string>
@@ -389,4 +408,122 @@
     <string name="upgrade_out_of_memory_retry" msgid="8431289830472724609">"Riprova l\'aggiornamento"</string>
     <string name="search_results_for" msgid="8705490885073188513">"Risultati di ricerca per: <xliff:g id="QUERY">%s</xliff:g>"</string>
     <string name="search_results_searching" msgid="7755623475227227314">"Ricerca in corso..."</string>
+    <string name="date_year_toggle" msgid="7356532842767854606">"Specifica un anno"</string>
+	<string name="date_format_short_no_year">dd/MM</string>
+    <string name="date_format_full_no_year">d MMMM</string>
+
+     <!-- Wysie: Menu strings -->
+    <string name="menu_preferences">Preferenze</string>
+
+    <!-- Wysie: Dialer strings -->
+    <string name="dialer_menu_sms">SMS/MMS</string>
+
+    <!-- Wysie: Call log strings -->
+    <string name="recent_calls_clear_call_log">Cancella registro</string>
+    <string name="recent_calls_clear_what">Cosa cancellare?</string>
+    <string name="recent_calls_clear_all">Tutte</string>
+    <string name="recent_calls_clear_incoming">In arrivo</string>
+    <string name="recent_calls_clear_outgoing">In uscita</string>
+    <string name="recent_calls_clear_missed">Perse</string>
+    <string name="alert_clear_call_log_title">Cancella tutte le chiamate</string>
+    <string name="alert_clear_call_log_message">Sei sicuro di voler cancellare l\'elenco di tutte le chiamate?</string>
+    <string name="alert_clear_cl_all_incoming">Sei sicuro di voler cancellare l\'elenco delle chiamate in arrivo?</string>
+    <string name="alert_clear_cl_all_outgoing">Sei sicuro di voler cancellare l\'elenco delle chiamate in uscita?</string>
+    <string name="alert_clear_cl_all_missed">Sei sicuro di voler cancellare l\'elenco delle chiamate perse?</string>
+
+    <!-- Wysie: Favourites strings -->
+    <string name="fav_clear_freq">Cancella chiamate frequenti</string>
+    <string name="alert_clear_freq_called_msg">Sei sicuro di voler cancellare l\'elenco delle chiamate frequenti?</string>
+
+    <!-- Wysie: Preferences strings -->
+
+    <!-- Preferences: Dialer -->
+    <string name="title_last_dialled">Ricomponi ultimo numero</string>
+    <string name="summary_last_dialled">Premendo il tasto chiama viene ricomposto l\'ultimo numero chiamato</string>
+    <string name="title_return_to_dialer">Torna al dialer dopo chiamata</string>
+    <string name="title_vm_button">Pulsante azione sx (LAB)</string>
+    <string name="title_vm_handler">Gestore Segreteria</string>
+    <string name="title_use_1_for_reg_vm">Tasto 1 per Segreteria</string>
+    <string name="summaryon_use_1_for_reg_vm">Il tasto 1 verrà usato per la segreteria di default</string>
+    <string name="summaryoff_use_1_for_reg_vm">Il tasto 1 avvia gestore segreteria</string>
+    <string name="title_disable_num_check">Disabilita controllo num.</string>
+    <string name="summaryon_disable_num_check">Il pulsante azione sinistro(LAB) e il menu verranno abilitati</string>
+    <string name="summaryoff_disable_num_check">LAB e menu attivi solo se l\'ultimo num. è stato digitato (tranne segreteria)</string>
+    <string name="title_enable_haptic_feedback">Abilita feedback aptico</string>
+    <string name="summary_enable_haptic_feedback">Usa la sequenza keypad - vai a Impostazioni CyanogenMod per la configurazione</string>
+    <string name="title_change_digits_color">Cambia colore numeri</string>
+    <string name="title_digits_color_pressed">Colore numeri (premuti)</string>
+    <string name="title_digits_color_focused">Colore numeri (selezionati)</string>
+    <string name="title_digits_color_unselected">Colore numeri(non selezionati)</string>
+    <string name="title_choose_color">Scegli un colore</string>
+    <string name="instructions_choose_color">Premi al centro per confermare.\nPremi indietro per annullare.</string>
+    <string name="entry_no_vm_handler">Nessuno (Componi num. segreteria)</string>
+
+    <!-- Preferences: Call log -->
+    <string name="title_cl_exact_time">Tempo effettivo</string>
+    <string name="summaryon_cl_exact_time">Usa il tempo effettivo nel registro chiamate</string>
+    <string name="summaryoff_cl_exact_time">Usa il tempo relativo nel registro chiamate</string>
+    <string name="title_cl_show_seconds">Visualizza secondi</string>
+    <string name="summary_cl_show_seconds">Visualizza i secondi quando utilizzi il tempo esatto</string>
+    <string name="title_cl_ask_before_clear">Conferma cancellazione</string>
+    <string name="summaryon_cl_ask_before_clear">Chiedi prima di cancellare il registro chiamate</string>
+    <string name="summaryoff_cl_ask_before_clear">Se selezionato il registro chiamate verrà cancellato senza chiedere conferma</string>
+
+    <!-- Preferences: Contacts -->
+    <string name="title_contacts_show_pic">Mostra icone contatti</string>
+    <string name="title_contacts_show_dial_button">Mostra pulsante chiamata</string>
+    <string name="summary_contacts_show_dial_button">Mostra pulsante chiamata veloce per contatti con numero</string>
+    <string name="title_contacts_show_count">Mostra numero contatti</string>
+    <string name="summary_contacts_show_count">Il numero di contatti verrà visualizzato sopra la lista dei contatti</string>
+    <string name="title_contacts_show_separators">Mostra separatori alfabetici</string>
+    <string name="summaryon_contacts_show_separators">I separatori alfabetici verranno visualizzati nella lista dei contatti</string>
+    <string name="summaryoff_contacts_show_separators">I separatori alfabetici verranno nascosti nella lista dei contatti</string>
+
+    <!-- Preferences: Contacts - View Contact -->
+    <string name="title_view_contact">Visualizza contatti</string>
+    <string name="summary_view_contact">Imposta preferenze quando visualizzi un contatto</string>
+    <string name="title_show_text_mobile_only">SMS verso tutti</string>
+    <string name="summaryon_show_text_mobile_only">Solo i contatti con numero di cellulare avranno attivo l\'sms</string>
+    <string name="summaryoff_show_text_mobile_only">Se selezionato tutti i numeri avranno attivo l\'sms</string>
+
+    <!-- Preferences: Favourites -->
+    <string name="title_favourites_hide_freq_call">Nascondi chiam. frequenti</string>
+    <string name="summary_favourites_hide_freq_call">I dati attuali non sono stati cancellati ma nascosti</string>
+    <string name="title_favs_ask_before_clear">Chiedi prima di cancellare le chiamate frequenti</string>
+    <string name="summaryon_favs_ask_before_clear">Conferma cancellazione</string>
+    <string name="summaryoff_favs_ask_before_clear">Se selezionato le chiamate frequenti verranno cancellate senza conferma</string>
+
+    <!-- Preferences: Misc -->
+    <string name="title_misc_category">Varie</string>
+    <string name="title_sensor_rotation">Sensore di rotazione</string>
+    <string name="summary_sensor_rotation">Se abilitato la rotazione sarà basata sulle impostazioni di sistema</string>
+    <string name="title_data_font_size">Dimensione testo info contatto</string>
+    <string name="summary_data_font_size">Seleziona la dimensione del testo dei dettagli di un contatto (numero di telefono, email, indirizzo, etc.)</string>
+    <string name="title_default_phone_tab">Tab di default</string>
+    <string name="summary_default_phone_tab">Tab da visualizzare all\'avvio dell\'applicazione Telefono</string>
+
+    <!-- Default Phone Tab strings -->
+    <string name="default_phone_tab_last_used">Ultima usata per effettuare una chiamata (Default)</string>
+    <string name="default_phone_tab_last_viewed">Ultima visualizzata</string>
+    <string name="default_phone_tab_phone">Telefono</string>
+    <string name="default_phone_tab_call_log">Registro chiamate</string>
+    <string name="default_phone_tab_contacts">Contatti</string>
+    <string name="default_phone_tab_favorites">Preferiti</string>
+
+    <!-- Wysie: About strings -->
+    <string name="title_about">Informazioni</string>
+    <string name="title_about_name">Nome della Mod</string>
+    <string name="title_about_version">Versione</string>
+    <string name="title_about_credits">Crediti</string>
+    <string name="summary_about_credits">Wysie, ChainsDD, geesun, niuchl, rac2030, sileht e il resto di XDA! :)</string>
+
+    <!-- Italian T9 strings -->
+    <string name="t9_sort_title">Modalità ricerca T9</string>
+    <string name="t9_sort_summary">Scegli come filtrare i risultati del T9</string>
+    <string name="t9_sort_name">Prima i nomi</string>
+    <string name="t9_sort_number">Prima i numeri</string>
+    <string name="t9_state_title">Abilitare dialer T9</string>
+    <string name="t9_state_summary">Attiva la ricerca tra i contatti utilizzando il T9</string>
+    <string name="t9_dial_click_title">Chiama contatto selezionato</string>
+    <string name="t9_dial_click_summary">Chiama cliccando direttamente sul contatto proposto dal T9</string>
 </resources>

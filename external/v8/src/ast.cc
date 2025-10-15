@@ -1,4 +1,4 @@
-// Copyright 2006-2008 the V8 project authors. All rights reserved.
+// Copyright 2010 the V8 project authors. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
@@ -31,6 +31,8 @@
 #include "parser.h"
 #include "scopes.h"
 #include "string-stream.h"
+#include "ast-inl.h"
+#include "jump-target-inl.h"
 
 namespace v8 {
 namespace internal {
@@ -46,11 +48,8 @@ Call Call::sentinel_(NULL, NULL, 0);
 // ----------------------------------------------------------------------------
 // All the Accept member functions for each syntax tree node type.
 
-#define DECL_ACCEPT(type)                \
-  void type::Accept(AstVisitor* v) {        \
-    if (v->CheckStackOverflow()) return; \
-    v->Visit##type(this);                \
-  }
+#define DECL_ACCEPT(type)                                       \
+  void type::Accept(AstVisitor* v) { v->Visit##type(this); }
 AST_NODE_LIST(DECL_ACCEPT)
 #undef DECL_ACCEPT
 
@@ -58,22 +57,47 @@ AST_NODE_LIST(DECL_ACCEPT)
 // ----------------------------------------------------------------------------
 // Implementation of other node functionality.
 
+Assignment* ExpressionStatement::StatementAsSimpleAssignment() {
+  return (expression()->AsAssignment() != NULL &&
+          !expression()->AsAssignment()->is_compound())
+      ? expression()->AsAssignment()
+      : NULL;
+}
+
+
+CountOperation* ExpressionStatement::StatementAsCountOperation() {
+  return expression()->AsCountOperation();
+}
+
+
+VariableProxy::VariableProxy(Variable* var)
+    : name_(var->name()),
+      var_(NULL),  // Will be set by the call to BindTo.
+      is_this_(var->is_this()),
+      inside_with_(false),
+      is_trivial_(false) {
+  BindTo(var);
+}
+
+
 VariableProxy::VariableProxy(Handle<String> name,
                              bool is_this,
                              bool inside_with)
   : name_(name),
     var_(NULL),
     is_this_(is_this),
-    inside_with_(inside_with) {
+    inside_with_(inside_with),
+    is_trivial_(false) {
   // names must be canonicalized for fast equality checks
   ASSERT(name->IsSymbol());
-  // at least one access, otherwise no need for a VariableProxy
-  var_uses_.RecordRead(1);
 }
 
 
 VariableProxy::VariableProxy(bool is_this)
-  : is_this_(is_this) {
+  : var_(NULL),
+    is_this_(is_this),
+    inside_with_(false),
+    is_trivial_(false) {
 }
 
 
@@ -87,8 +111,7 @@ void VariableProxy::BindTo(Variable* var) {
   // eval() etc.  Const-ness and variable declarations are a complete mess
   // in JS. Sigh...
   var_ = var;
-  var->var_uses()->RecordUses(&var_uses_);
-  var->obj_uses()->RecordUses(&obj_uses_);
+  var->set_is_used(true);
 }
 
 
@@ -117,6 +140,7 @@ bool FunctionLiteral::AllowsLazyCompilation() {
 
 
 ObjectLiteral::Property::Property(Literal* key, Expression* value) {
+  emit_store_ = true;
   key_ = key;
   value_ = value;
   Object* k = *key->handle();
@@ -133,6 +157,7 @@ ObjectLiteral::Property::Property(Literal* key, Expression* value) {
 
 
 ObjectLiteral::Property::Property(bool is_getter, FunctionLiteral* value) {
+  emit_store_ = true;
   key_ = new Literal(value->name());
   value_ = value;
   kind_ = is_getter ? GETTER : SETTER;
@@ -146,6 +171,78 @@ bool ObjectLiteral::Property::IsCompileTimeValue() {
 }
 
 
+void ObjectLiteral::Property::set_emit_store(bool emit_store) {
+  emit_store_ = emit_store;
+}
+
+
+bool ObjectLiteral::Property::emit_store() {
+  return emit_store_;
+}
+
+
+bool IsEqualString(void* first, void* second) {
+  Handle<String> h1(reinterpret_cast<String**>(first));
+  Handle<String> h2(reinterpret_cast<String**>(second));
+  return (*h1)->Equals(*h2);
+}
+
+bool IsEqualSmi(void* first, void* second) {
+  Handle<Smi> h1(reinterpret_cast<Smi**>(first));
+  Handle<Smi> h2(reinterpret_cast<Smi**>(second));
+  return (*h1)->value() == (*h2)->value();
+}
+
+void ObjectLiteral::CalculateEmitStore() {
+  HashMap properties(&IsEqualString);
+  HashMap elements(&IsEqualSmi);
+  for (int i = this->properties()->length() - 1; i >= 0; i--) {
+    ObjectLiteral::Property* property = this->properties()->at(i);
+    Literal* literal = property->key();
+    Handle<Object> handle = literal->handle();
+
+    if (handle->IsNull()) {
+      continue;
+    }
+
+    uint32_t hash;
+    HashMap* table;
+    void* key;
+    uint32_t index;
+    if (handle->IsSymbol()) {
+      Handle<String> name(String::cast(*handle));
+      ASSERT(!name->AsArrayIndex(&index));
+      key = name.location();
+      hash = name->Hash();
+      table = &properties;
+    } else if (handle->ToArrayIndex(&index)) {
+      key = handle.location();
+      hash = index;
+      table = &elements;
+    } else {
+      ASSERT(handle->IsNumber());
+      double num = handle->Number();
+      char arr[100];
+      Vector<char> buffer(arr, ARRAY_SIZE(arr));
+      const char* str = DoubleToCString(num, buffer);
+      Handle<String> name = Factory::NewStringFromAscii(CStrVector(str));
+      key = name.location();
+      hash = name->Hash();
+      table = &properties;
+    }
+    // If the key of a computed property is in the table, do not emit
+    // a store for the property later.
+    if (property->kind() == ObjectLiteral::Property::COMPUTED) {
+      if (table->Lookup(literal, hash, false) != NULL) {
+        property->set_emit_store(false);
+      }
+    }
+    // Add key to the table.
+    table->Lookup(literal, hash, true);
+  }
+}
+
+
 void TargetCollector::AddTarget(BreakTarget* target) {
   // Add the label to the collector, but discard duplicates.
   int length = targets_->length();
@@ -156,8 +253,134 @@ void TargetCollector::AddTarget(BreakTarget* target) {
 }
 
 
+bool Expression::GuaranteedSmiResult() {
+  BinaryOperation* node = AsBinaryOperation();
+  if (node == NULL) return false;
+  Token::Value op = node->op();
+  switch (op) {
+    case Token::COMMA:
+    case Token::OR:
+    case Token::AND:
+    case Token::ADD:
+    case Token::SUB:
+    case Token::MUL:
+    case Token::DIV:
+    case Token::MOD:
+    case Token::BIT_XOR:
+    case Token::SHL:
+      return false;
+      break;
+    case Token::BIT_OR:
+    case Token::BIT_AND: {
+      Literal* left = node->left()->AsLiteral();
+      Literal* right = node->right()->AsLiteral();
+      if (left != NULL && left->handle()->IsSmi()) {
+        int value = Smi::cast(*left->handle())->value();
+        if (op == Token::BIT_OR && ((value & 0xc0000000) == 0xc0000000)) {
+          // Result of bitwise or is always a negative Smi.
+          return true;
+        }
+        if (op == Token::BIT_AND && ((value & 0xc0000000) == 0)) {
+          // Result of bitwise and is always a positive Smi.
+          return true;
+        }
+      }
+      if (right != NULL && right->handle()->IsSmi()) {
+        int value = Smi::cast(*right->handle())->value();
+        if (op == Token::BIT_OR && ((value & 0xc0000000) == 0xc0000000)) {
+          // Result of bitwise or is always a negative Smi.
+          return true;
+        }
+        if (op == Token::BIT_AND && ((value & 0xc0000000) == 0)) {
+          // Result of bitwise and is always a positive Smi.
+          return true;
+        }
+      }
+      return false;
+      break;
+    }
+    case Token::SAR:
+    case Token::SHR: {
+      Literal* right = node->right()->AsLiteral();
+       if (right != NULL && right->handle()->IsSmi()) {
+        int value = Smi::cast(*right->handle())->value();
+        if ((value & 0x1F) > 1 ||
+            (op == Token::SAR && (value & 0x1F) == 1)) {
+          return true;
+        }
+       }
+       return false;
+       break;
+    }
+    default:
+      UNREACHABLE();
+      break;
+  }
+  return false;
+}
+
+
+void Expression::CopyAnalysisResultsFrom(Expression* other) {
+  bitfields_ = other->bitfields_;
+  type_ = other->type_;
+}
+
+
+bool UnaryOperation::ResultOverwriteAllowed() {
+  switch (op_) {
+    case Token::BIT_NOT:
+    case Token::SUB:
+      return true;
+    default:
+      return false;
+  }
+}
+
+
+bool BinaryOperation::ResultOverwriteAllowed() {
+  switch (op_) {
+    case Token::COMMA:
+    case Token::OR:
+    case Token::AND:
+      return false;
+    case Token::BIT_OR:
+    case Token::BIT_XOR:
+    case Token::BIT_AND:
+    case Token::SHL:
+    case Token::SAR:
+    case Token::SHR:
+    case Token::ADD:
+    case Token::SUB:
+    case Token::MUL:
+    case Token::DIV:
+    case Token::MOD:
+      return true;
+    default:
+      UNREACHABLE();
+  }
+  return false;
+}
+
+
+BinaryOperation::BinaryOperation(Assignment* assignment) {
+  ASSERT(assignment->is_compound());
+  op_ = assignment->binary_op();
+  left_ = assignment->target();
+  right_ = assignment->value();
+  pos_ = assignment->position();
+  CopyAnalysisResultsFrom(assignment);
+}
+
+
 // ----------------------------------------------------------------------------
 // Implementation of AstVisitor
+
+bool AstVisitor::CheckStackOverflow() {
+  if (stack_overflow_) return true;
+  StackLimitCheck check;
+  if (!check.HasOverflowed()) return false;
+  return (stack_overflow_ = true);
+}
 
 
 void AstVisitor::VisitDeclarations(ZoneList<Declaration*>* declarations) {
@@ -249,39 +472,70 @@ Interval RegExpQuantifier::CaptureRegisters() {
 }
 
 
-bool RegExpAssertion::IsAnchored() {
+bool RegExpAssertion::IsAnchoredAtStart() {
   return type() == RegExpAssertion::START_OF_INPUT;
 }
 
 
-bool RegExpAlternative::IsAnchored() {
+bool RegExpAssertion::IsAnchoredAtEnd() {
+  return type() == RegExpAssertion::END_OF_INPUT;
+}
+
+
+bool RegExpAlternative::IsAnchoredAtStart() {
   ZoneList<RegExpTree*>* nodes = this->nodes();
   for (int i = 0; i < nodes->length(); i++) {
     RegExpTree* node = nodes->at(i);
-    if (node->IsAnchored()) { return true; }
+    if (node->IsAnchoredAtStart()) { return true; }
     if (node->max_match() > 0) { return false; }
   }
   return false;
 }
 
 
-bool RegExpDisjunction::IsAnchored() {
+bool RegExpAlternative::IsAnchoredAtEnd() {
+  ZoneList<RegExpTree*>* nodes = this->nodes();
+  for (int i = nodes->length() - 1; i >= 0; i--) {
+    RegExpTree* node = nodes->at(i);
+    if (node->IsAnchoredAtEnd()) { return true; }
+    if (node->max_match() > 0) { return false; }
+  }
+  return false;
+}
+
+
+bool RegExpDisjunction::IsAnchoredAtStart() {
   ZoneList<RegExpTree*>* alternatives = this->alternatives();
   for (int i = 0; i < alternatives->length(); i++) {
-    if (!alternatives->at(i)->IsAnchored())
+    if (!alternatives->at(i)->IsAnchoredAtStart())
       return false;
   }
   return true;
 }
 
 
-bool RegExpLookahead::IsAnchored() {
-  return is_positive() && body()->IsAnchored();
+bool RegExpDisjunction::IsAnchoredAtEnd() {
+  ZoneList<RegExpTree*>* alternatives = this->alternatives();
+  for (int i = 0; i < alternatives->length(); i++) {
+    if (!alternatives->at(i)->IsAnchoredAtEnd())
+      return false;
+  }
+  return true;
 }
 
 
-bool RegExpCapture::IsAnchored() {
-  return body()->IsAnchored();
+bool RegExpLookahead::IsAnchoredAtStart() {
+  return is_positive() && body()->IsAnchoredAtStart();
+}
+
+
+bool RegExpCapture::IsAnchoredAtStart() {
+  return body()->IsAnchoredAtStart();
+}
+
+
+bool RegExpCapture::IsAnchoredAtEnd() {
+  return body()->IsAnchoredAtEnd();
 }
 
 
@@ -487,5 +741,16 @@ RegExpAlternative::RegExpAlternative(ZoneList<RegExpTree*>* nodes)
   }
 }
 
+
+WhileStatement::WhileStatement(ZoneStringList* labels)
+    : IterationStatement(labels),
+      cond_(NULL),
+      may_have_function_literal_(true) {
+}
+
+
+CaseClause::CaseClause(Expression* label, ZoneList<Statement*>* statements)
+    : label_(label), statements_(statements) {
+}
 
 } }  // namespace v8::internal

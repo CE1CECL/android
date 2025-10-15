@@ -8,8 +8,8 @@
 	{ 5,	0,	printargs,		"SYS_0"			}, /* 0 */
 	{ 1,	TP,	sys_exit,		"exit"			}, /* 1 */
 	{ 0,	TP,	sys_fork,		"fork"			}, /* 2 */
-	{ 3,	TF,	sys_read,		"read"			}, /* 3 */
-	{ 3,	TF,	sys_write,		"write"			}, /* 4 */
+	{ 3,	0,	sys_read,		"read"			}, /* 3 */
+	{ 3,	0,	sys_write,		"write"			}, /* 4 */
 	{ 3,	TF,	sys_open,		"open"			}, /* 5 */
 	{ 1,	0,	sys_close,		"close"			}, /* 6 */
 	{ 3,	TP,	sys_waitpid,		"waitpid"		}, /* 7 */
@@ -113,11 +113,11 @@
 	{ 2,	0,	sys_getitimer,		"getitimer"		}, /* 105 */
 	{ 2,	0,	sys_capget,		"capget"		}, /* 106 */
 	{ 2,	0,	sys_capset,		"capset"		}, /* 107 */
-	{ 5,	TF,	sys_pread,		"pread"			}, /* 108 */
-	{ 5,	TF,	sys_pwrite,		"pwrite"		}, /* 109 */
+	{ 5,	0,	sys_pread,		"pread"			}, /* 108 */
+	{ 5,	0,	sys_pwrite,		"pwrite"		}, /* 109 */
 	{ 2,	0,	sys_getcwd,		"getcwd"		}, /* 110 */
 	{ 0,	0,	sys_vhangup,		"vhangup"		}, /* 111 */
-	{ 2,	TF,	sys_fstat64,		"fstat64"		}, /* 112 */
+	{ 2,	0,	sys_fstat64,		"fstat64"		}, /* 112 */
 	{ 0,	0,	sys_vfork,		"vfork"			}, /* 113 */
 	{ 4,	TP,	sys_wait4,		"wait4"			}, /* 114 */
 	{ 1,	0,	sys_swapoff,		"swapoff"		}, /* 115 */
@@ -127,7 +127,7 @@
 	{ 3,	0,	sys_madvise,		"madvise"		}, /* 119 */
 	{ 5,	TP,	sys_clone,		"clone"			}, /* 120 */
 	{ 2,	0,	sys_setdomainname,	"setdomainname"		}, /* 121 */
-	{ 4,	TF,	sys_sendfile,		"sendfile"		}, /* 122 */
+	{ 4,	0,	sys_sendfile,		"sendfile"		}, /* 122 */
 	{ 6,	TN,	sys_recvfrom,		"recvfrom"		}, /* 123 */
 	{ 1,	0,	sys_adjtimex,		"adjtimex"		}, /* 124 */
 	{ 3,	0,	sys_mprotect,		"mprotect"		}, /* 125 */
@@ -205,7 +205,7 @@
 	{ 5,	0,	sys_putpmsg,		"putpmsg"		}, /* 197 */
 	{ 2,	TF,	sys_lstat64,		"lstat64"		}, /* 198 */
 	{ 3,	TF,	sys_truncate64,		"truncate64"		}, /* 199 */
-	{ 3,	TF,	sys_ftruncate64,	"ftruncate64"		}, /* 200 */
+	{ 3,	0,	sys_ftruncate64,	"ftruncate64"		}, /* 200 */
 	{ 3,	0,	sys_getdents64,		"getdents64"		}, /* 201 */
 	{ 3,	0,	sys_fcntl,		"fcntl64"		}, /* 202 */
 	{ 5,	0,	printargs,		"attrctl"		}, /* 203 */
@@ -214,7 +214,7 @@
 	{ 0,	0,	printargs,		"gettid"		}, /* 206 */
 	{ 4,	0,	sys_readahead,		"readahead"		}, /* 207 */
 	{ 2,	TS,	sys_kill,		"tkill"			}, /* 208 */
-	{ 4,	TF,	sys_sendfile,		"sendfile64"		}, /* 209 */
+	{ 4,	0,	sys_sendfile,		"sendfile64"		}, /* 209 */
 	{ 5,	0,	sys_futex,		"futex"			}, /* 210 */
 	{ 3,	0,	sys_sched_setaffinity,	"sched_setaffinity"	}, /* 211 */
 	{ 3,	0,	sys_sched_getaffinity,	"sched_getaffinity"	}, /* 212 */
@@ -233,7 +233,7 @@
 	{ 4,	0,	sys_epoll_ctl,		"epoll_ctl"		}, /* 225 */
 	{ 4,	0,	sys_epoll_wait,		"epoll_wait"		}, /* 226 */
 	{ 5,	0,	printargs,		"remap_file_pages"	}, /* 227 */
-	{ 5,	0,	printargs,		"semtimedop"		}, /* 228 */
+       { 5,    TI,     sys_semtimedop,         "semtimedop"            }, /* 228 */
 	{ 5,	0,	printargs,		"mq_open"		}, /* 229 */
 	{ 5,	0,	printargs,		"mq_unlink"		}, /* 230 */
 	{ 5,	0,	printargs,		"mq_timedsend"		}, /* 231 */
@@ -268,35 +268,35 @@
 	{ 5,	0,	printargs,		"mbind"			}, /* 260 */
 	{ 5,	0,	printargs,		"get_mempolicy"		}, /* 261 */
 	{ 5,	0,	printargs,		"set_mempolicy"		}, /* 262 */
-	{ 5,	0,	printargs,		"SYS_263"		}, /* 263 */
-	{ 5,	0,	printargs,		"SYS_264"		}, /* 264 */
-	{ 5,	0,	printargs,		"SYS_265"		}, /* 265 */
-	{ 5,	0,	printargs,		"SYS_266"		}, /* 266 */
-	{ 5,	0,	printargs,		"SYS_267"		}, /* 267 */
-	{ 5,	0,	printargs,		"SYS_268"		}, /* 268 */
-	{ 5,	0,	printargs,		"SYS_269"		}, /* 269 */
-	{ 5,	0,	printargs,		"SYS_270"		}, /* 270 */
-	{ 5,	0,	printargs,		"SYS_271"		}, /* 271 */
-	{ 5,	0,	printargs,		"SYS_272"		}, /* 272 */
-	{ 5,	0,	printargs,		"SYS_273"		}, /* 273 */
-	{ 5,	0,	printargs,		"SYS_274"		}, /* 274 */
-	{ 5,	0,	printargs,		"SYS_275"		}, /* 275 */
-	{ 5,	0,	printargs,		"SYS_276"		}, /* 276 */
-	{ 5,	0,	printargs,		"SYS_277"		}, /* 277 */
-	{ 5,	0,	printargs,		"SYS_278"		}, /* 278 */
-	{ 5,	0,	printargs,		"SYS_279"		}, /* 279 */
-	{ 5,	0,	printargs,		"SYS_280"		}, /* 280 */
-	{ 5,	0,	printargs,		"SYS_281"		}, /* 281 */
-	{ 5,	0,	printargs,		"SYS_282"		}, /* 282 */
-	{ 5,	0,	printargs,		"SYS_283"		}, /* 283 */
-	{ 5,	0,	printargs,		"SYS_284"		}, /* 284 */
-	{ 5,	0,	printargs,		"SYS_285"		}, /* 285 */
-	{ 5,	0,	printargs,		"SYS_286"		}, /* 286 */
-	{ 5,	0,	printargs,		"SYS_287"		}, /* 287 */
-	{ 5,	0,	printargs,		"SYS_288"		}, /* 288 */
-	{ 5,	0,	printargs,		"SYS_289"		}, /* 289 */
-	{ 5,	0,	printargs,		"SYS_290"		}, /* 290 */
-	{ 5,	0,	printargs,		"SYS_291"		}, /* 291 */
-	{ 5,	0,	printargs,		"SYS_292"		}, /* 292 */
-	{ 5,	0,	printargs,		"SYS_293"		}, /* 293 */
-	{ 5,	0,	printargs,		"SYS_294"		}, /* 294 */
+	{ 5,	0,	printargs,		"vserver"		}, /* 263 */
+	{ 5,	0,	printargs,		"add_key"		}, /* 264 */
+	{ 4,	0,	printargs,		"request_key"		}, /* 265 */
+	{ 5,	0,	printargs,		"keyctl"		}, /* 266 */
+	{ 3,	0,	printargs,		"ioprio_set"		}, /* 267 */
+	{ 2,	0,	printargs,		"ioprio_get"		}, /* 268 */
+	{ 0,	TD,	printargs,		"inotify_init"		}, /* 269 */
+	{ 3,	TD,	sys_inotify_add_watch,	"inotify_add_watch"	}, /* 270 */
+	{ 2,	TD,	sys_inotify_rm_watch,	"inotify_rm_watch"	}, /* 271 */
+	{ 4,	0,	printargs,		"migrate_pages"		}, /* 272 */
+	{ 6,	TD,	sys_pselect6,		"pselect6"		}, /* 273 */
+	{ 5,	TD,	sys_ppoll,		"ppoll"			}, /* 274 */
+	{ 4,	TD|TF,	sys_openat,		"openat"		}, /* 275 */
+	{ 3,	TD|TF,	sys_mkdirat,		"mkdirat"		}, /* 276 */
+	{ 4,	TD|TF,	sys_mknodat,		"mknodat"		}, /* 277 */
+	{ 5,	TD|TF,	sys_fchownat,		"fchownat"		}, /* 278 */
+	{ 3,	TD|TF,	sys_futimesat,		"futimesat"		}, /* 279 */
+	{ 4,	TD|TD,	sys_newfstatat,		"newfstatat"		}, /* 280 */
+	{ 3,	TD|TF,	sys_unlinkat,		"unlinkat"		}, /* 281 */
+	{ 4,	TD|TF,	sys_renameat,		"renameat"		}, /* 282 */
+	{ 5,	TD|TF,	sys_linkat,		"linkat"		}, /* 283 */
+	{ 3,	TD|TF,	sys_symlinkat,		"symlinkat"		}, /* 284 */
+	{ 4,	TD|TF,	sys_readlinkat,		"readlinkat"		}, /* 285 */
+	{ 3,	TD|TF,	sys_fchmodat,		"fchmodat"		}, /* 286 */
+	{ 3,	TD|TF,	sys_faccessat,		"faccessat"		}, /* 287 */
+	{ 1,	TP,	sys_unshare,		"unshare"		}, /* 288 */
+	{ 2,	0,	printargs,		"set_robust_list"	}, /* 289 */
+	{ 3,	0,	printargs,		"get_robust_list"	}, /* 290 */
+	{ 6,	TD,	printargs,		"splice"		}, /* 291 */
+	{ 4,	TD,	printargs,		"sync_file_range"	}, /* 292 */
+	{ 4,	TD,	printargs,		"tee"			}, /* 293 */
+	{ 4,	TD,	printargs,		"vmsplice"		}, /* 294 */

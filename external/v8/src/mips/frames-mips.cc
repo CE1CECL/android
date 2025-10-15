@@ -28,6 +28,8 @@
 
 #include "v8.h"
 
+#if defined(V8_TARGET_ARCH_MIPS)
+
 #include "frames-inl.h"
 #include "mips/assembler-mips-inl.h"
 
@@ -50,9 +52,7 @@ StackFrame::Type StackFrame::ComputeType(State* state) {
 }
 
 
-StackFrame::Type ExitFrame::GetStateForFramePointer(Address fp, State* state) {
-  if (fp == 0) return NONE;
-  // Compute frame type and stack pointer.
+Address ExitFrame::ComputeStackPointer(Address fp) {
   Address sp = fp + ExitFrameConstants::kSPDisplacement;
   const int offset = ExitFrameConstants::kCodeOffset;
   Object* code = Memory::Object_at(fp + offset);
@@ -60,11 +60,7 @@ StackFrame::Type ExitFrame::GetStateForFramePointer(Address fp, State* state) {
   if (is_debug_exit) {
     sp -= kNumJSCallerSaved * kPointerSize;
   }
-  // Fill in the state.
-  state->sp = sp;
-  state->fp = fp;
-  state->pc_address = reinterpret_cast<Address*>(sp - 1 * kPointerSize);
-  return EXIT;
+  return sp;
 }
 
 
@@ -91,10 +87,10 @@ Address ArgumentsAdaptorFrame::GetCallerStackPointer() const {
 
 
 Address InternalFrame::GetCallerStackPointer() const {
-  UNIMPLEMENTED_MIPS();
-  return static_cast<Address>(NULL);  // UNIMPLEMENTED RETURN
+  return fp() + StandardFrameConstants::kCallerSPOffset;
 }
 
 
 } }  // namespace v8::internal
 
+#endif  // V8_TARGET_ARCH_MIPS

@@ -44,6 +44,8 @@ enum player_type {
     // The shared library with the test player is passed passed as an
     // argument to the 'test:' url in the setDataSource call.
     TEST_PLAYER = 5,
+    FLAC_PLAYER = 6,
+    BOARD_HW_PLAYER = 7,
 };
 
 
@@ -120,7 +122,9 @@ public:
     virtual player_type playerType() = 0;
     virtual status_t    suspend() { return INVALID_OPERATION; }
     virtual status_t    resume() { return INVALID_OPERATION; }
-
+#ifdef OMAP_ENHANCEMENT
+    virtual status_t    requestVideoCloneMode(bool enable) { return INVALID_OPERATION; }
+#endif
     virtual void        setNotifyCallback(void* cookie, notify_callback_f notifyFunc) {
                             mCookie = cookie; mNotify = notifyFunc; }
     // Invoke a generic method on the player by using opaque parcels

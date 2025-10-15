@@ -119,6 +119,15 @@
          when you try to email a contact without specifying a specific address. -->
     <string name="menu_makeDefaultEmail">Make default email</string>
 
+    <!-- Menu item used to share the plain-text representation of a specific phone number -->
+    <string name="menu_shareNumber">Share number</string>
+
+    <!-- Menu item used to share the plain-text representation of a specific email address -->
+    <string name="menu_shareEmail">Share email</string>
+
+    <!-- Menu item used to share the plain-text representation of a specific address -->
+    <string name="menu_shareAddress">Share address</string>
+
     <!-- Menu item that splits an item from the contact detail into a separate aggregate -->
     <string name="menu_splitAggregate">Separate</string>
 
@@ -163,6 +172,9 @@
     <!-- Confirmation dialog title after users selects to delete a contact. -->
     <string name="deleteConfirmation_title">Delete</string>
 
+    <!-- Confirmation dialog title after users selects clear log. -->
+    <string name="clearConfirmation_title">Clear call log</string>
+
     <!-- Warning dialog contents after users selects to delete a ReadOnly contact. -->
     <string name="readOnlyContactWarning">You cannot delete contacts from read-only accounts, but you can hide them in your contacts lists.</string>
 
@@ -174,6 +186,9 @@
 
     <!-- Confirmation dialog contents after users selects to delete a Writable contact. -->
     <string name="deleteConfirmation">This contact will be deleted.</string>
+
+    <!-- Confirmation dialog contents after users selects to clear call log. -->
+    <string name="clearLogConfirmation">All call log entries will be removed.</string>
 
     <!-- Menu item to indicate you are done editing a contact and want to save the changes you've made -->
     <string name="menu_done">Done</string>
@@ -369,6 +384,9 @@
     <!-- Menu item used to copy a number from the call log to the dialer so it can be edited before calling it -->
     <string name="recentCalls_editNumberBeforeCall">Edit number before call</string>
 
+    <!--Menu item used to add a number from the call log to Blacklist  -->
+    <string name="recentCalls_addToBlacklist">Add to Blacklist</string>
+    
     <!-- Menu item used to add a number from the call log to contacts -->
     <string name="recentCalls_addToContact">Add to contacts</string>
 
@@ -465,7 +483,7 @@
     </string>
 
     <!-- Activity title for the activity that lets the user choose which groups of contacts to sync from the server -->
-    
+
 
     <!-- Live folder label for all contacts -->
     <string name="liveFolder_all_label">All contacts</string>
@@ -864,6 +882,9 @@
     <!-- Shown as the header name for a person when the name is missing or unknown. -->
     <string name="quickcontact_missing_name">Unknown</string>
 
+    <!-- Text that is shown in the Badge, when there is no data to display -->
+    <string name="quickcontact_no_data">No data</string>
+
     <!-- The menu item to open the list of accounts -->
     <string name="menu_accounts">Accounts</string>
 
@@ -1095,6 +1116,12 @@
     <!-- Field title for the phonetic family name of a contact -->
     <string name="name_phonetic_family">Phonetic family name</string>
 
+    <!-- Field title for the date for an event -->
+    <string name="label_date">Date</string>
+
+    <!-- Title of clear button in date picker -->
+    <string name="button_clear_date">Clear</string>
+
     <!-- String describing which account type a contact came from when editing it -->
     <string name="account_type_format"><xliff:g id="source" example="Gmail">%1$s</xliff:g> contact</string>
 
@@ -1109,28 +1136,28 @@
 
     <!-- Text describing that a contact has no information available other than name and photo -->
     <string name="no_contact_details">No additional information for this contact</string>
-    
+
     <!-- Label of the "sort list by" display option -->
     <string name="display_options_sort_list_by">Sort list by</string>
-    
+
     <!-- An allowable value for the "sort list by" contact display option  -->
     <string name="display_options_sort_by_given_name">Given name</string>
-    
+
     <!-- An allowable value for the "sort list by" contact display option  -->
     <string name="display_options_sort_by_family_name">Family name</string>
-           
+
     <!-- Label of the "view names as" display option -->
     <string name="display_options_view_names_as">View contact names as</string>
-    
+
     <!-- An allowable value for the "view names as" contact display option  -->
     <string name="display_options_view_given_name_first">Given name first</string>
-    
+
     <!-- An allowable value for the "view names as" contact display option  -->
     <string name="display_options_view_family_name_first">Family name first</string>
-    
+
     <!-- Gray hint displayed in the search field in Contacts when empty -->
     <string name="search_bar_hint">Search contacts</string>
-    
+
     <!-- Button displayed underneath the list of filtered visible contacts -->
     <string name="search_for_all_contacts">Search for all contacts</string>
 
@@ -1148,12 +1175,12 @@
 
     <!-- Text shown in the contacts app if the background process updating contacts fails because of memory shortage -->
     <string name="upgrade_out_of_memory">Contacts are in the process of being upgraded.
-    \n\nThe upgrade process requires approximately <xliff:g id="size_in_megabytes">%d</xliff:g>Mb of 
-    internal phone storage.\n\nChoose one of the following options:</string>
-    
+    \n\nThe upgrade process requires approximately <xliff:g id="size_in_megabytes">%d</xliff:g>
+    Mb of internal phone storage.\n\nChoose one of the following options:</string>
+
     <!-- Button shown in the contacts app if the background process updating contacts fails because of memory shortage -->
     <string name="upgrade_out_of_memory_uninstall">Uninstall some applications</string>
-    
+
     <!-- Button shown in the contacts app if the background process updating contacts fails because of memory shortage -->
     <string name="upgrade_out_of_memory_retry">Retry upgrade</string>
 
@@ -1162,4 +1189,139 @@
 
     <!-- Title shown in the search result activity of contacts app while searching -->
     <string name="search_results_searching">Searching...</string>
+
+    <!-- Checkbox whether to provide a year for a birthday [CHAR LIMIT=30] -->
+    <string name="date_year_toggle">Provide a year</string>
+
+    <string name="date_format_short_no_year">M/d</string>
+    <string name="date_format_full_no_year">MMMM d</string>
+
+    <!-- Wysie: Menu strings -->
+    <string name="menu_preferences">Preferences</string>
+    
+    <!-- Wysie: Dialer strings -->
+    <string name="dialer_menu_sms">SMS/MMS</string>
+    
+    <!-- Wysie: Call log strings -->
+    <string name="recent_calls_clear_call_log">Clear call log</string>
+    <string name="recent_calls_clear_what">Clear what?</string>
+    <string name="recent_calls_clear_all">All</string>
+    <string name="recent_calls_clear_incoming">Incoming</string>
+    <string name="recent_calls_clear_outgoing">Outgoing</string>
+    <string name="recent_calls_clear_missed">Missed</string>
+    <string name="alert_clear_call_log_title">Clear call log</string>
+    <string name="alert_clear_call_log_message">Are you sure you want to clear all call records?</string>
+    <string name="alert_clear_cl_all_incoming">Are you sure you want to clear all incoming call records?</string>
+    <string name="alert_clear_cl_all_outgoing">Are you sure you want to clear all outgoing call records?</string>
+    <string name="alert_clear_cl_all_missed">Are you sure you want to clear all missed call records?</string>
+    
+    <!-- Wysie: Favourites strings -->
+    <string name="fav_clear_freq">Clear frequently called</string>
+    <string name="alert_clear_freq_called_msg">Are you sure you want to clear all frequently called entries?</string>
+    
+    <!-- Wysie: Preferences strings -->
+    
+    <!-- Preferences: Dialer -->
+    <string name="title_last_dialled">Call button retrieves last dialed number</string>
+    <string name="summary_last_dialled">Last dialed number will be retrieved if digits are empty</string>
+    <string name="title_return_to_dialer">Return to dialer after call</string>
+    <string name="title_vm_button">Left action button (LAB)</string>
+    <string name="title_vm_handler">Voicemail handler</string>
+    <string name="title_use_1_for_reg_vm">Use 1 for regular voicemail</string>
+    <string name="summaryon_use_1_for_reg_vm">Key 1 will be used for regular voicemail</string>
+    <string name="summaryoff_use_1_for_reg_vm">Key 1 will follow voicemail handler</string>
+    <string name="title_disable_num_check">Disable number checks</string>
+    <string name="summaryon_disable_num_check">Left action button (LAB) and menu will always be enabled</string>
+    <string name="summaryoff_disable_num_check">LAB and menu will be enabled only if at least one number is entered (except voicemail)</string>
+    <string name="title_enable_haptic_feedback">Enable haptic feedback</string>
+    <string name="summary_enable_haptic_feedback">Uses keypad tap pattern - see CyanogenMod settings to adjust</string>
+    <string name="title_format_phone_number">Format phone number</string>
+    <string name="summary_format_phone_number">Enable phone number formatting in dialer</string>
+    <string name="title_change_digits_color">Change digits color</string>
+    <string name="title_digits_color_pressed">Digits color (pressed)</string>
+    <string name="title_digits_color_focused">Digits color (focused)</string>
+    <string name="title_digits_color_unselected">Digits color (not selected)</string>
+    <string name="title_choose_color">Choose a color</string>
+    <string name="instructions_choose_color">Tap on center color to confirm.\nPress back to cancel.</string>
+    <string name="entry_no_vm_handler">None (Dial Voicemail Number)</string>
+    
+    <!-- Preferences: Call log -->
+    <string name="title_cl_exact_time">Exact times</string>
+    <string name="summaryon_cl_exact_time">Use exact times in call log</string>
+    <string name="summaryoff_cl_exact_time">Use relative times in call log</string>
+    <string name="title_cl_show_seconds">Show seconds</string>
+    <string name="summary_cl_show_seconds">Show seconds when using exact times</string>          
+    <string name="title_cl_ask_before_clear">Ask before clearing</string>
+    <string name="summaryon_cl_ask_before_clear">Ask before clearing call log</string>
+    <string name="summaryoff_cl_ask_before_clear">Call logs will be cleared without asking</string>
+    
+    <!-- Preferences: Contacts -->
+    <string name="title_contacts_show_pic">Show contact pictures</string>
+    <string name="title_contacts_show_dial_button">Show dial button</string>
+    <string name="summary_contacts_show_dial_button">Show a dial button for contacts with numbers</string>
+    <string name="title_contacts_show_count">Show contacts count</string>
+    <string name="summary_contacts_show_count">Contacts count will be shown at the top of the contacts list</string>
+    <string name="title_contacts_show_separators">Show alphabetical separators</string>
+    <string name="summaryon_contacts_show_separators">Alphabetical separators will be shown in the contacts list</string>
+    <string name="summaryoff_contacts_show_separators">Alphabetical separators will be hidden in the contacts list</string>
+    
+    <!-- Preferences: Contacts - View Contact -->
+    <string name="title_view_contact">View contact</string>
+    <string name="summary_view_contact">Set preferences when viewing an individual contact</string>
+    <string name="title_show_text_mobile_only">Text action for mobile only</string>
+    <string name="summaryon_show_text_mobile_only">Only mobile numbers will have a text/sms action</string>
+    <string name="summaryoff_show_text_mobile_only">All numbers will have a text/sms action</string>
+    
+    <!-- Preferences: Favourites -->
+    <string name="title_favourites_hide_freq_call">Hide frequently called</string>
+    <string name="summary_favourites_hide_freq_call">The actual data is not cleared, but hidden.</string>
+    <string name="title_favs_ask_before_clear">Ask before clearing</string>
+    <string name="summaryon_favs_ask_before_clear">Ask before clearing frequently called</string>
+    <string name="summaryoff_favs_ask_before_clear">Frequently called entries will be cleared without asking</string>
+    
+    <!-- Preferences: Misc -->
+    <string name="title_misc_category">Miscellaneous</string>
+    <string name="title_sensor_rotation">Enable sensor rotation</string>
+    <string name="summary_sensor_rotation">If enabled, it will rotate based on system\'s settings</string>
+    <string name="title_data_font_size">Contact info font size</string>
+    <string name="summary_data_font_size">Allows you to choose the size of the font used to display detailed contact information (phone number, email, address, etc.)</string>
+    <string name="title_default_phone_tab">Default tab</string>
+    <string name="summary_default_phone_tab">Default tab to open when launching the Phone app</string>
+
+    <!-- Default Phone Tab strings -->
+    <string name="default_phone_tab_last_used">Last used to make a call (Default)</string>
+    <string name="default_phone_tab_last_viewed">Last viewed</string>
+    <string name="default_phone_tab_phone">Phone</string>
+    <string name="default_phone_tab_call_log">Call log</string>
+    <string name="default_phone_tab_contacts">Contacts</string>
+    <string name="default_phone_tab_favorites">Favorites</string>
+    
+    <!-- Wysie: About strings -->    
+    <string name="title_about">About</string>
+    <string name="title_about_name">Mod Name</string>
+    <string name="summary_about_name">WyContacts Froyo</string>
+    <string name="title_about_version">Version</string>
+    <string name="summary_about_version">1.2</string>
+    <string name="title_about_credits">Credits</string>
+    <string name="summary_about_credits">Wysie, ChainsDD, geesun, niuchl, rac2030, sileht and the rest of XDA! :)</string>
+
+    <string name="t9_loading">Loading\u2026</string>
+    <string name="t9_default_sort">1</string>
+    <string name="t9_sort_title">T9 sorting mode</string>
+    <string name="t9_sort_summary">Choose how to filter T9 results</string>
+    <string name="t9_sort_name">Name matches first</string>
+    <string name="t9_sort_number">Number matches first</string>
+    <string name="t9_state_title">Enable T9 dialer</string>
+    <string name="t9_state_summary">Enable T9 searching in dialer</string>
+    <string name="t9_dial_click_title">Dial selected contact</string>
+    <string name="t9_dial_click_summary">Dial the selected contact for T9</string>
+    <string name="t9_add_to_contacts">Add to contacts</string>
+    <string name="t9_map_row_2">2abcàáâäåɑæçǽćčá</string>
+    <string name="t9_map_row_3">3deféèêë</string>
+    <string name="t9_map_row_4">4ghiíìïîǵ</string>
+    <string name="t9_map_row_5">5jklḱḱĺ</string>
+    <string name="t9_map_row_6">6mnoòóöôøñŋǿḿńő</string>
+    <string name="t9_map_row_7">7pqrsßɾṕŕśřš</string>
+    <string name="t9_map_row_8">8tuvúùüûű</string>
+    <string name="t9_map_row_9">9wxyzýẃź</string>
 </resources>

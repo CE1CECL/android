@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Defy Settings</string>
+
+    <string name="general_settings_title">General Settings</string>
+
+    <string name="charge_led_mode_title">Charge LED mode</string>
+    <string name="charge_led_mode_summary">Adjust the behavior of the notification LED during charging</string>
+    <string name="charge_led_mode_white">White LED</string>
+    <string name="charge_led_mode_rgb">Mixed LED (red/green)</string>
+    <string name="charge_led_mode_off">Off</string>
+
+    <string name="button_brightness_scale_title">Button brightness</string>
+    <string name="button_brightness_scale_summary">Allows reducing the button brightness, especially useful when using manual brightness</string>
+
+    <string name="touch_points_title">Multi-touch points</string>
+    <string name="touch_points_summary">Adjust the number of multi-touch points registered by the system</string>
+    <string name="touch_point_entry_2points">2 points (default)</string>
+    <string name="touch_point_entry_3points">3 points</string>
+    <string name="touch_point_entry_4points">4 points</string>
+    <string name="touch_point_entry_5points">5 points</string>
+    <string name="touch_point_entry_8points">8 points</string>
+
+    <string name="touch_point_warning_title">Warning</string>
+    <string name="touch_point_warning_message">Increasing the number of touch points may degrade the responsiveness of the touch screen.\nAre you sure you want to change the setting?</string>
+
+    <string name="audio_settings_title">Audio Settings</string>
+    <string name="audio_effects">Audio Effects and DSP</string>
+
+    <string name="other_settings_title">Other settings</string>
+    <string name="compass_calibrate">Compass calibrator</string>
+    <string name="baseband_selection">Baseband selection</string>
+    <string name="kineto_support">Wifi calling support</string>
+    <string name="kineto_support_summary">Enable the T-Mobile Wifi calling application</string>
+
+    <string name="reboot_prompt_title">Reboot required</string>
+    <string name="reboot_prompt_message">In order to apply the changed configuration, a reboot is required.\n\nDo you want to reboot now?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <string name="region_europe">Europe</string>
+    <string name="region_america">America</string>
+    <string name="region_asia">Asia</string>
+    <string name="region_africa">Africa</string>
+    <string name="region_australia">Australia</string>
+
+    <string name="country_central_europe">Central Europe</string>
+    <string name="country_france">France</string>
+    <string name="country_great_britain">Great Britain</string>
+    <string name="country_italy">Italy</string>
+    <string name="country_poland">Poland</string>
+    <string name="country_usa">USA</string>
+    <string name="country_brasil">Brazil</string>
+    <string name="country_argentina">Argentina</string>
+    <string name="country_colombia">Colombia</string>
+    <string name="country_china">China</string>
+    <string name="country_south_korea">South Korea</string>
+    <string name="country_hongkong_taiwan">Hongkong, Taiwan</string>
+    <string name="country_south_east_asia">South East Asia</string>
+    <string name="country_arabia">Arabia</string>
+    <string name="country_south_africa">South Africa</string>
+
+    <string name="baseband_selection_summary">Select the baseband suitable for your country\nCurrently selected: %1$s %2$s</string>
+    <string name="baseband_region">Region</string>
+    <string name="baseband_country">Country</string>
+    <string name="baseband_version">Version</string>
+    <string name="baseband_frequencies">Frequencies: %1$s MHz</string>
+    <string name="unknown">Unknown</string>
+
+    <string name="lto_download_title">LTO Data Download</string>
+    <string name="lto_download_summary">Download of assistive data which can help improving GPS performance</string>
+    <string name="lto_download_enabled_title">Automatic download</string>
+    <string name="lto_download_enabled_summary">Download data automatically if a network connection is available</string>
+    <string name="lto_download_interval_title">Download interval</string>
+    <string name="lto_download_interval_summary">Interval: %1$s</string>
+    <string name="lto_download_interval_12hours">12 hours</string>
+    <string name="lto_download_interval_1day">1 day</string>
+    <string name="lto_download_interval_3days">3 days</string>
+    <string name="lto_download_interval_1week">1 week</string>
+    <string name="lto_download_interval_2weeks">2 weeks</string>
+    <string name="lto_download_interval_1month">1 month</string>
+    <string name="lto_download_file_title">Download file type</string>
+    <string name="lto_download_file_7days">7 days validity</string>
+    <string name="lto_download_file_30days">30 days validity</string>
+    <string name="lto_download_wifi_only_title">Wifi only</string>
+    <string name="lto_download_wifi_only_summary">Only download assistive data over Wifi connection</string>
+    <string name="lto_download_now">Download now</string>
+    <string name="lto_last_download_date">Last download: %1$s</string>
+    <string name="lto_last_download_date_failure">Last download attempt: %1$s (Unsuccessful)</string>
+    <string name="lto_downloading_data">Downloading data\u2026 (%1$s%%)</string>
+    <string name="never">Never</string>
+
+    <string name="modem_error">Telephony problem</string>
+    <string name="touch_for_info">Touch for information</string>
+    <string name="reboot_timeout_msg">If no action is selected, the device will reboot in %1$d seconds.</string>
+    <string name="modem_error_msg">A problem was detected in the phone\'s telephony layer. A reboot of the phone is required to repair the phone state.\nWhat do you want to do?</string>
+    <string name="reboot_btn">Reboot now</string>
+    <string name="snooze_btn">Remind again later</string>
+    <string name="dismiss_btn">Don\'t remind again</string>
+    <string name="device_rebooted_modem_error">The device was rebooted due to a problem in the phone\'s telephony layer.</string>
+</resources>

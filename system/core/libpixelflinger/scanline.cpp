@@ -51,6 +51,7 @@
 
 #if defined(__arm__)
 #   define ANDROID_ARM_CODEGEN  1
+#   include <machine/cpu-features.h>
 #else
 #   define ANDROID_ARM_CODEGEN  0
 #endif
@@ -110,6 +111,7 @@ static void scanline_clear(context_t* c);
 static void rect_generic(context_t* c, size_t yc);
 static void rect_memcpy(context_t* c, size_t yc);
 
+extern "C" void scanline_t32cb16_neon(uint16_t *dst, uint32_t *src, size_t ct);
 extern "C" void scanline_t32cb16blend_arm(uint16_t*, uint32_t*, size_t);
 extern "C" void scanline_t32cb16_arm(uint16_t *dst, uint32_t *src, size_t ct);
 extern "C" void scanline_col32cb16blend_neon(uint16_t *dst, uint32_t *col, size_t ct);
@@ -350,7 +352,7 @@ static void pick_scanline(context_t* c)
         }
     }
 
-#ifdef DEBUG_NEEDS
+#if DEBUG_NEEDS
     LOGI("Needs: n=0x%08x p=0x%08x t0=0x%08x t1=0x%08x",
          c->state.needs.n, c->state.needs.p,
          c->state.needs.t[0], c->state.needs.t[1]);
@@ -2104,6 +2106,10 @@ void scanline_t32cb16(context_t* c)
     int sR, sG, sB;
     uint32_t s, d;
 
+#if ((ANDROID_CODEGEN >= ANDROID_CODEGEN_ASM) && defined(__arm__)) && \
+    defined(__ARM_HAVE_NEON) && BYTE_ORDER == LITTLE_ENDIAN
+    scanline_t32cb16_neon(dst, src, ct);
+#else
     if (ct==1 || uint32_t(dst)&2) {
 last_one:
         s = GGL_RGBA_TO_HOST( *src++ );
@@ -2132,6 +2138,7 @@ last_one:
     if (ct > 0) {
         goto last_one;
     }
+#endif
 }
 
 void scanline_t32cb16blend(context_t* c)

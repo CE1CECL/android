@@ -114,7 +114,7 @@ void FrameworkListener::dispatchCommand(SocketClient *cli, char *data) {
         *q = *p++;
         if (!quote && *q == ' ') {
             *q = '\0';
-            if (argc >= CMD_ARGS_MAX)
+            if (argc >= FrameworkListener::CMD_ARGS_MAX)
                 goto overflow;
             argv[argc++] = strdup(tmp);
             memset(tmp, 0, sizeof(tmp));
@@ -125,7 +125,7 @@ void FrameworkListener::dispatchCommand(SocketClient *cli, char *data) {
     }
 
     *q = '\0';
-    if (argc >= CMD_ARGS_MAX)
+    if (argc >= FrameworkListener::CMD_ARGS_MAX)
         goto overflow;
     argv[argc++] = strdup(tmp);
 #if 0

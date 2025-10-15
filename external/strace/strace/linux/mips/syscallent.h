@@ -4001,8 +4001,8 @@
 	{ 8,	0,	printargs,		"syscall"	}, /* 4000 */ /* start of Linux o32 */
 	{ 1,	TP,	sys_exit,		"exit"		}, /* 4001 */
 	{ 0,	TP,	sys_fork,		"fork"		}, /* 4002 */
-	{ 3,	TF,	sys_read,		"read"		}, /* 4003 */
-	{ 3,	TF,	sys_write,		"write"		}, /* 4004 */
+	{ 3,	0,	sys_read,		"read"		}, /* 4003 */
+	{ 3,	0,	sys_write,		"write"		}, /* 4004 */
 	{ 3,	TF,	sys_open,		"open"		}, /* 4005 */
 	{ 1,	0,	sys_close,		"close"		}, /* 4006 */
 	{ 3,	TP,	sys_waitpid,		"waitpid"	}, /* 4007 */
@@ -4098,7 +4098,7 @@
 	{ 3,	0,	sys_setpriority,	"setpriority"	}, /* 4097 */
 	{ 0,	0,	sys_profil,		"profil"	}, /* 4098 */
 	{ 3,	TF,	sys_statfs,		"statfs"	}, /* 4099 */
-	{ 3,	TF,	sys_fstatfs,		"fstatfs"	}, /* 4100 */
+	{ 3,	0,	sys_fstatfs,		"fstatfs"	}, /* 4100 */
 	{ 0,	0,	sys_ioperm,		"ioperm"	}, /* 4101 */
 	{ 2,	0,	sys_socketcall,		"socketcall"	}, /* 4102 */
 	{ 3,	0,	sys_syslog,		"syslog"	}, /* 4103 */
@@ -4106,7 +4106,7 @@
 	{ 2,	0,	sys_getitimer,		"getitimer"	}, /* 4105 */
 	{ 2,	TF,	sys_stat,		"stat"		}, /* 4106 */
 	{ 2,	TF,	sys_lstat,		"lstat"		}, /* 4107 */
-	{ 2,	TF,	sys_fstat,		"fstat"		}, /* 4108 */
+	{ 2,	0,	sys_fstat,		"fstat"		}, /* 4108 */
 	{ 1,	0,	sys_olduname,		"olduname"	}, /* 4109 */
 	{ 0,	0,	sys_iopl,		"iopl"		}, /* 4110 */
 	{ 0,	0,	sys_vhangup,		"vhangup"	}, /* 4111 */
@@ -4198,22 +4198,22 @@
 	{ 4,	TS,	sys_rt_sigtimedwait,	"rt_sigtimedwait"},/* 4197 */
 	{ 3,	TS,	sys_rt_sigqueueinfo,	"rt_sigqueueinfo"},/* 4198 */
 	{ 2,	TS,	sys_rt_sigsuspend,	"rt_sigsuspend"	}, /* 4199 */
-	{ 6,	TF,	sys_pread,		"pread"		}, /* 4200 */
-	{ 6,	TF,	sys_pwrite,		"pwrite"	}, /* 4201 */
+	{ 6,	0,	sys_pread,		"pread"		}, /* 4200 */
+	{ 6,	0,	sys_pwrite,		"pwrite"	}, /* 4201 */
 	{ 3,	TF,	sys_chown,		"chown"		}, /* 4202 */
 	{ 2,	TF,	sys_getcwd,		"getcwd"	}, /* 4203 */
 	{ 2,	0,	sys_capget,		"capget"	}, /* 4204 */
 	{ 2,	0,	sys_capset,		"capset"	}, /* 4205 */
 	{ 2,	TS,	sys_sigaltstack,	"sigaltstatck"	}, /* 4206 */
-	{ 4,	TF,	sys_sendfile,		"sendfile"	}, /* 4207 */
+	{ 4,	0,	sys_sendfile,		"sendfile"	}, /* 4207 */
 	{ 0,	0,	printargs,		"SYS_4208"	}, /* 4208 */
 	{ 0,	0,	printargs,		"SYS_4209"	}, /* 4209 */
 	{ 6,	0,	sys_mmap,		"mmap"		}, /* 4210 */
 	{ 4,	TF,	sys_truncate64,		"truncate64"	}, /* 4211 */
-	{ 4,	TF,	sys_ftruncate64,	"ftruncate64"	}, /* 4212 */
+	{ 4,	0,	sys_ftruncate64,	"ftruncate64"	}, /* 4212 */
 	{ 2,	TF,	printargs,		"stat64"	}, /* 4213 */
 	{ 2,	TF,	sys_lstat64,		"lstat64"	}, /* 4214 */
-	{ 2,	TF,	sys_fstat64,		"fstat64"	}, /* 4215 */
+	{ 2,	0,	sys_fstat64,		"fstat64"	}, /* 4215 */
 	{ 2,	TF,	sys_pivotroot,		"pivot_root"	}, /* 4216 */
 	{ 3,	0,	printargs,		"mincore"	}, /* 4217 */
 	{ 3,	0,	sys_madvise,		"madvise"	}, /* 4218 */
@@ -4235,7 +4235,7 @@
 	{ 2,	TF,	sys_removexattr,	"lremovexattr"	}, /* 4234 */
 	{ 2,	0,	sys_fremovexattr,	"fremovexattr"	}, /* 4235 */
 	{ 2,	TS,	sys_kill,		"tkill"		}, /* 4236 */
-	{ 5,	TF,	sys_sendfile64,		"sendfile64"	}, /* 4237 */
+	{ 5,	0,	sys_sendfile64,		"sendfile64"	}, /* 4237 */
 	{ 6,	0,	sys_futex,		"futex"		}, /* 4238 */
 	{ 3,	0,	sys_sched_setaffinity,	"sched_setaffinity"}, /* 4239 */
 	{ 3,	0,	sys_sched_getaffinity,	"sched_getaffinity"}, /* 4240 */
@@ -4252,9 +4252,9 @@
 	{ 5,	0,	sys_remap_file_pages,	"remap_file_pages"}, /* 4251 */
 	{ 1,	0,	printargs,		"set_tid_address"}, /* 4252 */
 	{ 0,	0,	printargs,		"restart_syscall"}, /* 4253 */
-	{ 7,	TF,	sys_fadvise64_64,	"fadvise64_64"	}, /* 4254 */
+	{ 7,	0,	sys_fadvise64_64,	"fadvise64_64"	}, /* 4254 */
 	{ 3,	TF,	sys_statfs64,		"statfs64"	}, /* 4255 */
-	{ 2,	TF,	sys_fstatfs64,		"fstatfs64"	}, /* 4256 */
+	{ 2,	0,	sys_fstatfs64,		"fstatfs64"	}, /* 4256 */
 	{ 3,	0,	sys_timer_create,	"timer_create"	}, /* 4257 */
 	{ 4,	0,	sys_timer_settime,	"timer_settime"	}, /* 4258 */
 	{ 2,	0,	sys_timer_gettime,	"timer_gettime"	}, /* 4259 */
@@ -4281,29 +4281,29 @@
 	{ 5,	0,	printargs,		"add_key"	}, /* 4280 */
 	{ 4,	0,	printargs,		"request_key"	}, /* 4281 */
 	{ 5,	0,	printargs,		"keyctl"	}, /* 4282 */
-	{ 0,	0,	printargs,		"SYS_4283"	}, /* 4283 */
-	{ 0,	0,	printargs,		"SYS_4284"	}, /* 4284 */
-	{ 0,	0,	printargs,		"SYS_4285"	}, /* 4285 */
-	{ 0,	0,	printargs,		"SYS_4286"	}, /* 4286 */
-	{ 0,	0,	printargs,		"SYS_4287"	}, /* 4287 */
-	{ 0,	0,	printargs,		"SYS_4288"	}, /* 4288 */
-	{ 0,	0,	printargs,		"SYS_4289"	}, /* 4289 */
-	{ 0,	0,	printargs,		"SYS_4290"	}, /* 4290 */
-	{ 0,	0,	printargs,		"SYS_4291"	}, /* 4291 */
-	{ 0,	0,	printargs,		"SYS_4292"	}, /* 4292 */
-	{ 0,	0,	printargs,		"SYS_4293"	}, /* 4293 */
-	{ 0,	0,	printargs,		"SYS_4294"	}, /* 4294 */
-	{ 0,	0,	printargs,		"SYS_4295"	}, /* 4295 */
-	{ 0,	0,	printargs,		"SYS_4296"	}, /* 4296 */
-	{ 0,	0,	printargs,		"SYS_4297"	}, /* 4297 */
-	{ 0,	0,	printargs,		"SYS_4298"	}, /* 4298 */
-	{ 0,	0,	printargs,		"SYS_4299"	}, /* 4299 */
-	{ 0,	0,	printargs,		"SYS_4300"	}, /* 4300 */
-	{ 0,	0,	printargs,		"SYS_4301"	}, /* 4301 */
-	{ 0,	0,	printargs,		"SYS_4302"	}, /* 4302 */
-	{ 0,	0,	printargs,		"SYS_4303"	}, /* 4303 */
-	{ 0,	0,	printargs,		"SYS_4304"	}, /* 4304 */
-	{ 0,	0,	printargs,		"SYS_4305"	}, /* 4305 */
+	{ 1,	0,	sys_set_thread_area,	"set_thread_area" }, /* 4283 */
+	{ 0,	TD,	printargs,		"inotify_init"	}, /* 4284 */
+	{ 3,	TD,	sys_inotify_add_watch,	"inotify_add_watch" }, /* 4285 */
+	{ 2,	TD,	sys_inotify_rm_watch,	"inotify_rm_watch" }, /* 4286 */
+	{ 4,	0,	printargs,		"migrate_pages"	}, /* 4287 */
+	{ 4,	TD|TF,	sys_openat,		"openat"	}, /* 4288 */
+	{ 3,	TD|TF,	sys_mkdirat,		"mkdirat"	}, /* 4289 */
+	{ 4,	TD|TF,	sys_mknodat,		"mknodat"	}, /* 4290 */
+	{ 5,	TD|TF,	sys_fchownat,		"fchownat"	}, /* 4291 */
+	{ 3,	TD|TF,	sys_futimesat,		"futimesat"	}, /* 4292 */
+	{ 4,	TD|TD,	sys_newfstatat,		"newfstatat"	}, /* 4293 */
+	{ 3,	TD|TF,	sys_unlinkat,		"unlinkat"	}, /* 4294 */
+	{ 4,	TD|TF,	sys_renameat,		"renameat"	}, /* 4295 */
+	{ 5,	TD|TF,	sys_linkat,		"linkat"	}, /* 4296 */
+	{ 3,	TD|TF,	sys_symlinkat,		"symlinkat"	}, /* 4297 */
+	{ 4,	TD|TF,	sys_readlinkat,		"readlinkat"	}, /* 4298 */
+	{ 3,	TD|TF,	sys_fchmodat,		"fchmodat"	}, /* 4299 */
+	{ 3,	TD|TF,	sys_faccessat,		"faccessat"	}, /* 4300 */
+	{ 6,	TD,	sys_pselect6,		"pselect6"	}, /* 4301 */
+	{ 5,	TD,	sys_ppoll,		"ppoll"		}, /* 4302 */
+	{ 1,	TP,	sys_unshare,		"unshare"	}, /* 4303 */
+	{ 6,	TD,	printargs,		"splice"	}, /* 4304 */
+	{ 4,	TD,	printargs,		"sync_file_range" }, /* 4305 */
 	{ 0,	0,	printargs,		"SYS_4306"	}, /* 4306 */
 	{ 0,	0,	printargs,		"SYS_4307"	}, /* 4307 */
 	{ 0,	0,	printargs,		"SYS_4308"	}, /* 4308 */

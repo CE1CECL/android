@@ -25,10 +25,16 @@
     <string name="enable_alarm" msgid="1834599140632142536">"アラームをONにする"</string>
     <string name="disable_alarm" msgid="5889378670229554109">"アラームをOFFにする"</string>
     <string name="delete_alarm_confirm" msgid="4237696873219106907">"このアラームを削除します。"</string>
-    <string name="show_clock" msgid="8358759982675616915">"時計を表示"</string>
-    <string name="hide_clock" msgid="3217727306480505694">"時計を隠す"</string>
     <string name="label" msgid="162189613902857319">"ラベル"</string>
     <string name="default_label" msgid="5590025289805630372">"アラーム"</string>
+
+    <string name="application">アプリケーション</string>
+    <string name="application_title">起動するアプリ</string>
+    <string name="application_none">なし</string>
+    <string name="no_dialog">ダイアログを隠す</string>
+    <string name="no_dialog_on">スヌーズ/停止のダイアログを表示しない</string>
+    <string name="no_dialog_off">スヌーズ/停止のダイアログを表示する</string>
+
     <string name="set_alarm" msgid="9148359866152726808">"アラームを設定"</string>
     <string name="alarm_vibrate" msgid="3476686921490362230">"バイブレーション"</string>
     <string name="alarm_repeat" msgid="7242985466344233206">"繰り返し"</string>
@@ -57,7 +63,6 @@
     <string name="every_day" msgid="1058994798884544691">"毎日"</string>
     <string name="never" msgid="54104287800571769">"繰り返しなし"</string>
     <string name="day_concat" msgid="971998564991636532">"、 "</string>
-    <string name="clock_instructions" msgid="3118560284915857690">"表示する時計を選択してください。"</string>
     <string name="analog_gadget" msgid="1670505720837152766">"アナログ時計"</string>
     <string name="settings" msgid="5849739030579520686">"設定"</string>
     <string name="alarm_in_silent_mode_title" msgid="3892612644543516705">"マナーモード中のアラーム"</string>
@@ -70,14 +75,6 @@
     <item msgid="7248236967714374250">"20分"</item>
     <item msgid="738394723625179423">"25分"</item>
     <item msgid="1180222611308391616">"30分"</item>
-  </string-array>
-  <string-array name="snooze_duration_values">
-    <item msgid="3655014754453084122">"5"</item>
-    <item msgid="8939029597449573449">"10"</item>
-    <item msgid="3922647341176353315">"15"</item>
-    <item msgid="5821804105985044459">"20"</item>
-    <item msgid="6048861883552402852">"25"</item>
-    <item msgid="2740866721232379791">"30"</item>
   </string-array>
     <string name="done" msgid="6509722361933858451">"完了"</string>
     <string name="revert" msgid="9100911171235162926">"キャンセル"</string>
@@ -96,11 +93,6 @@
     <item msgid="7111908302622811168">"スヌーズ"</item>
     <item msgid="8573552194573068996">"解除"</item>
   </string-array>
-  <string-array name="volume_button_setting_values">
-    <item msgid="4851033050639608752">"0"</item>
-    <item msgid="3204893476515513084">"1"</item>
-    <item msgid="7687709558968154577">"2"</item>
-  </string-array>
     <string name="alarm_button_description" msgid="740283647046258651">"アラーム"</string>
     <string name="gallery_button_description" msgid="1151743663255257668">"ギャラリー"</string>
     <string name="music_button_description" msgid="1626593420810117999">"音楽"</string>
@@ -111,4 +103,54 @@
     <string name="weather_fetch_failure" msgid="7517010911981312358">"天気予報は現在ご利用いただけません。"</string>
     <string name="menu_item_dock_settings" msgid="3524235151132971114">"ホルダーの設定"</string>
     <string name="alarm_klaxon_service_desc" msgid="2153290655559916468">"卓上時計で設定したアラーム用のサウンド再生サービスです。"</string>
+
+    <string name="alarm_limit_title">アラームの最大持続時間</string>
+    <string-array name="alarm_limit_entries">
+      <item>5 分</item>
+      <item>15 分</item>
+      <item>30 分</item>
+      <item>60 分</item>
+      <item>90 分</item>
+      <item>120 分</item>
+      <item>無制限</item>
+    </string-array>
+
+    <!-- Setting title for setting alarm time limit -->
+    <string name="screensaver_timeout_title">スクリーンセーバータイムアウト</string>
+
+    <!-- Entries listed in the ListPreference when invoking the max alarm duration
+         preference. -->
+    <string-array name="screensaver_timeout_entries">
+      <item>1 分</item>
+      <item>5 分</item>
+      <item>10 分</item>
+      <item>15 分</item>
+      <item>30 分</item>
+      <item>60 分</item>
+      <item>@string/never</item>
+    </string-array>
+
+    <!-- Setting title for screensaver time color picker general title-->
+    <string name="color_picker">時刻の色</string>
+
+    <!-- Setting title for screensaver time color picker -->
+    <string name="color_picker_title">時刻の色(スクリーンセーバー)</string>
+
+    <!-- Setting title for screensaver time color picker -->
+    <string name="color_picker_summary">スクリーンセーバーの時刻の色を変更する</string>
+
+    <!-- Sample time used in color picker -->
+    <string name="color_picker_sample">11:45</string>
+
+    <!-- Labels for colors in color picker -->
+    <string name="color_picker_alpha">透明度 (暗転時のみ)</string>
+    <string name="color_picker_red">赤</string>
+    <string name="color_picker_green">緑</string>
+    <string name="color_picker_blue">青</string>
+
+    <!-- Settings strings for dual-mode button -->
+    <string name="use_dual_mode_button">デュアルモードスヌーズ</string>
+    <string name="use_dual_mode_button_on">スヌーズボタンの長押しでアラームを停止します。</string>
+    <string name="use_dual_mode_button_off">スヌーズボタンと停止ボタンをわけて表示します。</string>
+    <string name="alarm_alert_snooze_text_dual_mode">スヌーズ(長押しで停止)</string>
 </resources>

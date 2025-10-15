@@ -187,7 +187,6 @@ libc_common_src_files := \
 	string/strcat.c \
 	string/strchr.c \
 	string/strcoll.c \
-	string/strcpy.c \
 	string/strcspn.c \
 	string/strdup.c \
 	string/strerror.c \
@@ -353,13 +352,30 @@ libc_common_src_files += \
 	arch-arm/bionic/memset.S \
 	arch-arm/bionic/setjmp.S \
 	arch-arm/bionic/sigsetjmp.S \
-	arch-arm/bionic/strlen.c.arm \
+	arch-arm/bionic/strcpy.S \
+	arch-arm/bionic/strcmp.S \
 	arch-arm/bionic/syscall.S \
-	string/memmove.c.arm \
-	string/bcopy.c \
-	string/strcmp.c \
 	string/strncmp.c \
 	unistd/socketcalls.c
+
+# Check if we want a neonized version of memmove instead of the
+# current ARM version
+ifeq ($(TARGET_USE_SCORPION_BIONIC_OPTIMIZATION),true)
+libc_common_src_files += \
+	arch-arm/bionic/memmove.S
+else # Non-Scorpion-based ARM
+libc_common_src_files += \
+	string/bcopy.c \
+	string/memmove.c.arm
+endif # !TARGET_USE_SCORPION_BIONIC_OPTIMIZATION
+
+ifeq ($(ARCH_ARM_HAVE_ARMV7A),true)
+libc_common_src_files += arch-arm/bionic/strlen-armv7.S
+else
+libc_common_src_files += arch-arm/bionic/strlen.c.arm
+endif
+
+
 
 # These files need to be arm so that gdbserver
 # can set breakpoints in them without messing
@@ -403,6 +419,7 @@ libc_common_src_files += \
 	arch-x86/string/strncmp_wrapper.S \
 	arch-x86/string/strlen_wrapper.S \
 	bionic/pthread-rwlocks.c \
+	string/strcpy.c \
 	bionic/pthread-timers.c \
 	bionic/ptrace.c
 
@@ -442,6 +459,7 @@ libc_common_src_files += \
 	string/memcmp.c \
 	string/strlen.c \
 	bionic/pthread-rwlocks.c \
+	string/strcpy.c \
 	bionic/pthread-timers.c \
 	bionic/ptrace.c \
 	unistd/socketcalls.c
@@ -494,6 +512,17 @@ ifeq ($(TARGET_ARCH),arm)
   ifeq ($(ARCH_ARM_HAVE_TLS_REGISTER),true)
     libc_common_cflags += -DHAVE_ARM_TLS_REGISTER
   endif
+  # Add in defines to activate SCORPION_NEON_OPTIMIZATION
+  ifeq ($(TARGET_USE_SCORPION_BIONIC_OPTIMIZATION),true)
+    libc_common_cflags += -DSCORPION_NEON_OPTIMIZATION
+    ifeq ($(TARGET_USE_SCORPION_PLD_SET),true)
+      libc_common_cflags += -DPLDOFFS=$(TARGET_SCORPION_BIONIC_PLDOFFS)
+      libc_common_cflags += -DPLDSIZE=$(TARGET_SCORPION_BIONIC_PLDSIZE)
+    endif
+  endif
+  ifeq ($(TARGET_HAVE_TEGRA_ERRATA_657451),true)
+    libc_common_cflags += -DHAVE_TEGRA_ERRATA_657451
+  endif
 else # !arm
   ifeq ($(TARGET_ARCH),x86)
     libc_crt_target_cflags := -m32
@@ -515,6 +544,10 @@ endif
 # crtbegin_xxx.S and crtend_xxx.S
 #
 libc_crt_target_cflags += -I$(LOCAL_PATH)/private
+
+ifeq ($(BOARD_USE_NASTY_PTHREAD_CREATE_HACK),true)
+  libc_common_cflags += -DNASTY_PTHREAD_CREATE_HACK
+endif
 
 ifeq ($(TARGET_ARCH),arm)
 libc_crt_target_cflags += -DCRT_LEGACY_WORKAROUND
@@ -597,6 +630,14 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := $(libc_common_src_files)
 LOCAL_CFLAGS := $(libc_common_cflags)
+ifdef NEEDS_ARM_ERRATA_754319_754320
+asm_flags := \
+	--defsym NEEDS_ARM_ERRATA_754319_754320_ASM=1
+
+LOCAL_CFLAGS+= \
+	$(foreach f,$(asm_flags),-Wa,"$(f)")
+endif
+
 ifeq ($(TARGET_ARCH),arm)
 LOCAL_CFLAGS += -DCRT_LEGACY_WORKAROUND
 endif

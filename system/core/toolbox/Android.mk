@@ -2,19 +2,14 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 TOOLS := \
-	ls \
-	mount \
 	cat \
 	ps \
 	kill \
-	ln \
 	insmod \
 	rmmod \
 	lsmod \
 	ifconfig \
 	setconsole \
-	rm \
-	mkdir \
 	rmdir \
 	reboot \
 	getevent \
@@ -22,16 +17,13 @@ TOOLS := \
 	date \
 	wipe \
 	sync \
-	umount \
 	start \
 	stop \
 	notify \
 	cmp \
-	dmesg \
 	route \
 	hd \
 	dd \
-	df \
 	getprop \
 	setprop \
 	watchprops \
@@ -40,12 +32,9 @@ TOOLS := \
 	renice \
 	printenv \
 	smd \
-	chmod \
-	chown \
 	newfs_msdos \
 	netstat \
 	ioctl \
-	mv \
 	schedtop \
 	top \
 	iftop \
@@ -53,13 +42,29 @@ TOOLS := \
 	uptime \
 	vmstat \
 	nandread \
-	ionice \
-	lsof
+	ionice 
+
+ifndef TINY_TOOLBOX
+    TOOLS += \
+        dmesg \
+        mkdir \
+        ln \
+        ls \
+        mount \
+        rm \
+        umount \
+        df \
+        chmod \
+        chown \
+        mv \
+        lsof
+endif
 
 LOCAL_SRC_FILES:= \
 	toolbox.c \
 	$(patsubst %,%.c,$(TOOLS))
 
+LOCAL_STATIC_LIBRARIES := libreboot
 LOCAL_SHARED_LIBRARIES := libcutils libc
 
 LOCAL_MODULE:= toolbox
