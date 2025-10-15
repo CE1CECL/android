@@ -16,6 +16,10 @@ extern "C" {
 #   define GL_APIENTRYP GL_APIENTRY*
 #endif
 
+#ifdef QCOM_HARDWARE
+#define GL_GLEXT_PROTOTYPES
+#endif
+
 /*------------------------------------------------------------------------*
  * OES extension tokens
  *------------------------------------------------------------------------*/
@@ -148,7 +152,11 @@ typedef void* GLeglImageOES;
 
 /* GL_OES_EGL_image_external */
 #ifndef GL_OES_EGL_image_external
+#ifdef MISSING_EGL_EXTERNAL_IMAGE
+#define GL_TEXTURE_EXTERNAL_OES                                 0x0DE1
+#else
 #define GL_TEXTURE_EXTERNAL_OES                                 0x8D65
+#endif
 #define GL_SAMPLER_EXTERNAL_OES                                 0x8D66
 #define GL_TEXTURE_BINDING_EXTERNAL_OES                         0x8D67
 #define GL_REQUIRED_TEXTURE_IMAGE_UNITS_OES                     0x8D68
@@ -185,6 +193,19 @@ typedef void* GLeglImageOES;
 /* GL_AMD_program_binary_Z400 */
 #ifndef GL_AMD_program_binary_Z400
 #define GL_Z400_BINARY_AMD                                      0x8740
+#endif
+
+#ifdef STE_HARDWARE
+/*------------------------------------------------------------------------*
+ * ARM extension tokens
+ *------------------------------------------------------------------------*/
+
+/* GL_ARM_mali_shader_binary */
+#ifndef GL_ARM_mali_shader_binary
+#define GL_MALI_SHADER_BINARY_ARM                               0x8F60
+#endif
+/* GL_ARM_rgba8 */
+/* No new tokens introduced by this extension. */
 #endif
 
 /*------------------------------------------------------------------------*
@@ -602,6 +623,22 @@ typedef void (GL_APIENTRYP PFNGLGETPERFMONITORCOUNTERDATAAMDPROC) (GLuint monito
 #define GL_AMD_program_binary_Z400 1
 #endif
 
+
+#ifdef STE_hARDWARE
+/*------------------------------------------------------------------------*
+ * ARM extension functions
+ *------------------------------------------------------------------------*/
+
+/* GL_ARM_mali_shader_binary */
+#ifndef GL_ARM_mali_shader_binary
+#define GL_ARM_mali_shader_binary 1
+#endif
+
+/* GL_ARM_rgba8 */
+#ifndef GL_ARM_rgba8
+#define GL_ARM_rgba8 1
+#endif
+#endif
 /*------------------------------------------------------------------------*
  * EXT extension functions
  *------------------------------------------------------------------------*/

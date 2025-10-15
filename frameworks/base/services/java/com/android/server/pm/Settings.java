@@ -971,7 +971,7 @@ final class Settings {
 
                     // Avoid any application that has a space in its path
                     // or that is handled by the system.
-                    if (dataPath.indexOf(" ") >= 0 || ai.uid <= Process.FIRST_APPLICATION_UID)
+                    if (dataPath.indexOf(" ") >= 0 || ai.uid < Process.FIRST_APPLICATION_UID)
                         continue;
 
                     // we store on each line the following information for now:
@@ -2010,7 +2010,7 @@ final class Settings {
             if (pkgSetting.notLaunched) {
                 if (pkgSetting.installerPackageName != null) {
                     PackageManagerService.sendPackageBroadcast(Intent.ACTION_PACKAGE_FIRST_LAUNCH,
-                            pkgSetting.name, null,
+                            pkgSetting.name, null, null,
                             pkgSetting.installerPackageName, null);
                 }
                 pkgSetting.notLaunched = false;

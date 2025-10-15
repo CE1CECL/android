@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="usb_toast_connecting">USB als %s verbonden.</string>
+    <string name="usb_toast_phone_data_disabled">Telefoongegevens worden uitgeschakeld.</string>
+    <string name="usb_selection_notification_title">USB-verbinding</string>
+    <string name="usb_selection_notification_message">Selecteer om uw USB-verbinding te beheren</string>
+    <string name="usb_selection_notification_message_for_modem">Tik om de verbinding te verbreken en de interne telefoongegevens opnieuw in te schakelen</string>
+    <string name="usb_tethered_message">USB-verbindingsmodus kan niet gewijzigd worden als USB-tethering aan is</string>
+    <string name="usb_connection">USB-verbinding</string>
+    <string name="usb_mode_ngp">Portaal &amp; hulpprogramma\'s (NGP)</string>
+    <string name="usb_mode_mtp">Media-apparaat (MTP)</string>
+    <string name="usb_mode_msc">Massaopslag (UMS)</string>
+    <string name="usb_mode_rndis">Netwerk (RNDIS)</string>
+    <string name="usb_mode_modem">Modem</string>
+    <string name="usb_mode_none">Alleen opladen</string>
+    <string name="usb_error_message">De USB-verbinding kan niet naar %s worden veranderd.</string>
+    <string name="preparing_ums">SD-kaart voorbereiden\u2026</string>
+    <string name="ums_ready">De SD-kaart is nu gedeeld via USB.</string>
+</resources>

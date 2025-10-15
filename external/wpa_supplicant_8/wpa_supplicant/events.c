@@ -450,7 +450,7 @@ static int wpa_supplicant_ssid_bss_match(struct wpa_supplicant *wpa_s,
 		return 0;
 	}
 
-	if (!wpa_key_mgmt_wpa(ssid->key_mgmt)) {
+	if (!wpa_key_mgmt_wpa(ssid->key_mgmt) && (!wpa_ie && !rsn_ie)) {
 		wpa_dbg(wpa_s, MSG_DEBUG, "   allow in non-WPA/WPA2");
 		return 1;
 	}
@@ -592,9 +592,10 @@ static struct wpa_ssid * wpa_scan_res_match(struct wpa_supplicant *wpa_s,
 			continue;
 		}
 
-		if (bss->caps & IEEE80211_CAP_IBSS) {
+		if ((bss->caps & IEEE80211_CAP_IBSS) &&
+				ssid->mode != IEEE80211_MODE_IBSS) {
 			wpa_dbg(wpa_s, MSG_DEBUG, "   skip - IBSS (adhoc) "
-				"network");
+				"mismatch");
 			continue;
 		}
 
@@ -778,6 +779,12 @@ wpa_supplicant_pick_new_network(struct wpa_supplicant *wpa_s)
 	int prio;
 	struct wpa_ssid *ssid;
 
+// Don't try to automatically start a new ad-hoc network if no network
+// is available on Android. It doesn't make sense as it'll fail anyway
+// because nothing will reply to the DHCP request. (It'll also
+// repeatedly fail because the frequency is not set and it'll keep
+// retrying draining battery.)
+#ifndef ANDROID
 	for (prio = 0; prio < wpa_s->conf->num_prio; prio++) {
 		for (ssid = wpa_s->conf->pssid[prio]; ssid; ssid = ssid->pnext)
 		{
@@ -788,6 +795,7 @@ wpa_supplicant_pick_new_network(struct wpa_supplicant *wpa_s)
 				return ssid;
 		}
 	}
+#endif
 	return NULL;
 }
 
@@ -992,6 +1000,7 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 		skip = !wpa_supplicant_need_to_roam(wpa_s, selected, ssid,
 						    scan_res);
 		wpa_scan_results_free(scan_res);
+		wpa_supplicant_rsn_preauth_scan_results(wpa_s);
 		if (skip)
 			return 0;
 #ifdef ANDROID_BRCM_P2P_PATCH
@@ -1002,7 +1011,6 @@ static int _wpa_supplicant_event_scan_results(struct wpa_supplicant *wpa_s,
 #else
 		wpa_supplicant_connect(wpa_s, selected, ssid);
 #endif
-		wpa_supplicant_rsn_preauth_scan_results(wpa_s);
 	} else {
 		wpa_scan_results_free(scan_res);
 		wpa_dbg(wpa_s, MSG_DEBUG, "No suitable network found");

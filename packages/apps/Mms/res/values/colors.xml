@@ -36,4 +36,7 @@
     <!-- the background color used for unread conversation -->
     <color name="unread_bgcolor">#ffffffff</color>
     <color name="read_bgcolor">#ffeeeeee</color>
+
+    <!-- Color of the text for buttons in the action bar  -->
+    <color name="action_bar_button_text_color">#FFFFFF</color>
 </resources>

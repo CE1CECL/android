@@ -20,7 +20,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_label" msgid="1503967887341230795">"Mensag."</string>
+    <string name="app_label" msgid="1503967887341230795">"Mensagens"</string>
     <string name="new_message" msgid="1530369762346003973">"Nova mensagem"</string>
     <string name="menu_call_back" msgid="7538482331117914146">"Ligar a <xliff:g id="NAME">%s</xliff:g>"</string>
     <string name="menu_send_email" msgid="671366308915241664">"Enviar e-mail a <xliff:g id="NAME">%s</xliff:g>"</string>
@@ -96,7 +96,7 @@
     <string name="discard_message_reason" msgid="2667664943003796133">"A mensagem será rejeitada porque não tem destinatários válidos."</string>
     <string name="has_invalid_recipient" msgid="1485388396900997383">"Recipiente(s) inválido(s): &lt;<xliff:g id="NAME">%1$s</xliff:g>&gt;"</string>
     <string name="invalid_destination" msgid="4573835601024786416">"Endereço de destino inválido."</string>
-    <string name="service_not_activated" msgid="9178218144019626176">"Serviço não ativado na rede."</string>
+    <string name="service_not_activated" msgid="9178218144019626176">"Serviço não activado na rede."</string>
     <string name="service_message_not_found" msgid="1908877102600048515">"Mensagem expirada ou não disponível."</string>
     <string name="service_network_problem" msgid="4583269174855943025">"Não foi possível enviar devido a um problema de rede."</string>
     <string name="invalid_recipient_message" msgid="6465343105010999068">"Corrija o(s) destinatário(s) para que a mensagem seja recebida."</string>
@@ -140,7 +140,7 @@
     <item msgid="7786079681602275449">"Outra"</item>
   </string-array>
     <string name="menu_view_contact" msgid="1414670584423909451">"Visualizar contacto"</string>
-    <string name="menu_add_to_contacts" msgid="1258127580972228970">"Adicionar a Pessoas"</string>
+    <string name="menu_add_to_contacts" msgid="1258127580972228970">"Adicionar aos contactos"</string>
     <string name="hidden_sender_address" msgid="2776075636669924968">"Endereço de remetente oculto"</string>
     <string name="yes" msgid="3246158147503160811">"OK"</string>
     <string name="no" msgid="4289742508556913860">"Cancelar"</string>
@@ -160,13 +160,13 @@
     <string name="pref_summary_sms_delivery_reports" msgid="5852207702358546129">"Pedir um relatório de entrega para cada mensagem enviada"</string>
     <string name="pref_summary_auto_delete" msgid="7719538116486177613">"Eliminar mensagens antigas quando os limites são atingidos"</string>
     <string name="pref_summary_delete_limit" msgid="597128041393045216">"<xliff:g id="COUNT">%1$s</xliff:g> mensagens por conversa"</string>
-    <string name="pref_title_manage_sim_messages" msgid="7820895261757881177">"Gerir as mensagens do cartão SIM"</string>
+    <string name="pref_title_manage_sim_messages" msgid="7820895261757881177">"Gerir mensagens do cartão SIM"</string>
     <string name="pref_title_mms_delivery_reports" msgid="6666857926679451910">"Relatórios de entrega"</string>
     <string name="pref_title_mms_read_reports" msgid="4882179829495828541">"Relatórios de leitura"</string>
     <string name="pref_title_sms_delivery_reports" msgid="876064208254451038">"Relatórios de entrega"</string>
     <string name="pref_title_auto_delete" msgid="7227835692631701134">"Eliminar mens. antigas"</string>
     <string name="pref_title_sms_delete" msgid="6890538316799296878">"Limite de mensagens de texto"</string>
-    <string name="pref_title_mms_delete" msgid="7265878070847351664">"Limite mens. multimédia"</string>
+    <string name="pref_title_mms_delete" msgid="7265878070847351664">"Limite de mensag. multimédia"</string>
     <string name="pref_title_notification_enabled" msgid="9118792213953729414">"Notificações"</string>
     <string name="pref_summary_notification_enabled" msgid="619729096820999905">"Apresentar notificações de mensagem na barra de estado"</string>
     <string name="pref_title_notification_vibrateWhen" msgid="4251208067092761057">"Vibrar"</string>
@@ -330,4 +330,52 @@
     <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> pessoas"</item>
   </plurals>
     <string name="disable_notifications_dialog_message" msgid="7644011234972074096">"Parar notificações de mensagens de texto duplicadas na aplicação predefinida de Mensagens?"</string>
+    <string name="pref_title_sms_split_counter">Contador de separação</string>
+    <string name="pref_summary_sms_split_counter">Adiciona contador à mensagem. ex: (1/2)</string>
+    <string name="menu_insert_emoji">Inserir emoticons</string>
+    <string name="label_mms_push">Envia MMS</string>
+    <string name="desc_mms_push">Envia MMS da caixa de saída para a rede</string>
+    <string name="prefs_templates_settings">Modelos de sms</string>
+    <string name="pref_title_templates_manage">Modelos</string>
+    <string name="pref_summary_templates_manage">Gerir modelos de sms</string>
+    <string name="pref_title_templates_show_gesture">Gesto</string>
+    <string name="pref_summary_templates_show_gesture">Mostra o traçado do gesto</string>
+    <string name="pref_title_template_gestures_sensitivity">Sensibilidade do gesto</string>
+    <string name="template_save">Guardar</string>
+    <string name="template_insert_hint">Inserir aqui o texto modelo</string>
+    <string name="template_empty_text">O campo de texto não pode estar vazio</string>
+    <string name="template_explanation">Inserir ou modificar o modelo de texto e opcionalmente traçar um gesto para associar ao modelo</string>
+    <string name="template_edit">Editar</string>
+    <string name="template_delete">Excluir</string>
+    <string name="template_ctx_menu_title">Acções</string>
+    <string name="template_list_title">Modelos</string>
+    <string name="template_new_title">Novo modelo</string>
+    <string name="template_insert">Inserir modelo</string>
+    <string name="template_gesture_draw">Traçar um gesto no espaço abaixo</string>
+    <string name="template_not_present_error">Não tem modelos definidos</string>
+    <string name="template_not_present_error_title">Erro</string>
+    <string name="template_select">Seleccione um modelo</string>
+    <string name="template_cancel_confirm_title">Aviso</string>
+    <string name="template_cancel_confirm_text">O modelo irá ser apagado. Prosseguir?</string>
+    <string name="gestures_already_present">Aviso: Um gesto semelhante está associado a outro modelo!</string>
+    <string name="pref_extra_settings">Preferências extras</string>
+    <string name="pref_title_strip_unicode">Remover unicode</string>
+    <string name="pref_summary_strip_unicode">Substitui caracteres comuns que não são suportado em mensagens SMS de 160 caracteres</string>
+    <string name="pref_title_enable_emojis">Suporte a emoticons</string>
+    <string name="pref_summary_enable_emojis">Activa o suporte a emoticons em unicode, um conjunto de 471 emoticons interessantes</string>
+    <string name="pref_title_mms_full_timestamp">Data completa</string>
+    <string name="pref_summary_mms_full_timestamp">Mostra a data e hora</string>
+    <string name="pref_title_mms_use_sent_timestamp">Data/hora original</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Mostra a data de envio invés da data de recepção</string>
+    <string name="pref_title_mms_notification_vibrate_settings">Preferências de vibração</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Padrão de vibração</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Trocar o padrão de vibração</string>
+    <string name="pref_title_mms_notification_vibrate_call">Vibrar em Chamada</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Permitir vibração durante uma chamada</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Personalizar padrão de vibração</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Formato desligado/ligado em milissegundos: desligado, ligado, desligado, ...</string>
+    <string name="pref_title_sms_EnableMultipartSMS">SMS para MMS</string>
+    <string name="pref_summary_sms_EnableMultipartSMS">Transformar mensagens SMS longas em MMS</string>
+    <string name="pref_title_sms_SmsToMmsTextThreshold">Contar SMS</string>
+    <string name="pref_summary_sms_SmsToMmsTextThreshold">"<xliff:g id="COUNT" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">%1$s</xliff:g> mensagens antes da conversão para MMS"</string>
 </resources>

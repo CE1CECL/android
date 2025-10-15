@@ -173,11 +173,20 @@
     <string name="pref_summary_notification_vibrateWhen" msgid="669655090822561447">"收到通知时还振动提醒"</string>
     <string name="pref_title_notification_ringtone" msgid="5467265237106229952">"选择铃声"</string>
     <string name="pref_messages_to_save" msgid="3202539743892934926">"设置要保存的信息数量"</string>
-  <string-array name="prefEntries_vibrateWhen">
-    <item msgid="2520871831815631409">"始终"</item>
-    <item msgid="6069709696037750627">"仅在静音时"</item>
-    <item msgid="7486145357487111435">"一律不"</item>
-  </string-array>
+
+    <!-- Settings item for the soft keyboard picker -->
+    <string name="pref_title_input_type">软键盘选择</string>
+    <string name="pref_summary_input_type">选择创建信息时使用的软键盘</string>
+
+    <!-- Settings item for boolean option for SMS Split Counter -->
+    <string name="pref_title_sms_split_counter">分割编号</string>
+    <!-- Settings item description for boolean SMS Split 160 characters setting -->
+    <string name="pref_summary_sms_split_counter">在分割的消息中加入编号，例如：(1/2)</string>
+    <string-array name="prefEntries_vibrateWhen">
+      <item msgid="2520871831815631409">"始终"</item>
+      <item msgid="6069709696037750627">"仅在静音时"</item>
+      <item msgid="7486145357487111435">"一律不"</item>
+    </string-array>
     <string name="prefDialogTitle_vibrateWhen" msgid="6419655771690242118">"振动"</string>
     <string name="pref_title_mms_auto_retrieval" msgid="4021878285474431355">"自动检索"</string>
     <string name="pref_summary_mms_auto_retrieval" msgid="925163257363757048">"自动检索信息"</string>
@@ -328,4 +337,56 @@
     <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> 个人"</item>
   </plurals>
     <string name="disable_notifications_dialog_message" msgid="7644011234972074096">"要停止从默认“短信”应用程序接收重复的短信通知吗？"</string>
+    <!-- Sms templates -->
+    <string name="prefs_templates_settings">短信模板</string>
+    <string name="pref_title_templates_manage">模板</string>
+    <string name="pref_summary_templates_manage">管理您的短信模板</string>
+    <string name="pref_title_templates_show_gesture">手势</string>
+    <string name="pref_summary_templates_show_gesture">显示手势轨迹</string>
+    <string name="pref_title_template_gestures_sensitivity">手势灵敏度</string>
+    <string name="template_save">保存</string>
+    <string name="template_insert_hint">在此输入模板文本</string>
+    <string name="template_empty_text">文本栏不能为空</string>
+    <string name="template_explanation">插入或修改模板文本并且可以画一个手势与它关联。</string>
+    <string name="template_edit">编辑</string>
+    <string name="template_delete">删除</string>
+    <string name="template_ctx_menu_title">动作</string>
+    <string name="template_list_title">模板</string>
+    <string name="template_new_title">新建模板</string>
+    <string name="template_insert">插入模板</string>
+    <string name="template_gesture_draw">在下面的空白处画出您想关联的手势</string>
+    <string name="template_not_present_error">您没有定义任何模板</string>
+    <string name="template_not_present_error_title">错误</string>
+    <string name="template_select">选择一个模板</string>
+    <string name="template_cancel_confirm_title">警告</string>
+    <string name="template_cancel_confirm_text">这个模板将会被删除。您确定要继续？</string>
+    <string name="gestures_already_present">警告：一个相似的手势已关联了另一个模板！</string>
+    <!-- Extra Settings: -->
+    <string name="pref_extra_settings">其他设置</string>
+    <!-- Strip unicode -->
+    <string name="pref_title_strip_unicode">除去 unicode</string>
+    <string name="pref_summary_strip_unicode">在160字符短信内把不支持的字符替换掉</string>
+    <!-- Enable emojis -->
+    <string name="pref_title_enable_emojis">绘文字支持</string>
+    <string name="pref_summary_enable_emojis">开启绘文字（一套471个视觉情感符号）的支持</string>
+    <!-- Full timestamps -->
+    <string name="pref_title_mms_full_timestamp">完整时间戳</string>
+    <string name="pref_summary_mms_full_timestamp">在时间戳中显示日期和时间</string>
+    <!-- Which timestamps -->
+    <string name="pref_title_mms_use_sent_timestamp">原始时间戳</string>
+    <string name="pref_summary_mms_use_sent_timestamp">在时间戳中显示发送时间而不是接收时间</string>
+
+    <!-- Change Vibrate pattern/method for message notification -->
+    <string name="pref_title_mms_notification_vibrate_settings">震动设置</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">震动形式</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">更改震动形式</string>
+    <string name="pref_title_mms_notification_vibrate_call">通话时震动</string>
+    <string name="pref_summary_mms_notification_vibrate_call">允许通话时震动</string>
+    <string name="pref_title_mms_notification_vibrate_custom">自定义震动形式</string>
+    <string name="pref_text_mms_notification_vibrate_custom">格式 关/开 每毫秒: 关, 开, 关, 开, ...</string>
+
+    <string name="pref_title_sms_EnableMultipartSMS">"短信转至彩信"</string>
+    <string name="pref_summary_sms_EnableMultipartSMS">"将较长的短信转化为彩信"</string>
+    <string name="pref_title_sms_SmsToMmsTextThreshold">"短信数量"</string>
+    <string name="pref_summary_sms_SmsToMmsTextThreshold">"<xliff:g id="COUNT">%1$s</xliff:g> 条信息将被转化为彩信"</string>
 </resources>

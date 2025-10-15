@@ -76,10 +76,10 @@ LOCAL_MODULE:=hciconfig
 
 include $(BUILD_EXECUTABLE)
 
+ifneq ($(BOARD_HAVE_BLUETOOTH_CUSTOM_HCITOOL), true)
 #
 # hcitool
 #
-
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:= \
@@ -101,6 +101,8 @@ LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE:=hcitool
 
 include $(BUILD_EXECUTABLE)
+
+endif
 
 #
 # l2ping
@@ -124,6 +126,8 @@ LOCAL_MODULE:=l2ping
 
 include $(BUILD_EXECUTABLE)
 
+
+ifneq ($(BOARD_HAVE_BLUETOOTH_CUSTOM_HCIATTACH), true)
 #
 # hciattach
 #
@@ -154,6 +158,8 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_MODULE:=hciattach
 
 include $(BUILD_EXECUTABLE)
+
+endif
 
 #
 # rfcomm
@@ -212,6 +218,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libbluetooth libbluetoothd
 
 LOCAL_MODULE:=bccmd
+LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_EXECUTABLE)
 endif

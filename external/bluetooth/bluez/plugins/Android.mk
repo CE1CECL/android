@@ -6,10 +6,16 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
+ifneq ($(BOARD_HAVE_BLUETOOTH_STE),true)
 LOCAL_SRC_FILES:= \
 	hciops.c \
 	mgmtops.c \
-	dbusoob.c \
+	dbusoob.c
+else
+LOCAL_SRC_FILES:= \
+	ste-hciops.c \
+	ste-dbusoob.c
+endif
 
 LOCAL_CFLAGS:= \
 	-DVERSION=\"4.93\" \

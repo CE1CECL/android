@@ -67,6 +67,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
+#include <cstddef>
 #include <climits>
 
 #include <pixelflinger2/pixelflinger2_interface.h>

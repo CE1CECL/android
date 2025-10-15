@@ -30,6 +30,9 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/sdp.h>
 
+#ifdef STE_BT
+#include "glib-compat.h"
+#endif
 #include "glib-helper.h"
 #include "eir.h"
 

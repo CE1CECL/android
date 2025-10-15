@@ -439,7 +439,6 @@ public class RunningServiceDetails extends Fragment
         
         mAllDetails = (ViewGroup)view.findViewById(R.id.all_details);
         mSnippet = (ViewGroup)view.findViewById(R.id.snippet);
-        mSnippet.setBackgroundResource(com.android.internal.R.drawable.title_bar_medium);
         mSnippet.setPadding(0, mSnippet.getPaddingTop(), 0, mSnippet.getPaddingBottom());
         mSnippetViewHolder = new RunningProcessesView.ViewHolder(mSnippet);
         
@@ -508,7 +507,7 @@ public class RunningServiceDetails extends Fragment
                     
                     return new AlertDialog.Builder(getActivity())
                             .setTitle(getActivity().getString(R.string.runningservicedetails_stop_dlg_title))
-                            .setIcon(android.R.drawable.ic_dialog_alert)
+                            .setIconAttribute(android.R.attr.alertDialogIcon)
                             .setMessage(getActivity().getString(R.string.runningservicedetails_stop_dlg_text))
                             .setPositiveButton(R.string.dlg_ok,
                                     new DialogInterface.OnClickListener() {

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +19,17 @@ package android.app;
 
 import com.android.internal.policy.PolicyManager;
 
+import android.accounts.AccountManager;
+import android.accounts.IAccountManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.IContentProvider;
+import android.content.IIntentReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.IIntentReceiver;
 import android.content.IntentSender;
 import android.content.ReceiverCallNotAllowedException;
 import android.content.ServiceConnection;
@@ -36,6 +39,8 @@ import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.content.res.CompatibilityInfo;
+import android.content.res.Configuration;
+import android.content.res.CustomTheme;
 import android.content.res.Resources;
 import android.database.DatabaseErrorHandler;
 import android.database.sqlite.SQLiteDatabase;
@@ -61,6 +66,8 @@ import android.net.wifi.IWifiManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.IWifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wimax.WimaxHelper;
+import android.net.wimax.WimaxManagerConstants;
 import android.nfc.NfcManager;
 import android.os.Binder;
 import android.os.Bundle;
@@ -99,6 +106,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import com.stericsson.hardware.fm.IFmReceiver;
+import com.stericsson.hardware.fm.IFmTransmitter;
+import com.stericsson.hardware.fm.FmReceiver;
+import com.stericsson.hardware.fm.FmTransmitter;
+import com.stericsson.hardware.fm.FmReceiverImpl;
+import com.stericsson.hardware.fm.FmTransmitterImpl;
 
 class ReceiverRestrictedContext extends ContextWrapper {
     ReceiverRestrictedContext(Context base) {
@@ -452,6 +466,31 @@ class ContextImpl extends Context {
                 public Object getService(ContextImpl ctx) {
                     return WindowManagerImpl.getDefault(ctx.mPackageInfo.mCompatibilityInfo);
                 }});
+
+        registerService(WimaxManagerConstants.WIMAX_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    return WimaxHelper.createWimaxService(ctx, ctx.mMainThread.getHandler());
+                }});
+
+        registerService(PROFILE_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    final Context outerContext = ctx.getOuterContext();
+                    return new ProfileManager (outerContext, ctx.mMainThread.getHandler());
+                }});
+
+        registerService("fm_receiver", new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    IBinder b = ServiceManager.getService("fm_receiver");
+                    IFmReceiver service = IFmReceiver.Stub.asInterface(b);
+                    return new FmReceiverImpl(service);
+                }});
+
+        registerService("fm_transmitter", new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    IBinder b = ServiceManager.getService("fm_transmitter");
+                    IFmTransmitter service = IFmTransmitter.Stub.asInterface(b);
+                    return new FmTransmitterImpl(service);
+                }});
     }
 
     static ContextImpl getImpl(Context context) {
@@ -476,6 +515,20 @@ class ContextImpl extends Context {
     @Override
     public Resources getResources() {
         return mResources;
+    }
+
+    /**
+     * Refresh resources object which may have been changed by a theme
+     * configuration change.
+     */
+    /* package */ void refreshResourcesIfNecessary() {
+        if (mResources == Resources.getSystem()) {
+            return;
+        }
+
+        if (mPackageInfo.mCompatibilityInfo.get().isThemeable) {
+            mTheme = null;
+        }
     }
 
     @Override

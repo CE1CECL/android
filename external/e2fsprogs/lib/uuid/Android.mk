@@ -15,7 +15,7 @@ libext2_uuid_src_files := \
 
 libext2_uuid_c_includes := external/e2fsprogs/lib
 
-libext2_uuid_cflags := -O2 -g -W -Wall \
+libext2_uuid_cflags := -Os -g -W -Wall \
 	-DHAVE_INTTYPES_H \
 	-DHAVE_UNISTD_H \
 	-DHAVE_ERRNO_H \
@@ -54,6 +54,18 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(libext2_uuid_src_files)
+LOCAL_C_INCLUDES := $(libext2_uuid_c_includes)
+LOCAL_CFLAGS := $(libext2_uuid_cflags)
+LOCAL_STATIC_LIBRARIES := $(libext2_uuid_system_shared_libraries)
+LOCAL_MODULE := libext2_uuid
+LOCAL_MODULE_TAGS := eng
+LOCAL_PRELINK_MODULE := false
+
+include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 

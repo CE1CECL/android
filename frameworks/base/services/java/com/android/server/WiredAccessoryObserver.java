@@ -1,4 +1,4 @@
-/*
+	/*
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.UEventObserver;
+import android.provider.Settings;
 import android.util.Slog;
-import android.media.AudioManager;
 import android.util.Log;
 
 import java.io.FileReader;
@@ -40,6 +41,7 @@ class WiredAccessoryObserver extends UEventObserver {
     private static final String TAG = WiredAccessoryObserver.class.getSimpleName();
     private static final boolean LOG = true;
     private static final int MAX_AUDIO_PORTS = 3; /* h2w, USB Audio & hdmi */
+    private static final int MAX_AUDIO_PORTS_DOCK = 1;
     private static final String uEventInfo[][] = { {"DEVPATH=/devices/virtual/switch/h2w",
                                                     "/sys/class/switch/h2w/state",
                                                     "/sys/class/switch/h2w/name"},
@@ -50,6 +52,10 @@ class WiredAccessoryObserver extends UEventObserver {
                                                     "/sys/class/switch/hdmi/state",
                                                     "/sys/class/switch/hdmi/name"} };
 
+    private static final String uEventInfoDock[][] = { {"DEVPATH=/devices/virtual/switch/dock",
+                                                        "/sys/class/switch/dock/state",
+                                                        "/sys/class/switch/dock/name"} };
+
     private static final int BIT_HEADSET = (1 << 0);
     private static final int BIT_HEADSET_NO_MIC = (1 << 1);
     private static final int BIT_USB_HEADSET_ANLG = (1 << 2);
@@ -59,6 +65,8 @@ class WiredAccessoryObserver extends UEventObserver {
                                                    BIT_USB_HEADSET_ANLG|BIT_USB_HEADSET_DGTL|
                                                    BIT_HDMI_AUDIO);
     private static final int HEADSETS_WITH_MIC = BIT_HEADSET;
+
+    public static final String DOCK_AUDIO_SETTING_CHANGED = "DOCK_AUDIO_SETTING_CHANGED";
 
     private int mHeadsetState;
     private int mPrevHeadsetState;
@@ -74,20 +82,50 @@ class WiredAccessoryObserver extends UEventObserver {
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "WiredAccessoryObserver");
         mWakeLock.setReferenceCounted(false);
 
+        final IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_BOOT_COMPLETED);
+        filter.addAction(DOCK_AUDIO_SETTING_CHANGED);
+
         context.registerReceiver(new BootCompletedReceiver(),
-            new IntentFilter(Intent.ACTION_BOOT_COMPLETED), null, null);
+            filter, null, null);
     }
 
     private final class BootCompletedReceiver extends BroadcastReceiver {
       @Override
       public void onReceive(Context context, Intent intent) {
-        // At any given time accessories could be inserted
-        // one on the board, one on the dock and one on HDMI:
-        // observe three UEVENTs
-        init();  // set initial status
-        for (int i = 0; i < MAX_AUDIO_PORTS; i++) {
-            startObserving(uEventInfo[i][0]);
-        }
+        final String action = intent.getAction();
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)) {
+
+            // At any given time accessories could be inserted
+            // one on the board, one on the dock and one on HDMI:
+            // observe three UEVENTs
+            init();  // set initial status
+
+            for (int i = 0; i < MAX_AUDIO_PORTS; i++) {
+                startObserving(uEventInfo[i][0]);
+            }
+
+            // Do we actually need/want to hack the system and look at the dock uevents?
+            if (Settings.System.getInt(context.getContentResolver(),
+                    Settings.System.DOCK_USB_AUDIO_ENABLED, 0) == 1) {
+                for (int i = 0; i < MAX_AUDIO_PORTS_DOCK; i++) {
+                    startObserving(uEventInfoDock[i][0]);
+                }
+            }
+        } else  if (DOCK_AUDIO_SETTING_CHANGED.equals(action)) {
+             // DOCK CHANGED
+              if (Settings.System.getInt(context.getContentResolver(),
+                    Settings.System.DOCK_USB_AUDIO_ENABLED, 0) == 1) {
+                  for (int i = 0; i < MAX_AUDIO_PORTS_DOCK; i++) {
+                      startObserving(uEventInfoDock[i][0]);
+                  }
+              } else {
+                  stopObserving();
+                  for (int i = 0; i < MAX_AUDIO_PORTS; i++) {
+                      startObserving(uEventInfo[i][0]);
+                  }
+              }
+          }
       }
   }
 
@@ -106,20 +144,37 @@ class WiredAccessoryObserver extends UEventObserver {
 
     private synchronized final void updateState(String name, int state)
     {
+        if (LOG) Slog.v(TAG, "updateState name: " + name + " state " + state);
         if (name.equals("usb_audio")) {
             switchState = ((mHeadsetState & (BIT_HEADSET|BIT_HEADSET_NO_MIC|BIT_HDMI_AUDIO)) |
                            ((state == 1) ? BIT_USB_HEADSET_ANLG :
                                          ((state == 2) ? BIT_USB_HEADSET_DGTL : 0)));
+        } else if (name.equals("dock")) {
+             switchState = ((mHeadsetState & (BIT_HEADSET|BIT_HEADSET_NO_MIC|BIT_HDMI_AUDIO)) |
+                           ((state == 2 || state == 1) ? BIT_USB_HEADSET_ANLG : 0));
+            // This sets the switchsate to 4 (for USB HEADSET - BIT_USB_HEADSET_ANLG)
+            // Looking at the other types, maybe the state that emitted should be a 1 and at 
+            //       /devices/virtual/switch/usb_audio
+            //
+            // However the we need to deal with changes at
+            //       /devices/virtual/switch/dock
+            // for the state of 2 - means that we have a USB ANLG headset Car Dock
+            // for the state of 1 - means that we have a USB ANLG headset Desk Dock
         } else if (name.equals("hdmi")) {
             switchState = ((mHeadsetState & (BIT_HEADSET|BIT_HEADSET_NO_MIC|
                                              BIT_USB_HEADSET_DGTL|BIT_USB_HEADSET_ANLG)) |
                            ((state == 1) ? BIT_HDMI_AUDIO : 0));
+        } else if (name.equals("Headset")) {
+            switchState = ((mHeadsetState & (BIT_HDMI_AUDIO|BIT_USB_HEADSET_ANLG|
+                                             BIT_USB_HEADSET_DGTL)) |
+                                             (state & (BIT_HEADSET|BIT_HEADSET_NO_MIC)));
         } else {
             switchState = ((mHeadsetState & (BIT_HDMI_AUDIO|BIT_USB_HEADSET_ANLG|
                                              BIT_USB_HEADSET_DGTL)) |
                             ((state == 1) ? BIT_HEADSET :
                                           ((state == 2) ? BIT_HEADSET_NO_MIC : 0)));
         }
+        if (LOG) Slog.v(TAG, "updateState switchState: " + switchState);
         update(name, switchState);
     }
 
@@ -226,7 +281,6 @@ class WiredAccessoryObserver extends UEventObserver {
 
     private final void sendIntent(int headset, int headsetState, int prevHeadsetState, String headsetName) {
         if ((headsetState & headset) != (prevHeadsetState & headset)) {
-
             int state = 0;
             if ((headsetState & headset) != 0) {
                 state = 1;
@@ -234,7 +288,6 @@ class WiredAccessoryObserver extends UEventObserver {
             if((headset == BIT_USB_HEADSET_ANLG) || (headset == BIT_USB_HEADSET_DGTL) ||
                (headset == BIT_HDMI_AUDIO)) {
                 Intent intent;
-
                 //  Pack up the values and broadcast them to everyone
                 if (headset == BIT_USB_HEADSET_ANLG) {
                     intent = new Intent(Intent.ACTION_USB_ANLG_HEADSET_PLUG);

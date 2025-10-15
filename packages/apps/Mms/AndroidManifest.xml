@@ -40,7 +40,12 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INSTALL_DRM" />
-
+    <!-- Grant permission to system apps to access receiver -->
+    <permission android:name="android.permission.MMS_PUSH"
+                android:protectionLevel="signatureOrSystem"
+                android:label="@string/label_mms_push"
+                android:description="@string/desc_mms_push"/>
+    <uses-permission android:name="android.permission.MMS_PUSH"/>
     <application android:name="MmsApp"
             android:label="@string/app_label"
             android:icon="@mipmap/ic_launcher_smsmms"
@@ -193,6 +198,13 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name=".transaction.MmsSystemPushMsgReceiver"
+                  android:permission="android.permission.MMS_PUSH">
+                  <intent-filter>
+                      <action android:name="android.intent.action.MMS_PUSH" />
+                  </intent-filter>
+	</receiver>
+
         <activity android:name=".ui.ManageSimMessages"
                   android:theme="@style/MmsHoloTheme"
                   android:launchMode="singleTop"
@@ -299,6 +311,20 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".templates.TemplatesListActivity"
+            android:theme="@style/MmsHoloTheme"
+            android:label="@string/template_list_title" >
+        </activity>
+
+        <activity android:name=".templates.TemplateEditor"
+            android:theme="@style/MmsHoloTheme"
+            android:label="@string/template_new_title">
+        </activity>
+        <provider
+            android:name=".templates.TemplatesProvider"
+            android:authorities="com.android.cm.mms" />
 
     </application>
 </manifest>

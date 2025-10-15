@@ -58,9 +58,15 @@ static int property_triggers_enabled = 0;
 static int   bootchart_count;
 #endif
 
+#ifndef BOARD_CHARGING_CMDLINE_NAME
+#define BOARD_CHARGING_CMDLINE_NAME "androidboot.battchg_pause"
+#define BOARD_CHARGING_CMDLINE_VALUE "true"
+#endif
+
 static char console[32];
 static char serialno[32];
 static char bootmode[32];
+static char battchg_pause[32];
 static char baseband[32];
 static char carrier[32];
 static char bootloader[32];
@@ -88,6 +94,10 @@ static char *console_name = "/dev/console";
 static time_t process_needs_restart;
 
 static const char *ENV[32];
+
+static unsigned emmc_boot = 0;
+
+static unsigned charging_mode = 0;
 
 /* add_environment - add "key=value" to the current environment */
 int add_environment(const char *key, const char *val)
@@ -155,7 +165,7 @@ void service_start(struct service *svc, const char *dynamic_args)
          * state and immediately takes it out of the restarting
          * state if it was in there
          */
-    svc->flags &= (~(SVC_DISABLED|SVC_RESTARTING|SVC_RESET));
+    svc->flags &= (~(SVC_DISABLED|SVC_RESTARTING|SVC_RESET|SVC_RESTART));
     svc->time_started = 0;
 
         /* running processes require no additional work -- if
@@ -301,15 +311,14 @@ void service_start(struct service *svc, const char *dynamic_args)
         notify_service_state(svc->name, "running");
 }
 
-/* The how field should be either SVC_DISABLED or SVC_RESET */
+/* The how field should be either SVC_DISABLED, SVC_RESET, or SVC_RESTART */
 static void service_stop_or_reset(struct service *svc, int how)
 {
-        /* we are no longer running, nor should we
-         * attempt to restart
-         */
-    svc->flags &= (~(SVC_RUNNING|SVC_RESTARTING));
+    /* The service is still SVC_RUNNING until its process exits, but if it has
+     * already exited it shoudn't attempt a restart yet. */
+    svc->flags &= (~SVC_RESTARTING);
 
-    if ((how != SVC_DISABLED) && (how != SVC_RESET)) {
+    if ((how != SVC_DISABLED) && (how != SVC_RESET) && (how != SVC_RESTART)) {
         /* Hrm, an illegal flag.  Default to SVC_DISABLED */
         how = SVC_DISABLED;
     }
@@ -339,6 +348,17 @@ void service_reset(struct service *svc)
 void service_stop(struct service *svc)
 {
     service_stop_or_reset(svc, SVC_DISABLED);
+}
+
+void service_restart(struct service *svc)
+{
+    if (svc->flags & SVC_RUNNING) {
+        /* Stop, wait, then start the service. */
+        service_stop_or_reset(svc, SVC_RESTART);
+    } else if (!(svc->flags & SVC_RESTARTING)) {
+        /* Just start the service since it's not running. */
+        service_start(svc, NULL);
+    } /* else: Service is restarting anyways. */
 }
 
 void property_changed(const char *name, const char *value)
@@ -407,6 +427,17 @@ static void msg_stop(const char *name)
     }
 }
 
+static void msg_restart(const char *name)
+{
+    struct service *svc = service_find_by_name(name);
+
+    if (svc) {
+        service_restart(svc);
+    } else {
+        ERROR("no such service '%s'\n", name);
+    }
+}
+
 void handle_control_message(const char *msg, const char *arg)
 {
     if (!strcmp(msg,"start")) {
@@ -414,8 +445,7 @@ void handle_control_message(const char *msg, const char *arg)
     } else if (!strcmp(msg,"stop")) {
         msg_stop(arg);
     } else if (!strcmp(msg,"restart")) {
-        msg_stop(arg);
-        msg_start(arg);
+        msg_restart(arg);
     } else {
         ERROR("unknown control msg '%s'\n", msg);
     }
@@ -438,6 +468,8 @@ static void import_kernel_nv(char *name, int in_qemu)
             strlcpy(console, value, sizeof(console));
         } else if (!strcmp(name,"androidboot.mode")) {
             strlcpy(bootmode, value, sizeof(bootmode));
+        } else if (!strcmp(name,BOARD_CHARGING_CMDLINE_NAME)) {
+            strlcpy(battchg_pause, value, sizeof(battchg_pause));
         } else if (!strcmp(name,"androidboot.serialno")) {
             strlcpy(serialno, value, sizeof(serialno));
         } else if (!strcmp(name,"androidboot.baseband")) {
@@ -448,10 +480,14 @@ static void import_kernel_nv(char *name, int in_qemu)
             strlcpy(bootloader, value, sizeof(bootloader));
         } else if (!strcmp(name,"androidboot.hardware")) {
             strlcpy(hardware, value, sizeof(hardware));
+        } else if (!strcmp(name,"androidboot.emmc")) {
+            if (!strcmp(value,"true")) {
+                emmc_boot = 1;
+            }
         } else if (!strcmp(name,"androidboot.modelno")) {
             strlcpy(modelno, value, sizeof(modelno));
         }
-    } else {
+     } else {
         /* in the emulator, export any kernel option with the
          * ro.kernel. prefix */
         char  buff[32];
@@ -521,12 +557,31 @@ static int wait_for_coldboot_done_action(int nargs, char **args)
     return ret;
 }
 
+static int charging_mode_booting(void)
+{
+#ifndef BOARD_CHARGING_MODE_BOOTING_LPM
+    return 0;
+#else
+    int f;
+    char cmb;
+    f = open(BOARD_CHARGING_MODE_BOOTING_LPM, O_RDONLY);
+    if (f < 0)
+        return 0;
+
+    if (1 != read(f, (void *)&cmb,1))
+        return 0;
+
+    close(f);
+    return ('1' == cmb);
+#endif
+}
+
 static int property_init_action(int nargs, char **args)
 {
     bool load_defaults = true;
 
     INFO("property init\n");
-    if (!strcmp(bootmode, "charger"))
+    if (charging_mode)
         load_defaults = false;
     property_init(load_defaults);
     return 0;
@@ -605,6 +660,7 @@ static int set_init_properties_action(int nargs, char **args)
     property_set("ro.hardware", hardware);
     snprintf(tmp, PROP_VALUE_MAX, "%d", revision);
     property_set("ro.revision", tmp);
+    property_set("ro.emmc",emmc_boot ? "1" : "0");
     return 0;
 }
 
@@ -709,15 +765,38 @@ int main(int argc, char **argv)
     klog_init();
 
     INFO("reading config file\n");
-    init_parse_config_file("/init.rc");
+
+    if (!charging_mode_booting())
+       init_parse_config_file("/init.rc");
+    else
+       init_parse_config_file("/lpm.rc");
 
     /* pull the kernel commandline and ramdisk properties file in */
     import_kernel_cmdline(0, import_kernel_nv);
     /* don't expose the raw commandline to nonpriv processes */
     chmod("/proc/cmdline", 0440);
+
     get_hardware_name(hardware, &revision);
-    snprintf(tmp, sizeof(tmp), "/init.%s.rc", hardware);
-    init_parse_config_file(tmp);
+
+    if (strcmp(bootmode, "charger") == 0 || strcmp(battchg_pause, BOARD_CHARGING_CMDLINE_VALUE) == 0)
+        charging_mode = 1;
+
+    if (!charging_mode_booting()) {
+         snprintf(tmp, sizeof(tmp), "/init.%s.rc", hardware);
+         init_parse_config_file(tmp);
+
+        /* Check for an emmc initialisation file and read if present */
+        if (emmc_boot && access("/init.emmc.rc", R_OK) == 0) {
+            INFO("Reading emmc config file");
+                init_parse_config_file("/init.emmc.rc");
+        }
+
+        /* Check for a target specific initialisation file and read if present */
+        if (access("/init.target.rc", R_OK) == 0) {
+            INFO("Reading target specific config file");
+                init_parse_config_file("/init.target.rc");
+        }
+    }
 
     action_for_each_trigger("early-init", action_add_queue_tail);
 
@@ -733,7 +812,11 @@ int main(int argc, char **argv)
     /* skip mounting filesystems in charger mode */
     if (strcmp(bootmode, "charger") != 0) {
         action_for_each_trigger("early-fs", action_add_queue_tail);
-        action_for_each_trigger("fs", action_add_queue_tail);
+        if (emmc_boot) {
+            action_for_each_trigger("emmc-fs", action_add_queue_tail);
+        } else {
+            action_for_each_trigger("fs", action_add_queue_tail);
+        }
         action_for_each_trigger("post-fs", action_add_queue_tail);
         action_for_each_trigger("post-fs-data", action_add_queue_tail);
     }
@@ -742,7 +825,7 @@ int main(int argc, char **argv)
     queue_builtin_action(signal_init_action, "signal_init");
     queue_builtin_action(check_startup_action, "check_startup");
 
-    if (!strcmp(bootmode, "charger")) {
+    if (charging_mode) {
         action_for_each_trigger("charger", action_add_queue_tail);
     } else {
         action_for_each_trigger("early-boot", action_add_queue_tail);
@@ -750,7 +833,7 @@ int main(int argc, char **argv)
     }
 
         /* run all property triggers based on current state of the properties */
-    queue_builtin_action(queue_property_triggers_action, "queue_propety_triggers");
+    queue_builtin_action(queue_property_triggers_action, "queue_property_triggers");
 
 
 #if BOOTCHART

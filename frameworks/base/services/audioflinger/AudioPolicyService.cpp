@@ -23,6 +23,8 @@
 #include <stdint.h>
 
 #include <sys/time.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #include <binder/IServiceManager.h>
 #include <utils/Log.h>
 #include <cutils/properties.h>
@@ -56,6 +58,27 @@ static bool checkPermission() {
     if (!ok) LOGE("Request requires android.permission.MODIFY_AUDIO_SETTINGS");
     return ok;
 }
+
+/* Returns true if HDMI mode, false if DVI or on errors */
+#ifdef QCOM_HARDWARE
+static bool isHDMIMode() {
+    char mode = '0';
+    const char* SYSFS_HDMI_MODE =
+        "/sys/devices/virtual/graphics/fb1/hdmi_mode";
+    int modeFile = open (SYSFS_HDMI_MODE, O_RDONLY, 0);
+    if(modeFile < 0) {
+        LOGE("%s: Node %s not found", __func__, SYSFS_HDMI_MODE);
+    } else {
+        //Read from the hdmi_mode file
+        int r = read(modeFile, &mode, 1);
+        if (r <= 0) {
+            LOGE("%s: hdmi_mode file empty '%s'", __func__, SYSFS_HDMI_MODE);
+        }
+    }
+    close(modeFile);
+    return (mode == '1') ? true : false;
+}
+#endif
 
 namespace {
     extern struct audio_policy_service_ops aps_ops;
@@ -168,7 +191,12 @@ status_t AudioPolicyService::setDeviceConnectionState(audio_devices_t device,
             state != AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE) {
         return BAD_VALUE;
     }
-
+#ifdef QCOM_HARDWARE
+    /* On HDMI connection, return if we are not in HDMI mode */
+    if(device == AUDIO_DEVICE_OUT_AUX_DIGITAL && !isHDMIMode()) {
+        return NO_ERROR;
+    }
+#endif
     LOGV("setDeviceConnectionState() tid %d", gettid());
     Mutex::Autolock _l(mLock);
     return mpAudioPolicy->set_device_connection_state(mpAudioPolicy, device,
@@ -182,6 +210,7 @@ audio_policy_dev_state_t AudioPolicyService::getDeviceConnectionState(
     if (mpAudioPolicy == NULL) {
         return AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE;
     }
+    Mutex::Autolock _l(mLock);
     return mpAudioPolicy->get_device_connection_state(mpAudioPolicy, device,
                                                       device_address);
 }
@@ -267,6 +296,21 @@ audio_io_handle_t AudioPolicyService::getOutput(audio_stream_type_t stream,
     return mpAudioPolicy->get_output(mpAudioPolicy, stream, samplingRate, format, channels, flags);
 }
 
+#ifdef WITH_QCOM_LPA
+audio_io_handle_t AudioPolicyService::getSession(audio_stream_type_t stream,
+                                    uint32_t format,
+                                    audio_policy_output_flags_t flags,
+                                    int32_t sessionId)
+{
+    if (mpAudioPolicy == NULL) {
+        return 0;
+    }
+    LOGV("getSession() tid %d", gettid());
+    Mutex::Autolock _l(mLock);
+    return mpAudioPolicy->get_session(mpAudioPolicy, stream, format, flags, sessionId);
+}
+#endif
+
 status_t AudioPolicyService::startOutput(audio_io_handle_t output,
                                          audio_stream_type_t stream,
                                          int session)
@@ -301,19 +345,88 @@ void AudioPolicyService::releaseOutput(audio_io_handle_t output)
     mpAudioPolicy->release_output(mpAudioPolicy, output);
 }
 
+#ifdef WITH_QCOM_LPA
+status_t AudioPolicyService::pauseSession(audio_io_handle_t output,
+                                          audio_stream_type_t stream)
+{
+    LOGV("pauseSession() tid %d", gettid());
+    if (mpAudioPolicy != NULL) {
+        Mutex::Autolock _l(mLock);
+        mpAudioPolicy->pause_session(mpAudioPolicy,output,
+                                      stream);
+    }
+
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) {
+        LOGW("pauseSession() could not get AudioFlinger");
+        return 0;
+    }
+
+    return af->pauseSession((int) output, (int32_t) stream);
+}
+
+status_t AudioPolicyService::resumeSession(audio_io_handle_t output,
+                                           audio_stream_type_t stream)
+{
+    LOGV("resumeSession() tid %d", gettid());
+
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) {
+        LOGW("resumeSession() could not get AudioFlinger");
+        return 0;
+    }
+
+    if (NO_ERROR != af->resumeSession((int) output, (int32_t) stream))
+    {
+        LOGE("Resume Session failed from AudioFligner");
+    }
+
+    if (mpAudioPolicy != NULL) {
+        Mutex::Autolock _l(mLock);
+        mpAudioPolicy->resume_session(mpAudioPolicy,output,
+                                       stream);
+    }
+
+    return 0;
+}
+
+status_t AudioPolicyService::closeSession(audio_io_handle_t output)
+{
+    LOGV("closeSession() tid %d", gettid());
+    if (mpAudioPolicy != NULL) {
+        Mutex::Autolock _l(mLock);
+        mpAudioPolicy->release_session(mpAudioPolicy,output);
+    }
+
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+
+    return af->closeSession(output);
+}
+#endif
+
 audio_io_handle_t AudioPolicyService::getInput(int inputSource,
                                     uint32_t samplingRate,
                                     uint32_t format,
                                     uint32_t channels,
                                     audio_in_acoustics_t acoustics,
+#ifdef STE_AUDIO
+                                    int audioSession,
+                                    audio_input_clients *inputClientId)
+#else
                                     int audioSession)
+#endif
 {
     if (mpAudioPolicy == NULL) {
         return 0;
     }
     Mutex::Autolock _l(mLock);
     audio_io_handle_t input = mpAudioPolicy->get_input(mpAudioPolicy, inputSource, samplingRate,
+#ifdef STE_AUDIO
+                                                       format, channels, acoustics, inputClientId);
+#else
                                                        format, channels, acoustics);
+#endif
 
     if (input == 0) {
         return input;
@@ -1363,6 +1476,34 @@ static audio_io_handle_t aps_open_output(void *service,
                           pLatencyMs, flags);
 }
 
+#ifdef WITH_QCOM_LPA
+static audio_io_handle_t aps_open_session(void *service,
+                                uint32_t *pDevices,
+                                uint32_t *pFormat,
+                                audio_policy_output_flags_t flags,
+                                int32_t stream,
+                                int32_t sessionId)
+{
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) {
+        LOGW("openSession() could not get AudioFlinger");
+        return 0;
+    }
+
+    return af->openSession(pDevices, (uint32_t *)pFormat, flags, stream, sessionId);
+}
+
+static int aps_close_session(void *service, audio_io_handle_t output)
+{
+    LOGV("closeSession() tid %d", gettid());
+
+    sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
+    if (af == 0) return PERMISSION_DENIED;
+
+    return af->closeSession(output);
+}
+#endif
+
 static audio_io_handle_t aps_open_dup_output(void *service,
                                                  audio_io_handle_t output1,
                                                  audio_io_handle_t output2)
@@ -1411,7 +1552,12 @@ static audio_io_handle_t aps_open_input(void *service,
                                             uint32_t *pSamplingRate,
                                             uint32_t *pFormat,
                                             uint32_t *pChannels,
+#ifdef STE_AUDIO
+                                            uint32_t acoustics,
+                                            uint32_t *inputClientId)
+#else
                                             uint32_t acoustics)
+#endif
 {
     sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
     if (af == NULL) {
@@ -1420,16 +1566,28 @@ static audio_io_handle_t aps_open_input(void *service,
     }
 
     return af->openInput(pDevices, pSamplingRate, pFormat, pChannels,
+#ifdef STE_AUDIO
+                         acoustics, inputClientId);
+#else
                          acoustics);
+#endif
 }
 
+#ifdef STE_AUDIO
+static int aps_close_input(void *service, audio_io_handle_t input, uint32_t *inputClientId = NULL)
+#else
 static int aps_close_input(void *service, audio_io_handle_t input)
+#endif
 {
     sp<IAudioFlinger> af = AudioSystem::get_audio_flinger();
     if (af == NULL)
         return PERMISSION_DENIED;
 
+#ifdef STE_AUDIO
+    return af->closeInput(input, inputClientId);
+#else
     return af->closeInput(input);
+#endif
 }
 
 static int aps_set_stream_output(void *service, audio_stream_type_t stream,
@@ -1505,6 +1663,10 @@ static int aps_set_voice_volume(void *service, float volume, int delay_ms)
 namespace {
     struct audio_policy_service_ops aps_ops = {
         open_output           : aps_open_output,
+#ifdef WITH_QCOM_LPA
+        open_session          : aps_open_session,
+        close_session         : aps_close_session,
+#endif
         open_duplicate_output : aps_open_dup_output,
         close_output          : aps_close_output,
         suspend_output        : aps_suspend_output,

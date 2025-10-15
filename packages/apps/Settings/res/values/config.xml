@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2007 The Android Open Source Project
+<!-- Copyright (C) 2012 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -21,5 +21,16 @@
 
     <string name="additional_system_update" translatable="false"></string>
     <string name="additional_system_update_menu" translatable="false"></string>
+
+    <!-- LED Flashlight -->
+    <bool name="has_led_flash">false</bool>
+
+    <!-- Ad-hoc network support. Some devices (unpatched bcmdhd) have broken
+         ad-hoc support and so we should hide ad-hoc network on those devices -->
+    <bool name="config_show_adhoc_network">true</bool>
+
+    <!-- Volume Rocker Wake Support. Some devices do not support (PMU) this.
+         Setting to false will disable Volume Rocker Wake support -->
+    <bool name="config_show_volumeRockerWake">true</bool>
 
 </resources>

@@ -1,5 +1,7 @@
 # Copyright 2006 The Android Open Source Project
 
+ifneq ($(BOARD_PROVIDES_LIBRIL),true)
+
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -18,6 +20,11 @@ LOCAL_CFLAGS :=
 LOCAL_MODULE:= libril
 
 LOCAL_LDLIBS += -lpthread
+
+#USE HCRADIO
+ifeq ($(BOARD_USES_HC_RADIO),true)
+LOCAL_CFLAGS += -DHCRADIO
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -42,3 +49,4 @@ LOCAL_LDLIBS += -lpthread
 
 include $(BUILD_STATIC_LIBRARY)
 endif # ANDROID_BIONIC_TRANSITION
+endif # BOARD_PROVIDES_LIBRIL

@@ -182,7 +182,9 @@ private:
         int                             mPreviewCallbackFlag;
         int                             mOrientation;     // Current display orientation
         bool                            mPlayShutterSound;
-
+#ifdef QCOM_HARDWARE
+        bool                            mFaceDetection;
+#endif
         // Ensures atomicity among the public methods
         mutable Mutex                   mLock;
         // This is a binder of Surface or SurfaceTexture.
@@ -210,6 +212,7 @@ private:
         // This function keeps trying to grab mLock, or give up if the message
         // is found to be disabled. It returns true if mLock is grabbed.
         bool                    lockIfMessageWanted(int32_t msgType);
+        int                     mburstCnt;
     };
 
     camera_module_t *mModule;

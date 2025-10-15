@@ -52,13 +52,6 @@
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"Ustawienia aparatu"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"Ustawienia kamery"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"Rozmiar zdjęcia"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="6980117304679164339">"5 megapikseli"</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="4391030755438075447">"3 megapiksele"</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="8081839485457681369">"2 megapiksele"</string>
-    <string name="pref_camera_picturesize_entry_1280x960" msgid="7820672028447972964">"1,3 megapiksela"</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="3705686683403524018">"1 megapiksel"</string>
-    <string name="pref_camera_picturesize_entry_640x480" msgid="5557572917973022995">"VGA"</string>
-    <string name="pref_camera_picturesize_entry_320x240" msgid="5729711026478753025">"QVGA"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"Tryb ostrości"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"Automatyczny"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"Nieskończoność"</string>
@@ -130,4 +123,43 @@
     <string name="accessibility_decrement" msgid="1411194318538035666">"Zmniejsz: %1$s"</string>
     <string name="accessibility_increment" msgid="8447850530444401135">"Zwiększ: %1$s"</string>
     <string name="accessibility_switch" msgid="6995966685498958895">"Przełącznik: %1$s"</string>
+
+    <!-- **** CYANOGENMOD EDITS START **** -->
+    <string name="pref_camera_power_shutter_title">Migawka przyciskiem zasilania</string>
+    <string name="pref_camera_power_shutter_default">Wyłączona</string>
+    <string name="pref_camera_focus_sound_title">Dźwięk ustawiania ostrości</string>
+    <string name="pref_camera_focus_sound_default">Włączony</string>
+
+    <string name="pref_camera_storage_title">Używana pamięć</string>
+
+    <string name="pref_camera_timer_title">Odliczanie</string>
+    <string name="pref_camera_timer_entry_0">Wyłączone</string>
+
+    <string name="pref_camera_focusmode_entry_fixed">Stały</string>
+    <string name="pref_camera_focusmode_entry_facedetect">Detekcja twarzy</string>
+    <string name="pref_camera_focusmode_entry_continuouspicture">Ciągły autofocus</string>
+    <string name="pref_camera_scenemode_entry_backlight">Podświetlenie</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">Świt/Zmierzch</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">Intensywny kolor</string>
+    <string name="pref_camera_scenemode_entry_text">Tekst</string>
+    <string name="pref_camera_scenemode_entry_portrait">Portret</string>
+    <string name="pref_camera_scenemode_entry_landscape">Krajobraz</string>
+    <string name="pref_camera_scenemode_entry_beach">Plaża</string>
+    <string name="pref_camera_scenemode_entry_snow">Śnieg</string>
+    <string name="pref_camera_scenemode_entry_fireworks">Fajerwerki</string>
+    <string name="pref_camera_scenemode_entry_sports">Sport</string>
+    <string name="pref_camera_scenemode_entry_candlelight">Światło świec</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">Pochmurny dzień</string>
+
+    <string name="pref_camera_iso_entry_auto">Automatyczne</string>
+    <string name="pref_camera_iso_entry_isodeblur">Automatyczne (HJR)</string>
+
+    <string name="pref_camera_burst_title">Seria</string>
+    <string name="pref_camera_burst_entry_off">Wyłączone</string>
+    <string name="pref_camera_burst_entry_5">5 zdjęć</string>
+    <string name="pref_camera_burst_entry_10">10 zdjęć</string>
+    <string name="pref_camera_burst_entry_15">15 zdjęć</string>
+    <string name="pref_camera_burst_entry_20">20 zdjęć</string>
+
+    <!-- **** CYANOGENMOD EDITS END **** -->
 </resources>

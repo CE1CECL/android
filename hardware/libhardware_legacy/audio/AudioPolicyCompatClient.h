@@ -41,6 +41,14 @@ public:
                                          uint32_t *pChannels,
                                          uint32_t *pLatencyMs,
                                          AudioSystem::output_flags flags);
+#ifdef WITH_QCOM_LPA
+    virtual audio_io_handle_t openSession(uint32_t *pDevices,
+                                    uint32_t *pFormat,
+                                    AudioSystem::output_flags flags,
+                                    int32_t  streamType,
+                                    int32_t  sessionId);
+    virtual status_t closeSession(audio_io_handle_t output);
+#endif
     virtual audio_io_handle_t openDuplicateOutput(audio_io_handle_t output1,
                                                   audio_io_handle_t output2);
     virtual status_t closeOutput(audio_io_handle_t output);
@@ -50,8 +58,14 @@ public:
                                         uint32_t *pSamplingRate,
                                         uint32_t *pFormat,
                                         uint32_t *pChannels,
+#ifdef STE_AUDIO
+                                        uint32_t acoustics,
+                                        uint32_t *pInputClientId = NULL);
+    virtual status_t closeInput(audio_io_handle_t input, uint32_t *inputClientId = NULL);
+#else
                                         uint32_t acoustics);
     virtual status_t closeInput(audio_io_handle_t input);
+#endif
     virtual status_t setStreamOutput(AudioSystem::stream_type stream, audio_io_handle_t output);
     virtual status_t moveEffects(int session,
                                  audio_io_handle_t srcOutput,
@@ -68,6 +82,9 @@ public:
     virtual status_t startTone(ToneGenerator::tone_type tone, AudioSystem::stream_type stream);
     virtual status_t stopTone();
     virtual status_t setVoiceVolume(float volume, int delayMs = 0);
+#if defined(QCOM_HARDWARE) && defined(HAVE_FM_RADIO) && !defined(USES_AUDIO_LEGACY)
+    virtual status_t setFmVolume(float volume, int delayMs = 0);
+#endif
 
 private:
     struct audio_policy_service_ops* mServiceOps;

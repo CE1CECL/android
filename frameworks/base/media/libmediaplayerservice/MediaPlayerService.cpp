@@ -56,6 +56,7 @@
 #include <media/stagefright/MediaErrors.h>
 
 #include <system/audio.h>
+#include <system/audio_policy.h>
 
 #include <private/android_filesystem_config.h>
 
@@ -320,7 +321,11 @@ status_t MediaPlayerService::AudioOutput::dump(int fd, const Vector<String16>& a
             mStreamType, mLeftVolume, mRightVolume);
     result.append(buffer);
     snprintf(buffer, 255, "  msec per frame(%f), latency (%d)\n",
+#ifdef STE_HARDWARE
+            mMsecsPerFrame, mLatency);
+#else
             mMsecsPerFrame, (mTrack != 0) ? mTrack->latency() : -1);
+#endif
     result.append(buffer);
     snprintf(buffer, 255, "  aux effect id(%d), send level (%f)\n",
             mAuxEffectId, mSendLevel);
@@ -1262,9 +1267,15 @@ MediaPlayerService::AudioOutput::AudioOutput(int sessionId)
       mSessionId(sessionId) {
     LOGV("AudioOutput(%d)", sessionId);
     mTrack = 0;
+#ifdef WITH_QCOM_LPA
+    mSession = 0;
+#endif
     mStreamType = AUDIO_STREAM_MUSIC;
     mLeftVolume = 1.0;
     mRightVolume = 1.0;
+#ifdef STE_HARDWARE
+    mLatency = 0;
+#endif
     mMsecsPerFrame = 0;
     mAuxEffectId = 0;
     mSendLevel = 0.0;
@@ -1274,6 +1285,9 @@ MediaPlayerService::AudioOutput::AudioOutput(int sessionId)
 MediaPlayerService::AudioOutput::~AudioOutput()
 {
     close();
+#ifdef WITH_QCOM_LPA
+    closeSession();
+#endif
 }
 
 void MediaPlayerService::AudioOutput::setMinBufferCount()
@@ -1323,8 +1337,12 @@ ssize_t MediaPlayerService::AudioOutput::frameSize() const
 
 uint32_t MediaPlayerService::AudioOutput::latency () const
 {
+#ifdef STE_HARDWARE
+    return mLatency;
+#else
     if (mTrack == 0) return 0;
     return mTrack->latency();
+#endif
 }
 
 float MediaPlayerService::AudioOutput::msecsPerFrame() const
@@ -1337,13 +1355,53 @@ status_t MediaPlayerService::AudioOutput::getPosition(uint32_t *position)
     if (mTrack == 0) return NO_INIT;
     return mTrack->getPosition(position);
 }
+#ifdef WITH_QCOM_LPA
+status_t MediaPlayerService::AudioOutput::openSession(
+        int format, int lpaSessionId, uint32_t sampleRate, int channels)
+{
+    uint32_t flags = 0;
+    mCallback = NULL;
+    mCallbackCookie = NULL;
+    if (mSession) closeSession();
+    mSession = NULL;
+
+    flags |= AUDIO_POLICY_OUTPUT_FLAG_DIRECT;
+
+    AudioTrack *t = new AudioTrack(
+                mStreamType,
+                sampleRate,
+                format,
+                channels,
+                flags,
+                mSessionId,
+                lpaSessionId);
+    LOGV("openSession: AudioTrack created successfully track(%p)",t);
+    if ((t == 0) || (t->initCheck() != NO_ERROR)) {
+        LOGE("Unable to create audio track");
+        delete t;
+        return NO_INIT;
+    }
+    LOGV("openSession: Out");
+    mSession = t;
+    LOGV("setVolume");
+    t->setVolume(mLeftVolume, mRightVolume);
+    return NO_ERROR;
+}
+#endif
 
 status_t MediaPlayerService::AudioOutput::open(
         uint32_t sampleRate, int channelCount, int format, int bufferCount,
+#ifdef STE_HARDWARE
+        AudioCallback cb, void *cookie, LatencyCallback latencyCb)
+#else
         AudioCallback cb, void *cookie)
+#endif
 {
     mCallback = cb;
     mCallbackCookie = cookie;
+#ifdef STE_HARDWARE
+    mLatencyCallback = latencyCb;
+#endif
 
     // Check argument "bufferCount" against the mininum buffer count
     if (bufferCount < mMinBufferCount) {
@@ -1403,6 +1461,9 @@ status_t MediaPlayerService::AudioOutput::open(
     t->setVolume(mLeftVolume, mRightVolume);
 
     mMsecsPerFrame = 1.e3 / (float) sampleRate;
+#ifdef STE_HARDWARE
+    mLatency = t->latency();
+#endif
     mTrack = t;
 
     t->setAuxEffectSendLevel(mSendLevel);
@@ -1454,17 +1515,58 @@ void MediaPlayerService::AudioOutput::pause()
 void MediaPlayerService::AudioOutput::close()
 {
     LOGV("close");
+#ifdef STE_HARDWARE
     delete mTrack;
     mTrack = 0;
+#else
+    if(mTrack != NULL) {
+        delete mTrack;
+        mTrack = 0;
+    }
+#endif
+}
+#ifdef WITH_QCOM_LPA
+void MediaPlayerService::AudioOutput::closeSession()
+{
+    LOGV("closeSession");
+    if(mSession != NULL) {
+        delete mSession;
+        mSession = 0;
+    }
 }
 
+void MediaPlayerService::AudioOutput::pauseSession()
+{
+    LOGV("pauseSession");
+    if(mSession != NULL) {
+        mSession->pause();
+    }
+}
+
+void MediaPlayerService::AudioOutput::resumeSession()
+{
+    LOGV("resumeSession");
+    if(mSession != NULL) {
+        mSession->start();
+    }
+}
+#endif
 void MediaPlayerService::AudioOutput::setVolume(float left, float right)
 {
+#ifdef WITH_QCOM_LPA
+    LOGV("setVolume(%f, %f): %p", left, right, mSession);
+#else
     LOGV("setVolume(%f, %f)", left, right);
+#endif
+
     mLeftVolume = left;
     mRightVolume = right;
     if (mTrack) {
         mTrack->setVolume(left, right);
+#ifdef WITH_QCOM_LPA
+    } else if(mSession) {
+        mSession->setVolume(left, right);
+#endif
     }
 }
 
@@ -1492,10 +1594,13 @@ status_t MediaPlayerService::AudioOutput::attachAuxEffect(int effectId)
 void MediaPlayerService::AudioOutput::CallbackWrapper(
         int event, void *cookie, void *info) {
     //LOGV("callbackwrapper");
+#ifdef STE_HARDWARE
+    if (event == AudioTrack::EVENT_MORE_DATA) {
+#else
     if (event != AudioTrack::EVENT_MORE_DATA) {
         return;
     }
-
+#endif
     AudioOutput *me = (AudioOutput *)cookie;
     AudioTrack::Buffer *buffer = (AudioTrack::Buffer *)info;
 
@@ -1511,6 +1616,17 @@ void MediaPlayerService::AudioOutput::CallbackWrapper(
     }
 
     buffer->size = actualSize;
+#ifdef STE_HARDWARE
+    } else if (event == AudioTrack::EVENT_LATENCY_CHANGED) {
+        AudioOutput *me = (AudioOutput *)cookie;
+
+        uint32_t *newLatency = (uint32_t *)info;
+        me->mLatency = *newLatency;
+        if (me->mLatencyCallback != NULL) {
+            (*me->mLatencyCallback)(*newLatency, me->mCallbackCookie);
+        }
+    }
+#endif
 }
 
 int MediaPlayerService::AudioOutput::getSessionId()
@@ -1611,7 +1727,11 @@ bool CallbackThread::threadLoop() {
 
 status_t MediaPlayerService::AudioCache::open(
         uint32_t sampleRate, int channelCount, int format, int bufferCount,
+#ifdef STE_HARDWARE
+        AudioCallback cb, void *cookie, LatencyCallback latencyCb)
+#else
         AudioCallback cb, void *cookie)
+#endif
 {
     LOGV("open(%u, %d, %d, %d)", sampleRate, channelCount, format, bufferCount);
     if (mHeap->getHeapID() < 0) {

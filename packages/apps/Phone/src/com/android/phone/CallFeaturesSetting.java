@@ -46,6 +46,7 @@ import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.provider.ContactsContract.CommonDataKinds;
@@ -140,6 +141,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     // String keys for preference lookup
     // TODO: Naming these "BUTTON_*" is confusing since they're not actually buttons(!)
     private static final String BUTTON_VOICEMAIL_KEY = "button_voicemail_key";
+    private static final String BUTTON_VOICEMAIL_CATEGORY_KEY = "button_voicemail_category_key";
+    private static final String BUTTON_MWI_NOTIFICATION_KEY = "button_mwi_notification_key";
     private static final String BUTTON_VOICEMAIL_PROVIDER_KEY = "button_voicemail_provider_key";
     private static final String BUTTON_VOICEMAIL_SETTING_KEY = "button_voicemail_setting_key";
     /* package */ static final String BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_WHEN_KEY =
@@ -151,6 +154,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_RETRY_KEY  = "button_auto_retry_key";
     private static final String BUTTON_TTY_KEY    = "button_tty_mode_key";
     private static final String BUTTON_HAC_KEY    = "button_hac_key";
+    private static final String BUTTON_NOISE_SUPPRESSION_KEY = "button_noise_suppression_key";
 
     private static final String BUTTON_GSM_UMTS_OPTIONS = "button_gsm_more_expand_key";
     private static final String BUTTON_CDMA_OPTIONS = "button_cdma_more_expand_key";
@@ -220,7 +224,9 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mButtonHAC;
     private ListPreference mButtonDTMF;
     private ListPreference mButtonTTY;
+    private CheckBoxPreference mButtonNoiseSuppression;
     private ListPreference mButtonSipCallOptions;
+    private CheckBoxPreference mMwiNotification;
     private ListPreference mVoicemailProviders;
     private PreferenceScreen mVoicemailSettings;
     private ListPreference mVoicemailNotificationVibrateWhen;
@@ -429,9 +435,20 @@ public class CallFeaturesSetting extends PreferenceActivity
     public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
         if (preference == mSubMenuVoicemailSettings) {
             return true;
+        } else if (preference == mMwiNotification) {
+            int mwi_notification = mMwiNotification.isChecked() ? 1 : 0;
+            Settings.System.putInt(mPhone.getContext().getContentResolver(),
+                    Settings.System.ENABLE_MWI_NOTIFICATION, mwi_notification);
+            return true;
         } else if (preference == mButtonDTMF) {
             return true;
         } else if (preference == mButtonTTY) {
+            return true;
+        } else if (preference == mButtonNoiseSuppression) {
+            int nsp = mButtonNoiseSuppression.isChecked() ? 1 : 0;
+            // Update Noise suppression value in Settings database
+            Settings.System.putInt(mPhone.getContext().getContentResolver(),
+                    Settings.System.NOISE_SUPPRESSION, nsp);
             return true;
         } else if (preference == mButtonAutoRetry) {
             android.provider.Settings.System.putInt(mPhone.getContext().getContentResolver(),
@@ -470,6 +487,10 @@ public class CallFeaturesSetting extends PreferenceActivity
                     Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, index);
         } else if (preference == mButtonTTY) {
             handleTTYChange(preference, objValue);
+        } else if (preference == mMwiNotification) {
+            int mwi_notification = mMwiNotification.isChecked() ? 1 : 0;
+            Settings.System.putInt(mPhone.getContext().getContentResolver(),
+                    Settings.System.ENABLE_MWI_NOTIFICATION, mwi_notification);
         } else if (preference == mVoicemailProviders) {
             final String currentProviderKey = getCurrentVoicemailProviderKey();
             final String newProviderKey = (String)objValue;
@@ -1389,10 +1410,22 @@ public class CallFeaturesSetting extends PreferenceActivity
             mSubMenuVoicemailSettings.setDialogTitle(R.string.voicemail_settings_number_label);
         }
 
+        mMwiNotification = (CheckBoxPreference) findPreference(BUTTON_MWI_NOTIFICATION_KEY);
+        if (mMwiNotification != null) {
+            if (getResources().getBoolean(R.bool.sprint_mwi_quirk)) {
+                mMwiNotification.setOnPreferenceChangeListener(this);
+            } else {
+                PreferenceCategory voicemailCategory = (PreferenceCategory) findPreference(BUTTON_VOICEMAIL_CATEGORY_KEY);
+                voicemailCategory.removePreference(mMwiNotification);
+                mMwiNotification = null;
+            }
+        }
+
         mButtonDTMF = (ListPreference) findPreference(BUTTON_DTMF_KEY);
         mButtonAutoRetry = (CheckBoxPreference) findPreference(BUTTON_RETRY_KEY);
         mButtonHAC = (CheckBoxPreference) findPreference(BUTTON_HAC_KEY);
         mButtonTTY = (ListPreference) findPreference(BUTTON_TTY_KEY);
+        mButtonNoiseSuppression = (CheckBoxPreference) findPreference(BUTTON_NOISE_SUPPRESSION_KEY);
         mVoicemailProviders = (ListPreference) findPreference(BUTTON_VOICEMAIL_PROVIDER_KEY);
         if (mVoicemailProviders != null) {
             mVoicemailProviders.setOnPreferenceChangeListener(this);
@@ -1403,6 +1436,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
             initVoiceMailProviders();
         }
+
 
         if (mButtonDTMF != null) {
             if (getResources().getBoolean(R.bool.dtmf_type_enabled)) {
@@ -1438,6 +1472,15 @@ public class CallFeaturesSetting extends PreferenceActivity
             } else {
                 prefSet.removePreference(mButtonTTY);
                 mButtonTTY = null;
+            }
+        }
+
+        if (mButtonNoiseSuppression != null) {
+            if (getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
+                mButtonNoiseSuppression.setOnPreferenceChangeListener(this);
+            } else {
+                prefSet.removePreference(mButtonNoiseSuppression);
+                mButtonNoiseSuppression = null;
             }
         }
 
@@ -1544,6 +1587,11 @@ public class CallFeaturesSetting extends PreferenceActivity
             return;
         }
 
+        if (mMwiNotification != null) {
+            int mwi_notification = Settings.System.getInt(getContentResolver(), Settings.System.ENABLE_MWI_NOTIFICATION, 0);
+            mMwiNotification.setChecked(mwi_notification != 0);
+        }
+
         if (mButtonDTMF != null) {
             int dtmf = Settings.System.getInt(getContentResolver(),
                     Settings.System.DTMF_TONE_TYPE_WHEN_DIALING, DTMF_TONE_TYPE_NORMAL);
@@ -1567,6 +1615,11 @@ public class CallFeaturesSetting extends PreferenceActivity
                     Phone.TTY_MODE_OFF);
             mButtonTTY.setValue(Integer.toString(settingsTtyMode));
             updatePreferredTtyModeSummary(settingsTtyMode);
+        }
+
+        if (mButtonNoiseSuppression != null) {
+            int nsp = Settings.System.getInt(getContentResolver(), Settings.System.NOISE_SUPPRESSION, 1);
+            mButtonNoiseSuppression.setChecked(nsp != 0);
         }
     }
 

@@ -715,9 +715,39 @@
     <string name="description_target_decline" msgid="4789834364389731957">"Recusar"</string>
     <string name="voicemail_notification_vibrate_when_title" msgid="8361970092063604886">"Vibrar"</string>
     <string name="voicemail_notification_vibarte_when_dialog_title" msgid="5739583146522136440">"Vibrar"</string>
+    <!-- Mobile network settings screen, setting check box name -->
+    <string name="national_roaming">Roaming de dados nacional</string>
+    <!-- Mobile network settings screen, setting summary text when check box is selected -->
+    <string name="national_roaming_enable">Conectar aos serviços de dados quando estiver em roaming nacional</string>
+    <!-- Mobile network settings screen, setting summary text when check box is clear -->
+    <string name="national_roaming_disable">Conectar aos serviços de dados quando estiver em roaming nacional</string>
+    <string name="phone_number_label">Meu número de telefone</string>
+    <string name="phone_number_summary">Definir o número de telefone para este dispositivo</string>
+    <!-- Dialer UI Settings -->
+    <string name="dialer_ui_settings_title">Teclado</string>
+    <string name="dialer_ui_settings_summary">Configurações do teclado</string>
   <string-array name="voicemail_notification_vibrate_when_entries">
     <item msgid="468237575962916558">"Sempre"</item>
     <item msgid="1595097872875714252">"Apenas quando estiver no silencioso"</item>
     <item msgid="1458182414036878616">"Nunca"</item>
   </string-array>
+    <string name="advanced_setting">Configuração avançada</string>
+    <string name="vibrate_outgoing">Vibrar ao atender</string>
+    <string name="vibrate_outgoing_sum">Vibra quando a chamada efetuada é atendida</string>
+    <string name="vibrate_45">Vibrar a cada 45 segundos</string>
+    <string name="vibrate_45_sum">Vibrar aos 45 segundos de cada minuto durante chamada efetuada</string>
+    <string name="vibrate_hangup">Vibrar ao desligar</string>
+    <string name="vibrate_hangup_sum">Vibra quando a chamada é desligada</string>
+    <string name="vibrate_call_waiting">Vibrar c/ chamada em espera</string>
+    <string name="vibrate_call_waiting_sum">Vibra quando existem chamadas em espera</string>
+    <string name="perm_change_mobile_network">Alternar rede de dados (2G/3G)</string>
+    <string name="perm_change_mobile_network_desc">Aplicação com está permissão pode a qualquer momento, alterar entre dados 2G and 3G. 3G é mais rápido, consome mais bateria, e também pode gastar mais seu dinheiro.</string>
+    <string name="preferred_network_mode_lte_gsm_summary">Modo de rede preferêncial: LTE / WCDMA / GSM</string>
+    <string name="fake_phone_activity_infoText_text">Número de telefone</string>
+    <string name="fake_phone_activity_placeCall_text">Chamada recebida falsa</string>
+    <string name="absent_num">NÚMERO AUSENTE</string>
+    <string name="mwi_notification_title">Indicador de Mensagem de Espera</string>
+    <string name="mwi_notification_summary">Exibir indicador de mensagem de espera para notificações de correio de voz</string>
+    <string name="noise_suppression_title">Supressão de ruído</string>
+    <string name="noise_suppression_summary">Ativar supressão de ruído em ligações</string>
 </resources>

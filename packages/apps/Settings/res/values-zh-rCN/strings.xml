@@ -22,6 +22,128 @@
     <string name="header_category_wireless_networks" msgid="4944823405420438623">"无线和网络"</string>
     <string name="header_category_device" msgid="5781174212691167553">"设备"</string>
     <string name="header_category_personal" msgid="6225932173498802187">"个人"</string>
+
+    <!-- Profiles settings #CM -->
+    <string name="profiles_settings_title">场景模式</string>
+    <string name="profiles_general_title">常规</string>
+    <string name="profiles_add">添加</string>
+    <string name="profile_menu_delete">删除</string>
+    <string name="profile_settings_title">场景</string>
+
+    <!-- Add Profile -->
+    <string name="add_profile_dialog_title">创建新的场景模式</string>
+    <string name="profile_name_title">名称</string>
+    <string name="profile_profile_name_prompt">为新的场景模式输入一个名称</string>
+    <string name="menu_new_profile">新的场景模式</string>
+    <string name="menu_new_profile_summary">添加与配置一个新的场景模式</string>
+    <string name="new_profile_name">&lt;新的场景模式&gt;</string>
+
+   <!-- Rename Dialog  -->
+    <string name="rename_dialog_title">重命名</string>
+    <string name="rename_dialog_message">输入一个新名称</string>
+    <string name="duplicate_profile_name">此场景名称已被使用!</string>
+    <string name="duplicate_appgroup_name">此应用组名称已被使用!</string>
+
+    <!-- Reset Profiles -->
+    <string name="profile_reset_title">重置</string>
+    <string name="profile_reset_message">
+您确定要删除所有用户创建的场景与应用组并且还原为默认值?</string>
+
+    <!-- Delete confimation messages -->
+    <string name="profile_delete_confirm">您确定要删除此场景?</string>
+    <string name="profile_app_delete_confirm">您确定要移除此应用?</string>
+    <string name="profile_cannot_delete">您不能删除当前使用中的场景!</string>
+
+    <!-- Profile Config screen PreferenceGroup titles -->
+    <string name="profile_connectionoverrides_title">连接覆盖</string>
+    <string name="profile_volumeoverrides_title">音量覆盖</string>
+    <string name="profile_vibratoroverrides_title">震动覆盖</string>
+    <string name="connection_state_disabled">禁用</string>
+    <string name="connection_state_enabled">启用</string>
+    <string name="volume_override_summary">设置为</string>
+    <string name="vibrator_state_disabled">禁用</string>
+    <string name="vibrator_state_enabled">启用</string>
+    <string name="vibrator_state_silent">仅限于震动模式</string>
+
+    <!-- Menu item for managing profiles -->
+    <string name="profile_profiles_manage">场景</string>
+    <string name="profile_profile_manage">管理场景</string>
+    <string name="profile_applist_manage">应用列表</string>
+    <string name="profile_appgroups_manage">应用组</string>
+    <string name="profile_appgroup_manage">管理应用组</string>
+
+    <!-- Profile settings screen, section header for settings related to notification profiles -->
+    <string name="profile_settings">场景设置</string>
+    <string name="profile_name">名称</string>
+
+    <!-- Profile Settings sound modes labels -->
+    <string name="sound_mode">提醒模式</string>
+    <string name="ringer_mode">铃声模式</string>
+    <string name="lights_mode">亮度模式</string>
+    <string name="vibrate_mode">震动模式</string>
+    <string name="choose_soundtone">选择提醒音</string>
+    <string name="choose_ringtone">选择铃声</string>
+
+    <!-- Sound settings screen, setting option volume overlay title -->
+    <string name="volume_overlay_title">声控面板</string>
+
+    <!-- Sound settings screen, setting option name to pick ringtone (a list dialog comes up)-->
+    <string name="soundtone_title">提醒音</string>
+    <string name="soundtone_summary">""</string>
+
+    <!-- Title for application group setting screen -->
+    <string name="profile_appgroups_title">应用组</string>
+    <string name="profile_applist_title">应用</string>
+    <string name="profile_new_appgroup">新的应用组</string>
+    <string name="profile_delete_appgroup">删除该应用组</string>
+    <string name="profile_appgroup_name_prompt">为新的应用组输入一个名称</string>
+    <string name="profile_appgroup_name_title">名称</string>
+    <string name="profile_add_app">添加应用</string>
+    <string name="profile_delete_app">移除应用</string>
+
+    <!-- Add application dialog box title -->
+    <string name="profile_choose_app">选择应用</string>
+    <string name="profile_settings_header">场景设置</string>
+
+    <!-- Profiles - system settings -->
+    <string name="profile_system_settings_title">系统设置</string>
+    <string name="profile_lockmode_title">锁屏模式</string>
+    <string name="profile_lockmode_default">默认</string>
+    <string name="profile_lockmode_insecure">不安全</string>
+    <string name="profile_lockmode_disabled">禁用</string>
+    <string name="profile_lockmode_default_summary">使用系统默认值</string>
+    <string name="profile_lockmode_insecure_summary">使用不安全锁屏</string>
+    <string name="profile_lockmode_disabled_summary">禁用锁屏</string>
+    <string name="profile_airplanemode_title">飞行模式</string>
+    <string name="profile_airplanemode_default">默认</string>
+    <string name="profile_airplanemode_enabled">启用</string>
+    <string name="profile_airplanemode_disabled">禁用</string>
+    <string name="profile_airplanemode_default_summary">使用系统默认值</string>
+    <string name="profile_airplanemode_enabled_summary">
+启用飞行模式</string>
+    <string name="profile_airplanemode_disabled_summary">
+禁用飞行模式</string>
+
+    <string name="profile_disable_screen_lock_summary">场景激活时禁用锁屏安全设置</string>
+
+    <!-- Connection override toggles (not all are used at this time ) -->
+    <string name="possibleButtons">可能的按钮</string>
+    <string name="toggleWifi">Wi-Fi</string>
+    <string name="toggleWifiAp">便携式Wi-Fi热点</string>
+    <string name="toggleBluetooth">蓝牙</string>
+    <string name="toggleGPS">GPS</string>
+    <string name="toggleData">移动数据</string>
+    <string name="toggleSync">数据同步</string>
+    <string name="toggle2g3g">2G/3G</string>
+    <string name="toggleSound">铃声模式</string>
+    <string name="toggleBrightness">明亮</string>
+    <string name="toggleAutoRotate">适应</string>
+    <string name="toggleScreenTimeout">屏幕超时</string>
+    <string name="toggleAirplane">飞行</string>
+    <string name="toggleFlashlight">手电筒</string>
+    <string name="toggleLockScreen">锁屏</string>
+    <string name="toggleWimax">WiMAX</string>
+
     <string name="header_category_system" msgid="2073558547468647128">"系统"</string>
     <string name="turn_on_radio" msgid="8706561489788373676">"打开无线通信"</string>
     <string name="turn_off_radio" msgid="1820294552893884115">"关闭无线通信"</string>
@@ -577,7 +699,6 @@
     <string name="wifi_p2p_menu_search" msgid="7189970585393813135">"搜索"</string>
     <string name="wifi_p2p_menu_create_group" msgid="7595229161883902082">"创建群组"</string>
     <string name="wifi_p2p_menu_remove_group" msgid="4844634506540667517">"删除群组"</string>
-    <string name="wifi_p2p_menu_advanced" msgid="2578792521809265949">"高级"</string>
     <string name="wifi_p2p_available_devices" msgid="5943352520059654483">"可用设备"</string>
     <string name="wifi_tether_checkbox_text" msgid="6961605862058056788">"便携式 Wi-Fi 热点"</string>
     <string name="wifi_tether_enabled_subtext" msgid="8948641212931906143">"便携式热点 <xliff:g id="NETWORK_SSID">%1$s</xliff:g> 已启用"</string>
@@ -596,7 +717,6 @@
     <string name="vibrate_in_silent_title" msgid="3897968069156767036">"静音时振动"</string>
     <string name="vibrate_on_ring_title" msgid="40343855247989536">"振动并响铃"</string>
     <string name="notification_sound_title" msgid="312032901303146002">"默认通知"</string>
-    <string name="notification_pulse_title" msgid="1247988024534030629">"有通知时指示灯闪烁"</string>
     <string name="incoming_call_volume_title" msgid="8073714801365904099">"铃声"</string>
     <string name="notification_volume_title" msgid="2012640760341080408">"通知"</string>
     <string name="checkbox_notification_same_as_incoming_call" msgid="1073644356290338921">"将来电音量用作通知音量"</string>
@@ -609,6 +729,9 @@
     <string name="sound_effects_enable_title" msgid="1171590821131077296">"触摸提示音"</string>
     <string name="lock_sounds_enable_title" msgid="450098505659399520">"锁屏提示音"</string>
     <string name="haptic_feedback_enable_title" msgid="2438293710530828760">"触摸时振动"</string>
+    <!-- Setting for volume rocker music controls -->
+    <string name="volbtn_music_controls_title">音量键音乐控制</string>
+    <string name="volbtn_music_controls_summary">当屏幕关闭时，长按音量键将搜索音乐曲目</string>
     <string name="audio_record_proc_title" msgid="4271091199976457534">"降噪"</string>
     <string name="volume_media_description" msgid="7949355934788807863">"音乐、视频、游戏和其他媒体"</string>
     <string name="volume_ring_description" msgid="5936851631698298989">"铃声和通知"</string>
@@ -625,14 +748,67 @@
     <string name="dock_not_found_title" msgid="3290961741828952424">"未找到底座"</string>
     <string name="dock_not_found_text" product="tablet" msgid="9015625921245904495">"您必须先将平板电脑插入基座才能设置基座音频。"</string>
     <string name="dock_not_found_text" product="default" msgid="3882255773040651831">"您必须先将手机插入基座才能设置基座音频。"</string>
+    <!-- Dock settings screen, Enable Dock USB Audio check box label -->
+    <string name="dock_usb_audio_enable_title">
+使用底座的USB音频</string>
+    <!-- Enable Dock USB Audio, setting option summary text when check box is selected -->
+    <string name="dock_usb_audio_enable_summary_on">使用底座的音频输出</string>
+    <!-- Enable Dock USB Audio, setting option summary text when check box is clear -->
+    <string name="dock_usb_audio_enable_summary_off">不使用底座的音频输出</string>
     <string name="dock_sounds_enable_title" msgid="885839627097024110">"插入基座提示音"</string>
     <string name="dock_sounds_enable_summary_on" product="tablet" msgid="838102386448981339">"将平板电脑插入或拔出基座时播放声音"</string>
     <string name="dock_sounds_enable_summary_on" product="default" msgid="8491180514199743771">"将电话插入底座或拔出时发出声音"</string>
     <string name="dock_sounds_enable_summary_off" product="tablet" msgid="5077843049805652363">"将平板电脑插入或拔出基座时不播放声音"</string>
     <string name="dock_sounds_enable_summary_off" product="default" msgid="3151046599205265919">"电话插入底座或拔出时不播放声音"</string>
+
+    <string name="dock_force_undock_title">强制移除底座</string>
+    <string name="dock_force_undock_summary_no_dock" product="tablet">平板电脑未插入基座</string>
+    <string name="dock_force_undock_summary_no_dock" product="default">手机未插入底座</string>
+    <string name="dock_force_undock_summary" product="tablet">弹出平板电脑</string>
+    <string name="dock_force_undock_summary" product="default">弹出手机</string>
+
     <string name="sync_settings" msgid="9186125469300013491">"帐户与同步"</string>
     <string name="search_settings" msgid="1910951467596035063">"搜索"</string>
     <string name="search_settings_summary" msgid="9205656546570654169">"管理搜索设置和历史记录"</string>
+
+    <!-- Volume description for ringtone volume -->
+    <string name="volume_ring_only_description">铃声</string>
+
+    <!-- Volume description for alarm volume -->
+    <string name="link_volume_ringtones">链接铃声与通知的音量</string>
+    <string name="link_volume_ringtones_toast">现在请改变一下您的音量. 这将确保通知音量与铃声音量的链接.</string>
+    <string name="link_volume_mutes">链接铃声与通知的静音</string>
+
+    <!-- Quiet hours #CM -->
+    <string name="quiet_hours_title">安静时段</string>
+    <string name="quiet_hours_summary">配置设备应该安静的时段</string>
+    <string name="quiet_hours_note_title">注意</string>
+    <string name="quiet_hours_note_summary">在安静时段来电将像往常一样</string>
+    <string name="quiet_hours_enabled">开启安静时段</string>
+    <string name="quiet_hours_enabled_on">安静时段将被强制</string>
+    <string name="quiet_hours_enabled_off">通知提醒将像往常一样运行</string>
+    <string name="quiet_hours_start">开始安静时段</string>
+    <string name="quiet_hours_start_summary">什么时间开始强制安静时段</string>
+    <string name="quiet_hours_end">结束安静时段</string>
+    <string name="quiet_hours_end_summary">什么时间结束强制安静时段</string>
+    <string name="quiet_hours_mute">静音提醒</string>
+    <string name="quiet_hours_mute_on">无声音</string>
+    <string name="quiet_hours_mute_off">声音像往常一样</string>
+    <string name="quiet_hours_still">禁用震动</string>
+    <string name="quiet_hours_still_on">设备将不会震动</string>
+    <string name="quiet_hours_still_off">设备将像往常一样震动</string>
+    <string name="quiet_hours_dim">禁用提醒背光灯点亮</string>
+    <string name="quiet_hours_dim_on">提醒背光灯点亮将被禁用</string>
+    <string name="quiet_hours_dim_off">提醒背光灯将像往常一样被点亮</string>
+    <string name="quiet_hours_haptic">禁用触控反馈</string>
+    <string name="quiet_hours_haptic_on">触控反馈将被禁用</string>
+    <string name="quiet_hours_haptic_off">触控反馈将像往常一样</string>
+    <string name="quiet_hours_active_from">激活从</string>
+    <string name="quiet_hours_active_to">到</string>
+
+    <!-- time range preference -->
+    <string name="start_time_title">开始</string>
+    <string name="end_time_title">结束</string>
     <string name="display_settings" msgid="7965901687241669598">"显示"</string>
     <string name="accelerometer_title" msgid="7854608399547349157">"自动旋转屏幕"</string>
     <string name="accelerometer_summary_on" product="tablet" msgid="429982132339828942">"旋转平板电脑时自动改变浏览模式"</string>
@@ -657,6 +833,277 @@
     <string name="automatic_brightness" msgid="5014143533884135461">"自动调整亮度"</string>
     <string name="title_font_size" msgid="4405544325522105222">"字体大小"</string>
     <string name="dialog_title_font_size" msgid="2231507851258955038">"字体大小"</string>
+
+    <!-- Safe headset volume restore checkbox -->
+    <string name="safe_headset_restore_title">安全耳机音量</string>
+    <string name="safe_headset_restore_summary">耳机第一次插入时系统会自动降低音量</string>
+
+    <!-- Display settings screen, notification light settings -->
+    <string name="notification_pulse_title" msgid="1247988024534030629">"有通知时指示灯闪烁"</string>
+    <string name="notification_light_general_title">常规</string>
+    <string name="notification_light_applist_title">程序</string>
+    <string name="notification_light_phonelist_title">电话</string>
+    <string name="notification_light_use_custom">使用自定义值</string>
+    <string name="notification_light_enabled">已启用</string>
+    <string name="notification_light_disabled">已禁用</string>
+    <string name="notification_light_default_value">默认</string>
+    <string name="notification_light_missed_call_title">未接电话</string>
+    <string name="notification_light_voicemail_title">语音信箱</string>
+
+    <!-- Backlight #CM -->
+    <string name="backlight_title">自动亮度调节</string>
+    <string name="backlight_summary">调整亮度水平和传感器运算</string>
+    <string name="light_filter_title">光线传感器运算</string>
+    <string name="light_filter_enabled_title">启用</string>
+    <string name="light_filter_enabled_summary">对光线传感器取得的数据做移动平均运算，以减少频繁调节亮度引起的屏幕闪烁。</string>
+    <string name="light_filter_window_title">移动平均取值长度</string>
+    <string name="light_filter_window_summary">对该时间段内的光线传感器数据取平均值。</string>
+    <string name="light_filter_reset_title">重置阈值</string>
+    <string name="light_filter_reset_summary">如果光线传感器数据样本相对于当前平均值的变化量超过该阈值，则重置移动平均值的运算，以便光线剧烈变化的情况下可迅速反应。</string>
+    <string name="light_filter_interval_title">传感器采样间隔</string>
+    <string name="light_filter_interval_summary">间隔越短准确度越高，但也会消耗更多的 CPU 。</string>
+    <string name="light_levels_title">亮度水平</string>
+    <string name="light_levels_enabled_title">使用自定义设置</string>
+    <string name="light_levels_dim_title">屏幕变暗值</string>
+    <string name="light_levels_dim_summary">当使屏幕变暗时所使用的亮度水平值</string>
+    <string name="light_levels_editor_title">编辑其他值...</string>
+    <string name="light_decrease_enabled_title">允许降低亮度</string>
+    <string name="light_decrease_enabled_summary">开启该选项允许降低亮度，使用迟滞选项减少频繁调节亮度引起的屏幕闪烁。</string>
+    <string name="light_decrease_hysteresis_title">降低亮度迟滞</string>
+    <string name="light_decrease_hysteresis_summary">传感器数据降低一定水平后再降低屏幕亮度。</string>
+
+    <!-- Light sensor levels #CM -->
+    <string name="ll_title">光线传感器取值</string>
+    <string name="ll_header_upper">上限</string>
+    <string name="ll_header_lower">下限</string>
+    <string name="ll_header_lcd">屏幕</string>
+    <string name="ll_header_btn">按钮</string>
+    <string name="ll_header_kb">键盘</string>
+    <string name="ll_lux">传感器 (运算后 / 原始):</string>
+    <string name="ll_lcd">屏幕：</string>
+    <string name="ll_btn">按钮：</string>
+    <string name="ll_kb">键盘：</string>
+    <string name="ll_disabled">关闭</string>
+    <string name="ll_default">读取默认值</string>
+    <string name="ll_save">保存并应用</string>
+    <string name="ll_reload">恢复当前值</string>
+    <string name="ll_bad_levels">取值必须逐渐增大</string>
+    <string name="ll_num_levels">设置亮度级别数量</string>
+
+    <!-- Advanced, Device specific (DeviceParts) settings #CM -->
+    <string name="advanced_settings_title">高级</string>
+    <!-- INTERFACE Settings #CM -->
+    <!-- Settings main menu category heading. Interface (Launcher, Themes, System). [CHAR LIMIT=40] -->
+    <string name="header_category_interface">界面</string>
+    <!-- Launcher settings #CM -->
+    <string name="launcher_settings_title">启动器</string>
+    <!-- Themes settings #CM -->
+    <string name="themes_settings_title">主题</string>
+    <!-- System Interface settings #CM -->
+    <string name="system_settings_title">系统</string>
+    <string name="system_interface_title">系统界面</string>
+    <!-- Notification Drawer #CM -->
+    <string name="notification_drawer_title">通知栏</string>
+    <!-- Combined Bar #CM -->
+    <string name="combined_bar_title">组合条</string>
+    <string name="combined_bar_auto_hide_title">自动隐藏</string>
+    <string name="combined_bar_auto_hide_summary">显示全屏应用时允许组合条隐藏</string>
+    <!-- Power Widget #CM -->
+    <string name="power_widget_title">电源小部件</string>
+    <string name="title_expanded_widget">显示电源小部件</string>
+    <string name="title_expanded_hide_onchange">改变时隐藏</string>
+    <string name="title_expanded_hide_indicator">隐藏指示器</string>
+    <string name="title_expanded_hide_scrollbar">隐藏滚动条</string>
+    <string name="title_widget_picker">控制按钮</string>
+    <string name="summary_widget_picker">选取您需要的控件按钮</string>
+    <string name="title_widget_order">控件按钮顺序</string>
+    <string name="summary_widget_order">排列您的控件按钮</string>
+    <string name="title_buttons">按钮</string>
+    <string name="title_toggle_wifi">切换 Wifi</string>
+    <string name="title_toggle_bluetooth">切换蓝牙</string>
+    <string name="title_toggle_gps">切换 GPS</string>
+    <string name="title_toggle_sound">切换声音</string>
+    <string name="title_toggle_brightness">切换亮度</string>
+    <string name="title_toggle_sync">切换同步</string>
+    <string name="title_toggle_wifiap">切换 Wifi 热点</string>
+    <string name="title_toggle_screentimeout">切换屏幕超时</string>
+    <string name="title_toggle_mobiledata">切换移动数据</string>
+    <string name="title_toggle_lockscreen">切换锁屏</string>
+    <string name="title_toggle_networkmode">切换 2G/3G</string>
+    <string name="title_toggle_autorotate">切换屏幕旋转</string>
+    <string name="title_toggle_airplane">切换飞行模式</string>
+    <string name="title_toggle_flashlight">切换 LED 手电筒</string>
+    <string name="title_toggle_sleep">睡眠模式</string>
+    <string name="title_toggle_media_play_pause">媒体: 切换播放/暂停</string>
+    <string name="title_toggle_media_previous">媒体: 跳到前一首</string>
+    <string name="title_toggle_media_next">媒体: 跳到下一首</string>
+    <string name="title_toggle_wimax">切换 WiMAX</string>
+    <string name="title_button_modes">按钮切换模式</string>
+    <string name="pref_brightness_mode_title">亮度切换模式</string>
+    <string name="pref_brightness_mode_summary">选择亮度按钮的切换方式</string>
+    <string name="cm_brightness_mode_auto">自动</string>
+    <string name="cm_brightness_mode_dim">最暗</string>
+    <string name="pref_network_mode_title">网络切换模式</string>
+    <string name="pref_screentimeout_mode_title">屏幕超时切换模式</string>
+    <string name="pref_ring_mode_title">声音切换模式</string>
+    <string name="pref_ring_mode_summary">选择声音按钮的切换方式</string>
+    <string name="cm_sound_mode_silent">静音</string>
+    <string name="cm_sound_mode_vibrate">震动</string>
+    <string name="cm_sound_mode_sound">铃声</string>
+    <string name="cm_sound_mode_soundVibrate">铃声＋震动</string>
+    <string name="pref_flash_mode_title">手电筒切换模式</string>
+
+    <!-- Power Widget, Haptic feedback #CM -->
+    <string name="expanded_haptic_feedback_title">触动反馈</string>
+
+    <!-- Status bar #CM -->
+    <string name="status_bar_title">状态栏</string>
+    <string name="status_bar_clock_title">时钟</string>
+    <string name="status_bar_general_title">常规</string>
+    <string name="status_bar_show_clock_title">显示时钟</string>
+    <string name="status_bar_show_clock_summary">在状态栏显示时钟</string>
+    <string name="status_bar_am_pm_title">上午/下午样式</string>
+    <string name="status_bar_am_pm_summary">时钟旁边的上午/下午样式</string>
+    <string name="status_bar_battery_title">电池状态样式</string>
+    <string name="status_bar_battery_summary">显示电池状态的样式</string>
+    <string name="status_bar_toggle_brightness">亮度控制</string>
+    <string name="status_bar_toggle_brightness_summary">允许滑动状态栏以调整亮度</string>
+    <string name="status_bar_toggle_info">亮度自动调整已启用</string>
+    <string name="status_bar_signal_text_title">替代的信号显示</string>
+    <string name="status_bar_signal_text_summary">显示信号的dBm数值而不是条状图示</string>
+    <string name="status_bar_signal_text_show_bars">信号条状图示</string>
+    <string name="status_bar_signal_text_show_text">信号文字</string>
+
+    <!-- Lock screen #CM -->
+    <string name="lock_screen_title">锁屏界面</string>
+
+    <!-- Lock Screen Shortcuts -->
+    <string name="lockscreen_target_info">把滑块拉到指定的位置来选择快捷方式.</string>
+    <string name="lockscreen_target_title">锁屏快捷方式</string>
+    <string name="lockscreen_target_summary">查看或改变锁屏界面上的快捷方式</string>
+    <string name="lockscreen_target_reset">锁屏快捷方式已还原默认值</string>
+    <string name="lockscreen_target_save">锁屏快捷方式已保存</string>
+    <string name="lockscreen_target_reset_title">重置</string>
+    <string name="lockscreen_target_reset_message">删除所有用户设定的快捷方式并还原为默认值?</string>
+    <string name="lockscreen_target_empty">空</string>
+    <string name="lockscreen_target_edit_title">编辑快捷方式与图标</string>
+    <string name="lockscreen_target_edit_msg">选择或改变快捷方式与关联的图标.</string>
+
+    <!-- Lock Screen Weather -->
+    <string name="lockscreen_weather_title">天气</string>
+    <string name="lockscreen_weather_summary">在锁屏界面上显示天气信息</string>
+    <string name="lockscreen_weather_enabled">已启用</string>
+    <string name="weather_enable">显示天气</string>
+    <string name="weather_source">雅虎天气</string>
+    <string name="weather_use_custom_location">使用自定义的位置</string>
+    <string name="weather_geolocated">使用网络定位</string>
+    <string name="weather_custom_location_dialog_title">输入位置</string>
+    <string name="weather_custom_location_hint">城市, 省份/国家</string>
+    <string name="weather_custom_location_title">位置</string>
+    <string name="weather_show_location_title">显示位置</string>
+    <string name="weather_show_timestamp_title">显示时间戳</string>
+    <string name="weather_refresh_interval">更新间隔</string>
+    <string name="weather_use_metric">使用公制</string>
+    <string name="weather_retrieve_location_dialog_title">无法查询位置!</string>
+    <string name="weather_retrieve_location_dialog_message">网络定位已被禁用. \n\n请设置一个自定义的位置或启用网络定位服务.</string>
+    <string name="weather_retrieve_location_dialog_enable_button">启用</string>
+    <string name="weather_invert_lowhigh">交换高低温度显示的位置</string>
+    <string name="weather_progress_title">正在审核位置</string>
+
+    <!-- Lock screen Weather - Update frequency -->
+    <string name="weather_refresh_manual">手动</string>
+    <string name="weather_refresh_30min">30 分钟</string>
+    <string name="weather_refresh_60min">60 分钟</string>
+    <string name="weather_refresh_2hrs">2 小时</string>
+    <string name="weather_refresh_4hrs">4 小时</string>
+    <string name="weather_refresh_6hrs">6 小时</string>
+    <string name="weather_refresh_8hrs">8 小时</string>
+
+    <!-- Lock screen Calendar -->
+    <string name="lockscreen_calendar_title">日历</string>
+    <string name="lockscreen_calendar_summary">在锁屏界面上显示下一个活动</string>
+    <string name="lockscreen_calendar_enabled">已启用</string>
+    <string name="calendar_title">显示下一个活动</string>
+    <string name="calendars_title">活动日历</string>
+    <string name="calendars_summary">从这些日历里寻找活动</string>
+    <string name="calendar_reminders_only_title">仅显示提醒</string>
+    <string name="calendar_reminders_only_summary">仅显示带提醒的活动</string>
+    <string name="calendar_lookahead_title">活动搜索范围</string>
+    <string name="calendar_show_location_title">活动位置</string>
+    <string name="calendar_show_description_title">活动描述</string>
+
+    <!-- Lock screen calendar - lookahead -->
+    <string name="calendar_lookahead_3hrs">3 小时</string>
+    <string name="calendar_lookahead_6hrs">6 小时</string>
+    <string name="calendar_lookahead_12hrs">12 小时</string>
+    <string name="calendar_lookahead_1day">1 天</string>
+    <string name="calendar_lookahead_3days">3 天</string>
+    <string name="calendar_lookahead_1wk">1 周</string>
+
+    <!-- Lock screen calendar - event metadata -->
+    <string name="calendar_metadata_none">不要显示</string>
+    <string name="calendar_metadata_first_line">显示第一行</string>
+    <string name="calendar_metadata_all">全部显示</string>
+
+    <!-- Lock screen background -->
+    <string name="lockscreen_custom_background_title">背景</string>
+    <string name="lockscreen_custom_background_dialog_title">选择颜色</string>
+    <string name="lockscreen_background_result_successful">背景已改变</string>
+    <string name="lockscreen_background_result_not_successful">背景没有改变</string>
+    <string name="lockscreen_background_color_fill">颜色填充</string>
+    <string name="lockscreen_background_custom_image">自定义图片</string>
+    <string name="lockscreen_background_default_wallpaper">默认墙纸</string>
+    <!-- Screen security - Screen security  #CM -->
+    <string name="screen_security_category">屏幕安全性</string>
+    <string name="screen_security_title">锁定屏幕</string>
+    <string name="screen_security_summary">查看或者改变锁屏安全性，延迟以及超时设置</string>
+    <string name="additional_options_title">其他选项</string>
+    <string name="unlock_menu_unlock_title">菜单键解锁</string>
+    <string name="unlock_menu_unlock_summary">按下菜单键可解锁设备</string>
+    <string name="unlock_quick_unlock_control_title">快速解锁</string>
+    <string name="unlock_quick_unlock_control_summary">输入数字 PIN 或密码后无需按确定按钮即可解锁，按删除键重新输入。</string>
+   <!-- Delays and timeouts -->
+    <string name="delay_and_timeout_title">锁屏延迟</string>
+    <!-- Slide lock delay -->
+    <string name="slide_lock_delay_title">延迟屏幕锁定</string>
+    <string name="slide_lock_timeout_delay_title">屏幕超时延迟</string>
+    <string name="slide_lock_screenoff_delay_title">屏幕关闭延迟</string>
+    <!-- Performance settings #CM -->
+    <string name="performance_settings_title">性能</string>
+<!-- Performance Settings : Warning dialog #CM -->
+    <string name="performance_settings_warning_title">警告:请谨慎前进！</string>
+    <string name="performance_settings_warning">这里的选项会改变系统的性能，这可能意味着会变得更差。它们只作实验用途，如果您更改过这里的设置，请不要向我们提交bug报告。</string>
+    <!-- Performance Settings : Processor Settings -->
+    <!-- Performance Settings : Processor settings title -->
+    <string name="processor_title">处理器</string>
+    <!-- Performance Settings : Processor settings summary. -->
+    <string name="processor_summary">修改CPU调节器以及时钟速度</string>
+   <!-- Performance Settings : Processor settings sub items -->
+    <string name="cpu_cur_freq_title">当前CPU频率</string>
+    <string name="cpu_governors_title">CPU调节器</string>
+    <!--<string name="cpu_governors_summary">%S</string>-->
+    <string name="cpu_min_freq_title">最小CPU频率</string>
+    <!--<string name="cpu_min_freq_summary">%s</string>-->
+    <string name="cpu_max_freq_title">最大CPU频率</string>
+    <!--<string name="cpu_max_freq_summary">%s</string>-->
+    <string name="cpu_set_on_boot">启动时设置</string>
+    <string name="cpu_set_on_boot_summary">在启动时恢复CPU设置</string>
+    <!-- Memory Management -->
+    <string name="memory_management_title">内存管理</string>
+    <string name="memory_management_summary">自定义内存使用来改变系统性能</string>
+    <!-- zRam -->
+    <!--<string name="pref_zram_title">zRam</string>-->
+    <string name="pref_zram_summary">压缩内存来增加虚拟容量(需要重启)</string>
+    <!-- Purgeable Assets -->
+    <string name="pref_purgeable_assets_title">允许清理图片</string>
+    <string name="pref_purgeable_assets_summary">当系统需要时可以清理未使用的图片来提供更多内存. (需要重启)</string>
+    <!-- Performance Settings : Dithering -->
+    <string name="pref_use_dithering_title">启用贴图插值抖动</string>
+    <string name="pref_use_dithering_summary">启用贴图插值抖动可以提高图像质量，但会影响性能. (需要重启)</string>
+   <!-- Performance Settings : 16bpp Alpha -->
+    <string name="pref_use_16bpp_alpha_title">使用16位透明度</string>
+    <string name="pref_use_16bpp_alpha_summary">更好的图形性能，但会降低质量以及影响视觉效果. (需要重启)</string>
+
     <string name="sim_lock_settings" msgid="3392331196873564292">"SIM 卡锁定设置"</string>
     <string name="sim_lock_settings_category" msgid="5136244267576697004">"设置 SIM 卡锁定"</string>
     <string name="sim_lock_settings_title" msgid="9018585580955414596">"SIM 卡锁定"</string>
@@ -684,11 +1131,53 @@
     <string name="device_info_settings" product="default" msgid="475872867864762157">"手机状态"</string>
     <string name="system_update_settings_list_item_title" msgid="3342887311059985961">"系统更新"</string>
     <string name="system_update_settings_list_item_summary" msgid="3853057315907710747"></string>
+    <!-- Donate #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <string name="donate_settings_title">捐助</string>
+    <!-- About device screen, list item summary. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <!-- skip 'donate_settings_summary' translation -->
+    <!-- Anonymous Statistics #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about opting in or out of anonymous statistics. -->
+    <string name="anonymous_statistics_title">CyanogenMod 统计</string>
+    <string name="anonymous_statistics_summary">开启匿名统计报告使 CyanogenMod 变得更好</string>
+    <string name="anonymous_statistics_warning_title">关于</string>
+    <string name="anonymous_statistics_warning">开启 CyanogenMod 统计将允许非个人数据提交到 CyanogeMod 开发者以便跟踪跨设备的唯一安装。提交的信息包含一个唯一的标识符，而不会涉及您的隐私和个人数据。该数据在每次启动时都会被提交。\n\n作为被提交数据的一个实例，请点击预览数据。</string>
+    <string name="enable_reporting_title">开启报告</string>
+    <string name="preview_data_title">预览数据</string>
+    <!-- skip 'preview_data_summary' translation -->
+    <string name="view_stats_title">查看统计</string>
+    <string name="anonymous_learn_more">查看更多</string>
+    <!-- Anonymous Statistics - Notification -->
+    <string name="anonymous_notification_desc">开启或禁用 CyanogenMod 统计</string>
+    <!-- Anonymous Statistics - Preview -->
+    <string name="preview_id_title">唯一 ID</string>
+    <string name="preview_device_title">设备</string>
+    <string name="preview_version_title">版本</string>
+    <string name="preview_country_title">国家</string>
+    <string name="preview_carrier_title">运营商</string>
+    <!-- Display : Rotation #CM -->
+    <string name="display_rotation_title">旋转</string>
+    <string name="display_rotation_enabled">已启用.</string>
+    <string name="display_rotation_disabled">已禁用.</string>
+    <string name="display_rotation_unit">度</string>
+    <string name="display_rotation_category_title">旋转模式</string>
+    <string name="display_rotation_0_title">0 度</string>
+    <string name="display_rotation_90_title">90 度</string>
+    <string name="display_rotation_180_title">180 度</string>
+    <string name="display_rotation_270_title">270 度</string>
+    <!-- About device screen, Cpu info. -->
+    <string name="cpu_info">处理器</string>
+    <!-- About phone screen, Free memory info -->
+    <string name="mem_info">内存</string>
     <string name="firmware_version" msgid="4801135784886859972">"Android 版本"</string>
     <string name="model_number" msgid="3765737700545384794">"型号"</string>
     <string name="baseband_version" msgid="1848990160763524801">"基带版本"</string>
     <string name="kernel_version" msgid="9192574954196167602">"内核版本"</string>
     <string name="build_number" msgid="3075795840572241758">"版本号"</string>
+    <string name="mod_version">CyanogenMod 版本</string>
+    <string name="mod_version_default">未知</string>
+    <string name="build_date">编译日期</string>
+    <!-- skip 'build_date_default‘translation -->
     <string name="device_info_not_available" msgid="8062521887156825182">"不可用"</string>
     <string name="device_status_activity_title" msgid="1411201799384697904">"状态消息"</string>
     <string name="device_status" msgid="607405385799807324">"状态消息"</string>
@@ -763,7 +1252,26 @@
     <string name="usb_mtp_summary" msgid="4617321473211391236">"让您在 Windows 上传输媒体文件，或在苹果机上使用 Android 文件传输（请参见 www.android.com/filetransfer）"</string>
     <string name="usb_ptp_title" msgid="3852760810622389620">"相机 (PTP)"</string>
     <string name="usb_ptp_summary" msgid="7673397474756664929">"使您能够使用相机软件传输照片，并在不支持 MTP 的计算机上传输任何文件"</string>
+
+    <!-- Storage setting. Title for Mass Storage checkbox [CHAR LIMIT=30]-->
+    <string name="usb_mass_storage_title">USB 大容量存储</string>
+    <!-- Storage setting. Summary for UMS checkbox [CHAR LIMIT=NONE]-->
+    <string name="usb_mass_storage_summary">使用 USB 大容量存储</string>
+
     <string name="usb_label_installer_cd" msgid="4331173824920630215">"安装文件传输工具"</string>
+
+    <!-- Storage setting. Menu option for generic storage settings [CHAR LIMIT=30]-->
+    <string name="storage_menu_storage">存储配置</string>
+    <!-- Storage setting. Title for generic storage settings [CHAR LIMIT=30]-->
+    <string name="storage_title_storage">存储配置</string>
+    <!-- Storage setting. Storage layout setup [CHAR LIMIT=30]-->
+    <string name="storage_layout">存储布局配置</string>
+
+    <!-- Storage layout Settings : Switch storage mountpoints -->
+    <string name="storage_switch_title">使用内部存储</string>
+    <string name="storage_switch_summary_on">程序与媒体文件将使用内置扩展存储</string>
+    <string name="storage_switch_summary_off">程序与媒体文件将使用外置扩展存储</string>
+    <string name="storage_switch_unavailable">此设备没有内置扩展存储</string>
     <string name="battery_status_title" msgid="9159414319574976203">"电池状态"</string>
     <string name="battery_level_title" msgid="2965679202786873272">"电池电量"</string>
     <string name="apn_settings" msgid="3743170484827528406">"APN"</string>
@@ -867,6 +1375,18 @@
     <string name="bluetooth_tethering_overflow_error" msgid="6285122039489881969">"无法与 <xliff:g id="MAXCONNECTION">%1$d</xliff:g> 台以上的设备共享网络。"</string>
     <string name="bluetooth_untether_blank" msgid="2871192409329334813">"即将断开与<xliff:g id="DEVICE_NAME">%1$s</xliff:g>的网络共享。"</string>
     <string name="tethering_help_button_text" msgid="656117495547173630">"帮助"</string>
+
+    <!-- Advanced tethering settings -->
+    <string name="tethering_advanced_text">高级</string>
+    <string name="tethering_lease_time_text">DHCP 租约时间</string>
+    <string name="dhcp_lease_30mn">30 分钟</string>
+    <string name="dhcp_lease_1h">1 小时 (默认)</string>
+    <string name="dhcp_lease_2h">2 小时</string>
+    <string name="dhcp_lease_4h">4 小时</string>
+    <string name="dhcp_lease_6h">6 小时</string>
+    <string name="dhcp_lease_12h">12 小时</string>
+    <string name="dhcp_lease_24h">24 小时</string>
+
     <string name="network_settings_title" msgid="7967552516440151852">"移动网络"</string>
     <string name="location_title" msgid="1029961368397484576">"我的位置"</string>
     <string name="location_network_based" msgid="5569673665032992664">"Google 的位置服务"</string>
@@ -879,6 +1399,11 @@
     <string name="assisted_gps_disabled" msgid="6982698333968010748">"使用服务器来辅助 GPS（取消选中可提高 GPS 性能）"</string>
     <string name="use_location_title" msgid="5206937465504979977">"位置和 Google 搜索"</string>
     <string name="use_location_summary" msgid="3978805802386162520">"允许 Google 使用您的位置信息改善搜索结果和其他服务"</string>
+    <!-- GPS Source selection -->
+    <string name="location_gps_source_title">GPS 源</string>
+    <string name="location_gps_source_summary">使用内部蓝牙GPS鼠标代替外部源定位</string>
+    <string name="location_gps_source_notification_title">警告</string>
+    <string name="location_gps_source_notification">GPS源已被切换! GPS 将停用。请在使用前重新开启!</string>
     <string name="about_settings" product="tablet" msgid="593457295516533765">"关于平板电脑"</string>
     <string name="about_settings" product="default" msgid="1743378368185371685">"关于手机"</string>
     <string name="about_settings_summary" msgid="3371517697156165959">"查看法律信息、状态和软件版本"</string>
@@ -933,6 +1458,10 @@
     <string name="lockpattern_settings_help_how_to_record" msgid="2614673439060830433">"如何绘制解锁图案"</string>
     <string name="lockpattern_too_many_failed_confirmation_attempts_header" msgid="819903817323783498">"错误的尝试次数过多！"</string>
     <string name="lockpattern_too_many_failed_confirmation_attempts_footer" msgid="6759029360597122873">"<xliff:g id="NUMBER">%d</xliff:g> 秒后重试。"</string>
+
+    <!-- Security & location settings screen, setting check box title. This controls whether the device shows the slider widgets before the unlock option [CHAR LIMIT=28]-->
+    <string name="lockpattern_settings_enable_lock_before_unlock">解锁前显示小部件</string>
+
     <string name="skip_button_label" msgid="8680422740354436943">"取消"</string>
     <string name="next_button_label" msgid="8890792540116568321">"下一步"</string>
     <string name="lock_title" product="tablet" msgid="2909697418179419990">"保护您的平板电脑"</string>
@@ -1086,6 +1615,11 @@
     <string name="spellchecker_security_warning" msgid="9060897418527708922">"此拼写检查工具可能会收集您键入的所有文字，包括密码和信用卡号等个人数据。它源自应用程序“<xliff:g id="SPELLCHECKER_APPLICATION_NAME">%1$s</xliff:g>”。要使用此拼写检查工具吗？"</string>
     <string name="pointer_settings_category" msgid="8183819795164034286">"鼠标/触控板"</string>
     <string name="pointer_speed" msgid="1221342330217861616">"指针速度"</string>
+
+    <!-- Whether to display IME switcher notifcation -->
+    <string name="ime_switcher_notify">输入法通知</string>
+    <string name="ime_switcher_notify_summary">显示选择输入法的通知</string>
+
     <string name="user_dict_settings_titlebar" msgid="765659257455000490">"用户词典"</string>
     <string name="user_dict_single_settings_title" msgid="524997218433540614">"个人词典"</string>
     <string name="user_dict_multiple_settings_title" msgid="3735224433307996276">"个人词典"</string>
@@ -1133,6 +1667,9 @@
     <string name="development_settings_summary" msgid="1815795401632854041">"设置应用程序开发选项"</string>
     <string name="enable_adb" msgid="7982306934419797485">"USB 调试"</string>
     <string name="enable_adb_summary" msgid="4881186971746056635">"连接 USB 后启用调试模式"</string>
+    <string name="adb_over_network">网络调试</string>
+    <string name="adb_over_network_summary">通过网络接口(Wi-Fi, USB 网络)启用TCP/IP调试.该设置重启后失效</string>
+    <string name="adb_over_network_warning">警告: 当网络调试启用后, 您的手机在所有已连接的网络中开放, 包括GSM数据网络!\n\n仅在您所连接的可信网络中使用该特性.\n\n您确实要启用该功能吗？</string>
     <string name="verifier_device_identifier" msgid="5079997701152411060">"开发设备 ID"</string>
     <string name="verifier_device_identifier_not_available" msgid="1272065992066977324">"无法读取设备信息"</string>
     <string name="keep_screen_on" msgid="1146389631208760344">"保持唤醒状态"</string>
@@ -1141,6 +1678,16 @@
     <string name="allow_mock_location_summary" msgid="317615105156345626">"允许模拟地点"</string>
     <string name="adb_warning_title" msgid="6234463310896563253">"是否允许 USB 调试？"</string>
     <string name="adb_warning_message" msgid="7316799925425402244">"USB 调试仅适用于开发工作。该功能可用于在您的计算机和设备之间复制数据、在您的设备上安装应用程序而不发送通知以及读取日志数据。"</string>
+
+    <!-- Setting checkbox title for root access -->
+    <string name="root_access">Root 授权</string>
+    <string name="root_access_warning_title">允许 Root 授权请求?</string>
+    <string name="root_access_warning_message">允许程序得到 root 授权是有风险的！这可能会影响您的系统的安全性！</string>
+    <string name="root_access_none">禁用</string>
+    <string name="root_access_apps">限于程序</string>
+    <string name="root_access_adb">限于 ADB</string>
+    <string name="root_access_all">程序与 ADB</string>
+
     <string name="gadget_picker_title" msgid="98374951396755811">"选择小工具"</string>
     <string name="widget_picker_title" msgid="9130684134213467557">"选择窗口小部件"</string>
     <string name="battery_history_days" msgid="7110262897769622564">"<xliff:g id="DAYS">%1$d</xliff:g> 天 <xliff:g id="HOURS">%2$d</xliff:g> 小时 <xliff:g id="MINUTES">%3$d</xliff:g> 分 <xliff:g id="SECONDS">%4$d</xliff:g> 秒"</string>
@@ -1464,6 +2011,8 @@
     <string name="app_process_limit_title" msgid="4280600650253107163">"后台进程限制"</string>
     <string name="show_all_anrs" msgid="28462979638729082">"显示所有“应用程序无响应”(ANR)"</string>
     <string name="show_all_anrs_summary" msgid="641908614413544127">"为后台应用程序显示“应用程序无响应”对话框"</string>
+    <string name="kill_app_longpress_back">返回键强制关闭应用程序</string>
+    <string name="kill_app_longpress_back_summary">长按返回键杀死前台应用程序</string>
     <string name="data_usage_summary_title" msgid="3804110657238092929">"流量使用情况"</string>
     <string name="data_usage_cycle" msgid="5652529796195787949">"流量使用周期"</string>
     <string name="data_usage_menu_roaming" msgid="8042359966835203296">"数据漫游"</string>
@@ -1580,4 +2129,26 @@
     <string name="backup_pw_cancel_button_text" msgid="8845630125391744615">"取消"</string>
     <string name="percentage" msgid="5866131581207788624">"<xliff:g id="NUMBER">%d</xliff:g>%%"</string>
     <string name="additional_system_update_settings_list_item_title" msgid="214987609894661992">"其他系统更新"</string>
+
+    <!-- Electron Beam -->
+    <string name="display_category_animation_options_title">动画</string>
+    <string name="display_electron_beam_animation_on_title">开屏动画</string>
+    <string name="display_electron_beam_animation_off_title">关屏动画</string>
+
+    <!-- Wakeup options -->
+    <string name="display_category_wakeup_options_title">唤醒选项</string>
+    <string name="pref_volume_wake_title">音量键唤醒</string>
+    <string name="pref_volume_wake_summary">使用音量键唤醒设备. 这是专门针对使用电源键比较困难的设备.</string>
+
+    <!-- Stylus Icon -->
+    <string name="stylus_icon_enabled_title">使用触控笔时显示指针</string>
+    <string name="stylus_icon_enabled_summary">在使用触控笔的时候将会显示指针</string>
+
+    <!-- Hostname setting -->
+    <string name="device_hostname">设备网络名</string>
+
+    <!-- Status bar notification count -->
+    <string name="status_bar_notif_count_title">显示通知数量</string>
+    <string name="status_bar_notif_count_summary">在状态栏上显示未读的通知数量</string>
+
 </resources>

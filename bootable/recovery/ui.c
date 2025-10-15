@@ -30,16 +30,32 @@
 
 #include "common.h"
 #include <cutils/android_reboot.h>
+#include <cutils/properties.h>
 #include "minui/minui.h"
 #include "recovery_ui.h"
+
+extern int __system(const char *command);
+
+#if defined(BOARD_HAS_NO_SELECT_BUTTON) || defined(BOARD_TOUCH_RECOVERY)
+static int gShowBackButton = 1;
+#else
+static int gShowBackButton = 0;
+#endif
 
 #define MAX_COLS 96
 #define MAX_ROWS 32
 
-#define CHAR_WIDTH 10
-#define CHAR_HEIGHT 18
+#define MENU_MAX_COLS 64
+#define MENU_MAX_ROWS 250
 
-#define UI_WAIT_KEY_TIMEOUT_SEC    120
+#define MIN_LOG_ROWS 3
+
+#define CHAR_WIDTH BOARD_RECOVERY_CHAR_WIDTH
+#define CHAR_HEIGHT BOARD_RECOVERY_CHAR_HEIGHT
+
+#define UI_WAIT_KEY_TIMEOUT_SEC    3600
+#define UI_KEY_REPEAT_INTERVAL 80
+#define UI_KEY_WAIT_REPEAT 400
 
 UIParameters ui_parameters = {
     6,       // indeterminate progress bar frames
@@ -54,12 +70,22 @@ static gr_surface *gInstallationOverlay;
 static gr_surface *gProgressBarIndeterminate;
 static gr_surface gProgressBarEmpty;
 static gr_surface gProgressBarFill;
+static gr_surface gBackground;
+static int ui_has_initialized = 0;
+static int ui_log_stdout = 1;
+
+static int boardEnableKeyRepeat = 0;
+static int boardRepeatableKeys[64], boardNumRepeatableKeys = 0;
 
 static const struct { gr_surface* surface; const char *name; } BITMAPS[] = {
     { &gBackgroundIcon[BACKGROUND_ICON_INSTALLING], "icon_installing" },
     { &gBackgroundIcon[BACKGROUND_ICON_ERROR],      "icon_error" },
+    { &gBackgroundIcon[BACKGROUND_ICON_CLOCKWORK],  "icon_clockwork" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_INSTALLING], "icon_firmware_install" },
+    { &gBackgroundIcon[BACKGROUND_ICON_FIRMWARE_ERROR], "icon_firmware_error" },
     { &gProgressBarEmpty,               "progress_empty" },
     { &gProgressBarFill,                "progress_fill" },
+    { &gBackground,                "stitch" },
     { NULL,                             NULL },
 };
 
@@ -86,15 +112,24 @@ static int text_col = 0, text_row = 0, text_top = 0;
 static int show_text = 0;
 static int show_text_ever = 0;   // has show_text ever been 1?
 
-static char menu[MAX_ROWS][MAX_COLS];
+static char menu[MENU_MAX_ROWS][MENU_MAX_COLS];
 static int show_menu = 0;
 static int menu_top = 0, menu_items = 0, menu_sel = 0;
+static int menu_show_start = 0;             // this is line which menu display is starting at
+static int max_menu_rows;
 
 // Key event input queue
 static pthread_mutex_t key_queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t key_queue_cond = PTHREAD_COND_INITIALIZER;
 static int key_queue[256], key_queue_len = 0;
+static unsigned long key_last_repeat[KEY_MAX + 1], key_press_time[KEY_MAX + 1];
 static volatile char key_pressed[KEY_MAX + 1];
+
+static void update_screen_locked(void);
+
+#ifdef BOARD_TOUCH_RECOVERY
+#include "../../vendor/koush/recovery/touch.c"
+#endif
 
 // Return the current time as a double (including fractions of a second).
 static double now() {
@@ -123,8 +158,20 @@ static void draw_install_overlay_locked(int frame) {
 static void draw_background_locked(int icon)
 {
     gPagesIdentical = 0;
-    gr_color(0, 0, 0, 255);
-    gr_fill(0, 0, gr_fb_width(), gr_fb_height());
+    // gr_color(0, 0, 0, 255);
+    // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
+
+    {
+        int bw = gr_get_width(gBackground);
+        int bh = gr_get_height(gBackground);
+        int bx = 0;
+        int by = 0;
+        for (by = 0; by < gr_fb_height(); by += bh) {
+            for (bx = 0; bx < gr_fb_width(); bx += bw) {
+                gr_blit(gBackground, 0, 0, bw, bh, bx, by);
+            }
+        }
+    }
 
     if (icon) {
         gr_surface surface = gBackgroundIcon[icon];
@@ -185,41 +232,79 @@ static void draw_text_line(int row, const char* t) {
   }
 }
 
+//#define MENU_TEXT_COLOR 255, 160, 49, 255
+#define MENU_TEXT_COLOR 0, 191, 255, 255
+#define NORMAL_TEXT_COLOR 200, 200, 200, 255
+#define HEADER_TEXT_COLOR NORMAL_TEXT_COLOR
+
 // Redraw everything on the screen.  Does not flip pages.
 // Should only be called with gUpdateMutex locked.
 static void draw_screen_locked(void)
 {
+    if (!ui_has_initialized) return;
     draw_background_locked(gCurrentIcon);
     draw_progress_locked();
 
     if (show_text) {
-        gr_color(0, 0, 0, 160);
-        gr_fill(0, 0, gr_fb_width(), gr_fb_height());
+        // don't "disable" the background anymore with this...
+        // gr_color(0, 0, 0, 160);
+        // gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
+        int total_rows = gr_fb_height() / CHAR_HEIGHT;
         int i = 0;
+        int j = 0;
+        int row = 0;            // current row that we are drawing on
         if (show_menu) {
-            gr_color(64, 96, 255, 255);
-            gr_fill(0, (menu_top+menu_sel) * CHAR_HEIGHT,
-                    gr_fb_width(), (menu_top+menu_sel+1)*CHAR_HEIGHT+1);
+#ifndef BOARD_TOUCH_RECOVERY
+            gr_color(MENU_TEXT_COLOR);
+            gr_fill(0, (menu_top + menu_sel - menu_show_start) * CHAR_HEIGHT,
+                    gr_fb_width(), (menu_top + menu_sel - menu_show_start + 1)*CHAR_HEIGHT+1);
 
-            for (; i < menu_top + menu_items; ++i) {
+            gr_color(HEADER_TEXT_COLOR);
+            for (i = 0; i < menu_top; ++i) {
+                draw_text_line(i, menu[i]);
+                row++;
+            }
+
+            if (menu_items - menu_show_start + menu_top >= max_menu_rows)
+                j = max_menu_rows - menu_top;
+            else
+                j = menu_items - menu_show_start;
+
+            gr_color(MENU_TEXT_COLOR);
+            for (i = menu_show_start + menu_top; i < (menu_show_start + menu_top + j); ++i) {
                 if (i == menu_top + menu_sel) {
                     gr_color(255, 255, 255, 255);
-                    draw_text_line(i, menu[i]);
-                    gr_color(64, 96, 255, 255);
+                    draw_text_line(i - menu_show_start , menu[i]);
+                    gr_color(MENU_TEXT_COLOR);
                 } else {
-                    draw_text_line(i, menu[i]);
+                    gr_color(MENU_TEXT_COLOR);
+                    draw_text_line(i - menu_show_start, menu[i]);
                 }
+                row++;
+                if (row >= max_menu_rows)
+                    break;
             }
-            gr_fill(0, i*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
-                    gr_fb_width(), i*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
-            ++i;
+
+            gr_fill(0, row*CHAR_HEIGHT+CHAR_HEIGHT/2-1,
+                    gr_fb_width(), row*CHAR_HEIGHT+CHAR_HEIGHT/2+1);
+#else
+            row = draw_touch_menu(menu, menu_items, menu_top, menu_sel, menu_show_start);
+#endif
         }
 
-        gr_color(255, 255, 0, 255);
+        gr_color(NORMAL_TEXT_COLOR);
+        int cur_row = text_row;
+        int available_rows = total_rows - row - 1;
+        int start_row = row + 1;
+        if (available_rows < MAX_ROWS)
+            cur_row = (cur_row + (MAX_ROWS - available_rows)) % MAX_ROWS;
+        else
+            start_row = total_rows - MAX_ROWS;
 
-        for (; i < text_rows; ++i) {
-            draw_text_line(i, text[(i+text_top) % text_rows]);
+        int r;
+        for (r = 0; r < (available_rows < MAX_ROWS ? available_rows : MAX_ROWS); r++) {
+            draw_text_line(start_row + r, text[(cur_row + r) % MAX_ROWS]);
         }
     }
 }
@@ -228,6 +313,7 @@ static void draw_screen_locked(void)
 // Should only be called with gUpdateMutex locked.
 static void update_screen_locked(void)
 {
+    if (!ui_has_initialized) return;
     draw_screen_locked();
     gr_flip();
 }
@@ -236,6 +322,7 @@ static void update_screen_locked(void)
 // Should only be called with gUpdateMutex locked.
 static void update_progress_locked(void)
 {
+    if (!ui_has_initialized) return;
     if (show_text || !gPagesIdentical) {
         draw_screen_locked();    // Must redraw the whole screen
         gPagesIdentical = 1;
@@ -307,6 +394,11 @@ static int input_callback(int fd, short revents, void *data)
     if (ret)
         return -1;
 
+#ifdef BOARD_TOUCH_RECOVERY
+    if (touch_handle_input(fd, ev))
+      return 0;
+#endif
+
     if (ev.type == EV_SYN) {
         return 0;
     } else if (ev.type == EV_REL) {
@@ -337,6 +429,10 @@ static int input_callback(int fd, short revents, void *data)
     if (ev.type != EV_KEY || ev.code > KEY_MAX)
         return 0;
 
+    if (ev.value == 2) {
+        boardEnableKeyRepeat = 0;
+    }
+
     pthread_mutex_lock(&key_queue_mutex);
     if (!fake_key) {
         // our "fake" keys only report a key-down event (no
@@ -347,6 +443,15 @@ static int input_callback(int fd, short revents, void *data)
     const int queue_max = sizeof(key_queue) / sizeof(key_queue[0]);
     if (ev.value > 0 && key_queue_len < queue_max) {
         key_queue[key_queue_len++] = ev.code;
+
+        if (boardEnableKeyRepeat) {
+            struct timeval now;
+            gettimeofday(&now, NULL);
+
+            key_press_time[ev.code] = (now.tv_sec * 1000) + (now.tv_usec / 1000);
+            key_last_repeat[ev.code] = 0;
+        }
+
         pthread_cond_signal(&key_queue_cond);
     }
     pthread_mutex_unlock(&key_queue_mutex);
@@ -378,11 +483,21 @@ static void *input_thread(void *cookie)
 
 void ui_init(void)
 {
+    ui_has_initialized = 1;
     gr_init();
     ev_init(input_callback, NULL);
+#ifdef BOARD_TOUCH_RECOVERY
+    touch_init();
+#endif
 
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
+    max_menu_rows = text_rows - MIN_LOG_ROWS;
+#ifdef BOARD_TOUCH_RECOVERY
+    max_menu_rows = get_max_menu_rows(max_menu_rows);
+#endif
+    if (max_menu_rows > MENU_MAX_ROWS)
+        max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
     text_top = 1;
 
@@ -436,9 +551,47 @@ void ui_init(void)
         gInstallationOverlay = NULL;
     }
 
+    char enable_key_repeat[PROPERTY_VALUE_MAX];
+    property_get("ro.cwm.enable_key_repeat", enable_key_repeat, "");
+    if (!strcmp(enable_key_repeat, "true") || !strcmp(enable_key_repeat, "1")) {
+        boardEnableKeyRepeat = 1;
+
+        char key_list[PROPERTY_VALUE_MAX];
+        property_get("ro.cwm.repeatable_keys", key_list, "");
+        if (strlen(key_list) == 0) {
+            boardRepeatableKeys[boardNumRepeatableKeys++] = KEY_UP;
+            boardRepeatableKeys[boardNumRepeatableKeys++] = KEY_DOWN;
+            boardRepeatableKeys[boardNumRepeatableKeys++] = KEY_VOLUMEUP;
+            boardRepeatableKeys[boardNumRepeatableKeys++] = KEY_VOLUMEDOWN;
+        } else {
+            char *pch = strtok(key_list, ",");
+            while (pch != NULL) {
+                boardRepeatableKeys[boardNumRepeatableKeys++] = atoi(pch);
+                pch = strtok(NULL, ",");
+            }
+        }
+    }
+
     pthread_t t;
     pthread_create(&t, NULL, progress_thread, NULL);
     pthread_create(&t, NULL, input_thread, NULL);
+}
+
+char *ui_copy_image(int icon, int *width, int *height, int *bpp) {
+    pthread_mutex_lock(&gUpdateMutex);
+    draw_background_locked(gBackgroundIcon[icon]);
+    *width = gr_fb_width();
+    *height = gr_fb_height();
+    *bpp = sizeof(gr_pixel) * 8;
+    int size = *width * *height * sizeof(gr_pixel);
+    char *ret = malloc(size);
+    if (ret == NULL) {
+        LOGE("Can't allocate %d bytes for image\n", size);
+    } else {
+        memcpy(ret, gr_fb_data(), size);
+    }
+    pthread_mutex_unlock(&gUpdateMutex);
+    return ret;
 }
 
 void ui_set_background(int icon)
@@ -500,6 +653,26 @@ void ui_reset_progress()
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
+static long delta_milliseconds(struct timeval from, struct timeval to) {
+    long delta_sec = (to.tv_sec - from.tv_sec)*1000;
+    long delta_usec = (to.tv_usec - from.tv_usec)/1000;
+    return (delta_sec + delta_usec);
+}
+
+static struct timeval lastupdate = (struct timeval) {0};
+static int ui_nice = 0;
+static int ui_niced = 0;
+void ui_set_nice(int enabled) {
+    ui_nice = enabled;
+}
+#define NICE_INTERVAL 100
+int ui_was_niced() {
+    return ui_niced;
+}
+int ui_get_text_cols() {
+    return text_cols;
+}
+
 void ui_print(const char *fmt, ...)
 {
     char buf[256];
@@ -508,10 +681,25 @@ void ui_print(const char *fmt, ...)
     vsnprintf(buf, 256, fmt, ap);
     va_end(ap);
 
-    fputs(buf, stdout);
+    if (ui_log_stdout)
+        fputs(buf, stdout);
+
+    // if we are running 'ui nice' mode, we do not want to force a screen update
+    // for this line if not necessary.
+    ui_niced = 0;
+    if (ui_nice) {
+        struct timeval curtime;
+        gettimeofday(&curtime, NULL);
+        long ms = delta_milliseconds(lastupdate, curtime);
+        if (ms < NICE_INTERVAL && ms >= 0) {
+            ui_niced = 1;
+            return;
+        }
+    }
 
     // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
+    gettimeofday(&lastupdate, NULL);
     if (text_rows > 0 && text_cols > 0) {
         char *ptr;
         for (ptr = buf; *ptr != '\0'; ++ptr) {
@@ -529,7 +717,32 @@ void ui_print(const char *fmt, ...)
     pthread_mutex_unlock(&gUpdateMutex);
 }
 
-void ui_start_menu(char** headers, char** items, int initial_selection) {
+void ui_printlogtail(int nb_lines) {
+    char * log_data;
+    char tmp[PATH_MAX];
+    FILE * f;
+    int line=0;
+    //don't log output to recovery.log
+    ui_log_stdout=0;
+    sprintf(tmp, "tail -n %d /tmp/recovery.log > /tmp/tail.log", nb_lines);
+    __system(tmp);
+    f = fopen("/tmp/tail.log", "rb");
+    if (f != NULL) {
+        while (line < nb_lines) {
+            log_data = fgets(tmp, PATH_MAX, f);
+            if (log_data == NULL) break;
+            ui_print("%s", tmp);
+            line++;
+        }
+        fclose(f);
+    }
+    ui_log_stdout=1;
+}
+
+#define MENU_ITEM_HEADER " - "
+#define MENU_ITEM_HEADER_LENGTH strlen(MENU_ITEM_HEADER)
+
+int ui_start_menu(char** headers, char** items, int initial_selection) {
     int i;
     pthread_mutex_lock(&gUpdateMutex);
     if (text_rows > 0 && text_cols > 0) {
@@ -539,17 +752,28 @@ void ui_start_menu(char** headers, char** items, int initial_selection) {
             menu[i][text_cols-1] = '\0';
         }
         menu_top = i;
-        for (; i < text_rows; ++i) {
+        for (; i < MENU_MAX_ROWS; ++i) {
             if (items[i-menu_top] == NULL) break;
-            strncpy(menu[i], items[i-menu_top], text_cols-1);
-            menu[i][text_cols-1] = '\0';
+            strcpy(menu[i], MENU_ITEM_HEADER);
+            strncpy(menu[i] + MENU_ITEM_HEADER_LENGTH, items[i-menu_top], MENU_MAX_COLS - 1 - MENU_ITEM_HEADER_LENGTH);
+            menu[i][MENU_MAX_COLS-1] = '\0';
         }
+
+        if (gShowBackButton && !ui_root_menu) {
+            strcpy(menu[i], " - +++++Go Back+++++");
+            ++i;
+        }
+
         menu_items = i - menu_top;
         show_menu = 1;
-        menu_sel = initial_selection;
+        menu_sel = menu_show_start = initial_selection;
         update_screen_locked();
     }
     pthread_mutex_unlock(&gUpdateMutex);
+    if (gShowBackButton && !ui_root_menu) {
+        return menu_items - 1;
+    }
+    return menu_items;
 }
 
 int ui_menu_select(int sel) {
@@ -558,9 +782,21 @@ int ui_menu_select(int sel) {
     if (show_menu > 0) {
         old_sel = menu_sel;
         menu_sel = sel;
-        if (menu_sel < 0) menu_sel = 0;
-        if (menu_sel >= menu_items) menu_sel = menu_items-1;
+
+        if (menu_sel < 0) menu_sel = menu_items + menu_sel;
+        if (menu_sel >= menu_items) menu_sel = menu_sel - menu_items;
+
+
+        if (menu_sel < menu_show_start && menu_show_start > 0) {
+            menu_show_start = menu_sel;
+        }
+
+        if (menu_sel - menu_show_start + menu_top >= max_menu_rows) {
+            menu_show_start = menu_sel + menu_top - max_menu_rows + 1;
+        }
+
         sel = menu_sel;
+
         if (menu_sel != old_sel) update_screen_locked();
     }
     pthread_mutex_unlock(&gUpdateMutex);
@@ -623,6 +859,7 @@ static int usb_connected() {
 
 int ui_wait_key()
 {
+    if (boardEnableKeyRepeat) return ui_wait_key_with_repeat();
     pthread_mutex_lock(&key_queue_mutex);
 
     // Time out after UI_WAIT_KEY_TIMEOUT_SEC, unless a USB cable is
@@ -651,6 +888,101 @@ int ui_wait_key()
     return key;
 }
 
+// util for ui_wait_key_with_repeat
+int key_can_repeat(int key)
+{
+    int k = 0;
+    for (;k < boardNumRepeatableKeys; ++k) {
+        if (boardRepeatableKeys[k] == key) {
+            break;
+        }
+    }
+    if (k < boardNumRepeatableKeys) return 1;
+    return 0;
+}
+
+int ui_wait_key_with_repeat()
+{
+    int key = -1;
+
+    // Loop to wait for more keys.
+    do {
+        struct timeval now;
+        struct timespec timeout;
+        gettimeofday(&now, NULL);
+        timeout.tv_sec = now.tv_sec;
+        timeout.tv_nsec = now.tv_usec * 1000;
+        timeout.tv_sec += UI_WAIT_KEY_TIMEOUT_SEC;
+
+        int rc = 0;
+        pthread_mutex_lock(&key_queue_mutex);
+        while (key_queue_len == 0 && rc != ETIMEDOUT) {
+            rc = pthread_cond_timedwait(&key_queue_cond, &key_queue_mutex,
+                                        &timeout);
+        }
+        pthread_mutex_unlock(&key_queue_mutex);
+        if (rc == ETIMEDOUT && !usb_connected()) {
+            return -1;
+        }
+
+        // Loop to wait wait for more keys, or repeated keys to be ready.
+        while (1) {
+            unsigned long now_msec;
+
+            gettimeofday(&now, NULL);
+            now_msec = (now.tv_sec * 1000) + (now.tv_usec / 1000);
+
+            pthread_mutex_lock(&key_queue_mutex);
+
+            // Replacement for the while conditional, so we don't have to lock the entire
+            // loop, because that prevents the input system from touching the variables while
+            // the loop is running which causes problems.
+            if (key_queue_len == 0) {
+                pthread_mutex_unlock(&key_queue_mutex);
+                break;
+            }
+
+            key = key_queue[0];
+            memcpy(&key_queue[0], &key_queue[1], sizeof(int) * --key_queue_len);
+
+            // sanity check the returned key.
+            if (key < 0) {
+                pthread_mutex_unlock(&key_queue_mutex);
+                return key;
+            }
+
+            // Check for already released keys and drop them if they've repeated.
+            if (!key_pressed[key] && key_last_repeat[key] > 0) {
+                pthread_mutex_unlock(&key_queue_mutex);
+                continue;
+            }
+
+            if (key_can_repeat(key)) {
+                // Re-add the key if a repeat is expected, since we just popped it. The
+                // if below will determine when the key is actually repeated (returned)
+                // in the mean time, the key will be passed through the queue over and
+                // over and re-evaluated each time.
+                if (key_pressed[key]) {
+                    key_queue[key_queue_len] = key;
+                    key_queue_len++;
+                }
+                if ((now_msec > key_press_time[key] + UI_KEY_WAIT_REPEAT && now_msec > key_last_repeat[key] + UI_KEY_REPEAT_INTERVAL) ||
+                        key_last_repeat[key] == 0) {
+                    key_last_repeat[key] = now_msec;
+                } else {
+                    // Not ready
+                    pthread_mutex_unlock(&key_queue_mutex);
+                    continue;
+                }
+            }
+            pthread_mutex_unlock(&key_queue_mutex);
+            return key;
+        }
+    } while (1);
+
+    return key;
+}
+
 int ui_key_pressed(int key)
 {
     // This is a volatile static array, don't bother locking
@@ -661,4 +993,45 @@ void ui_clear_key_queue() {
     pthread_mutex_lock(&key_queue_mutex);
     key_queue_len = 0;
     pthread_mutex_unlock(&key_queue_mutex);
+}
+
+void ui_set_show_text(int value) {
+    show_text = value;
+}
+
+void ui_set_showing_back_button(int showBackButton) {
+    gShowBackButton = showBackButton;
+}
+
+int ui_get_showing_back_button() {
+    return gShowBackButton;
+}
+
+int ui_is_showing_back_button() {
+    return gShowBackButton && !ui_root_menu;
+}
+
+int ui_get_selected_item() {
+  return menu_sel;
+}
+
+int ui_handle_key(int key, int visible) {
+#ifdef BOARD_TOUCH_RECOVERY
+    return touch_handle_key(key, visible);
+#else
+    return device_handle_key(key, visible);
+#endif
+}
+
+void ui_delete_line() {
+    pthread_mutex_lock(&gUpdateMutex);
+    text[text_row][0] = '\0';
+    text_row = (text_row - 1 + text_rows) % text_rows;
+    text_col = 0;
+    pthread_mutex_unlock(&gUpdateMutex);
+}
+
+void ui_increment_frame() {
+    gInstallingFrame =
+        (gInstallingFrame + 1) % ui_parameters.installing_frames;
 }

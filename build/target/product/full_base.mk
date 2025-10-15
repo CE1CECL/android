@@ -24,19 +24,17 @@ PRODUCT_PACKAGES := \
     libdrmframework \
     libdrmframework_jni \
     libfwdlockengine \
-    OpenWnn \
-    PinyinIME \
-    libWnnEngDic \
-    libWnnJpnDic \
-    libwnndict \
     VideoEditor \
     WAPPushManager
 
+PRODUCT_PACKAGES += \
+    libvideoeditor_jni \
+    libvideoeditorplayer \
+    libvideoeditor_core
+
 # Additional settings used in all AOSP builds
 PRODUCT_PROPERTY_OVERRIDES := \
-    ro.com.android.dateformat=MM-dd-yyyy \
-    ro.config.ringtone=Ring_Synth_04.ogg \
-    ro.config.notification_sound=pixiedust.ogg
+    ro.com.android.dateformat=MM-dd-yyyy
 
 # Put en_US first in the list, so make it default.
 PRODUCT_LOCALES := en_US

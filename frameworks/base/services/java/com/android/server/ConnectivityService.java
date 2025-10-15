@@ -53,6 +53,7 @@ import android.net.Proxy;
 import android.net.ProxyProperties;
 import android.net.RouteInfo;
 import android.net.wifi.WifiStateTracker;
+import android.net.wimax.WimaxHelper;
 import android.net.wimax.WimaxManagerConstants;
 import android.os.Binder;
 import android.os.FileUtils;
@@ -333,13 +334,17 @@ public class ConnectivityService extends IConnectivityManager.Stub {
         mHandler = new MyHandler(handlerThread.getLooper());
 
         // setup our unique device name
-        if (TextUtils.isEmpty(SystemProperties.get("net.hostname"))) {
+        String hostname = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.DEVICE_HOSTNAME);
+        if (TextUtils.isEmpty(hostname) && TextUtils.isEmpty(SystemProperties.get("net.hostname"))) {
             String id = Settings.Secure.getString(context.getContentResolver(),
                     Settings.Secure.ANDROID_ID);
             if (id != null && id.length() > 0) {
                 String name = new String("android-").concat(id);
                 SystemProperties.set("net.hostname", name);
             }
+        } else {
+            SystemProperties.set("net.hostname", hostname);
         }
 
         // read our default dns server ip
@@ -552,8 +557,6 @@ private NetworkStateTracker makeWimaxStateTracker() {
         Class wimaxStateTrackerClass = null;
         Class wimaxServiceClass = null;
         Class wimaxManagerClass;
-        String wimaxJarLocation;
-        String wimaxLibLocation;
         String wimaxManagerClassName;
         String wimaxServiceClassName;
         String wimaxStateTrackerClassName;
@@ -565,10 +568,6 @@ private NetworkStateTracker makeWimaxStateTracker() {
 
         if (isWimaxEnabled) {
             try {
-                wimaxJarLocation = mContext.getResources().getString(
-                        com.android.internal.R.string.config_wimaxServiceJarLocation);
-                wimaxLibLocation = mContext.getResources().getString(
-                        com.android.internal.R.string.config_wimaxNativeLibLocation);
                 wimaxManagerClassName = mContext.getResources().getString(
                         com.android.internal.R.string.config_wimaxManagerClassname);
                 wimaxServiceClassName = mContext.getResources().getString(
@@ -576,10 +575,7 @@ private NetworkStateTracker makeWimaxStateTracker() {
                 wimaxStateTrackerClassName = mContext.getResources().getString(
                         com.android.internal.R.string.config_wimaxStateTrackerClassname);
 
-                log("wimaxJarLocation: " + wimaxJarLocation);
-                wimaxClassLoader =  new DexClassLoader(wimaxJarLocation,
-                        new ContextWrapper(mContext).getCacheDir().getAbsolutePath(),
-                        wimaxLibLocation, ClassLoader.getSystemClassLoader());
+                wimaxClassLoader = WimaxHelper.getWimaxClassLoader(mContext);
 
                 try {
                     wimaxManagerClass = wimaxClassLoader.loadClass(wimaxManagerClassName);

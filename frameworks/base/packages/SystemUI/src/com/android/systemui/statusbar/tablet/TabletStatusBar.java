@@ -28,6 +28,7 @@ import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -35,6 +36,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
+import android.content.res.CustomTheme;
 import android.content.res.Resources;
 import android.inputmethodservice.InputMethodService;
 import android.graphics.PixelFormat;
@@ -48,7 +50,10 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.storage.StorageManager;
+import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.Pair;
 import android.util.Slog;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.Display;
@@ -65,6 +70,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.WindowManagerImpl;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.RemoteViews;
 import android.widget.ScrollView;
@@ -80,6 +86,7 @@ import com.android.systemui.statusbar.SignalClusterView;
 import com.android.systemui.statusbar.StatusBar;
 import com.android.systemui.statusbar.StatusBarIconView;
 import com.android.systemui.statusbar.policy.BatteryController;
+import com.android.systemui.statusbar.policy.DockBatteryController;
 import com.android.systemui.statusbar.policy.BluetoothController;
 import com.android.systemui.statusbar.policy.CompatModeButton;
 import com.android.systemui.statusbar.policy.LocationController;
@@ -123,6 +130,8 @@ public class TabletStatusBar extends StatusBar implements
     int mIconHPadding = -1;
     private int mMaxNotificationIcons = 5;
 
+    private boolean mShowClock;
+
     H mHandler = new H();
 
     IWindowManager mWindowManager;
@@ -163,9 +172,12 @@ public class TabletStatusBar extends StatusBar implements
 
     HeightReceiver mHeightReceiver;
     BatteryController mBatteryController;
+    DockBatteryController mDockBatteryController;
     BluetoothController mBluetoothController;
     LocationController mLocationController;
     NetworkController mNetworkController;
+
+    private boolean mHasDockBattery;
 
     ViewGroup mBarContents;
 
@@ -195,6 +207,14 @@ public class TabletStatusBar extends StatusBar implements
 
     public Context getContext() { return mContext; }
 
+    private StorageManager mStorageManager;
+
+    // last theme that was applied in order to detect theme change (as opposed
+    // to some other configuration change).
+    CustomTheme mCurrentTheme;
+    private boolean mRecreating = false;
+
+
     protected void addPanelWindows() {
         final Context context = mContext;
         final Resources res = mContext.getResources();
@@ -212,9 +232,21 @@ public class TabletStatusBar extends StatusBar implements
         mBatteryController.addLabelView(
                 (TextView)mNotificationPanel.findViewById(R.id.battery_text));
 
+        if (mHasDockBattery) {
+            mDockBatteryController.addIconView((ImageView)mNotificationPanel.findViewById(R.id.dock_battery));
+            mDockBatteryController.addLabelView(
+                    (TextView)mNotificationPanel.findViewById(R.id.dock_battery_text));
+        } else {
+            mNotificationPanel.findViewById(R.id.dock_battery_text).setVisibility(View.GONE);
+        }
         // Bt
         mBluetoothController.addIconView(
                 (ImageView)mNotificationPanel.findViewById(R.id.bluetooth));
+
+        // storage
+        mStorageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
+        mStorageManager.registerListener(
+                new com.android.systemui.usb.StorageNotification(context));
 
         // network icons: either a combo icon that switches between mobile and data, or distinct
         // mobile and data icons
@@ -390,14 +422,54 @@ public class TabletStatusBar extends StatusBar implements
         super.start(); // will add the main bar view
     }
 
+    private static void copyNotifications(ArrayList<Pair<IBinder, StatusBarNotification>> dest,
+            NotificationData source) {
+        int N = source.size();
+        for (int i = 0; i < N; i++) {
+            NotificationData.Entry entry = source.get(i);
+            dest.add(Pair.create(entry.key, entry.notification));
+        }
+    }
+
+    private void recreateStatusBar() {
+        mRecreating = true;
+        mStatusBarContainer.removeAllViews();
+
+        // extract notifications.
+        int nNotifs = mNotificationData.size();
+        ArrayList<Pair<IBinder, StatusBarNotification>> notifications =
+                new ArrayList<Pair<IBinder, StatusBarNotification>>(nNotifs);
+        copyNotifications(notifications, mNotificationData);
+        mNotificationData.clear();
+
+        mStatusBarContainer.addView(makeStatusBarView());
+
+        // recreate notifications.
+        for (int i = 0; i < nNotifs; i++) {
+            Pair<IBinder, StatusBarNotification> notifData = notifications.get(i);
+            addNotificationViews(notifData.first, notifData.second);
+        }
+
+        setAreThereNotifications();
+
+        mRecreating = false;
+    }
+
     @Override
     protected void onConfigurationChanged(Configuration newConfig) {
-        mHeightReceiver.updateHeight(); // display size may have changed
-        loadDimens();
-        mNotificationPanelParams.height = getNotificationPanelHeight();
-        WindowManagerImpl.getDefault().updateViewLayout(mNotificationPanel,
-                mNotificationPanelParams);
-        mRecentsPanel.updateValuesFromResources();
+        // detect theme change.
+        CustomTheme newTheme = mContext.getResources().getConfiguration().customTheme;
+        if (newTheme != null &&
+                (mCurrentTheme == null || !mCurrentTheme.equals(newTheme))) {
+            mCurrentTheme = (CustomTheme)newTheme.clone();
+            recreateStatusBar();
+        }
+            mHeightReceiver.updateHeight(); // display size may have changed
+            loadDimens();
+            mNotificationPanelParams.height = getNotificationPanelHeight();
+            WindowManagerImpl.getDefault().updateViewLayout(mNotificationPanel,
+                    mNotificationPanelParams);
+            mRecentsPanel.updateValuesFromResources();
     }
 
     protected void loadDimens() {
@@ -431,6 +503,11 @@ public class TabletStatusBar extends StatusBar implements
 
         mWindowManager = IWindowManager.Stub.asInterface(
                 ServiceManager.getService(Context.WINDOW_SERVICE));
+
+        CustomTheme currentTheme = mContext.getResources().getConfiguration().customTheme;
+        if (currentTheme != null) {
+            mCurrentTheme = (CustomTheme)currentTheme.clone();
+        }
 
         // This guy will listen for HDMI plugged broadcasts so we can resize the
         // status bar as appropriate.
@@ -486,8 +563,21 @@ public class TabletStatusBar extends StatusBar implements
         // The icons
         mLocationController = new LocationController(mContext); // will post a notification
 
+        mHasDockBattery = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_hasDockBattery);
+
         mBatteryController = new BatteryController(mContext);
         mBatteryController.addIconView((ImageView)sb.findViewById(R.id.battery));
+        mBatteryController.addLabelView(
+                (TextView)sb.findViewById(R.id.battery_text));
+
+        if (mHasDockBattery) {
+            mDockBatteryController = new DockBatteryController(mContext);
+            mDockBatteryController.addIconView((ImageView)sb.findViewById(R.id.dock_battery));
+            mDockBatteryController.addLabelView(
+                    (TextView)sb.findViewById(R.id.dock_battery_text));
+        }
+
         mBluetoothController = new BluetoothController(mContext);
         mBluetoothController.addIconView((ImageView)sb.findViewById(R.id.bluetooth));
 
@@ -623,7 +713,7 @@ public class TabletStatusBar extends StatusBar implements
 
     public void onBarHeightChanged(int height) {
         final WindowManager.LayoutParams lp
-                = (WindowManager.LayoutParams)mStatusBarView.getLayoutParams();
+                = (WindowManager.LayoutParams)mStatusBarContainer.getLayoutParams();
         if (lp == null) {
             // haven't been added yet
             return;
@@ -631,7 +721,7 @@ public class TabletStatusBar extends StatusBar implements
         if (lp.height != height) {
             lp.height = height;
             final WindowManager wm = WindowManagerImpl.getDefault();
-            wm.updateViewLayout(mStatusBarView, lp);
+            wm.updateViewLayout(mStatusBarContainer, lp);
         }
     }
 
@@ -810,7 +900,7 @@ public class TabletStatusBar extends StatusBar implements
                 notification.notification.fullScreenIntent.send();
             } catch (PendingIntent.CanceledException e) {
             }
-        } else {
+        } else if (!mRecreating) {
             tick(key, notification, true);
         }
 
@@ -929,10 +1019,14 @@ public class TabletStatusBar extends StatusBar implements
     }
 
     public void showClock(boolean show) {
+        ContentResolver resolver = mContext.getContentResolver();
+
         View clock = mBarContents.findViewById(R.id.clock);
         View network_text = mBarContents.findViewById(R.id.network_text);
+        mShowClock = (Settings.System.getInt(resolver,
+                Settings.System.STATUS_BAR_CLOCK, 1) == 1);
         if (clock != null) {
-            clock.setVisibility(show ? View.VISIBLE : View.GONE);
+            clock.setVisibility(show ? (mShowClock ? View.VISIBLE : View.GONE) : View.GONE);
         }
         if (network_text != null) {
             network_text.setVisibility((!show) ? View.VISIBLE : View.GONE);

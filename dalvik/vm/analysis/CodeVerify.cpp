@@ -3797,7 +3797,7 @@ static bool doCodeVerification(VerifierData* vdata, RegisterTable* regTable)
             if (instr == kPackedSwitchSignature ||
                 instr == kSparseSwitchSignature ||
                 instr == kArrayDataSignature ||
-                (instr == OP_NOP &&
+                (instr == OP_NOP && (insnIdx + 1 < insnsSize) &&
                  (meth->insns[insnIdx+1] == kPackedSwitchSignature ||
                   meth->insns[insnIdx+1] == kSparseSwitchSignature ||
                   meth->insns[insnIdx+1] == kArrayDataSignature)))
@@ -4385,6 +4385,11 @@ static bool verifyInstruction(const Method* meth, InsnFlags* insnFlags,
             valueType = primitiveTypeToRegType(
                                     resClass->elementClass->primitiveType);
             assert(valueType != kRegTypeUnknown);
+#ifdef NDEBUG
+            // assert is optimized out, leaving valueType defined but
+            // not used, causing a compiler warning -> error on 
+            (void)valueType;
+#endif
 
             /*
              * Now verify if the element width in the table matches the element

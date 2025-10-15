@@ -14,19 +14,20 @@
 # limitations under the License.
 #
 
-common_msm_dirs := libcopybit liblights libopencorehw librpc libstagefrighthw
-msm7k_dirs := $(common_msm_dirs) boot libgralloc libaudio
-qsd8k_dirs := $(common_msm_dirs) libgralloc-qsd8k libaudio-qsd8k dspcrashd
-msm7x30_dirs := liblights libgralloc-qsd8k librpc libaudio-qdsp5v2
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
 
-ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
+common_msm_dirs := librpc dspcrashd libstagefrighthw
+
+ifneq ($(TARGET_PROVIDES_LIBLIGHTS),true)
+    common_msm_dirs += liblights
+endif
+
+msm7k_dirs := $(common_msm_dirs) boot
+
+ifeq ($(TARGET_BOARD_PLATFORM),msm7x27)
   include $(call all-named-subdir-makefiles,$(msm7k_dirs))
 else
-  ifeq ($(TARGET_BOARD_PLATFORM),qsd8k)
-    include $(call all-named-subdir-makefiles,$(qsd8k_dirs))
-  else
-    ifeq ($(TARGET_BOARD_PLATFORM),msm7x30)
-      include $(call all-named-subdir-makefiles,$(msm7x30_dirs))
-    endif
-  endif
+  include $(call all-named-subdir-makefiles,$(common_msm_dirs))
+endif
+
 endif

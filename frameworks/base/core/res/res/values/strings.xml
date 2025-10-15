@@ -68,6 +68,23 @@
          could not be performed because FDN is enabled. This will be displayed in a toast. -->
     <string name="mmiFdnError">Operation is restricted to fixed dialing numbers only.</string>
 
+    <!-- Names of default profiles. -->
+    <string name="profileNameDefault">Default</string>
+    <string name="profileNameWork">Work</string>
+    <string name="profileNameHome">Home</string>
+    <string name="profileNameSilent">Silent</string>
+    <string name="profileNameNight">Night</string>
+
+    <!-- Names of application groups. -->
+    <string name="profileGroupPhone">Phone</string>
+    <string name="profileGroupCalendar">Calendar</string>
+    <string name="profileGroupGmail">Gmail</string>
+    <string name="profileGroupEmail">Email</string>
+    <string name="profileGroupSMS">SMS</string>
+
+    <!-- Name of wildcard profile. -->
+    <string name="wildcardProfile">Other</string>
+
     <!-- Displayed when a phone feature such as call barring was activated. -->
     <string name="serviceEnabled">Service was enabled.</string>
     <!-- Displayed in front of the list of a set of service classes
@@ -187,6 +204,7 @@
     <string name="roamingText11">Roaming Banner On</string>
     <string name="roamingText12">Roaming Banner Off</string>
     <string name="roamingTextSearching">Searching for Service</string>
+    <string name="roamingTextAirplaneMode">Airplane Mode</string>
 
 
     <!--
@@ -286,6 +304,32 @@
     <string name="screen_lock">Screen lock</string>
     <!-- Button to turn off the phone, within the Phone Options dialog -->
     <string name="power_off">Power off</string>
+
+    <!-- Button to reboot the phone, within the Phone Options dialog -->
+    <string name="reboot_system" product="tablet">Reboot tablet</string>
+    <string name="reboot_system" product="default">Reboot phone</string>
+
+    <!-- label for item that screenshots in phone options dialog -->
+    <string name="global_action_screenshot">Screenshot</string>
+
+    <!-- Button to reboot the phone, within the Reboot Options dialog -->
+    <string name="reboot_reboot">Reboot</string>
+    <!-- Button to reboot the phone into recovery, within the Reboot Options dialog -->
+    <string name="reboot_recovery">Recovery</string>
+    <!-- Button to reboot the phone into bootloader, within the Reboot Options dialog -->
+    <string name="reboot_bootloader">Bootloader</string>
+    <!-- Button to reboot the phone into bootmenu, within the Reboot Options dialog -->
+    <string name="reboot_bootmenu">Bootmenu</string>
+    <!-- Button to reboot the phone into fastboot, within the Reboot Options dialog -->
+    <string name="reboot_fastboot">Fastboot</string>
+    <!-- Button to reboot the phone into download, within the Reboot Options dialog -->
+    <string name="reboot_download">Download</string>
+
+    <!-- Reboot Progress Dialog. This is shown if the user chooses to reboot the phone. -->
+    <string name="reboot_progress">Rebooting\u2026</string>
+    <!-- Reboot Confirmation Dialog.  When the user chooses to reboot the phone, there will be a confirmation dialog.  This is the message. -->
+    <string name="reboot_confirm">Your phone will reboot.</string>
+
     <!-- Spoken description for ringer silent option. [CHAR LIMIT=NONE] -->
     <string name="silent_mode_silent">Ringer off</string>
     <!-- Spoken description for ringer vibrate option. [CHAR LIMIT=NONE] -->
@@ -330,6 +374,12 @@
 
     <!-- label for item that turns off power in phone options dialog -->
     <string name="global_action_power_off">Power off</string>
+
+    <!-- label for item that reboots the phone in phone options dialog -->
+    <string name="global_action_reboot">Reboot</string>
+
+    <!-- label for item that opens the profile choosing dialog -->
+    <string name="global_action_choose_profile">Profile</string>
 
     <!-- label for item that enables silent mode in phone options dialog -->
     <string name="global_action_toggle_silent_mode">Silent mode</string>
@@ -824,6 +874,11 @@
     <string name="permdesc_movePackage">Allows an application to move application resources from internal to external media and vice versa.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_preventpower">prevent power key</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_preventpower">Allows an application to override the power key</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_readLogs">read sensitive log data</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_readLogs" product="tablet">Allows an application to read from the
@@ -1123,6 +1178,18 @@
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_vibrate">Allows the application to control
         the vibrator.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_fm_radio_receiver">control FM receiver</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_fm_radio_receiver">Allows the application to control
+        the FM receiver.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_fm_radio_transmitter">control FM transmitter</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_fm_radio_transmitter">Allows the application to control
+        the FM transmitter.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_flashlight">control flashlight</string>
@@ -1609,6 +1676,10 @@
         <item>ICQ</item>
         <item>Jabber</item>
     </string-array>
+
+    <!-- Hardware Rotation lock string -->
+    <string name="toast_rotation_unlocked">Display Rotation Unlocked</string>
+    <string name="toast_rotation_locked">Display Rotation Locked</string>
 
     <!-- Custom phone number type -->
     <string name="phoneTypeCustom">Custom</string>
@@ -2874,9 +2945,9 @@
     <string name="extmedia_format_button_format">Format</string>
 
     <!-- Title of notification shown when ADB is actively connected to the phone. -->
-    <string name="adb_active_notification_title">USB debugging connected</string>
+    <string name="adb_active_notification_title">Android debugging enabled</string>
     <!-- Message of notification shown when ADB is actively connected to the phone. -->
-    <string name="adb_active_notification_message">Select to disable USB debugging.</string>
+    <string name="adb_active_notification_message">Select to disable debugging.</string>
 
     <!-- Used to replace %s in urls retreived from the signin server with locales.  For Some        -->
     <!-- devices we don't support all the locales we ship to and need to replace the '%s' with a    -->
@@ -3385,5 +3456,130 @@
 
     <!-- STK setup Call -->
     <string name="SetupCallDefault">Accept Call?</string>
+
+    <!-- Long-press back kill application -->
+    <string name="app_killed_message">Application killed</string>
+
+    <!-- Lock screen Weather - Weather codes -->
+    <string name="weather_0">Tornado</string>
+    <string name="weather_1">Tropical Storm</string>
+    <string name="weather_2">Hurricane</string>
+    <string name="weather_3">Severe Thunderstorms</string>
+    <string name="weather_4">Thunderstorms</string>
+    <string name="weather_5">Mixed Rain and Snow</string>
+    <string name="weather_6">Mixed Rain and Sleet</string>
+    <string name="weather_7">Mixed Snow and Sleet</string>
+    <string name="weather_8">Freezing Drizzle</string>
+    <string name="weather_9">Drizzle</string>
+    <string name="weather_10">Freezing Rain</string>
+    <string name="weather_11">Showers</string>
+    <string name="weather_12">Showers</string>
+    <string name="weather_13">Snow Flurries</string>
+    <string name="weather_14">Light Snow Showers</string>
+    <string name="weather_15">Blowing Snow</string>
+    <string name="weather_16">Snow</string>
+    <string name="weather_17">Hail</string>
+    <string name="weather_18">Sleet</string>
+    <string name="weather_19">Dust</string>
+    <string name="weather_20">Foggy</string>
+    <string name="weather_21">Haze</string>
+    <string name="weather_22">Smoky</string>
+    <string name="weather_23">Blustery</string>
+    <string name="weather_24">Windy</string>
+    <string name="weather_25">Cold</string>
+    <string name="weather_26">Cloudy</string>
+    <string name="weather_27">Mostly Cloudy</string> <!-- Night -->
+    <string name="weather_28">Mostly Cloudy</string> <!-- Day -->
+    <string name="weather_29">Partly Cloudy</string> <!-- Night -->
+    <string name="weather_30">Partly Cloudy</string> <!-- Day -->
+    <string name="weather_31">Clear</string> <!-- Night -->
+    <string name="weather_32">Sunny</string>
+    <string name="weather_33">Fair</string> <!-- Night -->
+    <string name="weather_34">Fair</string> <!-- Day -->
+    <string name="weather_35">Mixed Rain and Hail</string>
+    <string name="weather_36">Hot</string>
+    <string name="weather_37">Isolated Thunderstorms</string>
+    <string name="weather_38">Scattered Thunderstorms</string>
+    <string name="weather_39">Scattered Thunderstorms</string>
+    <string name="weather_40">Scattered Showers</string>
+    <string name="weather_41">Heavy Snow</string>
+    <string name="weather_42">Scattered Snow Showers</string>
+    <string name="weather_43">Heavy Snow</string>
+    <string name="weather_44">Partly Cloudy</string>
+    <string name="weather_45">Thundershowers</string>
+    <string name="weather_46">Snow Showers</string>
+    <string name="weather_47">Isolated Thundershowers</string>
+    <!-- Forecast unavailable -->
+    <string name="weather_3200"></string>
+
+    <!-- Lock screen Weather - Wind directions -->
+    <string name="weather_N">N</string>
+    <string name="weather_NE">NE</string>
+    <string name="weather_E">E</string>
+    <string name="weather_SE">SE</string>
+    <string name="weather_S">S</string>
+    <string name="weather_SW">SW</string>
+    <string name="weather_W">W</string>
+    <string name="weather_NW">NW</string>
+
+    <!-- Lock screen Weather - error messages -->
+    <string name="weather_no_data">No data</string>
+    <string name="weather_tap_to_refresh">Tap to refresh</string>
+    <string name="weather_refreshing">Refreshing</string>
+
+    <!-- Options that show upon long-pressing a key on the physical keyboard -->
+    <string name="symbol_picker_A">\u00C0\u00C1\u00C2\u00C4\u00C6\u00C3\u00C5\u0104\u0100</string>
+    <string name="symbol_picker_C">\u00C7\u0106\u010C</string>
+    <string name="symbol_picker_D">\u010E</string>
+    <string name="symbol_picker_E">\u00C8\u00C9\u00CA\u00CB\u0118\u011A\u0112</string>
+    <string name="symbol_picker_G">\u011E</string>
+    <string name="symbol_picker_L">\u0141</string>
+    <string name="symbol_picker_I">\u00CC\u00CD\u00CE\u00CF\u012A\u0130</string>
+    <string name="symbol_picker_N">\u00D1\u0143\u0147</string>
+    <string name="symbol_picker_O">\u00D8\u0152\u00D5\u00D2\u00D3\u00D4\u00D6\u014C</string>
+    <string name="symbol_picker_R">\u0158</string>
+    <string name="symbol_picker_S">\u015A\u0160\u015E</string>
+    <string name="symbol_picker_T">\u0164</string>
+    <string name="symbol_picker_U">\u00D9\u00DA\u00DB\u00DC\u016E\u016A</string>
+    <string name="symbol_picker_Y">\u00DD\u0178</string>
+    <string name="symbol_picker_Z">\u0179\u017B\u017D</string>
+    <string name="symbol_picker_a">\u00E0\u00E1\u00E2\u00E4\u00E6\u00E3\u00E5\u0105\u0101</string>
+    <string name="symbol_picker_c">\u00E7\u0107\u010D</string>
+    <string name="symbol_picker_d">\u010F</string>
+    <string name="symbol_picker_e">\u00E8\u00E9\u00EA\u00EB\u0119\u011B\u0113</string>
+    <string name="symbol_picker_g">\u011F</string>
+    <string name="symbol_picker_i">\u00EC\u00ED\u00EE\u00EF\u012B\u0131</string>
+    <string name="symbol_picker_l">\u0142</string>
+    <string name="symbol_picker_n">\u00F1\u0144\u0148</string>
+    <string name="symbol_picker_o">\u00F8\u0153\u00F5\u00F2\u00F3\u00F4\u00F6\u014D</string>
+    <string name="symbol_picker_r">\u0159</string>
+    <string name="symbol_picker_s">\u00A7\u00DF\u015B\u0161\u015F</string>
+    <string name="symbol_picker_t">\u0165</string>
+    <string name="symbol_picker_u">\u00F9\u00FA\u00FB\u00FC\u016F\u016B</string>
+    <string name="symbol_picker_y">\u00FD\u00FF</string>
+    <string name="symbol_picker_z">\u017A\u017C\u017E</string>
+    <string name="symbol_picker_sym">\u2026\u00A5\u2022\u00AE\u00A9\u00B1[]{}\u003C>`^\\|</string>
+    <string name="symbol_picker_slash">\\</string>
+    <string name="symbol_picker_1">\u00b9\u00bd\u2153\u00bc\u215b</string>
+    <string name="symbol_picker_2">\u00b2\u2154</string>
+    <string name="symbol_picker_3">\u00b3\u00be\u215c</string>
+    <string name="symbol_picker_4">\u2074</string>
+    <string name="symbol_picker_5">\u215d</string>
+    <string name="symbol_picker_7">\u215e</string>
+    <string name="symbol_picker_0">\u207f\u2205</string>
+    <string name="symbol_picker_dollar">\u00a2\u00a3\u20ac\u00a5\u20a3\u20a4\u20b1</string>
+    <string name="symbol_picker_percent">\u2030</string>
+    <string name="symbol_picker_star">\u2020\u2021</string>
+    <string name="symbol_picker_minus">\u2013\u2014</string>
+    <string name="symbol_picker_plus">\u00b1</string>
+    <string name="symbol_picker_opening_parenthesis">[{\u003C</string>
+    <string name="symbol_picker_closing_parenthesis">]}></string>
+    <string name="symbol_picker_exclamation">\u00a1</string>
+    <string name="symbol_picker_quote">\u201c\u201d\u00ab\u00bb\u02dd</string>
+    <string name="symbol_picker_question">\u00bf</string>
+    <string name="symbol_picker_comma">\u201a\u201e</string>
+    <string name="symbol_picker_equal">\u2260\u2248\u221e</string>
+    <string name="symbol_picker_lt">\u2264\u00ab\u2039</string>
+    <string name="symbol_picker_gt">\u2265\u00bb\u203a</string>
 
 </resources>

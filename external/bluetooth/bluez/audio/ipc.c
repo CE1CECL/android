@@ -21,6 +21,9 @@
  */
 
 #include "ipc.h"
+#ifdef STE_BT
+#include <string.h>
+#endif
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -40,9 +43,16 @@ static const char *strnames[] = {
 	"BT_NEW_STREAM",
 	"BT_START_STREAM",
 	"BT_STOP_STREAM",
+#ifndef STE_BT
 	"BT_SUSPEND_STREAM",
 	"BT_RESUME_STREAM",
+#else
+	"BT_CLOSE_STREAM",
+#endif
 	"BT_CONTROL",
+#ifdef STE_BT
+	"BT_DELAY_REPORT",
+#endif
 };
 
 int bt_audio_service_open(void)
@@ -53,7 +63,11 @@ int bt_audio_service_open(void)
 		AF_UNIX, BT_IPC_SOCKET_NAME
 	};
 
+#ifndef STE_BT
 	sk = socket(PF_LOCAL, SOCK_STREAM, 0);
+#else
+	sk = socket(PF_LOCAL, SOCK_SEQPACKET, 0);
+#endif
 	if (sk < 0) {
 		err = errno;
 		fprintf(stderr, "%s: Cannot open socket: %s (%d)\n",

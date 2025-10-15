@@ -280,7 +280,7 @@ public class ManageSimMessages extends Activity
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
 
-        if ((null != mCursor) && (mCursor.getCount() > 0) && mState == SHOW_LIST) {
+        if (mState == SHOW_LIST && (null != mCursor) && (mCursor.getCount() > 0)) {
             menu.add(0, OPTION_MENU_DELETE_ALL, 0, R.string.menu_delete_messages).setIcon(
                     android.R.drawable.ic_menu_delete);
         }
@@ -308,7 +308,7 @@ public class ManageSimMessages extends Activity
     private void confirmDeleteDialog(OnClickListener listener, int messageId) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.confirm_dialog_title);
-        builder.setIcon(android.R.drawable.ic_dialog_alert);
+        builder.setIconAttribute(android.R.attr.alertDialogIcon);
         builder.setCancelable(true);
         builder.setPositiveButton(R.string.yes, listener);
         builder.setNegativeButton(R.string.no, null);

@@ -54,6 +54,7 @@ public final class ZipFileTest extends TestCase {
             while (is.read(readBuffer, 0, readBuffer.length) != -1) {}
             is.close();
         }
+        zipFile.close();
     }
 
     private static void replaceBytes(byte[] original, byte[] replacement, byte[] buffer) {
@@ -124,13 +125,14 @@ public final class ZipFileTest extends TestCase {
         while (in.getNextEntry() != null) {
             while (in.read(readBuffer, 0, readBuffer.length) != -1) {}
         }
+        in.close();
     }
 
     /**
      * Compresses a single random file into a .zip archive.
      */
     private File createZipFile(int uncompressedSize) throws IOException {
-        File result = File.createTempFile("OldZipFileTest", "zip");
+        File result = File.createTempFile("ZipFileTest", "zip");
         result.deleteOnExit();
 
         ZipOutputStream out = new ZipOutputStream(new FileOutputStream(result));
@@ -147,5 +149,44 @@ public final class ZipFileTest extends TestCase {
         out.closeEntry();
         out.close();
         return result;
-    }
+      }
+
+      public void testHugeZipFile() throws IOException {
+          int expectedEntryCount = 64*1024 - 1;
+          File f = createHugeZipFile(expectedEntryCount);
+          ZipFile zipFile = new ZipFile(f);
+          int entryCount = 0;
+          for (Enumeration<? extends ZipEntry> e = zipFile.entries(); e.hasMoreElements(); ) {
+              ZipEntry zipEntry = e.nextElement();
+              ++entryCount;
+          }
+          assertEquals(expectedEntryCount, entryCount);
+          zipFile.close();
+      }
+
+      public void testZip64Support() throws IOException {
+          try {
+              createHugeZipFile(64*1024);
+              fail(); // Make this test more like testHugeZipFile when we have Zip64 support.
+          } catch (ZipException expected) {
+          }
+      }
+
+      /**
+       * Compresses the given number of empty files into a .zip archive.
+       */
+      private File createHugeZipFile(int count) throws IOException {
+          File result = File.createTempFile("ZipFileTest", "zip");
+          result.deleteOnExit();
+
+          ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(result)));
+          for (int i = 0; i < count; ++i) {
+              ZipEntry entry = new ZipEntry(Integer.toHexString(i));
+              out.putNextEntry(entry);
+              out.closeEntry();
+          }
+
+          out.close();
+          return result;
+      }
 }

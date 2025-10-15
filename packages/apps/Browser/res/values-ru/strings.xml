@@ -268,6 +268,8 @@
     <string name="pref_lab_title" msgid="5571091610359629423">"Лаборатория Google"</string>
     <string name="pref_lab_quick_controls" msgid="3267606522082281367">"Панель инструментов"</string>
     <string name="pref_lab_quick_controls_summary" msgid="3149664132600968775">"Чтобы открыть панель инструментов, начните перелистывать страницу справа или слева"</string>
+    <string name="pref_lab_quick_controls_ext">Расширенная панель инструментов</string>
+    <string name="pref_lab_quick_controls_ext_summary">Использовать более быструю панель инструментов</string>
     <string name="pref_use_instant_search" msgid="1119176077760723740">"Google Живой поиск"</string>
     <string name="pref_use_instant_search_summary" msgid="839320474961917522">"В Живом поиске результаты появляются прямо при вводе текста (возможно увеличение объема передаваемых данных)."</string>
     <string name="pref_lab_fullscreen" msgid="8173609016657987973">"Во весь экран"</string>
@@ -385,4 +387,8 @@
     <string name="accessibility_state_incognito" msgid="5786038488425202355">"Страница в режиме инкогнито"</string>
     <string name="accessibility_state_frozen" msgid="8041539250447035570">"Сохраненная страница"</string>
     <string name="accessibility_transition_navscreen" msgid="2734915619351519547">"Управление вкладками"</string>
+
+    <string name="pref_content_uastring_summary">Выберите User Agent по требованиям страницы</string>
+    <string name="contextmenu_openlink_incognito_newwindow">Открыть в новой вкладке инкогнито</string>
+    <string name="contextmenu_openlink_incognito_newwindow_background">Открыть в новой фоновой вкладке инкогнито</string>
 </resources>

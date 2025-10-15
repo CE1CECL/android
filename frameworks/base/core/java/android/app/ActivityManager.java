@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -213,26 +214,33 @@ public class ActivityManager {
     /**
      * Used by persistent processes to determine if they are running on a
      * higher-end device so should be okay using hardware drawing acceleration
-     * (which tends to consume a lot more RAM).
+     * (which tends to consume a lot more RAM). Alternatively, setting
+     * ro.config.disable_hw_accel=true disables hardware acceleration even if the
+     * device meets the other criteria since not all devices currently have
+     * the ability to support it.
      * @hide
      */
     static public boolean isHighEndGfx(Display display) {
-        MemInfoReader reader = new MemInfoReader();
-        reader.readMemInfo();
-        if (reader.getTotalSize() >= (512*1024*1024)) {
-            // If the device has at least 512MB RAM available to the kernel,
-            // we can afford the overhead of graphics acceleration.
-            return true;
+        if (SystemProperties.get("ro.config.disable_hw_accel").equals("true")) {
+            return false;
+        } else {
+            MemInfoReader reader = new MemInfoReader();
+            reader.readMemInfo();
+            if (reader.getTotalSize() >= (512*1024*1024)) {
+                // If the device has at least 512MB RAM available to the kernel,
+                // we can afford the overhead of graphics acceleration.
+                return true;
+            }
+            Point p = new Point();
+            display.getRealSize(p);
+            int pixels = p.x * p.y;
+            if (pixels >= (1024*600)) {
+                // If this is a sufficiently large screen, then there are enough
+                // pixels on it that we'd really like to use hw drawing.
+                return true;
+            }
+            return false;
         }
-        Point p = new Point();
-        display.getRealSize(p);
-        int pixels = p.x * p.y;
-        if (pixels >= (1024*600)) {
-            // If this is a sufficiently large screen, then there are enough
-            // pixels on it that we'd really like to use hw drawing.
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -1542,6 +1550,16 @@ public class ActivityManager {
             return new HashMap<String, Integer>();
         }
     }
+    /**
+     * @hide
+     */
+    public Configuration getConfiguration() {
+        try {
+            return ActivityManagerNative.getDefault().getConfiguration();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
 
     /** @hide */
     public static int checkComponentPermission(String permission, int uid,
@@ -1603,4 +1621,16 @@ public class ActivityManager {
         }
     }
 
+    /**
+     * @throws SecurityException Throws SecurityException if the caller does
+     * not hold the {@link android.Manifest.permission#CHANGE_CONFIGURATION} permission.
+     *
+     * @hide
+     */
+    public void updateConfiguration(Configuration values) throws SecurityException {
+        try {
+            ActivityManagerNative.getDefault().updateConfiguration(values);
+        } catch (RemoteException e) {
+        }
+    }
 }

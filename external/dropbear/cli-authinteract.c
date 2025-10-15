@@ -77,6 +77,11 @@ void recv_msg_userauth_info_request() {
 
 	TRACE(("enter recv_msg_recv_userauth_info_request"))
 
+	/* Let the user know what password/host they are authing for */
+	if (!cli_ses.interact_request_received) {
+		fprintf(stderr, "Login for %s@%s\n", cli_opts.username,
+				cli_opts.remotehost);
+	}
 	cli_ses.interact_request_received = 1;
 
 	name = buf_getstring(ses.payload, NULL);
@@ -126,6 +131,7 @@ void recv_msg_userauth_info_request() {
 		response_len = strlen(response);
 		buf_putstring(ses.writepayload, response, response_len);
 		m_burn(response, response_len);
+		m_free(prompt);
 		m_free(response);
 	}
 

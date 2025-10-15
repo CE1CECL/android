@@ -213,11 +213,15 @@
     <!-- CDM Call settings screen, setting option name -->
     <string name="labelCDMAMore">CDMA call settings</string>
     <!-- Mobile network settings screen, setting option name -->
-    <string name="apn_settings">Access Point Names</string>
+    <string name="apn_settings">Access point names</string>
     <!-- Label for the "Network settings" screen in the Settings UI -->
     <string name="settings_label">Network settings</string>
     <!-- Call settings screen, setting option name -->
     <string name="voicemail">Voicemail</string>
+    <!-- Call settings screen, message wait indicator name -->
+    <string name="mwi_notification_title">Message Wait Indicator</string>
+    <!-- Call settings screen, message wait indicator summary -->
+    <string name="mwi_notification_summary">Show message wait indicator voicemail notifications</string>
     <!-- Call forwarding dialog box, voicemail number prefix -->
     <string name="voicemail_abbreviated">VM:</string>
     <!-- Mobile network settings screen, setting option name -->
@@ -393,7 +397,7 @@
     <!-- Available networks screen, setting summary text -->
     <string name="sum_select_automatically">Automatically select preferred network</string>
     <string name="register_automatically">Automatic registration...</string>
-    <string name="preferred_network_mode_title">Network Mode</string>
+    <string name="preferred_network_mode_title">Network mode</string>
     <string name="preferred_network_mode_summary">Change the network operating mode</string>
     <string name="preferred_network_mode_dialogtitle">Preferred network mode</string>
     <!-- Mobile network settings, summary for preferred network mode WCDMA preferred[CHAR LIMIT=100] -->
@@ -414,8 +418,18 @@
     <string name="preferred_network_mode_evdo_only_summary">Preferred network mode: EvDo only</string>
     <!-- Mobile network settings, summary for preferred network mode LTE / CDMA[CHAR LIMIT=100] -->
     <string name="preferred_network_mode_lte_cdma_summary">Preferred network mode: LTE / CDMA</string>
+    <!-- Mobile network settings, summary for preferred network mode LTE / GSM[CHAR LIMIT=100] -->
+    <string name="preferred_network_mode_lte_gsm_summary">Preferred network mode: LTE / WCDMA / GSM</string>
+    <!-- Mobile network settings, summary for preferred network mode LTE / CDMA / EvDo [CHAR LIMIT=100] -->
+    <string name="preferred_network_mode_lte_cdma_evdo_summary">Preferred network mode: LTE / CDMA / EvDo</string>
+    <!-- Mobile network settings, summary for preferred network mode LTE / CMDA / EvDo / GSM/WCDMA [CHAR LIMIT=100] -->
+    <string name="preferred_network_mode_lte_cdma_evdo_gsm_wcdma_summary">Preferred network mode: LTE / CMDA / EvDo / GSM / WCDMA</string>
 
     <string-array name="preferred_network_mode_choices">
+        <item>LTE ONLY</item>
+        <item>LTE / CMDA / EvDo / GSM / WCDMA</item>
+        <item>LTE / WCDMA / GSM</item>
+        <item>LTE / CDMA / EvDo</item>
         <item>LTE / CDMA</item>
         <item>EvDo only</item>
         <item>CDMA w/o EvDo</item>
@@ -426,6 +440,10 @@
         <item>GSM / WCDMA preferred</item>
     </string-array>
     <string-array name="preferred_network_mode_values"  translatable="false">
+        <item>"11"</item>
+        <item>"10"</item>
+        <item>"9"</item>
+        <item>"8"</item>
         <item>"7"</item>
         <item>"6"</item>
         <item>"5"</item>
@@ -437,12 +455,25 @@
     </string-array>
     <!-- Mobile network settings, network mode choices for a device supporting CDMA and LTE [CHAR LIMIT=25] -->
     <string-array name="preferred_network_mode_choices_lte">
+        <item>LTE ONLY</item>
+        <item>LTE / CMDA / EvDo / GSM / WCDMA</item>
         <item>LTE / CDMA</item>
         <item>CDMA</item>
     </string-array>
     <string-array name="preferred_network_mode_values_lte" translatable="false">
+        <item>"11"</item>
+        <item>"10"</item>
         <item>"7"</item>
         <item>"4"</item>
+    </string-array>
+    <!-- Mobile network settings, network mode choices for a device supporting GSM and LTE [CHAR LIMIT=25] -->
+    <string-array name="preferred_network_mode_choices_lte_gsm">
+        <item>LTE / GSM</item>
+        <item>GSM</item>
+    </string-array>
+    <string-array name="preferred_network_mode_values_lte_gsm" translatable="false">
+        <item>"9"</item>
+        <item>"0"</item>
     </string-array>
     <!-- Mobile network settings screen, data enabling checkbox name -->
     <string name="data_enabled">Data enabled</string>
@@ -454,6 +485,12 @@
     <string name="roaming_enable">Connect to data services when roaming</string>
     <!-- Mobile network settings screen, setting summary text when check box is clear -->
     <string name="roaming_disable">Connect to data services when roaming</string>
+    <!-- Mobile network settings screen, setting check box name -->
+    <string name="national_roaming">National data roaming</string>
+    <!-- Mobile network settings screen, setting summary text when check box is selected -->
+    <string name="national_roaming_enable">Connect to data services when nationally roaming </string>
+    <!-- Mobile network settings screen, setting summary text when check box is clear -->
+    <string name="national_roaming_disable">Connect to data services when nationally roaming</string>
     <!-- Mobile network settings UI: notification message shown when you
          lose data connectivity because you're roaming and you have the
          "data roaming" feature turned off. -->
@@ -1185,6 +1222,10 @@
     <!-- Label for onscreen "Dial" button used in the EmergencyDialer -->
     <string name="dial_button_label">Dial</string>
 
+    <!-- Dialer UI Settings -->
+    <string name="dialer_ui_settings_title">Dialpad settings</string>
+    <string name="dialer_ui_settings_summary">Settings for the dialpad</string>
+
     <!-- Title displayed in the overlay when a call is placed using a 3rd party provider.
          ^1 is the localized name of the provider obtained from the package manager.
          ^2 is a phone number.
@@ -1596,6 +1637,11 @@
     <!-- Description of the decline on target in the Slide unlock screen. [CHAR LIMIT=NONE] -->
     <string name="description_target_decline">Decline</string>
 
+    <string name="perm_change_mobile_network">Change network (2G/3G)</string>
+    <string name="perm_change_mobile_network_desc">Application with this permission can, at any time, change between 2G data and 3G data. 3G is faster, consumes more battery, and can also cost you more money.</string>
+    <string name="phone_number_label">My phone number</string>
+    <string name="phone_number_summary">Set the phone number for this device</string>
+
     <!-- Dialog title for the vibration settings for voicemail notifications [CHAR LIMIT=40] -->
     <string name="voicemail_notification_vibrate_when_title" msgid="8731372580674292759">Vibrate</string>
     <!-- Dialog title for the vibration settings for voice mail notifications [CHAR LIMIT=40]-->
@@ -1620,4 +1666,21 @@
         <item>silent</item>
         <item>never</item>
     </string-array>
+    <!-- Advanced Settings -->
+    <string name="advanced_setting">Advanced Settings</string>
+    <string name="vibrate_outgoing">Vibrate on answer</string>
+    <string name="vibrate_outgoing_sum">Vibrate when an outgoing call is answered</string>
+    <string name="vibrate_45">Vibrate every 45 seconds</string>
+    <string name="vibrate_45_sum">Vibrates at the 45 second mark of every minute during outgoing calls</string>
+    <string name="vibrate_hangup">Vibrate on hangup</string>
+    <string name="vibrate_hangup_sum">Vibrate when a call has ended</string>
+    <string name="vibrate_call_waiting">Vibrate call waiting</string>
+    <string name="vibrate_call_waiting_sum">Vibrate on call waiting</string>
+    <!-- End Advanced Settings -->
+
+    <!-- Noise suppression -->
+    <string name="noise_suppression_title">Noise suppression</string>
+    <string name="noise_suppression_summary">Enable noise suppression for calls</string>
+    <!-- End Noise suppression -->
+
 </resources>

@@ -34,11 +34,20 @@ void ui_clear_key_queue();
 // The screen is small, and users may need to report these messages to support,
 // so keep the output short and not too cryptic.
 void ui_print(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void ui_printlogtail(int nb_lines);
+
+void ui_delete_line();
+void ui_set_show_text(int value);
+void ui_set_nice(int enabled);
+#define ui_nice_print(...) { ui_set_nice(1); ui_print(__VA_ARGS__); ui_set_nice(0); }
+int ui_was_niced();
+int ui_get_text_cols();
+void ui_increment_frame();
 
 // Display some header text followed by a menu of items, which appears
 // at the top of the screen (in place of any scrolling ui_print()
 // output, if necessary).
-void ui_start_menu(char** headers, char** items, int initial_selection);
+int ui_start_menu(char** headers, char** items, int initial_selection);
 // Set the menu highlight to the given index, and return it (capped to
 // the range [0..numitems).
 int ui_menu_select(int sel);
@@ -46,14 +55,25 @@ int ui_menu_select(int sel);
 // statements will be displayed.
 void ui_end_menu();
 
+int ui_get_showing_back_button();
+void ui_set_showing_back_button(int showBackButton);
+
 // Set the icon (normally the only thing visible besides the progress bar).
 enum {
   BACKGROUND_ICON_NONE,
   BACKGROUND_ICON_INSTALLING,
   BACKGROUND_ICON_ERROR,
+  BACKGROUND_ICON_CLOCKWORK,
+  BACKGROUND_ICON_FIRMWARE_INSTALLING,
+  BACKGROUND_ICON_FIRMWARE_ERROR,
   NUM_BACKGROUND_ICONS
 };
 void ui_set_background(int icon);
+
+// Get a malloc'd copy of the screen image showing (only) the specified icon.
+// Also returns the width, height, and bits per pixel of the returned image.
+// TODO: Use some sort of "struct Bitmap" here instead of all these variables?
+char *ui_copy_image(int icon, int *width, int *height, int *bpp);
 
 // Show a progress bar and define the scope of the next operation:
 //   portion - fraction of the progress bar the next operation will use
@@ -105,6 +125,15 @@ typedef struct {
                               // partition.  0 or negative number
                               // means to format all but the last
                               // (that much).
+
+    const char* fs_type2;
+
+    const char* fs_options;
+
+    const char* fs_options2;
+
+    const char* lun;          // (/sdcard, /emmc, /external_sd only) LUN file to
+                              // use when mounting via USB mass storage
 } Volume;
 
 typedef struct {
@@ -128,5 +157,8 @@ typedef struct {
 
 // fopen a file, mounting volumes and making parent dirs as necessary.
 FILE* fopen_path(const char *path, const char *mode);
+
+int ui_get_selected_item();
+int ui_is_showing_back_button();
 
 #endif  // RECOVERY_COMMON_H

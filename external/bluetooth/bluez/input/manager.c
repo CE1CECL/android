@@ -72,7 +72,11 @@ static int hid_device_probe(struct btd_device *device, GSList *uuids)
 	device_get_address(device, &dst);
 
 	return input_device_register(connection, device, path, &src, &dst,
+#ifndef STE_BT
 				HID_UUID, rec->handle, idle_timeout * 60);
+#else
+				HID_UUID, rec, idle_timeout * 60);
+#endif
 }
 
 static void hid_device_remove(struct btd_device *device)

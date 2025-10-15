@@ -265,6 +265,12 @@
          point on the move. A value of 0 means no periodic scans will be used in the framework. -->
     <integer translatable="false" name="config_wifi_framework_scan_interval">300000</integer>
 
+    <!-- Boolean indicating whether Softap rely only on one interface -->
+    <bool name="config_wifi_ap_use_single_interface">false</bool>
+
+    <!-- Boolean indicating whether Softap require reloading AP firware -->
+    <bool name="config_wifi_ap_firmware_reload">true</bool>
+
     <!-- Flag indicating whether the keyguard should be bypassed when
          the slider is open.  This can be set or unset depending how easily
          the slider can be opened (for example, in a pocket or purse). -->
@@ -444,6 +450,12 @@
     <!-- Is the notification LED intrusive? Used to decide if there should be a disable option -->
     <bool name="config_intrusiveNotificationLed">false</bool>
 
+    <!-- Is the battery LED intrusive? Used to decide if there should be a disable option -->
+    <bool name="config_intrusiveBatteryLed">false</bool>
+
+    <!-- Does the battery LED support multiple colors? Used to decide if the user can change the colors -->
+    <bool name="config_multiColorBatteryLed">false</bool>
+
     <!-- Default value for LED off time when the battery is low on charge in miliseconds -->
     <integer name="config_notificationsBatteryLedOff">2875</integer>
 
@@ -497,6 +509,10 @@
          This must be overridden in platform specific overlays -->
     <integer-array name="config_autoBrightnessLcdBacklightValues">
     </integer-array>
+
+    <!-- Flag indicating whether we should enable automatic brightness for
+         the button and keyboard backlights. -->
+    <bool name="config_autoBrightnessButtonKeyboard">true</bool>
 
     <!-- Array of output values for button backlight corresponding to the LUX values
          in the config_autoBrightnessLevels array.  This array should have size one greater
@@ -645,6 +661,12 @@
     <!-- The VoiceMail default value is displayed to my own number if it is true -->
     <bool name="config_telephony_use_own_number_for_voicemail">false</bool>
 
+    <!-- Set additional audio parameters for incall audio
+         Usage: parameter=onstring=offstring
+         Examples: <item>realcall=on=off</item> <item>dualmic_enabled=true=false</item> <item>mic_boost=yes=no</item> -->
+    <string-array name="config_telephony_set_audioparameters" translatable="false">
+    </string-array>
+
     <!-- If this value is true, Sms encoded as octet is decoded by utf8 decoder.
          If false, decoded by Latin decoder. -->
     <bool name="config_sms_utf8_support">false</bool>
@@ -652,6 +674,10 @@
     <!-- If this value is true, The mms content-disposition field is supported correctly.
          If false, Content-disposition fragments are ignored -->
     <bool name="config_mms_content_disposition_support">true</bool>
+
+    <!-- If this value is true, we handle Samsung CDMA's message ID method -->
+    <bool name="config_smsSamsungCdmaAlternateMessageIDEncoding">false</bool>
+
 
     <!-- National Language Identifier codes for the following two config items.
          (from 3GPP TS 23.038 V9.1.1 Table 6.2.1.2.4.1):
@@ -759,4 +785,61 @@
          [bootmode]:[original USB mode]:[USB mode used]-->
     <integer-array translatable="false" name="config_oemUsbModeOverride">
     </integer-array>
+
+    <!-- CM CHANGES START HERE -->
+
+    <!-- LUN file to be used by legacy USB manager.
+         The existence of this file will be used to determine in the
+         legacy USB manager should be started. -->
+    <string name="config_legacyUmsLunFile">/sys/devices/platform/usb_mass_storage/lun0/file</string>
+
+    <!-- Workaround for devices with broken keyboards -->
+    <bool name="config_forceDisableHardwareKeyboard">false</bool>
+
+    <!-- Asus dock compatibility disabled by default -->
+    <bool name="config_hasDockBattery">false</bool>
+
+    <!-- True if the Sym key should open the InputMethodPicker (default) -->
+    <bool name="config_symKeyShowsImePicker">true</bool>
+
+    <!-- Path to the library that contains the device specifiy key handler -->
+    <string name="config_deviceKeyHandlerLib"></string>
+
+    <!-- Name of that key handler class -->
+    <string name="config_deviceKeyHandlerClass"></string>
+
+    <!-- Whether to set a system prop (sys.orientation.landscape)
+         when rotating for devices that have rotating buttons -->
+    <bool name="config_setLandscapeProp">false</bool>
+
+    <!-- Values greater or equal to 0 will enable electronbeam screen-on
+         animation with the specified delay (in milliseconds), -1 will disable the animation -->
+    <integer name="config_screenOnAnimation">-1</integer>
+
+    <!-- True will enable the electron beam screen-off animation. -->
+    <bool name="config_screenOffAnimation">true</bool>
+
+    <!-- Hardware 'face' keys present on the device, stored as a bit field.
+         This integer should equal the sum of the corresponding value for each
+         of the following keys present:
+             1 - Home
+             2 - Back
+             4 - Menu
+             8 - Search
+            16 - App switch
+         For example, a device with Home, Back and Menu keys would set this
+         config to 7. -->
+    <integer name="config_deviceHardwareKeys">15</integer>
+
+    <!-- Timeout in MS for how long you have to long-press the back key to
+         kill the foreground app. -->
+    <integer name="config_backKillTimeout">2000</integer>
+
+
+    <!-- Device has a h/w rotation lock switch -->
+    <bool name="config_hasRotationLockSwitch">false</bool>
+
+    <!--Boolean to enable stk functionality on Samsung phones-->
+    <bool name="config_samsung_stk">false</bool>
+
 </resources>

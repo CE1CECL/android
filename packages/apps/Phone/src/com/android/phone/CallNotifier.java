@@ -27,6 +27,7 @@ import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneBase;
 import com.android.internal.telephony.CallManager;
+import com.android.phone.CallFeaturesSetting;
 
 import android.app.ActivityManagerNative;
 import android.content.Context;
@@ -46,7 +47,6 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.EventLog;
 import android.util.Log;
-
 
 /**
  * Phone app module that listens for phone state changes and various other
@@ -459,6 +459,9 @@ public class CallNotifier extends Handler
         if (PhoneUtils.isRealIncomingCall(state)) {
             startIncomingCallQuery(c);
         } else {
+            if (PhoneUtils.PhoneSettings.vibCallWaiting(mApplication)) {
+                mApplication.vibrate(200,300,500);
+            }
             if (VDBG) log("- starting call waiting tone...");
             if (mCallWaitingTonePlayer == null) {
                 mCallWaitingTonePlayer = new InCallTonePlayer(InCallTonePlayer.TONE_CALL_WAITING);
@@ -804,6 +807,28 @@ public class CallNotifier extends Handler
             }
 
             if (VDBG) log("onPhoneStateChanged: OFF HOOK");
+
+            Call call = PhoneUtils.getCurrentCall(fgPhone);
+            Connection c = PhoneUtils.getConnection(fgPhone, call);
+            if (VDBG) PhoneUtils.dumpCallState(fgPhone);
+            Call.State cstate = call.getState();
+
+            if (cstate == Call.State.ACTIVE && !c.isIncoming()) {
+                long callDurationMsec = c.getDurationMillis();
+                if (VDBG) Log.v(LOG_TAG, "duration is " + callDurationMsec);
+
+                boolean vibOut = PhoneUtils.PhoneSettings.vibOutgoing(mApplication);
+                if (vibOut && callDurationMsec < 200) {
+                    mApplication.vibrate(100,0,0);
+                }
+
+                boolean vib45 = PhoneUtils.PhoneSettings.vibOn45Secs(mApplication);
+                if (vib45) {
+                    callDurationMsec = callDurationMsec % 60000;
+                    mApplication.start45SecondVibration(callDurationMsec);
+                }
+            }
+
             // make sure audio is in in-call mode now
             PhoneUtils.setAudioMode(mCM);
 
@@ -1016,6 +1041,14 @@ public class CallNotifier extends Handler
             removeMessages(CALLWAITING_ADDCALL_DISABLE_TIMEOUT);
         }
 
+        if (c != null) {
+            boolean vibHangup = PhoneUtils.PhoneSettings.vibHangup(mApplication);
+            if (vibHangup && c.getDurationMillis() > 0) {
+                mApplication.vibrate(50, 100, 50);
+            }
+            mApplication.stopVibrationThread();
+        }
+
         // Stop the ringer if it was ringing (for an incoming call that
         // either disconnected by itself, or was rejected by the user.)
         //
@@ -1098,6 +1131,9 @@ public class CallNotifier extends Handler
                 toneToPlay = InCallTonePlayer.TONE_CALL_ENDED;
             }
         }
+
+        // disable noise suppression
+        PhoneUtils.turnOnNoiseSuppression(mApplication.getApplicationContext(), false);
 
         // If we don't need to play BUSY or CONGESTION, then play the
         // "call ended" tone if this was a "regular disconnect" (i.e. a
@@ -1305,6 +1341,15 @@ public class CallNotifier extends Handler
             return;
         }
 
+        boolean notifProp = mApplication.getResources().getBoolean(R.bool.sprint_mwi_quirk);
+        boolean notifOption = Settings.System.getInt(mApplication.getPhone().getContext().getContentResolver(), Settings.System.ENABLE_MWI_NOTIFICATION, 0) == 1;
+        if (notifProp && !notifOption) {
+            // sprint_mwi_quirk is true, and ENABLE_MWI_NOTIFICATION is unchecked or unset (false)
+            // ignore the mwi event, but log if we're debugging.
+            if (VDBG) log("onMwiChanged(): mwi_notification is disabled. Ignoring...");
+            return;
+        }
+
         mApplication.notificationMgr.updateMwi(visible);
     }
 
@@ -1414,19 +1459,19 @@ public class CallNotifier extends Handler
         public static final int TONE_UNOBTAINABLE_NUMBER = 14;
 
         // The tone volume relative to other sounds in the stream
-        private static final int TONE_RELATIVE_VOLUME_EMERGENCY = 100;
-        private static final int TONE_RELATIVE_VOLUME_HIPRI = 80;
-        private static final int TONE_RELATIVE_VOLUME_LOPRI = 50;
+        static final int TONE_RELATIVE_VOLUME_EMERGENCY = 100;
+        static final int TONE_RELATIVE_VOLUME_HIPRI = 80;
+        static final int TONE_RELATIVE_VOLUME_LOPRI = 50;
 
         // Buffer time (in msec) to add on to tone timeout value.
         // Needed mainly when the timeout value for a tone is the
         // exact duration of the tone itself.
-        private static final int TONE_TIMEOUT_BUFFER = 20;
+        static final int TONE_TIMEOUT_BUFFER = 20;
 
         // The tone state
-        private static final int TONE_OFF = 0;
-        private static final int TONE_ON = 1;
-        private static final int TONE_STOPPED = 2;
+        static final int TONE_OFF = 0;
+        static final int TONE_ON = 1;
+        static final int TONE_STOPPED = 2;
 
         InCallTonePlayer(int toneId) {
             super();

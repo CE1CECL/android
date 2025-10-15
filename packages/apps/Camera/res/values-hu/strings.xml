@@ -52,13 +52,6 @@
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"Kamera beállításai"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"Videokamera beállításai"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"Képméret"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="6980117304679164339">"5 megapixel"</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="4391030755438075447">"3 megapixel"</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="8081839485457681369">"2 megapixel"</string>
-    <string name="pref_camera_picturesize_entry_1280x960" msgid="7820672028447972964">"1,3 megapixel"</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="3705686683403524018">"1 megapixel"</string>
-    <string name="pref_camera_picturesize_entry_640x480" msgid="5557572917973022995">"VGA"</string>
-    <string name="pref_camera_picturesize_entry_320x240" msgid="5729711026478753025">"QVGA"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"Fókuszálás módja"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"Automatikus"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"Végtelen"</string>
@@ -130,4 +123,55 @@
     <string name="accessibility_decrement" msgid="1411194318538035666">"Csökkentés: %1$s"</string>
     <string name="accessibility_increment" msgid="8447850530444401135">"Növelés: %1$s"</string>
     <string name="accessibility_switch" msgid="6995966685498958895">"%1$s kapcsoló"</string>
+
+    <!-- 20120502 -->
+
+    <string name="pref_camera_focusmode_entry_facedetect">Arcfelismerés</string>
+    <string name="pref_camera_focusmode_entry_fixed">Rögzített</string>
+    <string name="pref_camera_power_shutter_title">Bekapcs. gomb exponál</string>
+    <string name="pref_camera_scenemode_entry_backlight">Háttérvilágítás</string>
+    <string name="pref_camera_scenemode_entry_beach">Strand</string>
+    <string name="pref_camera_scenemode_entry_candlelight">Gyertyafény</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">Alkonyat</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">Őszi színek</string>
+    <string name="pref_camera_scenemode_entry_fireworks">Tűzijáték</string>
+    <string name="pref_camera_scenemode_entry_landscape">Tájkép</string>
+    <string name="pref_camera_scenemode_entry_portrait">Portré</string>
+    <string name="pref_camera_scenemode_entry_snow">Hó</string>
+    <string name="pref_camera_scenemode_entry_sports">Sportesemény</string>
+    <string name="pref_camera_scenemode_entry_text">Szöveg</string>
+    <string name="pref_camera_storage_title">Mentés helye</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">Felhős, nappali fény</string>
+    <string name="pref_camera_focusmode_entry_continuouspicture">Folyamatos fókusz</string>
+
+    <!-- Settings screen, ISO dialog radio button choices -->
+    <string name="pref_camera_iso_entry_auto">Automatikus</string>
+    <string name="pref_camera_iso_entry_isodeblur">Automatikus (HJR)</string>
+
+    <!-- Settings screen, Burst mode title -->
+    <string name="pref_camera_burst_title">Burst</string>
+
+    <!-- Settings screen, Burst mode entries -->
+    <string name="pref_camera_burst_entry_off">Ki</string>
+    <string name="pref_camera_burst_entry_5">5 kép</string>
+    <string name="pref_camera_burst_entry_10">10 kép</string>
+    <string name="pref_camera_burst_entry_15">15 kép</string>
+    <string name="pref_camera_burst_entry_20">20 kép</string>
+
+    <!-- 20120506 -->
+    <!-- Settings screen, Timer mode title -->
+    <string name="pref_camera_timer_title">Időzítő</string>
+
+    <!-- Settings screen, Timer mode entries -->
+    <string name="pref_camera_timer_entry_0">Ki</string>
+    <string name="pref_camera_timer_entry_10">10mp</string>
+    <string name="pref_camera_timer_entry_20">20mp</string>
+    <string name="pref_camera_timer_entry_30">30mp</string>
+    <string name="pref_camera_timer_entry_40">40mp</string>
+    <string name="pref_camera_timer_entry_50">50mp</string>
+    <string name="pref_camera_timer_entry_60">60mp</string>
+
+    <!-- More Settings screen, focus sound title -->
+    <string name="pref_camera_focus_sound_title">Fókusz hang</string>
+
 </resources>

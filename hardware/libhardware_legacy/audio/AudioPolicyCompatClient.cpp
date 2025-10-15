@@ -42,6 +42,25 @@ audio_io_handle_t AudioPolicyCompatClient::openOutput(uint32_t *pDevices,
                                     (audio_policy_output_flags_t)flags);
 }
 
+
+#ifdef WITH_QCOM_LPA
+audio_io_handle_t AudioPolicyCompatClient::openSession(uint32_t *pDevices,
+                                uint32_t *pFormat,
+                                AudioSystem::output_flags flags,
+                                int32_t  streamType,
+                                int32_t  sessionId)
+{
+    return mServiceOps->open_session(mService,pDevices,pFormat,
+                                     (audio_policy_output_flags_t)flags,
+                                     streamType,sessionId);
+}
+
+audio_io_handle_t AudioPolicyCompatClient::closeSession(audio_io_handle_t output)
+{
+    return mServiceOps->close_session(mService,output);
+}
+#endif
+
 audio_io_handle_t AudioPolicyCompatClient::openDuplicateOutput(audio_io_handle_t output1,
                                                           audio_io_handle_t output2)
 {
@@ -67,6 +86,19 @@ audio_io_handle_t AudioPolicyCompatClient::openInput(uint32_t *pDevices,
                                 uint32_t *pSamplingRate,
                                 uint32_t *pFormat,
                                 uint32_t *pChannels,
+#ifdef STE_AUDIO
+                                uint32_t acoustics,
+                                uint32_t *pInputClientId)
+{
+    return mServiceOps->open_input(mService, pDevices, pSamplingRate, pFormat,
+                                   pChannels, acoustics, pInputClientId);
+}
+
+status_t AudioPolicyCompatClient::closeInput(audio_io_handle_t input, uint32_t *inputClientId)
+{
+    return mServiceOps->close_input(mService, input, inputClientId);
+}
+#else
                                 uint32_t acoustics)
 {
     return mServiceOps->open_input(mService, pDevices, pSamplingRate, pFormat,
@@ -77,6 +109,7 @@ status_t AudioPolicyCompatClient::closeInput(audio_io_handle_t input)
 {
     return mServiceOps->close_input(mService, input);
 }
+#endif
 
 status_t AudioPolicyCompatClient::setStreamOutput(AudioSystem::stream_type stream,
                                              audio_io_handle_t output)
@@ -120,6 +153,14 @@ status_t AudioPolicyCompatClient::setStreamVolume(
     return mServiceOps->set_stream_volume(mService, (audio_stream_type_t)stream,
                                           volume, output, delayMs);
 }
+
+#if defined(QCOM_HARDWARE) && defined(HAVE_FM_RADIO) && !defined(USES_AUDIO_LEGACY)
+status_t AudioPolicyCompatClient::setFmVolume(float volume,
+                                              int delayMs)
+{
+    return mServiceOps->set_fm_volume(mService, volume, delayMs);
+}
+#endif
 
 status_t AudioPolicyCompatClient::startTone(ToneGenerator::tone_type tone,
                                        AudioSystem::stream_type stream)

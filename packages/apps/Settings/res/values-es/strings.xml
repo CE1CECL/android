@@ -16,6 +16,32 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="picker_activities">Actividades</string>
+    <string name="select_custom_app_title">Seleccionar aplicación personalizada</string>
+    <string name="select_custom_activity_title">Seleccionar actividad personalizada</string>
+    <string name="icon_picker_choose_icon_title">Seleccionar icono</string>
+    <string name="icon_picker_alarm">Alarma</string>
+    <string name="icon_picker_browser">Navegador</string>
+    <string name="icon_picker_calendar">Calendario</string>
+    <string name="icon_picker_camera">Cámara</string>
+    <string name="icon_picker_email">Email</string>
+    <string name="icon_picker_facebook">Facebook</string>
+    <string name="icon_picker_gallery">Galería</string>
+    <string name="icon_picker_googleplus">Google+</string>
+    <string name="icon_picker_googletalk">Google Talk</string>
+    <string name="icon_picker_maps">Mapas</string>
+    <string name="icon_picker_movie">Películas</string>
+    <string name="icon_picker_music">Música</string>
+    <string name="icon_picker_nav_normal">Navegación</string>
+    <string name="icon_picker_phone">Teléfono</string>
+    <string name="icon_picker_podcast">Podcast</string>
+    <string name="icon_picker_rss">Rss</string>
+    <string name="icon_picker_sms">Mensajes</string>
+    <string name="icon_picker_twitter">Twitter</string>
+    <string name="icon_picker_title">Seleccionar fuente de iconos</string>
+    <string name="icon_picker_system_icons_title">Iconos del sistema</string>
+    <string name="icon_picker_gallery_title">Galería</string>
+    <string name="icon_picker_pack_title">Paquete de iconos</string>
     <string name="yes" msgid="4676390750360727396">"Sí"</string>
     <string name="no" msgid="6731231425810196216">"No"</string>
     <string name="device_info_default" msgid="7847265875578739287">"Desconocido"</string>
@@ -472,8 +498,8 @@
     <string name="bluetooth_opp_profile_summary_use_for" msgid="1255674547144769756">"Uso de la transferencia de archivos"</string>
     <string name="bluetooth_hid_profile_summary_use_for" msgid="232727040453645139">"Usar para introducción"</string>
     <string name="bluetooth_pan_profile_summary_use_for" msgid="5664884523822068653">"Utilizar para el acceso a Internet"</string>
-    <string name="bluetooth_dock_settings" msgid="3218335822716052885">"Ajustes del conector"</string>
-    <string name="bluetooth_dock_settings_title" msgid="5543069893044375188">"Uso del conector para audio"</string>
+    <string name="bluetooth_dock_settings" msgid="3218335822716052885">"Ajustes de la base"</string>
+    <string name="bluetooth_dock_settings_title" msgid="5543069893044375188">"Uso de la base para audio"</string>
     <string name="bluetooth_dock_settings_headset" msgid="1001821426078644650">"Como altavoz del teléfono"</string>
     <string name="bluetooth_dock_settings_a2dp" msgid="8791004998846630574">"Para música y contenido multimedia"</string>
     <string name="bluetooth_dock_settings_remember" msgid="5551459057010609115">"Ajustes de recordatorio"</string>
@@ -577,7 +603,6 @@
     <string name="wifi_p2p_menu_search" msgid="7189970585393813135">"Buscar"</string>
     <string name="wifi_p2p_menu_create_group" msgid="7595229161883902082">"Crear grupo"</string>
     <string name="wifi_p2p_menu_remove_group" msgid="4844634506540667517">"Eliminar grupo"</string>
-    <string name="wifi_p2p_menu_advanced" msgid="2578792521809265949">"Avanzados"</string>
     <string name="wifi_p2p_available_devices" msgid="5943352520059654483">"Dispositivos disponibles"</string>
     <string name="wifi_tether_checkbox_text" msgid="6961605862058056788">"Zona Wi-Fi portátil"</string>
     <string name="wifi_tether_enabled_subtext" msgid="8948641212931906143">"<xliff:g id="NETWORK_SSID">%1$s</xliff:g> de zona Wi-Fi portátil activa"</string>
@@ -587,6 +612,7 @@
     <string name="wifi_tether_configure_ssid_default" msgid="8467525402622138547">"AndroidHotspot"</string>
     <string name="display_settings_title" msgid="1708697328627382561">"Pantalla"</string>
     <string name="sound_settings" msgid="5534671337768745343">"Sonido"</string>
+    <string name="volume_overlay_title">Panel de Volumen</string>
     <string name="silent_mode_title" msgid="3181479108593217704">"Modo silencio"</string>
     <string name="ringtone_title" msgid="5379026328015343686">"Tono del teléfono"</string>
     <string name="ringtone_summary" msgid="2630023412632683493"></string>
@@ -597,6 +623,39 @@
     <string name="vibrate_on_ring_title" msgid="40343855247989536">"Vibrar y sonar"</string>
     <string name="notification_sound_title" msgid="312032901303146002">"Notificación predeterminada"</string>
     <string name="notification_pulse_title" msgid="1247988024534030629">"Luz de notificación"</string>
+    <string name="notification_light_general_title">General</string>
+    <string name="notification_light_applist_title">Aplicaciones</string>
+    <string name="notification_light_phonelist_title">Teléfono</string>
+    <string name="notification_light_use_custom">Usar valores personalizados</string>
+    <string name="notification_light_enabled">Activado</string>
+    <string name="notification_light_disabled">Desactivado</string>
+    <string name="notification_light_default_value">Por defecto</string>
+    <string name="notification_light_missed_call_title">Llamada perdida</string>
+    <string name="notification_light_voicemail_title">Buzón de voz</string>
+    <string name="edit_light_settings">Notificaciones luminosas</string>
+    <string name="pulse_speed_title">Duración y velocidad</string>
+    <string name="picker_arrow">→</string>
+    <string name="default_time">Normal</string>
+    <string name="custom_time">Personalizado</string>
+    <string name="dialog_test">Probar</string>
+    <string name="dialog_delete_title">Eliminar</string>
+    <string name="dialog_delete_message">¿Eliminar el elemento seleccionado?</string>
+    <string name="dialog_test_message">Apagar la pantalla para comprobar la notificación o descartar el diálogo actual para terminar la prueba</string>
+    <string name="dialog_test_button">Descartar</string>
+
+    <!-- Values for the notification light pulse spinners -->
+    <string name="pulse_length_always_on">Siempre encendida</string>
+    <string name="pulse_length_very_short">Muy corta</string>
+    <string name="pulse_length_short">Corta</string>
+    <string name="pulse_length_normal">Normal</string>
+    <string name="pulse_length_long">Larga</string>
+    <string name="pulse_length_very_long">Muy larga</string>
+    <string name="pulse_speed_very_fast">Muy rápida</string>
+    <string name="pulse_speed_fast">Rápida</string>
+    <string name="pulse_speed_normal">Normal</string>
+    <string name="pulse_speed_slow">Lenta</string>
+    <string name="pulse_speed_very_slow">Muy lenta</string>
+
     <string name="incoming_call_volume_title" msgid="8073714801365904099">"Tono"</string>
     <string name="notification_volume_title" msgid="2012640760341080408">"Notificación"</string>
     <string name="checkbox_notification_same_as_incoming_call" msgid="1073644356290338921">"Utilizar volumen de llamada entrante para notificaciones"</string>
@@ -604,7 +663,7 @@
     <string name="media_volume_title" msgid="3576565767317118106">"Multimedia"</string>
     <string name="media_volume_summary" msgid="5363248930648849974">"Establecer volumen para música y vídeos"</string>
     <string name="alarm_volume_title" msgid="2285597478377758706">"Alarma"</string>
-    <string name="dock_settings_summary" msgid="455802113668982481">"Ajustes de audio del conector adjunto"</string>
+    <string name="dock_settings_summary" msgid="455802113668982481">"Ajustes de audio de la base"</string>
     <string name="dtmf_tone_enable_title" msgid="8533399267725365088">"Sonar al marcar número"</string>
     <string name="sound_effects_enable_title" msgid="1171590821131077296">"Sonido al tocar"</string>
     <string name="lock_sounds_enable_title" msgid="450098505659399520">"Sonido pantalla bloqueo"</string>
@@ -614,22 +673,22 @@
     <string name="volume_ring_description" msgid="5936851631698298989">"Tono y notificaciones"</string>
     <string name="volume_notification_description" msgid="5810902320215328321">"Notificaciones"</string>
     <string name="volume_alarm_description" msgid="8322615148532654841">"Alarmas"</string>
-    <string name="dock_settings" msgid="1820107306693002541">"Conector"</string>
-    <string name="dock_settings_title" msgid="9161438664257429372">"Ajustes del conector"</string>
+    <string name="dock_settings" msgid="1820107306693002541">"Base"</string>
+    <string name="dock_settings_title" msgid="9161438664257429372">"Ajustes de la base"</string>
     <string name="dock_audio_settings_title" msgid="3324750259959570305">"Audio"</string>
     <string name="dock_audio_summary_desk" msgid="6487784412371139335">"Ajustes de la base"</string>
-    <string name="dock_audio_summary_car" msgid="6740897586006248450">"Ajustes del conector del coche adjunto"</string>
+    <string name="dock_audio_summary_car" msgid="6740897586006248450">"Ajustes de la base para coche"</string>
     <string name="dock_audio_summary_none" product="tablet" msgid="8215337394914283607">"Tablet no conectado"</string>
     <string name="dock_audio_summary_none" product="default" msgid="289909253741048784">"Teléfono no conectado"</string>
-    <string name="dock_audio_summary_unknown" msgid="4465059868974255693">"Ajustes del conector adjunto"</string>
-    <string name="dock_not_found_title" msgid="3290961741828952424">"No se ha encontrado el conector"</string>
-    <string name="dock_not_found_text" product="tablet" msgid="9015625921245904495">"Para configurar el audio del conector, debes insertar el tablet en el conector."</string>
-    <string name="dock_not_found_text" product="default" msgid="3882255773040651831">"Para configurar el audio del conector, debes insertar el teléfono en el conector."</string>
-    <string name="dock_sounds_enable_title" msgid="885839627097024110">"Sonido al insertar dispositivo en conector"</string>
-    <string name="dock_sounds_enable_summary_on" product="tablet" msgid="838102386448981339">"Reproducir sonido al insertar o extraer el tablet del conector"</string>
-    <string name="dock_sounds_enable_summary_on" product="default" msgid="8491180514199743771">"Reproducir sonido al insertar o extraer el teléfono del conector"</string>
-    <string name="dock_sounds_enable_summary_off" product="tablet" msgid="5077843049805652363">"No reproducir sonido al insertar o extraer el tablet del conector"</string>
-    <string name="dock_sounds_enable_summary_off" product="default" msgid="3151046599205265919">"No reproducir sonido al insertar o extraer el teléfono del conector"</string>
+    <string name="dock_audio_summary_unknown" msgid="4465059868974255693">"Ajustes de la base"</string>
+    <string name="dock_not_found_title" msgid="3290961741828952424">"No se ha encontrado una base"</string>
+    <string name="dock_not_found_text" product="tablet" msgid="9015625921245904495">"Para configurar el audio de la base, debes insertar el tablet en ella."</string>
+    <string name="dock_not_found_text" product="default" msgid="3882255773040651831">"Para configurar el audio de la base, debes insertar el teléfono en ella."</string>
+    <string name="dock_sounds_enable_title" msgid="885839627097024110">"Sonido al insertar dispositivo en la base"</string>
+    <string name="dock_sounds_enable_summary_on" product="tablet" msgid="838102386448981339">"Reproducir sonido al insertar o extraer el tablet de la base"</string>
+    <string name="dock_sounds_enable_summary_on" product="default" msgid="8491180514199743771">"Reproducir sonido al insertar o extraer el teléfono de la base"</string>
+    <string name="dock_sounds_enable_summary_off" product="tablet" msgid="5077843049805652363">"No reproducir sonido al insertar o extraer el tablet de la base"</string>
+    <string name="dock_sounds_enable_summary_off" product="default" msgid="3151046599205265919">"No reproducir sonido al insertar o extraer el teléfono de la base"</string>
     <string name="sync_settings" msgid="9186125469300013491">"Cuentas y sincronización"</string>
     <string name="search_settings" msgid="1910951467596035063">"Búsqueda"</string>
     <string name="search_settings_summary" msgid="9205656546570654169">"Administrar historial y configuración de búsqueda"</string>
@@ -867,6 +926,15 @@
     <string name="bluetooth_tethering_overflow_error" msgid="6285122039489881969">"No se puede anclar a más de <xliff:g id="MAXCONNECTION">%1$d</xliff:g> dispositivos."</string>
     <string name="bluetooth_untether_blank" msgid="2871192409329334813">"Se desactivará el anclaje a red de <xliff:g id="DEVICE_NAME">%1$s</xliff:g>."</string>
     <string name="tethering_help_button_text" msgid="656117495547173630">"Ayuda"</string>
+    <string name="tethering_advanced_text">Avanzado</string>
+    <string name="tethering_lease_time_text">Expiración de DHCP</string>
+    <string name="dhcp_lease_30mn">30 minutos</string>
+    <string name="dhcp_lease_1h">1 hora (predeterminado)</string>
+    <string name="dhcp_lease_2h">2 horas</string>
+    <string name="dhcp_lease_4h">4 horas</string>
+    <string name="dhcp_lease_6h">6 horas</string>
+    <string name="dhcp_lease_12h">12 horas</string>
+    <string name="dhcp_lease_24h">24 horas</string>
     <string name="network_settings_title" msgid="7967552516440151852">"Redes móviles"</string>
     <string name="location_title" msgid="1029961368397484576">"Mi ubicación"</string>
     <string name="location_network_based" msgid="5569673665032992664">"Ubicación de Google"</string>
@@ -951,6 +1019,7 @@
     <string name="advanced_settings" msgid="1777249286757067969">"Ajustes avanzados"</string>
     <string name="advanced_settings_summary" msgid="4016682978071086747">"Habilitar más opciones de configuración"</string>
     <string name="application_info_label" msgid="5736524913065714880">"Información de la aplicación"</string>
+
     <string name="storage_label" msgid="8700867073480107253">"Almacenamiento"</string>
     <string name="auto_launch_label" msgid="3012617472833815382">"Abrir de forma predeterminada"</string>
     <string name="screen_compatibility_label" msgid="663250687205465394">"Compatibilidad de la pantalla"</string>
@@ -1086,6 +1155,8 @@
     <string name="spellchecker_security_warning" msgid="9060897418527708922">"Este corrector ortográfico puede registrar todo lo que escribas, incluidos datos personales, como las contraseñas y los números de las tarjetas de crédito. Procede de la aplicación <xliff:g id="SPELLCHECKER_APPLICATION_NAME">%1$s</xliff:g>. ¿Quieres usar este corrector ortográfico?"</string>
     <string name="pointer_settings_category" msgid="8183819795164034286">"Ratón/trackpad"</string>
     <string name="pointer_speed" msgid="1221342330217861616">"Velocidad del puntero"</string>
+    <string name="ime_switcher_notify">Selector en notificaciones</string>
+    <string name="ime_switcher_notify_summary">Muestra el selector de método de entrada de texto en la barra de notificaciones</string>
     <string name="user_dict_settings_titlebar" msgid="765659257455000490">"Diccionario del usuario"</string>
     <string name="user_dict_single_settings_title" msgid="524997218433540614">"Diccionario personal"</string>
     <string name="user_dict_multiple_settings_title" msgid="3735224433307996276">"Diccionarios personales"</string>
@@ -1182,7 +1253,7 @@
     <string name="accessibility_service_no_apps_message" msgid="7751662416377046539">"TalkBack ofrece mensajes de voz para usuarios con discapacidades visuales. ¿Quieres instalarlo de forma gratuita desde Android Market?"</string>
     <string name="accessibility_script_injection_security_warning_title" msgid="4158946557435736650">"¿Instalar scripts web?"</string>
     <string name="accessibility_script_injection_security_warning_summary" msgid="7706858873495386310">"¿Quieres que las aplicaciones instalen scripts de Google para mejorar la accesibilidad de su contenido?"</string>
-    <string name="accessibility_touch_exploration_warning" msgid="2442154805472989569">"Esta función cambia la respuesta táctil del dispositivo. ¿Activar?"</string>
+    <string name="accessibility_touch_exploration_warning" msgid="2442154805472989569">"Esta función cambia la respuesta háptica del dispositivo. ¿Activar?"</string>
     <string name="accessibility_service_default_description" msgid="1072730037861494125">"No se ha especificado ninguna descripción."</string>
     <string name="settings_button" msgid="3006713718908152930">"Ajustes"</string>
     <string name="power_usage_summary_title" msgid="7190304207330319919">"Batería"</string>
@@ -1471,6 +1542,7 @@
     <string name="data_usage_menu_split_4g" msgid="5322857680792601899">"Dividir uso de 4G"</string>
     <string name="data_usage_menu_show_wifi" msgid="8266875319417201085">"Mostrar uso de Wi-Fi"</string>
     <string name="data_usage_menu_show_ethernet" msgid="5181361208532314097">"Mostrar uso de Ethernet"</string>
+    <string name="data_usage_menu_linear_chart">"Gráfica lineal"</string>
     <string name="data_usage_change_cycle" msgid="7776556448920114866">"Cambiar ciclo…"</string>
     <string name="data_usage_pick_cycle_day" msgid="4470796861757050966">"Día del mes para restablecer ciclo de uso de datos:"</string>
     <string name="data_usage_empty" msgid="8621855507876539282">"Ninguna aplicación ha usado datos en este período."</string>
@@ -1580,4 +1652,578 @@
     <string name="backup_pw_cancel_button_text" msgid="8845630125391744615">"Cancelar"</string>
     <string name="percentage" msgid="5866131581207788624">"<xliff:g id="NUMBER">%d</xliff:g>%%"</string>
     <string name="additional_system_update_settings_list_item_title" msgid="214987609894661992">"Otras actualizaciones del sistema"</string>
+    <!-- Electron Beam -->
+    <string name="display_category_animation_options_title">Animación</string>
+    <string name="display_electron_beam_animation_on_title">Animación al encender</string>
+    <string name="display_electron_beam_animation_off_title">Animación al apagar</string>
+<!-- CyanogenMod additional translations -->
+
+    <!-- Temporary - stubed preference - to be removed once all preferences have been merged #CM -->
+    <string name="stubbed">"Preferencias"</string>
+    <string name="stubbed_summary">"Opción no disponible en este momento"</string>
+
+<!-- INTERFACE Settings #CM -->
+    <!-- Settings main menu category heading. Interface (Launcher, Themes, System). [CHAR LIMIT=40] -->
+    <string name="header_category_interface">"Interfaz Gráfica"</string>
+
+    <!-- Launcher settings #CM -->
+    <string name="launcher_settings_title">"Inicio"</string>
+
+    <!-- Themes settings #CM -->
+    <string name="themes_settings_title">"Temas"</string>
+
+    <!-- System Interface settings #CM -->
+    <string name="system_settings_title">"Sistema"</string>
+    <string name="system_interface_title">"Interfaz de Sistema"</string>
+
+    <!-- Notification Drawer #CM -->
+    <string name="notification_drawer_title">"Área de notificación"</string>
+
+    <!-- Combined Bar #CM -->
+    <string name="combined_bar_title">"Barra de estado"</string>
+    <string name="combined_bar_auto_hide_title">"Ocultar automáticamente"</string>
+    <string name="combined_bar_auto_hide_summary">"Permitir ocultar la barra de estado cuando una aplicación se muestra a pantalla completa"</string>
+
+    <!-- Power Widget #CM -->
+    <string name="power_widget_title">"Controles de Energía"</string>
+    <string name="title_expanded_widget">"Barra de Energía"</string>
+    <string name="title_expanded_hide_onchange">"Ocultar al pulsar"</string>
+    <string name="title_expanded_hide_indicator">"Ocultar indicadores"</string>
+    <string name="title_expanded_hide_scrollbar">"Ocultar barra de desplazamiento"</string>
+
+    <!-- Power Widget, Haptic feedback #CM -->
+    <string name="expanded_haptic_feedback_title">"Respuesta háptica"</string>
+
+    <!-- Power Widget, Buttons #CM -->
+    <string name="title_widget_picker">"Controles"</string>
+    <string name="summary_widget_picker">"Seleccionar que controles de energía se mostrarán en la barra de controles de energía"</string>
+    <!-- Power Widget, Buttons order #CM -->
+    <string name="title_widget_order">"Orden de controles"</string>
+    <string name="summary_widget_order">"Seleccionar el orden de los controles mostradores en la barra de controles de energía"</string>
+
+    <!-- Power Widget, Buttons, Buttons #CM -->
+    <string name="title_buttons">"Controles"</string>
+    <string name="title_toggle_wifi">"Wi-Fi"</string>
+    <string name="title_toggle_bluetooth">"Bluetooth"</string>
+    <string name="title_toggle_gps">"GPS"</string>
+    <string name="title_toggle_sound">"Volumen"</string>
+    <string name="title_toggle_brightness">"Brillo"</string>
+    <string name="title_toggle_sync">"Sincronización"</string>
+    <string name="title_toggle_wifiap">"Wi-Fi AP"</string>
+    <string name="title_toggle_screentimeout">"Tiempo Espera Pantalla"</string>
+    <string name="title_toggle_mobiledata">"Datos Móviles"</string>
+    <string name="title_toggle_lockscreen">"Bloqueo Pantalla"</string>
+    <string name="title_toggle_networkmode">"2G/3G"</string>
+    <string name="title_toggle_autorotate">"Orientación"</string>
+    <string name="title_toggle_airplane">"Modo Avión"</string>
+    <string name="title_toggle_flashlight">"Flash LED"</string>
+    <string name="title_toggle_sleep">"Modo En espera"</string>
+    <string name="title_toggle_media_play_pause">"Media: Reprod./Pausa"</string>
+    <string name="title_toggle_media_previous">"Media: Anterior"</string>
+    <string name="title_toggle_media_next">"Media: Siguiente"</string>
+    <string name="title_toggle_lte">"LTE"</string>
+    <string name="title_toggle_wimax">"WiMAX"</string>
+    <string name="title_button_modes">"Modos"</string>
+    <string name="pref_brightness_mode_title">"Brillo"</string>
+    <string name="pref_brightness_mode_summary">"Escoja los niveles de luminosidad de la pantalla disponibles en la barra de controles de energía"</string>
+    <string name="cm_brightness_mode_auto">"Automático"</string>
+    <string name="cm_brightness_mode_dim">"Atenuar"</string>
+    <string name="pref_network_mode_title">"Conectividad móvil"</string>
+    <string name="pref_screentimeout_mode_title">Tiempos espera pantalla"</string>
+    <string name="pref_ring_mode_title">"Volumen"</string>
+    <string name="pref_ring_mode_summary">"Escoja los modos de sonido disponibles en la barra de controles de energía"</string>
+    <string name="cm_sound_mode_silent">"Silencio"</string>
+    <string name="cm_sound_mode_vibrate">"Vibrar"</string>
+    <string name="cm_sound_mode_sound">"Sonar"</string>
+    <string name="cm_sound_mode_soundVibrate">"Sonar+Vibrar"</string>
+    <string name="pref_flash_mode_title">"Flash LED"</string>
+
+    <!-- Status bar #CM -->
+    <string name="status_bar_title">"Barra de estado"</string>
+    <string name="status_bar_clock_title">"Reloj"</string>
+    <string name="status_bar_general_title">"General"</string>
+    <string name="status_bar_show_clock_title">"Mostrar reloj"</string>
+    <string name="status_bar_show_clock_summary">"Mostrar el reloj en la barra de estado"</string>
+    <string name="status_bar_am_pm_title">"Estilo AM/PM"</string>
+    <string name="status_bar_am_pm_summary">"Estilo AM/PM a mostrar junto a la hora del reloj en la barra de estado"</string>
+    <string name="status_bar_am_pm_info">Activado el modo 24-horas</string>
+    <string name="status_bar_battery_title">"Estilo batería"</string>
+    <string name="status_bar_battery_summary">"Estilo del estado de batería a mostrar en la barra de estado"</string>
+    <string name="status_bar_signal_text_title">"Estilo de la señal de estado"</string>
+    <string name="status_bar_signal_text_summary">"Mostrar estilo de la señal de estado"</string>
+    <string name="status_bar_signal_text_show_bars">"Icono (defecto)"</string>
+    <string name="status_bar_signal_text_show_text">"Texto"</string>
+    <string name="status_bar_signal_text_hidden">"Oculto"</string>
+    <string name="status_bar_toggle_brightness">"Ajuste de brillo"</string>
+    <string name="status_bar_toggle_brightness_summary">"Permitir ajustar la luminosidad de la pantalla mediante el deslizamiento por la barra de estado"</string>
+    <string name="status_bar_toggle_info">"Ajuste de brillo automático esta activado"</string>
+
+    <!-- Lock screen #CM -->
+    <string name="lock_screen_title">"Bloqueo de pantalla"</string>
+
+    <!-- Lock Screen Shortcuts -->
+    <string name="lockscreen_target_info">Arrastre el control deslizante para ajustar los accesos directos</string>
+    <string name="lockscreen_target_title">Accesos directos</string>
+    <string name="lockscreen_target_summary">Añadir o configurar accesos directos</string>
+    <string name="lockscreen_target_reset">Valores por defecto restaurados</string>
+    <string name="lockscreen_target_save">Accesos directos guardados</string>
+    <string name="lockscreen_target_reset_title">Restaurar valores por defecto</string>
+    <string name="lockscreen_target_reset_message">¿Eliminar todos los accesos directos y restaurar valores por defecto?</string>
+    <string name="lockscreen_target_empty">Vacio</string>
+    <string name="lockscreen_target_edit_title">Editar acceso directo</string>
+    <string name="lockscreen_target_edit_msg">Seleccionar o cambiar la aplicación (o actividad) y su icono</string>
+
+     <!-- Lock Screen Weather -->
+    <string name="lockscreen_weather_title">Clima</string>
+    <string name="lockscreen_weather_summary">Mostrar información del clima en la pantalla de bloqueo</string>
+    <string name="lockscreen_weather_enabled">Activado</string>
+    <string name="weather_enable">Mostrar clima</string>
+    <string name="weather_use_custom_location">Usar ubicación personalizada</string>
+    <string name="weather_geolocated">Geolocalización por red</string>
+    <string name="weather_custom_location_dialog_title">Ingresar ubicación</string>
+    <string name="weather_custom_location_hint">Ciudad, Estado/País</string>
+    <string name="weather_custom_location_title">Ubicación</string>
+    <string name="weather_show_location_title">Mostrar ubicación</string>
+    <string name="weather_show_timestamp_title">Mostrar fecha y hora</string>
+    <string name="weather_refresh_interval">Intervalo de actualización</string>
+    <string name="weather_use_metric">Usar sistema métrico</string>
+    <string name="weather_retrieve_location_dialog_title">¡No se puede encontrar la ubicación!</string>
+    <string name="weather_retrieve_location_dialog_message">Geolocalización por red desactivada.\n\nConfigure una ubicación personalizada o active la geolocalización por red</string>
+    <string name="weather_retrieve_location_dialog_enable_button">Activar</string>
+    <string name="weather_invert_lowhigh">Invertir temperaturas</string>
+
+    <!-- Lock screen Weather - Update frequency -->
+    <string name="weather_refresh_manual">Manual</string>
+    <string name="weather_refresh_30min">30 minutos</string>
+    <string name="weather_refresh_60min">60 minutos</string>
+    <string name="weather_refresh_2hrs">2 horas</string>
+    <string name="weather_refresh_4hrs">4 horas</string>
+    <string name="weather_refresh_6hrs">6 horas</string>
+    <string name="weather_refresh_8hrs">8 horas</string>
+
+    <!-- Lock screen Calendar -->
+    <string name="lockscreen_calendar_title">Calendario</string>
+    <string name="lockscreen_calendar_summary">Mostrar el siguiente evento del calendario en la pantalla de bloqueo</string>
+    <string name="lockscreen_calendar_enabled">Activado</string>
+    <string name="calendar_title">Mostrar el siguiente evento</string>
+    <string name="calendars_title">Calendario de eventos</string>
+    <string name="calendars_summary">Buscar eventos en los calendarios</string>
+    <string name="calendar_reminders_only_title">Solo recordatorios</string>
+    <string name="calendar_reminders_only_summary">Mostrar solo eventos con recordatorios</string>
+    <string name="calendar_lookahead_title">Eventos futuros</string>
+    <string name="calendar_show_location_title">Lugar del evento</string>
+    <string name="calendar_show_description_title">Descripción del evento</string>
+
+    <!-- Lock screen calendar - lookahead -->
+    <string name="calendar_lookahead_3hrs">3 horas</string>
+    <string name="calendar_lookahead_6hrs">6 horas</string>
+    <string name="calendar_lookahead_12hrs">12 horas</string>
+    <string name="calendar_lookahead_1day">1 dia</string>
+    <string name="calendar_lookahead_3days">3 dias</string>
+    <string name="calendar_lookahead_1wk">1 semana</string>
+
+    <!-- Lock screen calendar - event metadata -->
+    <string name="calendar_metadata_none">No mostrar</string>
+    <string name="calendar_metadata_first_line">Mostrar primera linea</string>
+    <string name="calendar_metadata_all">Mostrar todo</string>
+
+    <!-- Lock screen background -->
+    <string name="lockscreen_custom_background_title">Fondo</string>
+    <string name="lockscreen_custom_background_dialog_title">Elige color</string>
+    <string name="lockscreen_background_result_successful">Fondo modificado correctamente</string>
+    <string name="lockscreen_background_result_not_successful">No se ha podido modificar el fondo</string>
+    <string name="lockscreen_background_color_fill">Color de relleno</string>
+    <string name="lockscreen_background_custom_image">Imagen personalizada</string>
+    <string name="lockscreen_background_default_wallpaper">Imagen de fondo actual</string>
+
+    <!-- Navigation Bar #CM -->
+    <string name="navigation_bar_title">Barra de navegación</string>
+
+    <string name="navigation_bar_help_text">1 - Para empezar a editar, toca el candado\n\n2 - Toca cualquier botón para asignar una acción\n\n3 - Mantén presionado un boton para reorganizar\n\n4 - Para guardar, toca el candado nuevamente\n\n5 - Para restaurar la configuración por defecto, toca el icono de resetear\n\n</string>
+    <string name="navigation_bar_tips">&#8226; Solo se puede asignar una acción a un boton a la vez\n\n&#8226; El botón de inicio no puede ser reasignado\n\n&#8226; Los botones de los lados, no pueden ser reorganizados</string>
+    <string name="navigation_bar_tips_title">Consejos rápidos</string>
+    <string name="navigation_bar_reset_message">¿Borrar configuración actual y restaurar valores por defecto?</string>
+    <string name="navigation_bar_save_message">Barra de navegación guardada</string>
+    <string name="navigation_bar_reset_toast">Barra de navegación restaurada</string>
+
+    <!-- Sound settings #CM -->
+    <!-- Volumes #CM -->
+    <string name="link_volume_ringtones">"Vincular\nvolúmenes"</string>
+    <string name="link_volume_ringtones_toast">"Asegurese de establecer de nuevo el volumen para igualar los volúmenes de notificación y de tono del teléfono."</string>
+    <string name="link_volume_mutes">"Vincular\nsilencio"</string>
+
+    <!-- Quiet hours #CM -->
+    <string name="quiet_hours_title">"Modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_summary">"Configurar las horas en las que el dispositivo debe de estar en modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_note_title">"Nota"</string>
+    <string name="quiet_hours_note_summary">"Las llamadas entrantes se comportarán de manera normal duarante este modo'"</string>
+    <string name="quiet_hours_enabled">"Modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_enabled_off">"Las notificaciones se comportarán de manera normal"</string>
+    <string name="quiet_hours_enabled_on">"Se forzará el modo 'Tranquilidad' durante las horas:"</string>
+    <string name="quiet_hours_start">"Inicio de modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_start_summary">"Cuando forzar el inicio de modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_end">"Fin de modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_end_summary">"Cuando forzar la finalización del modo 'Tranquilidad'"</string>
+    <string name="quiet_hours_mute">"Notificaciones"</string>
+    <string name="quiet_hours_mute_on">"No se reproducirán sonidos de notificaciones"</string>
+    <string name="quiet_hours_mute_off">"Los sonidos de notificaciones se reproducirán de manera normal"</string>
+    <string name="quiet_hours_still">"Vibración"</string>
+    <string name="quiet_hours_still_on">"El dispositivo no vibrará"</string>
+    <string name="quiet_hours_still_off">"El dispositivo vibrará normalmente"</string>
+    <string name="quiet_hours_dim">"Notificaciones de luz"</string>
+    <string name="quiet_hours_dim_on">"Las notificaciones de luz se desactivarán"</string>
+    <string name="quiet_hours_dim_off">"Las notificaciones de luz se comportarán de manera normal"</string>
+    <string name="quiet_hours_haptic">"Respuesta háptica"</string>
+    <string name="quiet_hours_haptic_on">"La respuesta háptica se desactivará"</string>
+    <string name="quiet_hours_haptic_off">"La respuesta háptica se comportará de manera normal"</string>
+    <string name="quiet_hours_active_from">"Activo de"</string>
+    <string name="quiet_hours_active_to">"a"</string>
+    <string name="start_time_title">"Inicio"</string>
+    <string name="end_time_title">"Fin"</string>
+
+    <!-- Safe headset volume restore checkbox -->
+    <string name="safe_headset_restore_title">Guardar volumen</string>
+    <string name="safe_headset_restore_summary">Evitar aumento de volumen cuando se conectan los auriculares</string>
+
+    <!-- Setting for volume rocker music controls #CM -->
+    <string name="volbtn_music_controls_title">"Controles Volumen"</string>
+    <string name="volbtn_music_controls_summary">"Cuando la pantalla este apagada, una pulsación prolongada de los controles de volumen avanzará/retrocederá sobre las pistas de música activas"</string>
+
+    <!-- Volume description for ringtone volume #CM -->
+    <string name="volume_ring_only_description">Tonos del teléfono</string>
+
+    <!-- Battery light settings #CM -->
+    <string name="battery_light_title">Indicador de batería</string>
+    <string name="battery_low_pulse_title">Parpadear con batería baja</string>
+    <string name="battery_light_list_title">Colores</string>
+    <string name="battery_light_low_color_title">Batería baja</string>
+    <string name="battery_light_medium_color_title">Cargando</string>
+    <string name="battery_light_full_color_title">Cargada</string>
+
+    <!-- Backlight #CM -->
+    <string name="backlight_title">"Brillo automático"</string>
+    <string name="backlight_summary">"Ajustar niveles y filtrado"</string>
+    <string name="light_filter_title">"Filtro sensor luminosidad"</string>
+    <string name="light_filter_enabled_title">"Habilitar filtro"</string>
+    <string name="light_filter_enabled_summary">"Aplicar filtro medio de movimiento a los datos del sensor para reducir parpadeo"</string>
+    <string name="light_filter_window_title">"Periodo de muestreo"</string>
+    <string name="light_filter_window_summary">"Determinar valor filtrado como valor promedio del sensor durante este período"</string>
+    <string name="light_filter_reset_title">"Umbral de muestreo</string>
+    <string name="light_filter_reset_summary">"Las muestras que se desvíen mucho de la media actual restablecerán el filtro"</string>
+    <string name="light_filter_interval_title">"Intervalo de muestreo"</string>
+    <string name="light_filter_interval_summary">"Un intervalo bajo puede mejorar la precisión pero consume más CPU"</string>
+    <string name="light_levels_title">"Nivel de luminosidad"</string>
+    <string name="light_levels_enabled_title">"Personalizado"</string>
+    <string name="light_levels_dim_title">"Nivel atenuación pantalla"</string>
+    <string name="light_levels_dim_summary">"Nivel de luminosidad utilizada en la atenuación de la pantalla"</string>
+    <string name="light_levels_editor_title">"Opciones avanzadas\u2026"</string>
+    <string name="light_decrease_enabled_title">"Histéresis"</string>
+    <string name="light_decrease_enabled_summary">"Activar la reducción de luminosidad mediante el uso de histéresis para reducir el parpadeo"</string>
+    <string name="light_decrease_hysteresis_title">"Disminuir histéresis"</string>
+    <string name="light_decrease_hysteresis_summary">"Disminuir histéresis cuando el nivel del sensor se encuentre por debajo del porcentaje definido"</string>
+
+    <!-- Light sensor levels #CM -->
+    <string name="ll_title">"Opciones avanzadas luminosidad"</string>
+    <string name="ll_header_upper">"Subir"</string>
+    <string name="ll_header_lower">"Bajar"</string>
+    <string name="ll_header_lcd">"Pantalla"</string>
+    <string name="ll_header_btn">"Botones"</string>
+    <string name="ll_header_kb">"Teclado"</string>
+    <string name="ll_lux">"Sensor (filtrado / sin filtrar):"</string>
+    <string name="ll_lcd">"Pantalla:"</string>
+    <string name="ll_btn">"Botones:"</string>
+    <string name="ll_kb">"Teclado:"</string>
+    <string name="ll_disabled">"desactivar"</string>
+    <string name="ll_default">"Borrar"</string>
+    <string name="ll_save">"Guardar"</string>
+    <string name="ll_reload">"Recargar"</string>
+    <string name="ll_bad_levels">"Los niveles deben de ser incrementados"</string>
+    <string name="ll_num_levels">"Establecer número de niveles"</string>
+
+    <!-- Display : Rotation #CM -->
+    <string name="display_rotation_title">"Rotación"</string>
+    <string name="display_rotation_enabled">"Activado."</string>
+    <string name="display_rotation_disabled">"Desactivado."</string>
+    <string name="display_rotation_unit">"grados"</string>
+    <string name="display_rotation_category_title">"Modos de rotación"</string>
+    <string name="display_rotation_0_title">"0 º"</string>
+    <string name="display_rotation_180_title">"180 º"</string>
+    <string name="display_rotation_270_title">"270 º"</string>
+    <string name="display_rotation_90_title">"90 º"</string>
+
+    <!-- Wakeup options -->
+    <string name="display_category_wakeup_options_title">Opciones de reanudación</string>
+    <string name="pref_volume_wake_title">Controles Volumen</string>
+    <string name="pref_volume_wake_summary">Presionando los botones de control de volumen el dispositivo saldrá del modo En espera</string>
+
+    <!-- Storage settings #CM -->
+    <string name="storage_menu_storage">"Configuración"</string>
+    <string name="storage_title_storage">"Configuración Almacenamiento"</string>
+    <string name="storage_layout">"Disposición"</string>
+    <string name="storage_switch_title">"Almacenam. interno"</string>
+    <string name="storage_switch_summary_on">"Utilizando almacenamiento interno extendido para aplicaciones y media"</string>
+    <string name="storage_switch_summary_off">"Utilizando tarjeta SD para aplicaciones y media"</string>
+    <string name="storage_switch_unavailable">"Este dispositivo no dispone de almacenamiento interno"</string>
+
+    <!-- Advanced, Device specific (DeviceParts) settings #CM -->
+    <string name="advanced_settings_title">"Opciones Avanzadas"</string>
+
+    <!-- Profiles settings #CM -->
+    <string name="profiles_settings_title">"Perfiles"</string>
+    <string name="profiles_general_title">"General"</string>
+    <string name="profiles_add">"Añadir"</string>
+    <string name="profile_menu_delete">"Eliminar"</string>
+    <string name="profile_settings_title">"Perfil"</string>
+
+    <!-- Add Profile -->
+    <string name="add_profile_dialog_title">"Crear un nuevo perfil"</string>
+    <string name="profile_name_title">"Nombre"</string>
+    <string name="profile_profile_name_prompt">"Introduzca un nombre para el nuevo perfil"</string>
+    <string name="menu_new_profile">"Nuevo perfil"</string>
+    <string name="menu_new_profile_summary">"Añadir y configurar un nuevo perfil"</string>
+    <string name="new_profile_name">&lt;nuevo perfil&gt;</string>
+
+    <!-- Rename Dialog  -->
+    <string name="rename_dialog_title">"Renombrar"</string>
+    <string name="rename_dialog_message">"Introducir un nuevo nombre"</string>
+    <string name="duplicate_profile_name">"¡Nombre de perfil duplicado!"</string>
+    <string name="duplicate_appgroup_name">"¡Nombre de grupo de aplicación duplicado!"</string>
+
+    <!-- Reset Profiles -->
+    <string name="profile_reset_title">"Restablecer"</string>
+    <string name="profile_reset_message">"¿Desea eliminar todos los perfiles y grupos de aplicaciones creados y restaurar los valores por defectos?"</string>
+
+    <!-- Delete confimation messages -->
+    <string name="profile_delete_confirm">"¿Esta seguro de querer borrar este perfil?"</string>
+    <string name="profile_app_delete_confirm">"¿Esta seguro de querer borrar esta aplicación?"</string>
+    <string name="profile_cannot_delete">"No puede borrar el perfil activo"</string>
+
+    <!-- Profile Config screen PreferenceGroup titles -->
+    <string name="profile_connectionoverrides_title">"Conectividad"</string>
+    <string name="profile_volumeoverrides_title">"Volumen"</string>
+    <string name="connection_state_disabled">"Deshabilitado"</string>
+    <string name="connection_state_enabled">"Habilitado"</string>
+    <string name="volume_override_summary">"Establecer a"</string>
+
+    <!-- Menu item for managing profiles -->
+    <string name="profile_profiles_manage">"Pefiles"</string>
+    <string name="profile_profile_manage">"Administrar perfil"</string>
+    <string name="profile_applist_manage">"Listado de aplicaciones"</string>
+    <string name="profile_appgroups_manage">"Grupo de aplicaciones"</string>
+    <string name="profile_appgroup_manage">"Administrar grupo de aplicaciones"</string>
+
+    <!-- Profile settings screen, section header for settings related to notification profiles -->
+    <string name="profile_settings">"Ajustes del perfil"</string>
+    <string name="profile_name">"Nombre"</string>
+
+    <!-- Profile Settings sound modes labels -->
+    <string name="sound_mode">"Notificaciones"</string>
+    <string name="ringer_mode">"Llamadas"</string>
+    <string name="lights_mode">"Brillo"</string>
+    <string name="vibrate_mode">"Vibración"</string>
+    <string name="choose_soundtone">"Escoja tono de notificación"</string>
+    <string name="choose_ringtone">"Escoja tono del teléfono"</string>
+
+    <!-- Sound settings screen, setting option name to pick ringtone (a list dialog comes up)-->
+    <string name="soundtone_title">"Tono de notificación"</string>
+    <string name="soundtone_summary">""</string>
+
+    <!-- Title for application group setting screen -->
+    <string name="profile_appgroups_title">"Grupo de aplicaciones"</string>
+    <string name="profile_applist_title">"Aplicaciones"</string>
+    <string name="profile_new_appgroup">"Nuevo grupo de aplicaciones"</string>
+    <string name="profile_delete_appgroup">"Borrar este grupo de aplicaciones"</string>
+    <string name="profile_appgroup_name_prompt">"Introduzca un nombre para el nuevo grupo de aplicaciones"</string>
+    <string name="profile_appgroup_name_title">"Nombre"</string>
+    <string name="profile_add_app">"Añadir aplicación"</string>
+
+    <!-- Add application dialog box title -->
+    <string name="profile_delete_app">"Eliminar aplicación"</string>
+    <string name="profile_choose_app">"Elegir aplicación"</string>
+
+    <!-- Profiles - system settings -->
+    <string name="profile_settings_header">"Ajustes del perfil"</string>
+    <string name="profile_system_settings_title">"Ajustes del sistema"</string>
+    <string name="profile_lockmode_title">"Bloqueo de pantalla"</string>
+    <string name="profile_lockmode_default">"Por defecto"</string>
+    <string name="profile_lockmode_insecure">"No seguro"</string>
+    <string name="profile_lockmode_disabled">"Desactivado"</string>
+    <string name="profile_lockmode_default_summary">"Utilizar valores por defecto"</string>
+    <string name="profile_lockmode_insecure_summary">"Utilizar bloqueo de pantalla no seguro"</string>
+    <string name="profile_lockmode_disabled_summary">"Bloqueo de pantalla desactivado"</string>
+    <string name="profile_airplanemode_title">Modo Avión</string>
+    <string name="profile_airplanemode_default">Predeterminado</string>
+    <string name="profile_airplanemode_enabled">Activado</string>
+    <string name="profile_airplanemode_disabled">Desactivado</string>
+    <string name="profile_airplanemode_default_summary">Usar ajustes por defecto</string>
+    <string name="profile_airplanemode_enabled_summary">Modo Avión está activado</string>
+    <string name="profile_airplanemode_disabled_summary">Modo Avión está desactivado</string>
+    <string name="profile_disable_screen_lock_summary">"Desactivar seguridad de bloqueo de pantalla miestras este perfil este activo"</string>
+
+    <!-- Connection override toggles (not all are used at this time ) -->
+    <string name="possibleButtons">"Botones posibles"</string>
+    <string name="toggleWifiAp">"Wi-Fi hotspot portatíl"</string>
+    <string name="toggleData">"Datos móviles"</string>
+    <string name="toggleSync">"Sincronización"</string>
+    <string name="toggleSound">"Volumen"</string>
+    <string name="toggleBrightness">"Brillo"</string>
+    <string name="toggleAutoRotate">"Orientación"</string>
+    <string name="toggleScreenTimeout">"Tiempo Espera Pantalla"</string>
+    <string name="toggleAirplane">"Avión"</string>
+    <string name="toggleFlashlight">"Flash LED"</string>
+    <string name="toggleLockScreen">"Bloqueo Pantalla"</string>
+
+    <!-- Location services #CM -->
+    <string name="location_gps_source_title">"Origen GPS"</string>
+    <string name="location_gps_source_summary">"Escoja entre una antena Bluetooth GPS externa o la antena interna GPS como proveedor de localización"</string>
+    <string name="location_gps_source_notification_title">"Aviso"</string>
+    <string name="location_gps_source_notification">"¡El origen GPS ha cambiado! El GPS será desactivado. ¡Por favor, habilítelo antes de usarlo!"</string>
+
+    <!-- Screen security - Screen security  #CM -->
+    <string name="screen_security_category">"Seguridad de pantalla"</string>
+    <string name="screen_security_title">"Bloqueo de pantalla"</string>
+    <string name="screen_security_summary">"Ver o cambiar seguridad de bloqueo de pantalla, retardos y configuración de tiempos de espera"</string>
+    <string name="additional_options_title">"Opciones adicionales"</string>
+    <string name="unlock_menu_unlock_title">"Botón Menú"</string>
+    <string name="unlock_menu_unlock_summary">"Presionar el botón Menú desbloquea el dispositivo"</string>
+    <string name="unlock_quick_unlock_control_title">"Desbloqueo rapido"</string>
+    <string name="unlock_quick_unlock_control_summary">"Desbloquear automáticamente cuando se introduce el PIN/clave correcto"</string>
+
+    <!-- Delays and timeouts -->
+    <string name="delay_and_timeout_title">"Retardo y tiempo de espera"</string>
+    <!-- Slide lock delay -->
+    <string name="slide_lock_delay_title">"Habilitar retardo"</string>
+    <string name="slide_lock_timeout_delay_title">"Tiempo espera pantalla"</string>
+    <string name="slide_lock_screenoff_delay_title">"Apagado pantalla"</string>
+
+    <!--  Additional development settings #CM -->
+
+    <!-- Setting checkbox title for Whether debugging should run over TCP/IP. -->
+    <string name="adb_over_network">"ADB sobre TCP/IP"</string>
+    <string name="adb_over_network_summary">"Activar la depuración TCP/IP sobre la interfaces de red (Wi-Fi, redes USB). Esta configuración se restablece al reiniciar el dispositivo."</string>
+    <!-- Warning for Adb over Network -->
+    <string name="adb_over_network_warning">"AVISO: ¡Cuando 'ADB sobre TCP/IP' este activo, su teléfono estará abierto a intrusiones en todas las redes conectadas, incluida la red de datos GSM!\n\nUse sólo esta característica cuando este conectado a redes de confianza.\n\n¿Desea realmente activar esta función?"</string>
+    <!-- Root access -->
+    <string name="root_access">"Acceso administrativo"</string>
+    <string name="root_access_warning_title">"¿Permitir acceso administrativo?"</string>
+    <string name="root_access_warning_message">"¡Permitir a las aplicaciones solicitar acceso administrativo es muy peligroso y puede comprometer la seguridad de su dispositivo!"</string>
+    <string name="root_access_none">"Desactivar"</string>
+    <string name="root_access_apps">"Sólo aplicaciones"</string>
+    <string name="root_access_adb">"Sólo ADB"</string>
+    <string name="root_access_all">"Aplicaciones y ADB"</string>
+
+    <!-- Kill app long-press back  -->
+    <string name="kill_app_longpress_back">"Botón Volver"</string>
+    <string name="kill_app_longpress_back_summary">"Cerrar aplicaciones mediante la pulsación prolongada del botón Volver"</string>
+
+    <!-- Performance settings #CM -->
+    <string name="performance_settings_title">"Rendimiento"</string>
+
+    <!-- Performance Settings : Warning dialog #CM -->
+    <string name="performance_settings_warning_title">"Proceda con precaución"</string>
+    <string name="performance_settings_warning">"Estas configuraciones han sido incluidas a modo de experimentación y cualquier cambiado realizado sobre ellas puedan causar inestabilidad, cierres de aplicaciones, pérdida de datos o fallos de hardware.\n\nNo comunique informes de errores si cualquiera de estas configuraciones ha sido cambiada de su valor de defecto."</string>
+
+    <!-- Performance Settings : Processor Settings -->
+    <!-- Performance Settings : Processor settings title -->
+    <string name="processor_title">"Procesador"</string>
+    <!-- Performance Settings : Processor settings summary. -->
+    <string name="processor_summary">"Cambiar el patrón de CPU y la velocidad del reloj"</string>
+
+    <!-- Performance Settings : Processor settings sub items -->
+    <string name="cpu_cur_freq_title">"Frecuencia actual de la CPU"</string>
+    <string name="cpu_governors_title">"Patrones CPU"</string>
+    <string name="cpu_governors_summary">%S</string>
+    <string name="cpu_min_freq_title">"Frecuencia mínima de la CPU"</string>
+    <string name="cpu_min_freq_summary">%s</string>
+    <string name="cpu_max_freq_title">"Frecuencia máxima de la CPU"</string>
+    <string name="cpu_max_freq_summary">%s</string>
+    <string name="cpu_set_on_boot">"Establecer al iniciar"</string>
+    <string name="cpu_set_on_boot_summary">"Restaurar la configuración del procesador al iniciar el sistema"</string>
+
+    <!-- Memory Management -->
+    <string name="memory_management_title">"Gestión de la memoria"</string>
+    <string name="memory_management_summary">"Personalice el uso de la memoria para cambiar el rendimiento del sistema"</string>
+    <!-- zRam -->
+    <string name="pref_zram_title">zRam</string>
+    <string name="pref_zram_summary">"Comprimir memoria para incrementar la capacidad virtual (requiere reiniciar)"</string>
+    <!-- KSM -->
+    <string name="pref_ksm_title">"Memoria compartida de Kernel (KMS)"</string>
+    <string name="pref_ksm_summary">"KSM reduce los requerimientos de memoria física y mejora el rendimiento"</string>
+    <!-- Purgeable Assets -->
+    <string name="pref_purgeable_assets_title">"Permitir purgar recursos"</string>
+    <string name="pref_purgeable_assets_summary">"Purgar recursos de imagenes en memoria permite liberar mas memoria cuando se requiera"</string>
+    <!-- Performance Settings : Dithering -->
+    <string name="pref_use_dithering_title">"Interpolación superfices"</string>
+    <string name="pref_use_dithering_summary">"La interpolación de superficies mejora la calidad de imagen en algunos dispositivos a costa del rendimiento (requiere reiniciar)"</string>
+    <!-- Performance Settings : 16bpp Alpha -->
+    <string name="pref_use_16bpp_alpha_title">"Transparencia 16bit"</string>
+    <string name="pref_use_16bpp_alpha_summary">"Ofrece mejor rendimiento gráfico a costa de una menor calidad gráfica. Adicionalmente, puede causar defectos visuales (requiere reiniciar)"</string>
+
+    <!-- System Updates #CM -->
+
+    <!-- Donate #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <string name="donate_settings_title">"Donar"</string>
+    <!-- About device screen, list item summary. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <string name="donate_settings_summary">""</string>
+
+    <!-- Anonymous Statistics #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about opting in or out of anonymous statistics. -->
+    <string name="anonymous_statistics_title">"Estadísticas CyanogenMod"</string>
+    <!-- About device screen, list item summary. Takes the user to the screen about opting in or out of anonymous statistics. -->
+    <string name="anonymous_statistics_summary">"Ayude a mejorar CyanogenMod mediante el envío anónimo de estadísticas"</string>
+    <string name="anonymous_statistics_warning_title">"Aviso"</string>
+    <string name="anonymous_statistics_warning">"Permitiendo la recopilación y envio de estadísticas de CyanogenMod autoriza el envio de información de carácter no personal a los desarrolladores de CyanogenMod para realizar un seguimiento de las instalaciones que realice en los dispositivos. La información enviada incluye un identificador único que no compromete su privacidad o su información personal. Esta información es enviada durante el arranque.\n\nPara ver un ejemplo de la información enviada, acceda al menú 'Previsualizar Datos' en ."</string>
+    <string name="enable_reporting_title">"Activar envío estadísticas"</string>
+    <string name="preview_data_title">"Previsualizar datos"</string>
+    <string name="view_stats_title">"Ver estadísticas"</string>
+    <string name="anonymous_learn_more">"Leer más"</string>
+    <!-- Anonymous Statistics - Notification -->
+    <string name="anonymous_notification_desc">"Activar ó desactivar estadísticas de CyanogenMod"</string>
+    <!-- Anonymous Statistics - Preview -->
+    <string name="preview_id_title">"Identificador único"</string>
+    <string name="preview_device_title">"Dispositivo"</string>
+    <string name="preview_version_title">"Versión"</string>
+    <string name="preview_country_title">"País"</string>
+    <string name="preview_carrier_title">"Operadora móvil"</string>
+
+    <!-- About phone screen, Free memory info #CM -->
+    <string name="mem_info">"Memoria"</string>
+    <!-- About device screen, version of modification of Android. #CM -->
+    <string name="mod_version">"Versión CyanogenMod"</string>
+    <string name="mod_version_default">"Desconocida"</string>
+    <!-- About device screen, build date of ROM. #CM -->
+    <string name="build_date">"Fecha de compilación"</string>
+
+    <!-- Change Log strings #CM -->
+    <string name="changelog_title">Mostrar registro de cambios</string>
+    <string name="changelog_dialog">Registro de cambios</string>
+    <string name="changelog_loading">Cargando registro de cambios\u2026</string>
+    <string name="changelog_error">Imposible cargar el registro de cambios</string>
+    <string name="changelog_unknown">Desconocido</string>
+    <string name="changelog_version">Versión</string>
+
+    <!-- Stylus Icon -->
+    <string name="stylus_icon_enabled_title">Mostrar icono al usar Stylus</string>
+    <string name="stylus_icon_enabled_summary">Mostrar el cursor cuando se arrastra o dibuja con Stylus</string>
+    <!-- Hostname setting -->
+    <string name="device_hostname">Nombre del dispositivo</string>
+    <!-- Status bar notification count -->
+    <string name="status_bar_notif_count_title">Mostrar contador notificaciones</string>
+    <string name="status_bar_notif_count_summary">Mostrar el número de notificaciones pendientes en la barra de estado</string>
+
+    <string name="increasing_ring_title">Volumen ascendente</string>
+    <!-- Sound settings screen, the caption of the checkbox for making incoming calls increas in volume -->
+    <string name="checkbox_increasing_ring">Activar volumen ascendente</string>
+    <!-- Sound settings screen, the title of the volume bar to adjust the minimum increasing ring volume -->
+    <string name="increasing_ring_min_volume_title">Volumen inicial</string>
+    <string name="increasing_ring_volume_notice">Nota:\nSi el volumen inicial se establece más alto que el volumen de llamada, prevalecerá el volumen de llamada.</string>
+    <string name="increasing_ring_interval_title">Incrementar cada\u2026</string>
+    <string name="increasing_ring_interval_eachring">Tono de llamada</string>
+    <string name="increasing_ring_interval_half_second">Medio segundo</string>
+    <string name="increasing_ring_interval_1second">Segundo</string>
+    <string name="increasing_ring_interval_2seconds">2 segundos</string>
+    <string name="increasing_ring_interval_3seconds">3 segundos</string>
+    <string name="increasing_ring_interval_5seconds">5 segundos</string>
+    <string name="increasing_ring_interval_10seconds">10 segundos</string>
 </resources>

@@ -51,7 +51,12 @@ class VideoEditorPlayer : public MediaPlayerInterface {
         virtual status_t        open(
                 uint32_t sampleRate, int channelCount,
                 int format, int bufferCount,
+#ifdef STE_HARDWARE
+                AudioCallback cb, void *cookie,
+                LatencyCallback latencyCb = NULL);
+#else
                 AudioCallback cb, void *cookie);
+#endif
 
         virtual void            start();
         virtual ssize_t         write(const void* buffer, size_t size);

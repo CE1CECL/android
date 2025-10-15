@@ -20,6 +20,7 @@ package com.android.mms.transaction;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_RETRIEVE_CONF;
 
+import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.LogTag;
 import com.android.mms.data.Contact;
@@ -44,22 +45,30 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
+import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.TelephonyManager;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.util.Log;
+import android.widget.RemoteViews;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
@@ -130,10 +139,15 @@ public class MessagingNotification {
     };
     private static OnDeletedReceiver sNotificationDeletedReceiver = new OnDeletedReceiver();
     private static Intent sNotificationOnDeleteIntent;
+    private static Drawable sDefaultContactImage;
     private static Handler mToastHandler = new Handler();
 
     private MessagingNotification() {
     }
+
+    // this is the phone number of the last contact to message us and is
+    // used to find the avatar for the sender.
+    private static String lastSender = "";
 
     public static void init(Context context) {
         // set up the intent filter for notification deleted action
@@ -143,6 +157,8 @@ public class MessagingNotification {
 
         // initialize the notification deleted action
         sNotificationOnDeleteIntent = new Intent(NOTIFICATION_DELETED_ACTION);
+
+        sDefaultContactImage = context.getResources().getDrawable(R.drawable.ic_contact_picture);
     }
 
     /**
@@ -348,10 +364,14 @@ public class MessagingNotification {
             return null;
 
             String address = cursor.getString(COLUMN_SMS_ADDRESS);
+
+            String name = Contact.get(address, true).getName();
+
             long timeMillis = 3000;
 
             return new MmsSmsDeliveryInfo(String.format(
-                context.getString(R.string.delivery_toast_body), address),
+                context.getString(R.string.delivery_toast_body),
+                (name == null) ? address : name.replace('\n', ' ').replace ('\r', ' ')),
                 timeMillis);
 
         } finally {
@@ -429,6 +449,8 @@ public class MessagingNotification {
         CharSequence ticker = buildTickerMessage(
                 context, address, subject, body);
 
+        lastSender = address;
+
         return new MmsSmsNotificationInfo(
                 clickIntent, body, iconResourceId, ticker, timeMillis,
                 senderInfoName, count);
@@ -476,7 +498,35 @@ public class MessagingNotification {
             return;
         }
 
-        Notification notification = new Notification(iconRes, ticker, timeMillis);
+        Notification.Builder notificationbuilder = new Notification.Builder(context);
+        notificationbuilder
+            .setTicker(ticker)
+            .setWhen(timeMillis);
+
+        int notificationdefaults = Notification.DEFAULT_LIGHTS;
+
+        // Set the large icon of the notification to be the avatar of the
+        // contact who sent the most recent message. This is consistent with the
+        // Gapps that use notifications like this.
+        Drawable avatarDraw = Contact.get(lastSender, true).getAvatar(context,
+                sDefaultContactImage);
+        Bitmap originalAvatarBit = ((BitmapDrawable)avatarDraw).getBitmap();
+        // The Contact's avatar is unlikely to be the correct size, so scale it
+        // to the notification icon View. This deals with different aspect ratios.
+        Resources resources = context.getResources();
+        int imageWidth = originalAvatarBit.getWidth();
+        int imageHeight = originalAvatarBit.getHeight();
+        int iconWidth = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width);
+        int iconHeight = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_height);
+        if (imageWidth > imageHeight) {
+            iconWidth = (int) (((float) iconHeight / imageHeight) * imageWidth);
+        } else {
+            iconHeight = (int) (((float) iconWidth / imageWidth) * imageHeight);
+        }
+
+        Bitmap scaledAvatar = Bitmap.createScaledBitmap(originalAvatarBit, iconWidth, iconHeight, false);
+
+        notificationbuilder.setLargeIcon(scaledAvatar);
 
         // If we have more than one unique thread, change the title (which would
         // normally be the contact who sent the message) to a generic one that
@@ -506,7 +556,10 @@ public class MessagingNotification {
                 PendingIntent.FLAG_UPDATE_CURRENT);
 
         // Update the notification.
-        notification.setLatestEventInfo(context, title, description, pendingIntent);
+        notificationbuilder.setContentIntent(pendingIntent);
+        notificationbuilder.setContentTitle(title);
+        notificationbuilder.setContentText(description);
+        notificationbuilder.setSmallIcon(iconRes);
 
         if (isNew) {
             SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
@@ -522,31 +575,48 @@ public class MessagingNotification {
                 vibrateWhen = context.getString(R.string.prefDefault_vibrateWhen);
             }
 
+            TelephonyManager mTM = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            boolean callStateIdle = mTM.getCallState() == TelephonyManager.CALL_STATE_IDLE;
+            boolean vibrateOnCall = sp.getBoolean(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_CALL, true);
+
             boolean vibrateAlways = vibrateWhen.equals("always");
             boolean vibrateSilent = vibrateWhen.equals("silent");
             AudioManager audioManager =
                 (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
             boolean nowSilent =
                 audioManager.getRingerMode() == AudioManager.RINGER_MODE_VIBRATE;
+            boolean shouldVibrate =
+                    audioManager.shouldVibrate(AudioManager.VIBRATE_TYPE_RINGER);
 
-            if (vibrateAlways || vibrateSilent && nowSilent) {
-                notification.defaults |= Notification.DEFAULT_VIBRATE;
+            if ((vibrateAlways && shouldVibrate || vibrateSilent && nowSilent) &&
+                (vibrateOnCall || (!vibrateOnCall && callStateIdle))) {
+                /* WAS: notificationdefaults |= Notification.DEFAULT_VIBRATE;*/
+                String mVibratePattern = "custom".equals(sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN, null))
+                    ? sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN_CUSTOM, "0,1200")
+                    : sp.getString(MessagingPreferenceActivity.NOTIFICATION_VIBRATE_PATTERN, "0,1200");
+                if(!mVibratePattern.equals("")) {
+                    notificationbuilder.setVibrate(parseVibratePattern(mVibratePattern));
+                } else {
+                        notificationdefaults |= Notification.DEFAULT_VIBRATE;
+                }
             }
 
             String ringtoneStr = sp.getString(MessagingPreferenceActivity.NOTIFICATION_RINGTONE,
                     null);
-            notification.sound = TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr);
+            notificationbuilder.setSound(TextUtils.isEmpty(ringtoneStr) ? null : Uri.parse(ringtoneStr));
         }
 
-        notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-        notification.defaults |= Notification.DEFAULT_LIGHTS;
+        notificationbuilder.setDefaults(notificationdefaults);
 
         // set up delete intent
-        notification.deleteIntent = PendingIntent.getBroadcast(context, 0,
-                sNotificationOnDeleteIntent, 0);
+        notificationbuilder.setDeleteIntent(PendingIntent.getBroadcast(context, 0,
+                sNotificationOnDeleteIntent, 0));
 
         NotificationManager nm = (NotificationManager)
             context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        Notification notification = notificationbuilder.getNotification();
+        notification.flags |= Notification.FLAG_SHOW_LIGHTS;
 
         nm.notify(NOTIFICATION_ID, notification);
     }
@@ -777,4 +847,37 @@ public class MessagingNotification {
     public static boolean isFailedToDownload(Intent intent) {
         return (intent != null) && intent.getBooleanExtra("failed_download_flag", false);
     }
+
+    // Parse the user provided custom vibrate pattern into a long[]
+    public static long[] parseVibratePattern(String stringPattern) {
+      ArrayList<Long> arrayListPattern = new ArrayList<Long>();
+      Long l;
+      String[] splitPattern = stringPattern.split(",");
+      int VIBRATE_PATTERN_MAX_SECONDS = 60000;
+      int VIBRATE_PATTERN_MAX_PATTERN = 100;
+
+      for (int i = 0; i < splitPattern.length; i++) {
+        try {
+          l = Long.parseLong(splitPattern[i].trim());
+        } catch (NumberFormatException e) {
+          return null;
+        }
+        if (l > VIBRATE_PATTERN_MAX_SECONDS) {
+          return null;
+        }
+        arrayListPattern.add(l);
+      }
+
+      int size = arrayListPattern.size();
+      if (size > 0 && size < VIBRATE_PATTERN_MAX_PATTERN) {
+        long[] pattern = new long[size];
+        for (int i = 0; i < pattern.length; i++) {
+          pattern[i] = arrayListPattern.get(i);
+        }
+        return pattern;
+      }
+
+      return null;
+    }
+
 }

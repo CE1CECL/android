@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (C) 2010-2012 Code Aurora Forum
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +25,14 @@ const char *MEDIA_MIMETYPE_VIDEO_VPX = "video/x-vnd.on2.vp8";
 const char *MEDIA_MIMETYPE_VIDEO_AVC = "video/avc";
 const char *MEDIA_MIMETYPE_VIDEO_MPEG4 = "video/mp4v-es";
 const char *MEDIA_MIMETYPE_VIDEO_H263 = "video/3gpp";
+#ifdef STE_HARDWARE
+const char *MEDIA_MIMETYPE_VIDEO_H263_SW = "video/3gpp-sw";
+#endif
 const char *MEDIA_MIMETYPE_VIDEO_MPEG2 = "video/mpeg2";
 const char *MEDIA_MIMETYPE_VIDEO_RAW = "video/raw";
+#ifdef STE_HARDWARE
+const char *MEDIA_MIMETYPE_VIDEO_VC1 = "video/vc1";
+#endif
 
 const char *MEDIA_MIMETYPE_AUDIO_AMR_NB = "audio/3gpp";
 const char *MEDIA_MIMETYPE_AUDIO_AMR_WB = "audio/amr-wb";
@@ -50,7 +57,21 @@ const char *MEDIA_MIMETYPE_CONTAINER_AVI = "video/avi";
 const char *MEDIA_MIMETYPE_CONTAINER_MPEG2PS = "video/mp2p";
 
 const char *MEDIA_MIMETYPE_CONTAINER_WVM = "video/wvm";
+#ifdef QCOM_HARDWARE
+const char *MEDIA_MIMETYPE_AUDIO_EVRC = "audio/evrc";
 
+const char *MEDIA_MIMETYPE_VIDEO_WMV = "video/x-ms-wmv";
+const char *MEDIA_MIMETYPE_AUDIO_WMA = "audio/x-ms-wma";
+const char *MEDIA_MIMETYPE_CONTAINER_ASF = "video/x-ms-asf";
+const char *MEDIA_MIMETYPE_VIDEO_DIVX = "video/divx";
+const char *MEDIA_MIMETYPE_AUDIO_AC3 = "audio/ac3";
+const char *MEDIA_MIMETYPE_CONTAINER_AAC = "audio/aac";
+const char *MEDIA_MIMETYPE_CONTAINER_QCP = "audio/vnd.qcelp";
+const char *MEDIA_MIMETYPE_VIDEO_DIVX311 = "video/divx311";
+const char *MEDIA_MIMETYPE_VIDEO_DIVX4 = "video/divx4";
+const char *MEDIA_MIMETYPE_CONTAINER_MPEG2 = "video/mp2";
+const char *MEDIA_MIMETYPE_CONTAINER_3G2 = "video/3g2";
+#endif
 const char *MEDIA_MIMETYPE_TEXT_3GPP = "text/3gpp-tt";
 
 }  // namespace android

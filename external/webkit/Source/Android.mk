@@ -219,6 +219,10 @@ ifeq ($(ENABLE_SVG),true)
 LOCAL_CFLAGS += -DENABLE_SVG=1
 endif
 
+ifeq ($(ENABLE_WEBGL),true)
+LOCAL_CFLAGS += -DENABLE_WEBGL=1
+endif
+
 # Temporary disable SVG_ANIMATION.
 ifeq ($(ENABLE_SVG_ANIMATION),true)
 LOCAL_CFLAGS += -DENABLE_SVG_ANIMATION=1
@@ -256,7 +260,11 @@ LOCAL_SHARED_LIBRARIES += libdl
 # Build the list of static libraries
 LOCAL_STATIC_LIBRARIES := libxml2
 ifeq ($(JAVASCRIPT_ENGINE),v8)
+ifeq ($(DYNAMIC_SHARED_LIBV8SO),true)
+LOCAL_SHARED_LIBRARIES += libv8
+else
 LOCAL_STATIC_LIBRARIES += libv8
+endif
 endif
 
 # Redefine LOCAL_SRC_FILES to be all the WebKit source files

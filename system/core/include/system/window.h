@@ -22,6 +22,10 @@
 #include <system/graphics.h>
 #include <cutils/native_handle.h>
 
+#ifdef __cplusplus
+#include <string.h>
+#endif
+
 __BEGIN_DECLS
 
 /*****************************************************************************/
@@ -211,6 +215,8 @@ enum {
      *
      */
     NATIVE_WINDOW_TRANSFORM_HINT = 8,
+
+    NATIVE_WINDOW_NUM_BUFFERS = 9,
 };
 
 /* valid operations for the (*perform)() hook */

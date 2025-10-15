@@ -53,7 +53,9 @@ __RCSID("$NetBSD: getnameinfo.c,v 1.43 2006/02/17 15:58:26 ginsbach Exp $");
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#if defined(ANDROID_CHANGES) && defined(AF_LINK)
 #include <net/if_dl.h>
+#endif
 #include <net/if_ieee1394.h>
 #include <net/if_types.h>
 #include <netinet/in.h>
@@ -104,8 +106,10 @@ static int ip6_parsenumeric __P((const struct sockaddr *, const char *, char *,
 static int ip6_sa2str __P((const struct sockaddr_in6 *, char *, size_t,
 				 int));
 #endif
+#if defined(ANDROID_CHANGES) && defined(AF_LINK)
 static int getnameinfo_link __P((const struct sockaddr *, socklen_t, char *,
     socklen_t, char *, socklen_t, int));
+#endif
 static int hexname __P((const u_int8_t *, size_t, char *, socklen_t));
 
 /*
@@ -119,7 +123,7 @@ int getnameinfo(const struct sockaddr* sa, socklen_t salen, char* host, size_t h
 	case AF_INET6:
 		return getnameinfo_inet(sa, salen, host, hostlen,
 		    serv, servlen, flags);
-#if 0
+#if defined(ANDROID_CHANGES) && defined(AF_LINK)
 	case AF_LINK:
 		return getnameinfo_link(sa, salen, host, hostlen,
 		    serv, servlen, flags);
@@ -139,7 +143,10 @@ android_gethostbyaddr_proxy(struct hostent* hp, const void *addr, socklen_t addr
 
 	int sock;
 	const int one = 1;
-	struct sockaddr_un proxy_addr;
+	union {
+		struct sockaddr_un un;
+		struct sockaddr generic;
+	} proxy_addr;
 	const char* cache_mode = getenv("ANDROID_DNS_MODE");
 	FILE* proxy = NULL;
 	int result = -1;
@@ -167,11 +174,11 @@ android_gethostbyaddr_proxy(struct hostent* hp, const void *addr, socklen_t addr
 
 	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	memset(&proxy_addr, 0, sizeof(proxy_addr));
-	proxy_addr.sun_family = AF_UNIX;
-	strlcpy(proxy_addr.sun_path, "/dev/socket/dnsproxyd",
-			sizeof(proxy_addr.sun_path));
-	if (TEMP_FAILURE_RETRY(connect(sock, (const struct sockaddr*) (void*) &proxy_addr,
-							sizeof(proxy_addr))) != 0) {
+	proxy_addr.un.sun_family = AF_UNIX;
+	strlcpy(proxy_addr.un.sun_path, "/dev/socket/dnsproxyd",
+			sizeof(proxy_addr.un.sun_path));
+	if (TEMP_FAILURE_RETRY(connect(sock, &proxy_addr.generic,
+							sizeof(proxy_addr.un))) != 0) {
 		close(sock);
 		return -1;
 	}
@@ -390,7 +397,7 @@ getnameinfo_inet(sa, salen, host, hostlen, serv, servlen, flags)
 #endif
 
 		if (hp) {
-#if 0
+#if defined(ANDROID_CHANGES) && defined(AF_LINK)
 			/*
 			 * commented out, since "for local host" is not
 			 * implemented here - see RFC2553 p30
@@ -528,6 +535,7 @@ ip6_sa2str(sa6, buf, bufsiz, flags)
 #endif /* INET6 */
 
 
+#if defined(ANDROID_CHANGES) && defined(AF_LINK)
 /*
  * getnameinfo_link():
  * Format a link-layer address into a printable format, paying attention to
@@ -605,6 +613,7 @@ getnameinfo_link(const struct sockaddr *sa, socklen_t salen,
 		    (size_t)sdl->sdl_alen, host, hostlen);
 	}
 }
+#endif
 
 static int
 hexname(cp, len, host, hostlen)

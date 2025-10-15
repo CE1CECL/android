@@ -53,14 +53,23 @@
 #include "unix.h"
 #include "avdtp.h"
 #include "control.h"
+#ifdef STE_BT
+#include "ste-avctp.h"
+#include "ste-avrcp.h"
+#endif
 #include "headset.h"
 #include "gateway.h"
 #include "sink.h"
 #include "source.h"
+#include "android_bluez.h"
 
 #define AUDIO_INTERFACE "org.bluez.Audio"
 
+#ifndef STE_BT
+#define CONTROL_CONNECT_TIMEOUT 4
+#else
 #define CONTROL_CONNECT_TIMEOUT 2
+#endif
 #define AVDTP_CONNECT_TIMEOUT 1
 #define HEADSET_CONNECT_TIMEOUT 1
 

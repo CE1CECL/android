@@ -52,13 +52,6 @@
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"הגדרות מצלמה"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"הגדרות מצלמת וידאו"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"גודל תמונה"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="6980117304679164339">"5 מגה פיקסלים"</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="4391030755438075447">"3 מגה פיקסלים"</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="8081839485457681369">"2 מגה פיקסלים"</string>
-    <string name="pref_camera_picturesize_entry_1280x960" msgid="7820672028447972964">"1.3 מגה פיקסלים"</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="3705686683403524018">"מגה פיקסל אחד"</string>
-    <string name="pref_camera_picturesize_entry_640x480" msgid="5557572917973022995">"VGA"</string>
-    <string name="pref_camera_picturesize_entry_320x240" msgid="5729711026478753025">"QVGA"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"מצב מיקוד"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"אוטומטי"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"אינסוף"</string>
@@ -130,4 +123,29 @@
     <string name="accessibility_decrement" msgid="1411194318538035666">"הקטן %1$s"</string>
     <string name="accessibility_increment" msgid="8447850530444401135">"הגדל %1$s"</string>
     <string name="accessibility_switch" msgid="6995966685498958895">"מתג %1$s"</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">"מעונן-אור יום"</string>
+    <string name="pref_camera_focusmode_entry_fixed">"קבוע"</string>
+    <string name="pref_camera_scenemode_entry_candlelight">"אור נר"</string>
+    <string name="pref_camera_scenemode_entry_sports">"ספורט"</string>
+    <string name="pref_camera_scenemode_entry_snow">"שלג"</string>
+    <string name="pref_camera_scenemode_entry_beach">"חוף ים"</string>
+    <string name="pref_camera_power_shutter_title">"צמצם"</string>
+    <string name="pref_camera_scenemode_entry_landscape">"מצב אופקי"</string>
+    <string name="pref_camera_scenemode_entry_fireworks">"זיקוקים"</string>
+    <string name="pref_camera_timer_entry_60">"60 שניות"</string>
+    <string name="pref_camera_timer_entry_50">"50 שניות"</string>
+    <string name="pref_camera_timer_entry_40">"40 שניות"</string>
+    <string name="pref_camera_timer_entry_30">"30 שניות"</string>
+    <string name="pref_camera_timer_entry_20">"20 שניות"</string>
+    <string name="pref_camera_timer_entry_10">"10 שניות"</string>
+    <string name="pref_camera_timer_entry_0">"מכובה"</string>
+    <string name="pref_camera_timer_title">"מצב טיימר"</string>
+    <string name="pref_camera_scenemode_entry_portrait">"מצב אנכי"</string>
+    <string name="pref_camera_focusmode_entry_facedetect">"זיהוי פנים"</string>
+    <string name="pref_camera_scenemode_entry_text">"טקסט"</string>
+    <string name="pref_camera_power_shutter_default">"מכובה"</string>
+    <string name="pref_camera_storage_title">"אחסון"</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">"זריחה \ שקיעה"</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">"צבעי שלכת"</string>
+    <string name="pref_camera_scenemode_entry_backlight">"תאורה אחורית"</string>
 </resources>

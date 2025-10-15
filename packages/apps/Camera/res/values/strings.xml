@@ -134,25 +134,101 @@
     <!-- Settings screen, Camcorder setting category title -->
     <string name="pref_camcorder_settings_category">Camcorder settings</string>
 
+    <!-- More Settings screen, power button title -->
+    <string name="pref_camera_power_shutter_title">Power shutter</string>
+    <string name="pref_camera_power_shutter_default">off</string>
+
+    <!-- More Settings screen, focus sound title -->
+    <string name="pref_camera_focus_sound_title">Focus sound</string>
+    <string name="pref_camera_focus_sound_default">on</string>
+
+    <!-- More Settings screen, storage title -->
+    <string name="pref_camera_storage_title">Storage</string>
+
     <!-- Settings screen, Picture size title -->
     <string name="pref_camera_picturesize_title">Picture size</string>
 
     <!-- Settings screen, Picture size dialog radio button choices -->
-    <string name="pref_camera_picturesize_entry_2592x1936">5M pixels</string>
-    <string name="pref_camera_picturesize_entry_2048x1536">3M pixels</string>
-    <string name="pref_camera_picturesize_entry_1600x1200">2M pixels</string>
-    <string name="pref_camera_picturesize_entry_1280x960">1.3M pixels</string>
-    <string name="pref_camera_picturesize_entry_1024x768">1M pixels</string>
+    <string name="pref_camera_picturesize_entry_4000x3000">12MP</string>
+    <string name="pref_camera_picturesize_entry_4000x2250">9MP</string>
+    <string name="pref_camera_picturesize_entry_3264x2448">8MP</string>
+    <string name="pref_camera_picturesize_entry_3264x1968">6.5MP(W)</string>
+    <string name="pref_camera_picturesize_entry_3264x1952">6MP(W)</string>
+    <string name="pref_camera_picturesize_entry_3264x1836">6MP(W)</string>
+    <string name="pref_camera_picturesize_entry_2592x1936">5MP</string>
+    <string name="pref_camera_picturesize_entry_2592x1552">4MP(W)</string>
+    <string name="pref_camera_picturesize_entry_2560x1712">4MP</string>
+    <string name="pref_camera_picturesize_entry_2304x1728">4MP</string>
+    <string name="pref_camera_picturesize_entry_2048x1536">3MP</string>
+    <string name="pref_camera_picturesize_entry_2048x1216">2.5MP(W)</string>
+    <string name="pref_camera_picturesize_entry_1920x1080">HD1080</string>
+    <string name="pref_camera_picturesize_entry_1600x1200">UXGA</string>
+    <string name="pref_camera_picturesize_entry_1600x960">1.5MP(W)</string>
+    <string name="pref_camera_picturesize_entry_1392x1392">2MP</string>
+    <string name="pref_camera_picturesize_entry_1280x1024">SXGA</string>
+    <string name="pref_camera_picturesize_entry_1280x960">SXGA(4:3)</string>
+    <string name="pref_camera_picturesize_entry_1280x768">WXGA</string>
+    <string name="pref_camera_picturesize_entry_1280x720">HD720</string>
+    <string name="pref_camera_picturesize_entry_1024x768">XGA</string>
+    <string name="pref_camera_picturesize_entry_800x600">SVGA</string>
+    <string name="pref_camera_picturesize_entry_800x480">WVGA</string>
     <string name="pref_camera_picturesize_entry_640x480">VGA</string>
+    <string name="pref_camera_picturesize_entry_352x288">CIF</string>
     <string name="pref_camera_picturesize_entry_320x240">QVGA</string>
+    <string name="pref_camera_picturesize_entry_176x144">QCIF</string>
 
     <!-- Settings screen, Focus mode title -->
     <string name="pref_camera_focusmode_title">Focus mode</string>
 
-    <!-- Settings screen, Focue mode dialog radio button choices -->
+    <!-- Settings screen, Focus mode dialog radio button choices -->
     <string name="pref_camera_focusmode_entry_auto">Auto</string>
     <string name="pref_camera_focusmode_entry_infinity">Infinity</string>
     <string name="pref_camera_focusmode_entry_macro">Macro</string>
+    <string name="pref_camera_focusmode_entry_fixed">Fixed</string>
+    <string name="pref_camera_focusmode_entry_facedetect">Face detect</string>
+    <string name="pref_camera_focusmode_entry_continuouspicture">Continuous Picture</string>
+
+    <!-- Default ISO setting. Do not translate. -->
+    <string name="pref_camera_iso_default">auto</string>
+
+    <!-- Settings screen, ISO title -->
+    <string name="pref_camera_iso_title">ISO</string>
+
+    <!-- Settings screen, ISO dialog radio button choices -->
+    <string name="pref_camera_iso_entry_auto">Auto</string>
+    <string name="pref_camera_iso_entry_isodeblur">Auto (HJR)</string>
+    <string name="pref_camera_iso_entry_iso50">50</string>
+    <string name="pref_camera_iso_entry_iso100">100</string>
+    <string name="pref_camera_iso_entry_iso200">200</string>
+    <string name="pref_camera_iso_entry_iso400">400</string>
+    <string name="pref_camera_iso_entry_iso800">800</string>
+    <string name="pref_camera_iso_entry_iso1000">1000</string>
+    <string name="pref_camera_iso_entry_iso1200">1200</string>
+    <string name="pref_camera_iso_entry_iso1600">1600</string>
+
+    <!-- Settings screen, Burst mode title -->
+    <string name="pref_camera_burst_title">Burst</string>
+    <string name="pref_camera_burst_default" translatable="false">1</string>
+
+    <!-- Settings screen, Burst mode entries -->
+    <string name="pref_camera_burst_entry_off">Off</string>
+    <string name="pref_camera_burst_entry_5">5 shots</string>
+    <string name="pref_camera_burst_entry_10">10 shots</string>
+    <string name="pref_camera_burst_entry_15">15 shots</string>
+    <string name="pref_camera_burst_entry_20">20 shots</string>
+
+    <!-- Settings screen, Timer mode title -->
+    <string name="pref_camera_timer_title">Timer mode</string>
+    <string name="pref_camera_timer_default" translatable="false">0</string>
+
+    <!-- Settings screen, Timer mode entries -->
+    <string name="pref_camera_timer_entry_0">Off</string>
+    <string name="pref_camera_timer_entry_10">10s</string>
+    <string name="pref_camera_timer_entry_20">20s</string>
+    <string name="pref_camera_timer_entry_30">30s</string>
+    <string name="pref_camera_timer_entry_40">40s</string>
+    <string name="pref_camera_timer_entry_50">50s</string>
+    <string name="pref_camera_timer_entry_60">60s</string>
 
     <!-- Default flash mode setting.-->
     <string name="pref_camera_flashmode_default" translatable="false">auto</string>
@@ -183,6 +259,7 @@
     <string name="pref_camera_whitebalance_entry_daylight">Daylight</string>
     <string name="pref_camera_whitebalance_entry_fluorescent">Fluorescent</string>
     <string name="pref_camera_whitebalance_entry_cloudy">Cloudy</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">Cloudy-Daylight</string>
 
     <!-- Default scene mode setting. -->
     <string name="pref_camera_scenemode_default" translatable="false">auto</string>
@@ -200,6 +277,17 @@
     <string name="pref_camera_scenemode_entry_sunset">Sunset</string>
     <!-- Scene mode optimized for taking indoor low-lights pictures. [CHAR LIMIT=16] -->
     <string name="pref_camera_scenemode_entry_party">Party</string>
+    <string name="pref_camera_scenemode_entry_backlight">Backlight</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">Duskdawn</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">Fallcolor</string>
+    <string name="pref_camera_scenemode_entry_text">Text</string>
+    <string name="pref_camera_scenemode_entry_portrait">Portrait</string>
+    <string name="pref_camera_scenemode_entry_landscape">Landscape</string>
+    <string name="pref_camera_scenemode_entry_beach">Beach</string>
+    <string name="pref_camera_scenemode_entry_snow">Snow</string>
+    <string name="pref_camera_scenemode_entry_fireworks">Fireworks</string>
+    <string name="pref_camera_scenemode_entry_sports">Sports</string>
+    <string name="pref_camera_scenemode_entry_candlelight">Candlelight</string>
 
     <!-- Toast after trying to select a setting that is not allowed to change in scene mode [CHAR LIMIT=NONE] -->
     <string name="not_selectable_in_scene_mode">Not selectable in scene mode.</string>
@@ -350,4 +438,5 @@
 
     <!-- TODO: remove the string as it is a work-around solution to bypass the default speak of the element type. -->
     <string name="empty" translatable="false">" "</string>
+
 </resources>

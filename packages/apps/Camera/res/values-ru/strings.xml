@@ -52,13 +52,6 @@
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"Настройки камеры"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"Настройки видеокамеры"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"Размер фото"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="6980117304679164339">"5 Мпикс."</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="4391030755438075447">"3 Мпикс."</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="8081839485457681369">"2 Мпикс."</string>
-    <string name="pref_camera_picturesize_entry_1280x960" msgid="7820672028447972964">"1,3 Мпикс."</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="3705686683403524018">"1 Мпикс."</string>
-    <string name="pref_camera_picturesize_entry_640x480" msgid="5557572917973022995">"VGA"</string>
-    <string name="pref_camera_picturesize_entry_320x240" msgid="5729711026478753025">"QVGA"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"Режим фокусировки"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"Авто"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"Бесконечность"</string>
@@ -73,6 +66,7 @@
     <string name="pref_camera_whitebalance_entry_daylight" msgid="2534757270149561027">"Дневной свет"</string>
     <string name="pref_camera_whitebalance_entry_fluorescent" msgid="2435332872847454032">"Лампа дневного света"</string>
     <string name="pref_camera_whitebalance_entry_cloudy" msgid="3531996716997959326">"Пасмурно"</string>
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">Пасмурно, дневной свет</string>
     <string name="pref_camera_scenemode_title" msgid="1420535844292504016">"Режим съемки"</string>
     <string name="pref_camera_scenemode_entry_auto" msgid="7113995286836658648">"Авто"</string>
     <string name="pref_camera_scenemode_entry_action" msgid="616748587566110484">"Действие"</string>
@@ -130,4 +124,56 @@
     <string name="accessibility_decrement" msgid="1411194318538035666">"Уменьшить %1$s"</string>
     <string name="accessibility_increment" msgid="8447850530444401135">"Увеличить %1$s"</string>
     <string name="accessibility_switch" msgid="6995966685498958895">"Переключить %1$s"</string>
+    <string name="pref_camera_power_shutter_title">Съёмка питанием</string>
+    <string name="pref_camera_storage_title">Накопитель</string>
+    <string name="pref_camera_focus_sound_title">Звук фокуса</string>
+
+    <string name="pref_camera_focusmode_entry_fixed">Фиксированно</string>
+    <string name="pref_camera_focusmode_entry_facedetect">Опред. лица</string>
+    <string name="pref_camera_scenemode_entry_backlight">Подсветка</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">Сумерки, рассвет</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">Осень</string>
+    <string name="pref_camera_scenemode_entry_text">Текст</string>
+    <string name="pref_camera_scenemode_entry_portrait">Портрет</string>
+    <string name="pref_camera_scenemode_entry_landscape">Пейзаж</string>
+    <string name="pref_camera_scenemode_entry_beach">Пляж</string>
+    <string name="pref_camera_scenemode_entry_snow">Снег</string>
+    <string name="pref_camera_scenemode_entry_fireworks">Фейерверк</string>
+    <string name="pref_camera_scenemode_entry_sports">Спорт</string>
+    <string name="pref_camera_scenemode_entry_candlelight">Искусст. освещение</string>
+    <string name="pref_camera_focusmode_entry_continuouspicture">Непрерывн. фокус</string>
+
+    <!-- Settings screen, ISO dialog radio button choices -->
+    <string name="pref_camera_iso_entry_auto">Авто</string>
+    <string name="pref_camera_iso_entry_isodeblur">Авто (HJR)</string>
+    <string name="pref_camera_iso_entry_iso50">50</string>
+    <string name="pref_camera_iso_entry_iso100">100</string>
+    <string name="pref_camera_iso_entry_iso200">200</string>
+    <string name="pref_camera_iso_entry_iso400">400</string>
+    <string name="pref_camera_iso_entry_iso800">800</string>
+    <string name="pref_camera_iso_entry_iso1000">1000</string>
+    <string name="pref_camera_iso_entry_iso1200">1200</string>
+    <string name="pref_camera_iso_entry_iso1600">1600</string>
+
+    <!-- Settings screen, Burst mode title -->
+    <string name="pref_camera_burst_title">Серийная съёмка</string>
+
+    <!-- Settings screen, Burst mode entries -->
+    <string name="pref_camera_burst_entry_off">Выкл.</string>
+    <string name="pref_camera_burst_entry_5">5 снимков</string>
+    <string name="pref_camera_burst_entry_10">10 снимков</string>
+    <string name="pref_camera_burst_entry_15">15 снимков</string>
+    <string name="pref_camera_burst_entry_20">20 снимков</string>
+
+    <!-- Settings screen, Timer mode title -->
+    <string name="pref_camera_timer_title">Таймер</string>
+
+    <!-- Settings screen, Timer mode entries -->
+    <string name="pref_camera_timer_entry_0">Выкл.</string>
+    <string name="pref_camera_timer_entry_10">10 сек.</string>
+    <string name="pref_camera_timer_entry_20">20 сек.</string>
+    <string name="pref_camera_timer_entry_30">30 сек.</string>
+    <string name="pref_camera_timer_entry_40">40 сек.</string>
+    <string name="pref_camera_timer_entry_50">50 сек.</string>
+    <string name="pref_camera_timer_entry_60">60 сек.</string>
 </resources>

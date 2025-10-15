@@ -131,6 +131,16 @@ public:
      */
     virtual bool authenticateSurfaceTexture(
             const sp<ISurfaceTexture>& surface) const = 0;
+
+#ifdef QCOM_HDMI_OUT
+    //External display specific functions
+    virtual void enableExternalDisplay(int disp_type, int enable) = 0;
+#endif
+#ifdef STE_HDMI
+    //External display specific functions
+    virtual int setHDMIParameter(int disp_type, int enable) = 0;
+#endif
+
 };
 
 // ----------------------------------------------------------------------------
@@ -151,6 +161,12 @@ public:
         TURN_ELECTRON_BEAM_OFF,
         TURN_ELECTRON_BEAM_ON,
         AUTHENTICATE_SURFACE,
+#ifdef QCOM_HDMI_OUT
+        EXTERNAL_DISPLAY,
+#endif
+#ifdef STE_HDMI
+        SET_HDMI_PARAMETER,
+#endif
     };
 
     virtual status_t    onTransact( uint32_t code,

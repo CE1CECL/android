@@ -87,6 +87,10 @@ void CameraSourceListener::postDataTimestamp(
 }
 
 static int32_t getColorFormat(const char* colorFormat) {
+#ifdef QCOM_HARDWARE
+    return OMX_COLOR_FormatYUV420SemiPlanar;
+#endif
+
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420P)) {
        return OMX_COLOR_FormatYUV420Planar;
     }
@@ -96,7 +100,12 @@ static int32_t getColorFormat(const char* colorFormat) {
     }
 
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420SP)) {
+#ifdef EXYNOS4210_ENHANCEMENTS
+        static const int OMX_SEC_COLOR_FormatNV12LPhysicalAddress = 0x7F000002;
+        return OMX_SEC_COLOR_FormatNV12LPhysicalAddress;
+#else
         return OMX_COLOR_FormatYUV420SemiPlanar;
+#endif
     }
 
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV422I)) {
@@ -110,6 +119,12 @@ static int32_t getColorFormat(const char* colorFormat) {
     if (!strcmp(colorFormat, "OMX_TI_COLOR_FormatYUV420PackedSemiPlanar")) {
        return OMX_TI_COLOR_FormatYUV420PackedSemiPlanar;
     }
+
+#ifdef STE_HARDWARE
+    if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420MB)) {
+       return OMX_STE_COLOR_FormatYUV420PackedSemiPlanarMB;
+    }
+#endif
 
     LOGE("Uknown color format (%s), please add it to "
          "CameraSource::getColorFormat", colorFormat);
@@ -267,8 +282,12 @@ static void getSupportedVideoSizes(
  */
 status_t CameraSource::isCameraColorFormatSupported(
         const CameraParameters& params) {
-    mColorFormat = getColorFormat(params.get(
-            CameraParameters::KEY_VIDEO_FRAME_FORMAT));
+    const char* fmt = params.get(CameraParameters::KEY_VIDEO_FRAME_FORMAT);
+    if (!fmt) {
+        LOGE("Missing parameter %s!", CameraParameters::KEY_VIDEO_FRAME_FORMAT);
+        return BAD_VALUE;
+    }
+    mColorFormat = getColorFormat(fmt);
     if (mColorFormat == -1) {
         return BAD_VALUE;
     }
@@ -528,6 +547,18 @@ status_t CameraSource::initWithCameraAccess(
         }
     }
 
+#ifdef QCOM_HARDWARE
+    const char *hfr_str = params.get("video-hfr");
+    int32_t hfr = -1;
+    if ( hfr_str != NULL ) {
+      hfr = atoi(hfr_str);
+    }
+    if(hfr < 0) {
+      LOGW("Invalid hfr value(%d) set from app. Disabling HFR.", hfr);
+      hfr = 0;
+    }
+#endif
+
     int64_t glitchDurationUs = (1000000LL / mVideoFrameRate);
     if (glitchDurationUs > mGlitchDurationThresholdUs) {
         mGlitchDurationThresholdUs = glitchDurationUs;
@@ -535,14 +566,27 @@ status_t CameraSource::initWithCameraAccess(
 
     // XXX: query camera for the stride and slice height
     // when the capability becomes available.
+#ifdef STE_HARDWARE
+    int stride = newCameraParams.getInt(CameraParameters::KEY_RECORD_STRIDE);
+    int sliceHeight = newCameraParams.getInt(CameraParameters::KEY_RECORD_SLICE_HEIGHT);
+#endif
+
     mMeta = new MetaData;
     mMeta->setCString(kKeyMIMEType,  MEDIA_MIMETYPE_VIDEO_RAW);
     mMeta->setInt32(kKeyColorFormat, mColorFormat);
     mMeta->setInt32(kKeyWidth,       mVideoSize.width);
     mMeta->setInt32(kKeyHeight,      mVideoSize.height);
+#ifndef STE_HARDWARE
     mMeta->setInt32(kKeyStride,      mVideoSize.width);
     mMeta->setInt32(kKeySliceHeight, mVideoSize.height);
+#else
+    mMeta->setInt32(kKeyStride,      stride != -1 ? stride : mVideoSize.width);
+    mMeta->setInt32(kKeySliceHeight, sliceHeight != -1 ? sliceHeight : mVideoSize.height);
+#endif
     mMeta->setInt32(kKeyFrameRate,   mVideoFrameRate);
+#ifdef QCOM_HARDWARE
+    mMeta->setInt32(kKeyHFR, hfr);
+#endif
     return OK;
 }
 

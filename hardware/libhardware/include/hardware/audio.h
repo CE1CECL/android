@@ -218,6 +218,9 @@ typedef struct audio_stream_in audio_stream_in_t;
 static inline uint32_t audio_stream_frame_size(struct audio_stream *s)
 {
     int chan_samp_sz;
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+    uint32_t chan_mask = s->get_channels(s);
+#endif
 
     switch (s->get_format(s)) {
     case AUDIO_FORMAT_PCM_16_BIT:
@@ -229,7 +232,16 @@ static inline uint32_t audio_stream_frame_size(struct audio_stream *s)
         break;
     }
 
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+    if (audio_is_input_channel(chan_mask)) {
+        chan_mask &= (AUDIO_CHANNEL_IN_STEREO | \
+                      AUDIO_CHANNEL_IN_MONO );
+    }
+
+    return popcount(chan_mask) * chan_samp_sz;
+#else
     return popcount(s->get_channels(s)) * chan_samp_sz;
+#endif
 }
 
 
@@ -271,6 +283,11 @@ struct audio_hw_device {
      */
     int (*set_master_volume)(struct audio_hw_device *dev, float volume);
 
+#if defined(QCOM_HARDWARE) && defined(HAVE_FM_RADIO) && !defined(USES_LEGACY_AUDIO)
+    /** set the fm audio volume. Range is between 0.0 and 1.0 */
+    int (*set_fm_volume)(struct audio_hw_device *dev, float volume);
+#endif
+
     /**
      * setMode is called when the audio mode changes. AUDIO_MODE_NORMAL mode
      * is for standard audio playback, AUDIO_MODE_RINGTONE when a ringtone is
@@ -304,6 +321,13 @@ struct audio_hw_device {
                               int *format, uint32_t *channels,
                               uint32_t *sample_rate,
                               struct audio_stream_out **out);
+
+#ifdef WITH_QCOM_LPA
+    /** This method creates and opens the audio hardware output session */
+    int (*open_output_session)(struct audio_hw_device *dev, uint32_t devices,
+                              int *format, int sessionId,
+                              struct audio_stream_out **out);
+#endif
 
     void (*close_output_stream)(struct audio_hw_device *dev,
                                 struct audio_stream_out* out);

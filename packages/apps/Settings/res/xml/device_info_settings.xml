@@ -18,13 +18,6 @@
         android:title="@string/about_settings">
 
         <!-- System update settings - launches activity -->
-        <PreferenceScreen android:key="system_update_settings"
-                android:title="@string/system_update_settings_list_item_title" 
-                android:summary="@string/system_update_settings_list_item_summary">
-            <intent android:action="android.settings.SYSTEM_UPDATE_SETTINGS" />
-        </PreferenceScreen>
-
-
         <PreferenceScreen android:key="additional_system_update_settings"
                           android:title="@string/additional_system_update_settings_list_item_title">
             <intent android:action="android.intent.action.MAIN"
@@ -39,6 +32,31 @@
             <intent android:action="android.intent.action.MAIN"
                     android:targetPackage="com.android.settings"
                     android:targetClass="com.android.settings.deviceinfo.Status" />
+        </PreferenceScreen>
+
+        <!-- CyanogenMod Updates -->
+        <PreferenceScreen android:key="cm_updates"
+                android:title="@string/cmupdate_settings_title" 
+                android:summary="@string/cmupdate_settings_summary">
+            <intent android:action="android.intent.action.MAIN"
+                    android:targetPackage="com.cyanogenmod.updater"
+                    android:targetClass="com.cyanogenmod.updater.UpdatesSettings" />
+        </PreferenceScreen>
+
+        <!-- Anonymous statistics - (CMStats) -->
+        <PreferenceScreen
+            android:key="cmstats"
+            android:title="@string/anonymous_statistics_title"
+            android:summary="@string/anonymous_statistics_summary"
+            android:fragment="com.android.settings.cmstats.AnonymousStats" >
+        </PreferenceScreen>
+
+        <!-- Change Log -->
+        <PreferenceScreen android:key="changelog"
+                android:title="@string/changelog_title">
+            <intent android:action="android.intent.action.MAIN"
+                    android:targetPackage="com.android.settings"
+                    android:targetClass="com.android.settings.cyanogenmod.ChangeLog" />
         </PreferenceScreen>
 
         <!-- Legal Information -->
@@ -90,28 +108,52 @@
         -->
 
         <!-- Device hardware model -->
-        <Preference android:key="device_model" 
+        <Preference android:key="device_model"
                 style="?android:preferenceInformationStyle"
                 android:title="@string/model_number"
                 android:summary="@string/device_info_default"/>
-                
+
         <!-- Device firmware version -->
-        <Preference android:key="firmware_version" 
+        <Preference android:key="firmware_version"
                 style="?android:preferenceInformationStyle"
                 android:title="@string/firmware_version"
                 android:summary="@string/device_info_default"/>
-                
+
         <!-- Device Baseband version -->
-        <Preference android:key="baseband_version" 
+        <Preference android:key="baseband_version"
                 style="?android:preferenceInformationStyle"
                 android:title="@string/baseband_version"
                 android:summary="@string/device_info_default"/>
-        
+
         <!-- Device Kernel version -->
-        <Preference android:key="kernel_version" 
+        <Preference android:key="kernel_version"
                 style="?android:preferenceInformationStyle"
                 android:title="@string/kernel_version"
                 android:summary="@string/device_info_default"/>
+
+        <!-- Device cpu info -->
+        <Preference android:key="device_cpu"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/cpu_info"
+                android:summary="@string/device_info_default"/>
+
+        <!-- Device mem info -->
+        <Preference android:key="device_memory"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/mem_info"
+                android:summary="@string/device_info_default"/>
+
+        <!-- Mod version -->
+        <Preference android:key="mod_version"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/mod_version"
+                android:summary="@string/mod_version_default" />
+
+        <!-- Mod build date -->
+        <Preference android:key="build_date"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/build_date"
+                android:summary="@string/build_date_default" />
 
         <!-- Detailed build version -->
         <Preference android:key="build_number" 

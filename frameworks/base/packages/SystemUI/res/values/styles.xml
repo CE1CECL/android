@@ -40,6 +40,13 @@
         <item name="android:textColor">#FFFFFFFF</item>
     </style>
 
+    <style name="TextAppearance.StatusBar.Battery" parent="@*android:style/TextAppearance.StatusBar.Icon">
+        <!-- Note: must be dp to fit in status bar -->
+        <item name="android:textSize">12dp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@android:color/holo_blue_light</item>
+    </style>
+
     <style name="TextAppearance.StatusBar.Clock" parent="@*android:style/TextAppearance.StatusBar.Icon">
         <!-- Note: must be dp to fit in status bar -->
         <item name="android:textSize">16dp</item>
@@ -49,6 +56,13 @@
 
     <style name="TextAppearance.StatusBar.Date" parent="@*android:style/TextAppearance.StatusBar.Icon">
         <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@android:color/holo_blue_light</item>
+    </style>
+
+    <style name="TextAppearance.StatusBar.Signal" parent="@*android:style/TextAppearance.StatusBar.Icon">
+        <!-- Note: must be dp to fit in status bar -->
+        <item name="android:textSize">12dp</item>
         <item name="android:textStyle">normal</item>
         <item name="android:textColor">@android:color/holo_blue_light</item>
     </style>
@@ -80,6 +94,29 @@
         parent="@*android:style/TextAppearance.StatusBar.Ticker">
         <!-- Note: must be dp to fit in status bar -->
         <item name="android:textSize">14dp</item>
+    </style>
+
+    <style name="StatusBarPanelSettingsIcon">
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_width">64dp</item>
+        <item name="android:scaleType">center</item>
+    </style>
+
+    <style name="StatusBarPanelSettingsRow">
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:layout_height">64dp</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:background">?android:attr/listChoiceBackgroundIndicator</item>
+    </style>
+
+    <style name="StatusBarPanelSettingsContents">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_gravity">left|center_vertical</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+        <item name="android:textSize">18sp</item>
     </style>
     
 </resources>

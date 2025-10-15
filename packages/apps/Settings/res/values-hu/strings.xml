@@ -16,6 +16,37 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- String for ShortcutPickHelper -->
+    <string name="picker_activities">Tevékenységek</string>
+    <string name="select_custom_app_title">Válasszon egyedi alkalmazást</string>
+    <string name="select_custom_activity_title">Válasszon egyedi tevékenységet</string>
+    <string name="icon_picker_choose_icon_title">Válasszon ikont</string>
+    <string name="icon_picker_alarm">Ébresztő</string>
+    <string name="icon_picker_browser">Böngésző</string>
+    <string name="icon_picker_calendar">Naptár</string>
+    <string name="icon_picker_camera">Kamera</string>
+    <string name="icon_picker_email">E-mail</string>
+    <string name="icon_picker_facebook">Facebook</string>
+    <string name="icon_picker_gallery">Galéria</string>
+    <string name="icon_picker_googleplus">Google Plus</string>
+    <string name="icon_picker_googletalk">Google Csevegő</string>
+    <string name="icon_picker_maps">Térképek</string>
+    <string name="icon_picker_movie">Film</string>
+    <string name="icon_picker_music">Zene</string>
+    <string name="icon_picker_nav_normal">Navigáció</string>
+    <string name="icon_picker_phone">Telefon</string>
+    <string name="icon_picker_podcast">Podcast</string>
+    <string name="icon_picker_rss">Rss</string>
+    <string name="icon_picker_sms">Üzenet</string>
+    <string name="icon_picker_twitter">Twitter</string>
+
+    <!-- String for IconPicker -->
+    <string name="icon_picker_title">Válasszon ikont</string>
+    <string name="icon_picker_system_icons_title">Rendszer ikonok</string>
+    <string name="icon_picker_gallery_title">Galéria</string>
+    <string name="icon_picker_pack_title">Ikon csomag</string>
+
     <string name="yes" msgid="4676390750360727396">"Igen"</string>
     <string name="no" msgid="6731231425810196216">"Nem"</string>
     <string name="device_info_default" msgid="7847265875578739287">"Ismeretlen"</string>
@@ -500,7 +531,8 @@
     <string name="wifi_notify_open_networks_summary" msgid="3038290727701553612">"Értesítést kérek az elérhető nyitott hálózatokról"</string>
     <string name="wifi_enable_watchdog_service" msgid="3808826765041243874">"Kerülje a rossz minőségű kapcsolatokat"</string>
     <string name="wifi_enable_watchdog_service_summary" msgid="4227430628962787616">"Csak akkor használjon Wi-Fi hálózatot, ha jó internetkapcsolatot tud biztosítani"</string>
-    <string name="wifi_setting_sleep_policy_title" msgid="9107237003911220057">"Tartsa bekapcsolva a Wi-Fit alvás közben"</string>
+    <!-- Changed 20120412 -->
+    <string name="wifi_setting_sleep_policy_title" msgid="9107237003911220057">"Wi-Fi - alvó módban"</string>
     <string name="wifi_setting_sleep_policy_error" msgid="8174902072673071961">"Probléma adódott a beállítás megváltoztatásakor"</string>
     <string name="wifi_add_network" msgid="6234851776910938957">"Hálózat hozzáadása"</string>
     <string name="wifi_access_points" msgid="2664629396767022441">"Wi-Fi hálózatok"</string>
@@ -545,6 +577,8 @@
     <string name="wifi_wps_available_second_item" msgid="6121307881706347616">" (védett hálózat elérhető)"</string>
     <string name="wifi_secured_first_item" msgid="4072076186051083451">"<xliff:g id="WIFI_SECURITY_SHORT">%1$s</xliff:g> védelemmel"</string>
     <string name="wifi_secured_second_item" msgid="1326000076939056265">", <xliff:g id="WIFI_SECURITY_SHORT">%1$s</xliff:g> védelemmel"</string>
+    <string name="wifi_adhoc_first_item">Ad-hoc hálózat</string>
+    <string name="wifi_adhoc_second_item">\u0020(ad-hoc hálózat)</string>
     <string name="wifi_security_none" msgid="7985461072596594400">"Nincs"</string>
     <string name="wifi_connect" msgid="1076622875777072845">"Kapcsolódás"</string>
     <string name="wifi_forget" msgid="8168174695608386644">"Elfelejt"</string>
@@ -577,8 +611,9 @@
     <string name="wifi_p2p_menu_search" msgid="7189970585393813135">"Keresés"</string>
     <string name="wifi_p2p_menu_create_group" msgid="7595229161883902082">"Csoport létrehozása"</string>
     <string name="wifi_p2p_menu_remove_group" msgid="4844634506540667517">"Csoport eltávolítása"</string>
-    <string name="wifi_p2p_menu_advanced" msgid="2578792521809265949">"Haladó"</string>
     <string name="wifi_p2p_available_devices" msgid="5943352520059654483">"Elérhető eszközök"</string>
+    <string name="wifi_p2p_on_summary">Közvetlen Wi-Fi bekapcsolása</string>
+    <string name="wifi_p2p_settings">Közvetlen Wi-Fi beállítások</string>
     <string name="wifi_tether_checkbox_text" msgid="6961605862058056788">"Hordozható Wi-Fi hotspot"</string>
     <string name="wifi_tether_enabled_subtext" msgid="8948641212931906143">"A(z) <xliff:g id="NETWORK_SSID">%1$s</xliff:g> hordozható hotspot aktív"</string>
     <string name="wifi_tether_failed_subtext" msgid="2654888578056042315">"A hordozható Wi-Fi hotspot hibája"</string>
@@ -607,6 +642,10 @@
     <string name="dock_settings_summary" msgid="455802113668982481">"A csatlakoztatott dokkoló hangbeállításai"</string>
     <string name="dtmf_tone_enable_title" msgid="8533399267725365088">"Tárcsázó érintési hangjai"</string>
     <string name="sound_effects_enable_title" msgid="1171590821131077296">"Érintés hangja"</string>
+    <!-- Vibrator settings screen, setting check box label -->
+    <string name="vibrator_type_ringer">Telefonhívások</string>
+    <!-- Vibrator settings screen, setting check box label -->
+    <string name="vibrator_type_notification">Értesítések</string>
     <string name="lock_sounds_enable_title" msgid="450098505659399520">"Képernyőzár hangja"</string>
     <string name="haptic_feedback_enable_title" msgid="2438293710530828760">"Érintéskor rezegjen"</string>
     <string name="audio_record_proc_title" msgid="4271091199976457534">"Zajszűrés"</string>
@@ -688,7 +727,7 @@
     <string name="model_number" msgid="3765737700545384794">"Modellszám"</string>
     <string name="baseband_version" msgid="1848990160763524801">"Alapsáv verziója"</string>
     <string name="kernel_version" msgid="9192574954196167602">"Kernel verziója"</string>
-    <string name="build_number" msgid="3075795840572241758">"Build-szám"</string>
+    <string name="build_number" msgid="3075795840572241758">"Build neve"</string>
     <string name="device_info_not_available" msgid="8062521887156825182">"Nem érhető el"</string>
     <string name="device_status_activity_title" msgid="1411201799384697904">"Állapot"</string>
     <string name="device_status" msgid="607405385799807324">"Állapot"</string>
@@ -750,15 +789,15 @@
     <string name="dlg_confirm_unmount_text" product="default" msgid="6998379994779187692">"Ha leválasztja az SD-kártyát, egyes használatban lévő alkalmazások leállnak, és lehet, hogy addig nem lesznek elérhetők, amíg nem csatlakoztatja újra a kártyát."</string>
     <string name="dlg_error_unmount_title" product="nosdcard" msgid="4642742385125426529"></string>
     <string name="dlg_error_unmount_title" product="default" msgid="4642742385125426529"></string>
-    <string name="dlg_error_unmount_text" product="nosdcard" msgid="4346280469528260684">"Nem lehet leválasztani az USB-tárat. Próbálkozzon újra később."</string>
-    <string name="dlg_error_unmount_text" product="default" msgid="3073562815631781894">"Nem lehetett leválasztani az SD-kártyát. Próbálkozzon újra később."</string>
-    <string name="unmount_inform_text" product="nosdcard" msgid="7120241136790744265">"Az USB-tár leválasztásra kerül."</string>
-    <string name="unmount_inform_text" product="default" msgid="1904212716075458402">"Az SD-kártya leválasztásra kerül."</string>
+    <string name="dlg_error_unmount_text" product="nosdcard" msgid="4346280469528260684">"Nem lehet leválasztani az USB tárat. Próbálkozzon újra később."</string>
+    <string name="dlg_error_unmount_text" product="default" msgid="3073562815631781894">"Nem lehetett leválasztani az SD kártyát. Próbálkozzon újra később."</string>
+    <string name="unmount_inform_text" product="nosdcard" msgid="7120241136790744265">"Az USB tár leválasztásra kerül."</string>
+    <string name="unmount_inform_text" product="default" msgid="1904212716075458402">"Az SD kártya leválasztásra kerül."</string>
     <string name="sd_ejecting_title" msgid="8824572198034365468">"Leválasztás"</string>
     <string name="sd_ejecting_summary" msgid="2028753069184908491">"Leválasztás folyamatban"</string>
-    <string name="storage_menu_usb" msgid="5708207885333243384">"Számítógépes USB-kapcsolat"</string>
-    <string name="storage_title_usb" msgid="679612779321689418">"Számítógépes USB-kapcsolat"</string>
-    <string name="usb_connection_category" msgid="7805945595165422882">"Kapcsolódás a következőként:"</string>
+    <string name="storage_menu_usb" msgid="5708207885333243384">"USB kapcsolat"</string>
+    <string name="storage_title_usb" msgid="679612779321689418">"USB kapcsolat"</string>
+    <string name="usb_connection_category" msgid="7805945595165422882">"USB kapcsolat módja"</string>
     <string name="usb_mtp_title" msgid="3399663424394065964">"Médiaeszköz (MTP)"</string>
     <string name="usb_mtp_summary" msgid="4617321473211391236">"Lehetővé teszi a médiafájlok átvitelét Windows alatt, vagy az Android fájlátvitel használatát Macen (tekintse meg a www.android.com/filetransfer webhelyet)"</string>
     <string name="usb_ptp_title" msgid="3852760810622389620">"Kamera (PTP)"</string>
@@ -846,7 +885,7 @@
     <string name="tether_settings_title_wifi" msgid="3277144155960302049">"Hordozható hotspot"</string>
     <string name="tether_settings_title_bluetooth" msgid="355855408317564420">"Bluetooth megosztása"</string>
     <string name="tether_settings_title_usb_bluetooth" msgid="5355828977109785001">"Megosztás"</string>
-    <string name="tether_settings_title_all" msgid="8356136101061143841">"Megosztás és hord. csatl. pont"</string>
+    <string name="tether_settings_title_all" msgid="8356136101061143841">"Megosztás és hotspot"</string>
     <string name="usb_title" msgid="7483344855356312510">"USB"</string>
     <string name="usb_tethering_button_text" msgid="585829947108007917">"USB megosztás"</string>
     <string name="usb_tethering_available_subtext" msgid="156779271296152605">"USB csatlakoztatva, jelölje be a megosztáshoz"</string>
@@ -867,6 +906,18 @@
     <string name="bluetooth_tethering_overflow_error" msgid="6285122039489881969">"Nem köthető több mint <xliff:g id="MAXCONNECTION">%1$d</xliff:g> eszközhöz."</string>
     <string name="bluetooth_untether_blank" msgid="2871192409329334813">"<xliff:g id="DEVICE_NAME">%1$s</xliff:g> megosztása meg lesz szüntetve."</string>
     <string name="tethering_help_button_text" msgid="656117495547173630">"Súgó"</string>
+
+    <!-- Advanced tethering settings -->
+    <string name="tethering_advanced_text">Speciális</string>
+    <string name="tethering_lease_time_text">DHCP bérleti idő</string>
+    <string name="dhcp_lease_30mn">30 perc</string>
+    <string name="dhcp_lease_1h">1 óra (alapértelmezett)</string>
+    <string name="dhcp_lease_2h">2 óra</string>
+    <string name="dhcp_lease_4h">4 óra</string>
+    <string name="dhcp_lease_6h">6 óra</string>
+    <string name="dhcp_lease_12h">12 óra</string>
+    <string name="dhcp_lease_24h">24 óra</string>
+
     <string name="network_settings_title" msgid="7967552516440151852">"Mobilhálózatok"</string>
     <string name="location_title" msgid="1029961368397484576">"Saját pozíció"</string>
     <string name="location_network_based" msgid="5569673665032992664">"A Google helyszolgáltatása"</string>
@@ -933,6 +984,7 @@
     <string name="lockpattern_settings_help_how_to_record" msgid="2614673439060830433">"Hogyan kell feloldási mintát rajzolni"</string>
     <string name="lockpattern_too_many_failed_confirmation_attempts_header" msgid="819903817323783498">"Túl sok helytelen próbálkozás!"</string>
     <string name="lockpattern_too_many_failed_confirmation_attempts_footer" msgid="6759029360597122873">"Próbálja újra <xliff:g id="NUMBER">%d</xliff:g> másodperc múlva."</string>
+    <string name="lockpattern_settings_enable_lock_before_unlock">Modulok mutatása feloldás előtt</string>
     <string name="skip_button_label" msgid="8680422740354436943">"Mégse"</string>
     <string name="next_button_label" msgid="8890792540116568321">"Tovább"</string>
     <string name="lock_title" product="tablet" msgid="2909697418179419990">"A táblagép védelme"</string>
@@ -1086,6 +1138,9 @@
     <string name="spellchecker_security_warning" msgid="9060897418527708922">"Lehetséges, hogy ez a helyesírás-ellenőrző összegyűjti a beírt szövegeket, beleértve a személyes adatokat, mint amilyenek a jelszavak és bankkártyaszámok. A(z) <xliff:g id="SPELLCHECKER_APPLICATION_NAME">%1$s</xliff:g> alkalmazástól származik. Használja ezt a helyesírás-ellenőrzőt?"</string>
     <string name="pointer_settings_category" msgid="8183819795164034286">"Egér/érintőpad"</string>
     <string name="pointer_speed" msgid="1221342330217861616">"Mutató sebessége"</string>
+    <!-- Whether to display IME switcher notifcation -->
+    <string name="ime_switcher_notify">Beviteli mód választó</string>
+    <string name="ime_switcher_notify_summary">Beviteli mód választó megjelenítése az értesítési sávon</string>
     <string name="user_dict_settings_titlebar" msgid="765659257455000490">"Felhasználói szótár"</string>
     <string name="user_dict_single_settings_title" msgid="524997218433540614">"Személyes szótár"</string>
     <string name="user_dict_multiple_settings_title" msgid="3735224433307996276">"Személyes szótárak"</string>
@@ -1135,8 +1190,8 @@
     <string name="enable_adb_summary" msgid="4881186971746056635">"Hibakeresés mód USB csatlakoztatásakor"</string>
     <string name="verifier_device_identifier" msgid="5079997701152411060">"Fejlesztési eszköz azonosítója"</string>
     <string name="verifier_device_identifier_not_available" msgid="1272065992066977324">"Nem áll rendelkezésre eszközinformáció"</string>
-    <string name="keep_screen_on" msgid="1146389631208760344">"Nem kapcsolódik ki"</string>
-    <string name="keep_screen_on_summary" msgid="2173114350754293009">"A képernyő soha nem kapcsol ki töltés során"</string>
+    <string name="keep_screen_on" msgid="1146389631208760344">"Képernyő bekapcsolás"</string>
+    <string name="keep_screen_on_summary" msgid="2173114350754293009">"A képernyő nem kapcsol ki töltés során"</string>
     <string name="allow_mock_location" msgid="2787962564578664888">"Helyutánzatok engedélyezése"</string>
     <string name="allow_mock_location_summary" msgid="317615105156345626">"Helyutánzatok engedélyezése"</string>
     <string name="adb_warning_title" msgid="6234463310896563253">"Engedélyezi az USB hibakeresést?"</string>
@@ -1217,8 +1272,8 @@
     <string name="power_phone" msgid="5392641106474567277">"Hanghívások"</string>
     <string name="power_idle" product="tablet" msgid="4612478572401640759">"Tétlen táblagép esetén"</string>
     <string name="power_idle" product="default" msgid="9055659695602194990">"Telefon - tétlen"</string>
-    <string name="usage_type_cpu" msgid="715162150698338714">"CPU teljes"</string>
-    <string name="usage_type_cpu_foreground" msgid="6500579611933211831">"CPU-használat az előtérben"</string>
+    <string name="usage_type_cpu" msgid="715162150698338714">"CPU összesen"</string>
+    <string name="usage_type_cpu_foreground" msgid="6500579611933211831">"CPU előtérben"</string>
     <string name="usage_type_wake_lock" msgid="5125438890233677880">"Ébren tartás"</string>
     <string name="usage_type_gps" msgid="7989688715128160790">"GPS"</string>
     <string name="usage_type_wifi_running" msgid="8234997940652067049">"Wi-Fi használat"</string>
@@ -1228,7 +1283,7 @@
     <string name="usage_type_data_recv" msgid="7251090882025234185">"Fogadott adatok"</string>
     <string name="usage_type_audio" msgid="6957269406840886290">"Hang"</string>
     <string name="usage_type_video" msgid="4295357792078579944">"Videó"</string>
-    <string name="usage_type_on_time" msgid="3351200096173733159">"Bekapcsolva eltöltött idő"</string>
+    <string name="usage_type_on_time" msgid="3351200096173733159">"Bekapcsolva"</string>
     <string name="usage_type_no_coverage" msgid="3797004252954385053">"Jel nélkül eltelt idő"</string>
     <string name="battery_action_stop" msgid="649958863744041872">"Kényszerített leállítás"</string>
     <string name="battery_action_app_details" msgid="7861051816778419018">"Alkalmazásinformáció"</string>
@@ -1325,18 +1380,18 @@
     <string name="credentials_password_too_short" msgid="7502749986405522663">"A jelszónak legalább 8 karakter hosszúnak kell lennie."</string>
     <string name="credentials_wrong_password" msgid="2541932597104054807">"Helytelen jelszó."</string>
     <string name="credentials_reset_warning" msgid="5320653011511797600">"Helytelen jelszó. Már csak egy lehetősége van, mielőtt a hitelesítési adatok tárolója törlődik."</string>
-    <string name="credentials_reset_warning_plural" msgid="6514085665301095279">"Helytelen jelszó. <xliff:g id="NUMBER">%1$d</xliff:g> további lehetősége van, mielőtt a hitelesítési adatok tárolóját töröljük."</string>
+    <string name="credentials_reset_warning_plural" msgid="6514085665301095279">"Helytelen jelszó.<xliff:g id="NUMBER">%1$d</xliff:g> további lehetősége van, mielőtt a hitelesítési adatok tárolóját töröljük."</string>
     <string name="credentials_erased" msgid="2907836028586342969">"Hit. adatok tárolója üres."</string>
     <string name="credentials_not_erased" msgid="93461830775441220">"Az azonosítótárolót nem lehet törölni."</string>
     <string name="credentials_enabled" msgid="7588607413349978930">"A hitelesítési adatok tárolója engedélyezve van."</string>
     <string name="credentials_configure_lock_screen_hint" msgid="6048426197489058494">"Be kell állítani a zárolási képernyő PIN kódját vagy jelszavát, mielőtt használhatja az azonosítótárolót."</string>
     <string name="emergency_tone_title" msgid="1055954530111587114">"Segélyhívás hangja"</string>
     <string name="emergency_tone_summary" msgid="722259232924572153">"Viselkedés beállítása segélyhívás kezdeményezésekor"</string>
-    <string name="privacy_settings" msgid="5446972770562918934">"Biztonsági mentés és visszaállítás"</string>
-    <string name="privacy_settings_title" msgid="4856282165773594890">"Biztonsági mentés és visszaállítás"</string>
+    <string name="privacy_settings" msgid="5446972770562918934">"Mentés és visszaállítás"</string>
+    <string name="privacy_settings_title" msgid="4856282165773594890">"Mentés és visszaállítás"</string>
     <string name="backup_section_title" msgid="7952232291452882740">"Biztonsági mentés és visszaállítás"</string>
     <string name="personal_data_section_title" msgid="7815209034443782061">"Személyes adatok"</string>
-    <string name="backup_data_title" msgid="1239105919852668016">"Adatok biztonsági mentése"</string>
+    <string name="backup_data_title" msgid="1239105919852668016">"Biztonsági mentés"</string>
     <string name="backup_data_summary" msgid="9157861529438245957">"Alkalmazásadatok, Wi-Fi jelszavak és egyéb beállítások mentése a Google szervereire"</string>
     <string name="backup_configure_account_title" msgid="3790872965773196615">"Fiók biztonsági mentése"</string>
     <string name="backup_configure_account_default_summary" msgid="2436933224764745553">"Jelenleg egyik fiók sem tárol biztonsági mentéseket"</string>
@@ -1444,7 +1499,7 @@
     <string name="hdcp_checking_title" msgid="8605478913544273282">"HDCP ellenőrzés"</string>
     <string name="hdcp_checking_dialog_title" msgid="5141305530923283">"HDCP-ellenőrzés beállítása"</string>
     <string name="debug_ui_category" msgid="9023948280291055349">"Felhasználói felület"</string>
-    <string name="strict_mode" msgid="1938795874357830695">"Szigorú mód engedélyezve"</string>
+    <string name="strict_mode" msgid="1938795874357830695">"Szigorított mód"</string>
     <string name="strict_mode_summary" msgid="142834318897332338">"Képernyővillogás a fő szál hosszú műveleteinél"</string>
     <string name="pointer_location" msgid="6084434787496938001">"Mutató helye"</string>
     <string name="pointer_location_summary" msgid="840819275172753713">"A fedvény mutatja az aktuális érintési adatokat"</string>
@@ -1452,16 +1507,16 @@
     <string name="show_touches_summary" msgid="6684407913145150041">"Érintések vizuális visszajelzésének megjelenítése"</string>
     <string name="show_screen_updates" msgid="8282711794220426931">"Képernyőfrissítések"</string>
     <string name="show_screen_updates_summary" msgid="1716122382094924596">"A képernyőterületek villognak, amikor frissülnek"</string>
-    <string name="show_cpu_usage" msgid="2389212910758076024">"CPU-használat mutatása"</string>
+    <string name="show_cpu_usage" msgid="2389212910758076024">"CPU használat mutatása"</string>
     <string name="show_cpu_usage_summary" msgid="2113341923988958266">"Képernyőfedvény a jelenlegi CPU-használattal"</string>
-    <string name="force_hw_ui" msgid="6426383462520888732">"GPU-megjelenítés"</string>
+    <string name="force_hw_ui" msgid="6426383462520888732">"GPU megjelenítés"</string>
     <string name="force_hw_ui_summary" msgid="8642000962902609976">"2D hardvergyorsítás használata az alkalmazásokban"</string>
     <string name="window_animation_scale_title" msgid="6162587588166114700">"Ablakanimáció mérete"</string>
     <string name="transition_animation_scale_title" msgid="387527540523595875">"Áttűnési animáció mérete"</string>
     <string name="debug_applications_category" msgid="4206913653849771549">"Alkalmazások"</string>
     <string name="immediately_destroy_activities" msgid="8366775083630234121">"Törölje a tevékenységeket"</string>
     <string name="immediately_destroy_activities_summary" msgid="3592221124808773368">"Tevékenységek törlése, amint elhagyják azokat"</string>
-    <string name="app_process_limit_title" msgid="4280600650253107163">"Háttérfolyamat-korlátozás"</string>
+    <string name="app_process_limit_title" msgid="4280600650253107163">"Háttérfolyamat korlátozás"</string>
     <string name="show_all_anrs" msgid="28462979638729082">"Összes ANR mutatása"</string>
     <string name="show_all_anrs_summary" msgid="641908614413544127">"Az Alkalmazás nem válaszol ablak megjelenítése"</string>
     <string name="data_usage_summary_title" msgid="3804110657238092929">"Adathasználat"</string>
@@ -1471,6 +1526,7 @@
     <string name="data_usage_menu_split_4g" msgid="5322857680792601899">"Külön 4G-használat"</string>
     <string name="data_usage_menu_show_wifi" msgid="8266875319417201085">"Wi-Fi forgalom megjelenítése"</string>
     <string name="data_usage_menu_show_ethernet" msgid="5181361208532314097">"Ethernet-használat megjelenítése"</string>
+    <string name="data_usage_menu_linear_chart">Vonaldiagram</string>
     <string name="data_usage_change_cycle" msgid="7776556448920114866">"Ciklus módosítása..."</string>
     <string name="data_usage_pick_cycle_day" msgid="4470796861757050966">"Az adatforgalmi ciklus visszaállítása a hónap e napján:"</string>
     <string name="data_usage_empty" msgid="8621855507876539282">"Egy alkalmazás sem használt adatokat ekkor."</string>
@@ -1582,4 +1638,621 @@
     <!-- no translation found for percentage (5866131581207788624) -->
     <skip />
     <string name="additional_system_update_settings_list_item_title" msgid="214987609894661992">"További rendszerfrissítések"</string>
+
+    <!-- 20120420 -->
+    <string name="anonymous_notification_desc">CyanogenMod Statisztika engedélyezése/tiltása</string>
+    <string name="custom_time">Egyéni</string>
+    <string name="debug_intent_sender_label">Hibakeresés küldése</string>
+    <string name="default_time">Normál</string>
+    <string name="dialog_delete_message">Biztosan törli a kiválasztott elemet?</string>
+    <string name="dialog_delete_title">Törlés</string>
+    <string name="dialog_test_button">Elvet</string>
+    <string name="dialog_test_message">Kapcsolja ki a kijelzőt, hogy megtekinthesse a beállított eseményt vagy a teszt leállításához</string>
+    <string name="dialog_test">Teszt</string>
+    <string name="edit_light_settings">Jelzés beállítások</string>
+    <string name="end_time_title">Vége</string>
+    <string name="font_size_preview_text">Teszt szöveg a betűméret ellenőrzéséhez.</string>
+    <string name="intent_sender_data_label"><xliff:g id="data">Adat:</xliff:g></string>
+    <string name="link_volume_mutes">"Néma állapot"\n"összekötése"</string>
+    <string name="link_volume_ringtones">"Hangok"\n"összekötése"</string>
+    <string name="link_volume_ringtones_toast">Az opció bekapcsolása után bizonyosodjon meg arról, hogy megfelelő a csengőhang és értesítések színtjének beállítása.</string>
+    <string name="notification_light_applist_title">Alkalmazások</string>
+    <string name="notification_light_default_value">Alapértelmezés</string>
+    <string name="notification_light_disabled">Letiltva</string>
+    <string name="notification_light_enabled">Engedélyezve</string>
+    <string name="notification_light_general_title">Általános</string>
+    <string name="notification_light_use_custom">Egyéni érték használata</string>
+    <string name="notification_light_missed_call_title">Nem fogadott hívás</string>
+    <string name="notification_light_phonelist_title">Telefon</string>
+    <string name="notification_light_voicemail_title">Hangposta</string>
+    <string name="ok">Ok</string>
+    <string name="picker_arrow">→</string>
+    <string name="preview_carrier_title">Szolgáltató</string>
+    <string name="preview_country_title">Ország kód</string>
+    <string name="preview_device_title">Eszköz</string>
+    <string name="preview_id_title">Egyedi azonosító</string>
+    <string name="preview_version_title">Verzió</string>
+    <string name="profile_write_nfc_tag">NFC tag kiírása</string>
+    <string name="profile_write_touch_tag">Válassza ki a kiírandó tag-ot</string>
+    <string name="profile_write_success">Tag sikeresen kiírva</string>
+    <string name="profile_write_failed">Tag kiírása sikertelen!</string>
+    <string name="profile_selected">Kiválasztott p: %1$s</string>
+    <string name="profile_nfc_text">Profil kiírása az NFC tag-ba, kiválasztás érintéssel. Dupla érintés az előző profil kiválasztása.</string>
+    <string name="profile_unknown_nfc_tag">Ismeretlen profil</string>
+    <string name="profile_add_nfc_text">Ez az NFC tag egy ismeretlen profilra mutat. Az NFC tag csatolása egy már meglévő profilhoz lehetővé teszi a jövőbeli kiválasztását.</string>
+    <string name="profile_select">Válasszon profilt</string>
+    <string name="pulse_length_always_on">Mindig bekapcsolva</string>
+    <string name="pulse_length_long">Hosszú</string>
+    <string name="pulse_length_normal">Normál</string>
+    <string name="pulse_length_short">Rövid</string>
+    <string name="pulse_length_very_long">Nagyon hosszan</string>
+    <string name="pulse_length_very_short">Nagyon röviden</string>
+    <string name="pulse_speed_fast">Gyors</string>
+    <string name="pulse_speed_normal">Normál</string>
+    <string name="pulse_speed_slow">Lassú</string>
+    <string name="pulse_speed_title">Impulzus hossza és sebessége</string>
+    <string name="pulse_speed_very_fast">Nagyon gyors</string>
+    <string name="pulse_speed_very_slow">Nagyon lassú</string>
+    <string name="start_time_title">Kezdete</string>
+    <string name="status_imei">IMEI</string>
+    <string name="status_imei_sv">IMEI SV</string>
+    <string name="stubbed_summary">Jelenleg parkolópályán van ennek a funkciónak a fejlesztése</string>
+    <string name="stubbed">Tulajdonság</string>
+    <string name="testing_sim_toolkit">SIM eszköztár</string>
+    <string name="tts_play_example_not_found_msg">A példa szöveg nem található a kért nyelven</string>
+    <string name="tts_play_example_not_found_title">Figyelmeztetés</string>
+    <string name="volume_ring_only_description">Csengőhangok</string>
+
+    <!-- New 20120416 -->
+    <!-- Storage setting. Title for Mass Storage checkbox [CHAR LIMIT=30]-->
+    <string name="usb_mass_storage_title">USB háttértár</string>
+    <!-- Storage setting. Summary for UMS checkbox [CHAR LIMIT=NONE]-->
+    <string name="usb_mass_storage_summary">USB háttértár (mass storage) engedélyezése</string>
+
+    <!-- Storage setting. Menu option for generic storage settings [CHAR LIMIT=30]-->
+    <string name="storage_menu_storage">Háttértár konfiguráció</string>
+    <!-- Storage setting. Title for generic storage settings [CHAR LIMIT=30]-->
+    <string name="storage_title_storage">Háttértár konfiguráció</string>
+    <!-- Storage setting. Storage layout setup [CHAR LIMIT=30]-->
+    <string name="storage_layout">Háttértár konfiguráció</string>
+
+    <!-- Storage layout Settings : Switch storage mountpoints -->
+    <string name="storage_switch_title">Háttértár kiválasztása</string>
+    <string name="storage_switch_summary_on">Belső tárhely használata (újraindítás szükséges)</string>
+    <string name="storage_switch_summary_off">SD kártya használata (újraindítás szükséges)</string>
+    <string name="storage_switch_unavailable">Az eszköz nem támogat SD kártyákat</string>
+
+    <!-- New 20120414 -->
+    <!-- Dock settings screen, Enable Dock USB Audio check box label -->
+    <string name="dock_usb_audio_enable_title">USB audio kimenet</string>
+    <!-- Enable Dock USB Audio, setting option summary text when check box is selected -->
+    <string name="dock_usb_audio_enable_summary_on">Használja a dokkoló USB audio kimenetét</string>
+    <!-- Enable Dock USB Audio, setting option summary text when check box is clear -->
+    <string name="dock_usb_audio_enable_summary_off">Ne használja a dokkoló USB audio kimenetét</string>
+    <!-- -->
+    <string name="dock_force_undock_title">Kényszerített leválasztás</string>
+    <!-- -->
+    <string name="dock_force_undock_summary_no_dock" product="tablet">A táblagép nincs dokkolva</string>
+    <!-- -->
+    <string name="dock_force_undock_summary_no_dock" product="default">A telefon nincs dokkolva</string>
+    <!-- -->
+    <string name="dock_force_undock_summary" product="tablet">Táblagép leválasztása</string>
+    <!-- -->
+    <string name="dock_force_undock_summary" product="default">Telefon leválasztása</string>
+    <!-- Screen security - Screen security  #CM -->
+    <string name="screen_security_category">Zárolt képernyő</string>
+    <string name="screen_security_title">Képernyőzár</string>
+    <string name="screen_security_summary">Képernyőzár beállítások, biztonság, késleltetés</string>
+    <string name="additional_options_title">További lehetőségek</string>
+    <string name="unlock_menu_unlock_title">Menü feloldás</string>
+    <string name="unlock_menu_unlock_summary">Készülék feloldása menü gomb megnyomásával</string>
+    <string name="unlock_quick_unlock_control_title">Gyors feloldás</string>
+    <string name="unlock_quick_unlock_control_summary">Automatikus feloldás a helyes jelszó/PIN kód beütése után</string>
+    <!-- Delays and timeouts -->
+    <string name="delay_and_timeout_title">Képernyőzár késleltetés</string>
+    <!-- Slide lock delay -->
+    <string name="slide_lock_delay_title">Képernyőzár késleltetése</string>
+    <string name="slide_lock_timeout_delay_title">Késleltetés bekapcsolt kijelzőnél</string>
+    <string name="slide_lock_screenoff_delay_title">Késleltetés kikapcsolt kijelzőnél</string>
+    <string name="slide_lock_delay_none">Nincs</string>
+    <string name="slide_lock_delay_1s">1 másodperc</string>
+    <string name="slide_lock_delay_5s">5 másodperc</string>
+    <string name="slide_lock_delay_10s">10 másodperc</string>
+    <string name="slide_lock_delay_15s">15 másodperc</string>
+    <string name="slide_lock_delay_30s">30 másodperc</string>
+    <string name="slide_lock_delay_1m">1 perc</string>
+    <string name="slide_lock_delay_5m">5 perc</string>
+    <string name="slide_lock_delay_10m">10 perc</string>
+    <string name="slide_lock_delay_30m">30 perc</string>
+    <!-- New 20120411 -->
+    <!-- Setting checkbox title for Whether debugging should run over TCP/IP. -->
+    <string name="adb_over_network">ADB hálózaton keresztül</string>
+    <string name="adb_over_network_summary">Engedélyezi a TCP/IP hibakeresést hálózati eszközön keresztül (Wi-Fi, USB hálózatok). Újraindítás után alaphelyzetbe áll vissza.</string>
+    <!-- Warning for Adb over Network -->
+    <string name="adb_over_network_warning">VIGYÁZAT: Ha a funkció engedélyezve van, a telefon nyitva áll bármilyen behatolásra az összes kapcsolodó hálózaton keresztül!\n\nCsak biztonságos hálózatra csatlakozva érdemes engedélyezni.\n\nBiztosan engedélyezni szeretné?</string>
+    <!-- Setting checkbox title for root access -->
+    <string name="root_access">Root hozzáférés</string>
+    <string name="root_access_warning_title">Root hozzáférés engedélyezése</string>
+    <string name="root_access_warning_message">Veszélyes dolog root jogosultságot adni az alkalmazásoknak és veszélyeztetheti a rendszert!</string>
+    <string name="root_access_none">Letiltva</string>
+    <string name="root_access_apps">Csak alkalmazások</string>
+    <string name="root_access_adb">Csak ADB</string>
+    <string name="root_access_all">Alkalmazások és ADB</string>
+    <!-- UI debug setting: kill app long-press back [CHAR LIMIT=25] -->
+    <string name="kill_app_longpress_back">Alkalmazás bezárás</string>
+    <!-- UI debug settting: kill app long-press back [CHAR LIMIT=50] -->
+    <string name="kill_app_longpress_back_summary">Alkalmazás bezárása nyomvatartott vissza gombbal</string>
+    <!-- Quiet hours #CM -->
+    <string name="quiet_hours_title">Csendes órák</string>
+    <string name="quiet_hours_summary">Csendes órák beállításai</string>
+    <string name="quiet_hours_note_title">Megjegyzés</string>
+    <string name="quiet_hours_note_summary">A bejövő hívásokra nincs hatással</string>
+    <string name="quiet_hours_enabled">Csendes órák engedélyezése</string>
+    <string name="quiet_hours_enabled_on">Csendes órák bekapcsolva</string>
+    <string name="quiet_hours_enabled_off">Az értesítésekre nincs hatással</string>
+    <string name="quiet_hours_start">Csendes órák kezdete</string>
+    <string name="quiet_hours_start_summary">Csendes órák engedélyezve</string>
+    <string name="quiet_hours_end">Csendes órák vége</string>
+    <string name="quiet_hours_end_summary">Csendes órák tiltva</string>
+    <string name="quiet_hours_mute">Értesítések némítása</string>
+    <string name="quiet_hours_mute_on">Értesítések némítva</string>
+    <string name="quiet_hours_mute_off"> Értesítések engedélyezve</string>
+    <string name="quiet_hours_still">Rezgés engedélyezése</string>
+    <string name="quiet_hours_still_on">Rezgés tiltva</string>
+    <string name="quiet_hours_still_off">Rezgés engedélyezve</string>
+    <string name="quiet_hours_dim">Értesítési fények tiltása</string>
+    <string name="quiet_hours_dim_on">Értesítési fények tiltva</string>
+    <string name="quiet_hours_dim_off">Értesítési fények engedélyezve</string>
+    <string name="quiet_hours_haptic">Érintési visszajelzés tiltása</string>
+    <string name="quiet_hours_haptic_on">Érintési visszajelzés tiltva</string>
+    <string name="quiet_hours_haptic_off">Érintési visszajelzés engedélyezve</string>
+    <string name="quiet_hours_active_from">Bekapcsolva ettől</string>
+    <string name="quiet_hours_active_to">eddig</string>
+    <!-- Safe headset volume restore checkbox -->
+    <string name="safe_headset_restore_title">Biztonságos hangerő</string>
+    <string name="safe_headset_restore_summary">Nagy hangerő megakadályozása füllhalgató csatlakoztatásakor</string>
+    <!-- Electron Beam -->
+    <string name="display_category_animation_options_title">Animáció</string>
+    <string name="display_electron_beam_animation_on_title">Kijelző bekapcsolás animáció</string>
+    <string name="display_electron_beam_animation_off_title">Kijelző kikapcsolás animáció</string>
+    <!-- Wakeup options -->
+    <string name="display_category_wakeup_options_title">Ébredés beállítások</string>
+    <string name="pref_volume_wake_title">Hangerő gombra ébredés</string>
+    <string name="pref_volume_wake_summary">A hangerő gomb fel/le megnyomására felébred a készülék</string>
+    <string name="volume_overlay_title">Hangerő panel</string>
+    <!-- Sound settings screen, setting option silent mode title -->
+
+    <!-- Battery light settings #CM -->
+    <string name="battery_light_title">Akkumulátor jelzés</string>
+    <string name="battery_low_pulse_title">Villog, ha merül az akkumulátor</string>
+    <string name="battery_light_list_title">Színek</string>
+    <string name="battery_light_low_color_title">Gyenge az akkumulátor</string>
+    <string name="battery_light_medium_color_title">Töltés</string>
+    <string name="battery_light_full_color_title">Teljesen feltöltve</string>
+
+    <!-- Backlight #CM -->
+    <string name="backlight_title">Automatikus fényerő</string>
+    <string name="backlight_summary">Finomhangolás és szűrők</string>
+    <string name="light_filter_title">Fényérzékelő szűrő</string>
+    <string name="light_filter_enabled_title">Engedélyezve</string>
+    <string name="light_filter_enabled_summary">Mintavételezési ablak beállítása, a változások számának csökkentése érdekében</string>
+    <string name="light_filter_window_title">Időablak hossza</string>
+    <string name="light_filter_window_summary">A fényerőről a beállított időablak alatti minták alapján dönt a készülék</string>
+    <string name="light_filter_reset_title">Visszaállítási küszöb</string>
+    <string name="light_filter_reset_summary">Ha ennél jobban eltérnek a minták, visszaállítja a szűrőt alaphelyzetbe</string>
+    <string name="light_filter_interval_title">Mintavételezési gyakoriság</string>
+    <string name="light_filter_interval_summary">Az alacsony érték növeli a pontosságot, de növeli a CPU használatot</string>
+    <string name="light_levels_title">Fényerő szintek</string>
+    <string name="light_levels_enabled_title">Egyedi</string>
+    <string name="light_levels_dim_title">Kijelző fényerő szint</string>
+    <string name="light_levels_dim_summary">Fényerő csökkentésének mértéke</string>
+    <string name="light_levels_editor_title">Egyéb értékek beállítása\u2026</string>
+    <string name="light_decrease_enabled_title">Fényerő csökkentésének engedélyezése</string>
+    <string name="light_decrease_enabled_summary">Késleltett automatikus fényerőváltozás bekapcsolása</string>
+    <string name="light_decrease_hysteresis_title">Késleltetés csökkentése</string>
+    <string name="light_decrease_hysteresis_summary">Ennyivel csökkenti az érzékelő értékét</string>
+    <!-- Light sensor levels #CM -->
+    <string name="ll_title">Fényérzékelő szintek</string>
+    <string name="ll_header_upper">Felső</string>
+    <string name="ll_header_lower">Alsó</string>
+    <string name="ll_header_lcd">Kijelző</string>
+    <string name="ll_header_btn">Gombok</string>
+    <string name="ll_header_kb">Billentyűzet</string>
+    <string name="ll_lux">Érzékelő (szűrt / nyers):</string>
+    <string name="ll_lcd">Kijelző:</string>
+    <string name="ll_btn">Gombok:</string>
+    <string name="ll_kb">Billentyűzet:</string>
+    <string name="ll_disabled">letiltva</string>
+    <string name="ll_default">Alapértelmezés</string>
+    <string name="ll_save">Mentés &amp; alkalmazás</string>
+    <string name="ll_reload">Jelenlegi újratöltése</string>
+    <string name="ll_bad_levels">Szintek növelése</string>
+    <string name="ll_num_levels">Szintek beállítása</string>
+    <!-- Advanced, Device specific (DeviceParts) settings #CM -->
+    <string name="advanced_settings_title">Haladó</string>
+    <!-- INTERFACE Settings #CM -->
+    <!-- Settings main menu category heading. Interface (Launcher, Themes, System). [CHAR LIMIT=40] -->
+    <string name="header_category_interface">FELHASZNÁLÓI FELÜLET</string>
+        <!-- Launcher settings #CM -->
+    <string name="launcher_settings_title">Launcher</string>
+    <!-- Themes settings #CM -->
+    <string name="themes_settings_title">Témák</string>
+    <!-- System Interface settings #CM -->
+    <string name="system_settings_title">Rendszer</string>
+    <string name="system_interface_title">Rendszer felület</string>
+        <!-- Notification Drawer #CM -->
+    <string name="notification_drawer_title">Értesítési felület</string>
+    <!-- Combined Bar #CM -->
+    <string name="combined_bar_title">Értesítési sáv</string>
+    <string name="combined_bar_auto_hide_title">Auto elrejtés</string>
+    <string name="combined_bar_auto_hide_summary">Értesítési sáv elrejtése teljes képernyős alkalmazások esetén</string>
+    <!-- Navigation Bar #CM -->
+    <string name="navigation_bar_title">Navigációs sáv</string>
+    <string name="navigation_bar_help_text">1 - A szerkeztéshez érintse meg a lakatot\n\n2 - Válasszon gombot a hozzárendelés módosításához\n\n3 - Tartsa hosszan a sorba rendezéshez\n\n4 - A mentéshez érintse meg ismét az ikont\n\n5 - Az alaphelyzet visszaállításához érintse meg a Visszaállítás gombot\n\n</string>
+    <string name="navigation_bar_tips">&#8226; Esemény csak egy gombhoz állítható be\n\n&#8226; A home gomb nem társítható\n\n&#8226; Az oldalsó gombok nem rendezhetőek át</string>
+    <string name="navigation_bar_tips_title">Gyors tippek</string>
+    <string name="navigation_bar_reset_message">Törli a jelenlegi beállításokat és visszaállítja az alaphelyzetet?</string>
+    <string name="navigation_bar_save_message">Navigációs sáv beállításai elmentve.</string>
+    <string name="navigation_bar_reset_toast">Navigációs sáv beállításai visszaállítva az alaphelyzetbe.</string>
+    <!-- Power Widget #CM -->
+    <string name="power_widget_title">Energiagazdálkodás</string>
+    <string name="power_widget_behavior">Viselkedés</string>
+    <string name="power_widget_appearance">Megjelenés</string>
+    <string name="title_expanded_widget">Engedélyezés</string>
+    <string name="title_expanded_hide_onchange">Elrejtés kapcsoló kiválasztásakor</string>
+    <string name="title_expanded_hide_indicator">Állapotjelző elrejtése</string>
+    <string name="title_expanded_hide_scrollbar">Görgetősáv elrejtése</string>
+    <string name="title_widget_picker">Modul kapcsolók</string>
+    <string name="summary_widget_picker">Mely kapcsolók legyenek láthatóak az energiagazdálkodás felületén</string>
+    <string name="title_widget_order">Kapcsolók sorrendje</string>
+    <string name="summary_widget_order">Állítsd be az energiagazdálokás kapcsolóinak sorrendjét</string>
+    <string name="title_buttons">Kapcsolók</string>
+    <string name="title_toggle_wifi">Wi-Fi</string>
+    <string name="title_toggle_bluetooth">Bluetooth</string>
+    <string name="title_toggle_gps">GPS</string>
+    <string name="title_toggle_sound">Hang</string>
+    <string name="title_toggle_brightness">Fényerő</string>
+    <string name="title_toggle_sync">Szinkronizálás</string>
+    <string name="title_toggle_wifiap">Wi-Fi AP</string>
+    <string name="title_toggle_screentimeout">Képernyő időkorlátja</string>
+    <string name="title_toggle_mobiledata">Mobilinternet</string>
+    <string name="title_toggle_lockscreen">Képernyőzár</string>
+    <string name="title_toggle_networkmode">2G/3G</string>
+    <string name="title_toggle_autorotate">Kijelző tájolás</string>
+    <string name="title_toggle_airplane">Repülőgép üzemmód</string>
+    <string name="title_toggle_flashlight">LED villanófény</string>
+    <string name="title_toggle_sleep">Alvó mód</string>
+    <string name="title_toggle_media_play_pause">Média: Lejátszás/Szünet</string>
+    <string name="title_toggle_media_previous">Média: Előző</string>
+    <string name="title_toggle_media_next">Média: Következő</string>
+    <string name="title_toggle_lte">LTE</string>
+    <string name="title_toggle_wimax">WiMAX</string>
+    <string name="title_button_modes">Kapcsolók beállításai</string>
+    <string name="pref_brightness_mode_title">Fényerő kapcsoló</string>
+    <string name="pref_brightness_mode_summary">Válaszd ki a fényerő kapcsoló beállításait</string>
+    <string name="cm_brightness_mode_auto">Auto</string>
+    <string name="cm_brightness_mode_dim">Sötét</string>
+    <string name="pref_network_mode_title">Hálózati kapcsoló</string>
+    <string name="pref_screentimeout_mode_title">Képernyő időkorlát kapcsoló</string>
+    <string name="pref_ring_mode_title">Hang kapcsoló</string>
+    <string name="pref_ring_mode_summary">Válaszd ki a hang kapcsoló beállításait</string>
+    <string name="cm_sound_mode_silent">Néma</string>
+    <string name="cm_sound_mode_vibrate">Rezgés</string>
+    <string name="cm_sound_mode_sound">Hang</string>
+    <string name="cm_sound_mode_soundVibrate">Hang+Rezgés</string>
+    <string name="pref_flash_mode_title">Villanófény kapcsoló</string>
+
+    <!-- Power Widget, Haptic feedback #CM -->
+    <string name="expanded_haptic_feedback_title">Érintési visszajelzés</string>
+
+    <!-- Status bar #CM -->
+    <string name="combined_status_bar_title">@string/status_bar_title</string>
+    <string name="status_bar_title">Értesítési sáv</string>
+    <string name="status_bar_clock_title">Óra</string>
+    <string name="status_bar_general_title">Általános</string>
+    <string name="status_bar_show_clock_title">Óra mutatása</string>
+    <string name="status_bar_show_clock_summary">Óra mutatása az értesítési sávon</string>
+    <string name="status_bar_am_pm_title">AM/PM stílus</string>
+    <string name="status_bar_am_pm_summary">AM/PM kijelzés stílusának kiválasztása</string>
+    <string name="status_bar_am_pm_info">24 órás megjelenítés aktív</string>
+    <string name="status_bar_battery_title">Akkumulátor állapotjelző stílusa</string>
+    <string name="status_bar_battery_summary">Akkumulátor állapotjelző stílusának kiválasztása</string>
+    <string name="status_bar_toggle_brightness">Fényerő vezérlés</string>
+    <string name="status_bar_toggle_brightness_summary">Engedélyezi az értesítési sávon a fényerő csökkentést/növelést az ujjad csúsztatásával</string>
+    <string name="status_bar_toggle_info">Automatikus fényerő engedélyezve</string>
+    <string name="status_bar_signal_text_title">Térerő jelzés stílusa</string>
+    <string name="status_bar_signal_text_summary">Térerő jelzés stílusának kiválasztása</string>
+    <string name="status_bar_signal_text_show_bars">Ikon (alapértelmezett)</string>
+    <string name="status_bar_signal_text_show_text">Szöveg</string>
+    <string name="status_bar_signal_text_hidden">Rejtett</string>
+    <!-- Lock screen #CM -->
+    <string name="lock_screen_title">Zárolt képernyő</string>
+    <!-- Lock Screen Shortcuts -->
+    <string name="lockscreen_target_info">Módosításhoz húzza a csúszkát a kívánt pontra</string>
+    <string name="lockscreen_target_title">Zárolt képernyő hivatkozások</string>
+    <string name="lockscreen_target_summary">Hivatkozások hozzáadása vagy módosítása</string>
+    <string name="lockscreen_target_reset">Alapbeállítások visszaállítva.</string>
+    <string name="lockscreen_target_save">Zárolt képernyő hivatkozások elmentve.</string>
+    <string name="lockscreen_target_reset_title">Visszaállítás</string>
+    <string name="lockscreen_target_reset_message">Biztosan vissza kívánja állítani az összes hivatkozást alaphelyzetbe?</string>
+    <string name="lockscreen_target_empty">Üres</string>
+    <string name="lockscreen_target_edit_title">Hivatkozás szerkesztése</string>
+    <string name="lockscreen_target_edit_msg">Válassza ki vagy módosítsa a kívánt alkalmazást vagy tevékenységet és a hozzá tartozó ikont</string>
+
+    <!-- Lock Screen Weather -->
+    <string name="lockscreen_weather_title">Időjárás</string>
+    <string name="lockscreen_weather_summary">Időjárás információk megjelenítése a zárolt képernyőn</string>
+    <string name="lockscreen_weather_enabled">Engedélyezve</string>
+    <string name="weather_enable">Időjárás megjelenítése</string>
+    <string name="weather_source">Yahoo! Weather</string>
+    <string name="weather_use_custom_location">Egyéni hely használata</string>
+    <string name="weather_geolocated">Helyzetmeghatározás</string>
+    <string name="weather_custom_location_dialog_title">Hely megadása</string>
+    <string name="weather_custom_location_hint">Város, Ország</string>
+    <string name="weather_custom_location_title">Hely neve</string>
+    <string name="weather_show_location_title">Hely mutatása</string>
+    <string name="weather_show_timestamp_title">Frissítés idejének mutatása</string>
+    <string name="weather_refresh_interval">Frissítések gyakorisága</string>
+    <string name="weather_use_metric">Metrikus értékek</string>
+    <string name="weather_retrieve_location_dialog_title">Nem található hely információ!</string>
+    <string name="weather_retrieve_location_dialog_message">Helyzetmeghatározás letiltva.\n\nÁllítsd be a helyet vagy használd az automatikus helyzetmeghatározást</string>
+    <string name="weather_retrieve_location_dialog_enable_button">Engedélyez</string>
+    <string name="weather_invert_lowhigh">Minimum/maximum hőmérséklet megfordítása</string>
+    <string name="weather_progress_title">Hely ellenőrzése</string>
+
+    <!-- Lock screen Weather - Update frequency -->
+    <string name="weather_refresh_manual">Kézi</string>
+    <string name="weather_refresh_30min">30 perc</string>
+    <string name="weather_refresh_60min">60 perc</string>
+    <string name="weather_refresh_2hrs">2 óra</string>
+    <string name="weather_refresh_4hrs">4 óra</string>
+    <string name="weather_refresh_6hrs">6 óra</string>
+    <string name="weather_refresh_8hrs">8 óra</string>
+
+    <!-- Lock screen Calendar -->
+    <string name="lockscreen_calendar_title">Naptár</string>
+    <string name="lockscreen_calendar_summary">Megjeleníti a következő naptárbejegyzést a zárolt képernyőn</string>
+    <string name="lockscreen_calendar_enabled">Engedélyezve</string>
+    <string name="calendar_title">Mutassa a naptárbejegyzéseket</string>
+    <string name="calendars_title">Naptárak</string>
+    <string name="calendars_summary">Csak a megadott naptárakban keresse az eseményeket</string>
+    <string name="calendar_reminders_only_title">Csak emlékeztetők</string>
+    <string name="calendar_reminders_only_summary">Csak az emlékeztetővel ellátott eseményeket mutassa</string>
+    <string name="calendar_lookahead_title">Keresési időszak</string>
+    <string name="calendar_show_location_title">Esemény helye</string>
+    <string name="calendar_show_description_title">Esemény leírása</string>
+
+    <!-- Lock screen calendar - lookahead -->
+    <string name="calendar_lookahead_3hrs">3 óra</string>
+    <string name="calendar_lookahead_6hrs">6 óra</string>
+    <string name="calendar_lookahead_12hrs">12 óra</string>
+    <string name="calendar_lookahead_1day">1 nap</string>
+    <string name="calendar_lookahead_3days">3 nap</string>
+    <string name="calendar_lookahead_1wk">1 hét</string>
+
+    <!-- Lock screen calendar - event metadata -->
+    <string name="calendar_metadata_none">Ne mutassa</string>
+    <string name="calendar_metadata_first_line">Csak az első sorát mutassa</string>
+    <string name="calendar_metadata_all">A teljeset mutassa</string>
+
+    <!-- Lock screen background -->
+    <string name="lockscreen_custom_background_title">Háttérkép</string>
+    <string name="lockscreen_custom_background_dialog_title">Szín kiválasztása</string>
+    <string name="lockscreen_background_result_successful">Háttérkép beállítva</string>
+    <string name="lockscreen_background_result_not_successful">Háttérkép változatlan</string>
+    <string name="lockscreen_background_color_fill">Szín kiválasztása</string>
+    <string name="lockscreen_background_custom_image">Háttérkép kiválasztása</string>
+    <string name="lockscreen_background_default_wallpaper">Alapértelmezett háttérkép</string>
+
+    <!-- Lock Screen -->
+    <!-- Profiles settings #CM -->
+    <string name="profiles_settings_title">Profilok</string>
+    <string name="profiles_general_title">Általános</string>
+    <string name="profiles_add">Hozzáadás</string>
+    <string name="profile_menu_delete">Törlés</string>
+    <string name="profile_settings_title">Profil</string>
+    <!-- Add Profile -->
+    <string name="add_profile_dialog_title">Új profil létrehozása</string>
+    <string name="profile_name_title">Név</string>
+    <string name="profile_profile_name_prompt">Add meg az új profil nevét</string>
+    <string name="menu_new_profile">Új profil</string>
+    <string name="menu_new_profile_summary">Hozz létre és alakíts ki új profilt</string>
+    <string name="new_profile_name">&lt;Új profil&gt;</string>
+    <!-- Rename Dialog  -->
+    <string name="rename_dialog_title">Átnevezés</string>
+    <string name="rename_dialog_message">Add meg az új nevet</string>
+    <string name="duplicate_profile_name">Már létező profil!</string>
+    <string name="duplicate_appgroup_name">Már létező alkalmazáscsoport!</string>
+    <!-- Reset Profiles -->
+    <string name="profile_reset_title">Visszaállítás</string>
+    <string name="profile_reset_message">Biztosan vissza kívánja állítani az összes profilt és alkalmazáscsoportot alaphelyzetbe?</string>
+    <!-- Delete confimation messages -->
+    <string name="profile_delete_confirm">Biztosan törölni akarod ezt a profilt?</string>
+    <string name="profile_app_delete_confirm">Biztosan el akarod távolítani ezt az alkalmazást?</string>
+    <string name="profile_cannot_delete">A használatban lévő profil nem törölhető</string>
+    <!-- Profile Config screen PreferenceGroup titles -->
+    <string name="profile_connectionoverrides_title">Kapcsolatok felülbírálása</string>
+    <string name="profile_volumeoverrides_title">Hangok felülbírálása</string>
+    <string name="connection_state_disabled">Letiltva</string>
+    <string name="connection_state_enabled">Engedélyezve</string>
+    <string name="volume_override_summary">Beállítva</string>
+    <string name="profile_vibratoroverrides_title">Rezgő mód felülbírálása</string>
+    <string name="vibrator_state_disabled">Letiltva</string>
+    <string name="vibrator_state_enabled">Engedélyezve</string>
+    <string name="vibrator_state_silent">Néma mód esetén</string>
+    <!-- Menu item for managing profiles -->
+    <string name="profile_profiles_manage">Profilok</string>
+    <string name="profile_profile_manage">Profilok kezelése</string>
+    <string name="profile_applist_manage">Alkalmazás lista</string>
+    <string name="profile_appgroups_manage">Alkalmazások</string>
+    <string name="profile_appgroup_manage">Alkalmazáscsoportok kezelése</string>
+    <!-- Profile settings screen, section header for settings related to notification profiles -->
+    <string name="profile_settings">Profil beállítások</string>
+    <string name="profile_name">Név</string>
+    <!-- Profile Settings sound modes labels -->
+    <string name="sound_mode">Értesítési mód</string>
+    <string name="ringer_mode">Csengetés módja</string>
+    <string name="lights_mode">Fényjelzés módja</string>
+    <string name="vibrate_mode">Rezgő mód</string>
+    <string name="choose_soundtone">Értesítés hangja</string>
+    <string name="choose_ringtone">Telefon csengőhangja</string>
+    <!-- Sound settings screen, setting option name to pick ringtone (a list dialog comes up)-->
+    <string name="soundtone_title">Értesítés hangja</string>
+    <string name="soundtone_summary">""</string>
+    <!-- Title for application group setting screen -->
+    <string name="profile_appgroups_title">Alkalmazáscsoportok</string>
+    <string name="profile_applist_title">Alkalmazások</string>
+    <string name="profile_new_appgroup">Új alkalmazáscsoport</string>
+    <string name="profile_delete_appgroup">Alkalmazáscsoport törlése</string>
+    <string name="profile_appgroup_name_prompt">Add meg az új alkalmazáscsoport nevét</string>
+    <string name="profile_appgroup_name_title">Név</string>
+    <string name="profile_add_app">Alkalmazás hozzáadása</string>
+    <string name="profile_delete_app">Alkalmazás eltávolítása</string>
+    <!-- Add application dialog box title -->
+    <string name="profile_choose_app">Válassz alkalmazást</string>
+    <string name="profile_settings_header">Profil beállítások</string>
+    <!-- Profiles - system settings -->
+    <string name="profile_system_settings_title">Rendszer beállítások</string>
+    <string name="profile_lockmode_title">Zárolt képernyő módja</string>
+    <string name="profile_lockmode_default">Alapértelmezett</string>
+    <string name="profile_lockmode_insecure">Védtelen</string>
+    <string name="profile_lockmode_disabled">Letiltva</string>
+    <string name="profile_lockmode_default_summary">Alapértelmezett használata</string>
+    <string name="profile_lockmode_insecure_summary">Védtelen használata</string>
+    <string name="profile_lockmode_disabled_summary">Nincs zárolt képernyő</string>
+    <string name="profile_disable_screen_lock_summary">Zárolt képernyő kikapcsolása ha aktív ez a profil</string>
+    <string name="profile_airplanemode_title">Repülőgép üzemmód</string>
+    <string name="profile_airplanemode_default">Alapértelmezett</string>
+    <string name="profile_airplanemode_enabled">Engedélyezve</string>
+    <string name="profile_airplanemode_disabled">Letiltva</string>
+    <string name="profile_airplanemode_default_summary">Alapértelmezett használata</string>
+    <string name="profile_airplanemode_enabled_summary">Repülőgép üzemmód engedélyezve</string>
+    <string name="profile_airplanemode_disabled_summary">Repülőgép üzemmód letiltva</string>
+
+    <!-- Connection override toggles (not all are used at this time ) -->
+    <string name="possibleButtons">Lehetséges kapcsolók</string>
+    <string name="toggleWifi">Wi-Fi</string>
+    <string name="toggleWifiAp">Hordozható Wi-Fi hotspot</string>
+    <string name="toggleBluetooth">Bluetooth</string>
+    <string name="toggleGPS">GPS</string>
+    <string name="toggleData">Mobilinternet</string>
+    <string name="toggleSync">Szinkronizálás</string>
+    <string name="toggle2g3g">2G/3G</string>
+    <string name="toggleSound">Csengetés módja</string>
+    <string name="toggleBrightness">Fényerő</string>
+    <string name="toggleAutoRotate">Tájolás</string>
+    <string name="toggleScreenTimeout">Képernyő időkorlátja</string>
+    <string name="toggleAirplane">Repülőgép üzemmód</string>
+    <string name="toggleFlashlight">Villanófény</string>
+    <string name="toggleLockScreen">Zárolt kijelző</string>
+    <string name="toggleWimax">WiMAX</string>
+    <!-- Performance settings #CM -->
+    <string name="performance_settings_title">Teljesítmény</string>
+    <!-- Performance Settings : Warning dialog #CM -->
+    <string name="performance_settings_warning_title">Innentől óvatosan</string>
+    <string name="performance_settings_warning">Ezek a beállítások kísérleti jelleggel szerepelnek itt. Bármilyen változtatás a készülék instabilitásához, meghibásodásához vagy adatvesztéshez vezethet.\n\nAz esetleges károkért nem vállalunk felelősséget.</string>
+    <!-- Performance Settings : Processor Settings -->
+    <!-- Performance Settings : Processor settings title -->
+    <string name="processor_title">Processzor</string>
+    <!-- Performance Settings : Processor settings summary. -->
+    <string name="processor_summary">CPU órajel és ütemező beállítások</string>
+    <!-- Performance Settings : Processor settings sub items -->
+    <string name="cpu_cur_freq_title">Jelenlegi CPU frekvencia</string>
+    <string name="cpu_governors_title">CPU ütemező</string>
+    <string name="cpu_governors_summary">%S</string>
+    <string name="cpu_min_freq_title">Minimum CPU frekvencia</string>
+    <string name="cpu_min_freq_summary">%s</string>
+    <string name="cpu_max_freq_title">Maximum CPU frekvencia</string>
+    <string name="cpu_max_freq_summary">%s</string>
+    <string name="cpu_set_on_boot">Telefon indításakor érvénybe lép</string>
+    <string name="cpu_set_on_boot_summary">Processzor visszaállítása indításkor</string>
+    <!-- Memory Management -->
+    <string name="memory_management_title">Memória kezelés</string>
+    <string name="memory_management_summary">A memóriahasználat változtatásával testreszabhatod a rendszer teljesítményét</string>
+    <!-- Performance Settings : Dithering -->
+    <string name="pref_use_dithering_title">Szürkeérték-árnyalás</string>
+    <string name="pref_use_dithering_summary">A Szürkeérték-árnyalás javítja a képminőséget némely kijelzőn (újraindítás szükséges)</string>
+
+    <!-- Performance Settings : 16bpp Alpha -->
+    <string name="pref_use_16bpp_alpha_title">16bit átlátszóság</string>
+    <string name="pref_use_16bpp_alpha_summary">Jobb grafikus teljesítmény, de gyengébb minőség illetve megjelenítési rendellenességek léphetnek fel (újraindítás szükséges)</string>
+
+    <!-- zRam -->
+    <string name="pref_zram_title">zRam</string>
+    <string name="pref_zram_summary">Memóriatömörítés virtuális kapacitásnöveléshez (újraindítás szükséges)</string>
+    <!-- KSM -->
+    <string name="pref_ksm_title">Kernel samepage merging</string>
+    <string name="pref_ksm_summary">KSM csökkenti a fizikai memória mennyiség szükségességét és növeli a performanciát</string>
+    <!-- Purgeable Assets -->
+    <string name="pref_purgeable_assets_title">Memória ürítés engedélyezése</string>
+    <string name="pref_purgeable_assets_summary">Szükség esetén több RAM felszabadítását engedélyezi (újraindítás szükséges)</string>
+    <!-- System Updates #CM -->
+    <!-- Donate #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <string name="donate_settings_title">Támogatás</string>
+    <!-- About device screen, list item summary. Takes the user to the screen about how to donate to the CyanogenMod Project. -->
+    <string name="donate_settings_summary">""</string>
+    <!-- Anonymous Statistics #CM -->
+    <!-- About device screen, list item title. Takes the user to the screen about opting in or out of anonymous statistics. -->
+    <string name="anonymous_statistics_title">CyanogenMod Statisztika</string>
+    <string name="anonymous_statistics_summary">Az anonim statisztika gyűjtévésével javítani tudjuk a CyanogenMod rendszert</string>
+    <string name="anonymous_statistics_warning_title">Tudnivalók</string>
+    <string name="anonymous_statistics_warning">A CyanogenMod statisztika engedélyezése nem terjed ki személyes adatokra, ezért egy egyedi azonosítóval azonosítjuk az eszközöket. Az adat minden telefon indulás után kerül elküldésre, hogy követni tudjuk az új installokat.\n\nAz elküldött adatok menüpont alatt láthatod a statisztikai adatokat.</string>
+    <string name="enable_reporting_title">Statisztika engedélyezése</string>
+    <string name="preview_data_title">Elküldött adatok</string>
+    <string name="preview_data_summary">%s</string>
+    <string name="view_stats_title">Statisztika megtekintése</string>
+    <string name="anonymous_learn_more">Tudj meg többet</string>
+    <!-- Display : Rotation #CM -->
+    <string name="display_rotation_title">Képernyő elforgatás</string>
+    <string name="display_rotation_enabled">Engedélyezve</string>
+    <string name="display_rotation_disabled">Letiltva</string>
+    <string name="display_rotation_unit">fok</string>
+    <string name="display_rotation_category_title">Forgatás módok</string>
+    <string name="display_rotation_0_title">0 fok</string>
+    <string name="display_rotation_90_title">90 fok</string>
+    <string name="display_rotation_180_title">180 fok</string>
+    <string name="display_rotation_270_title">270 fok</string>
+    <!-- About device screen, Cpu info. -->
+    <string name="cpu_info">CPU</string>
+    <!-- About phone screen, Free memory info -->
+    <string name="mem_info">Memória</string>
+    <!-- About device screen, version of modification of Android. -->
+    <string name="mod_version">CyanogenMod verzió</string>
+    <string name="mod_version_default">Unknown</string>
+    <!-- About device screen, build date of ROM. -->
+    <string name="build_date">Build dátuma</string>
+    <string name="build_date_default">2012-01-01-0000</string>
+    <!-- GPS Source selection -->
+    <string name="location_gps_source_title">GPS forrása</string>
+    <string name="location_gps_source_summary">Válaszd ki, hogy külső (ha csatlakoztatva van) vagy belső GPS eszközt szeretnél használni</string>
+    <string name="location_gps_source_notification_title">Figyelem</string>
+    <string name="location_gps_source_notification">A GPS forrása meg lett változtatva! A GPS kikapcsolásra kerül. Használat előtt kapcsold be újra!</string>
+    <!-- Setting for volume rocker music controls -->
+    <string name="volbtn_music_controls_title">Zene vezérlése</string>
+    <string name="volbtn_music_controls_summary">A lejátszott számok között lépkedhetsz, hosszan nyomvatartott hangerő gombokkal (kikapcsolt képernyőnél)</string>
+    <!-- Stylus Icon -->
+    <string name="stylus_icon_enabled_title">Ikon megjelenítése stylus használatakor</string>
+    <string name="stylus_icon_enabled_summary">Mutató mutatása rajzoláskor stylus használata esetén</string>
+    <!-- Hostname setting -->
+    <string name="device_hostname">Eszköz elérési neve</string>
+
+    <!-- Status bar notification count -->
+    <string name="status_bar_notif_count_title">Értesítések száma</string>
+    <string name="status_bar_notif_count_summary">Folyamatban lévő értesítések száma a stástusz soron</string>
+
+    <string name="increasing_ring_title">Emelkedő csengőhang</string>
+    <!-- Sound settings screen, the caption of the checkbox for making incoming calls increase in volume -->
+    <string name="checkbox_increasing_ring">Engedélyezve</string>
+    <!-- Sound settings screen, the title of the volume bar to adjust the minimum increasing ring volume -->
+    <string name="increasing_ring_min_volume_title">Kezdeti hangerő</string>
+    <string name="increasing_ring_volume_notice">Megjegyzés:\nAmennyiben a kezdeti hangerő nagyobb, mint a csengőhangok hangerejéhez beállított érték, a csengőhang az alapértelmezett csengetési hangerővel lesz lejátszva.</string>
+    <string name="increasing_ring_interval_title">Emelkedés intervalluma</string>
+    <string name="increasing_ring_interval_eachring">Minden csengetés</string>
+    <string name="increasing_ring_interval_half_second">0.5 másodperc</string>
+    <string name="increasing_ring_interval_1second">1 másodperc</string>
+    <string name="increasing_ring_interval_2seconds">2 másodperc</string>
+    <string name="increasing_ring_interval_3seconds">3 másodperc</string>
+    <string name="increasing_ring_interval_5seconds">5 másodperc</string>
+    <string name="increasing_ring_interval_10seconds">10 másodperc</string>
 </resources>

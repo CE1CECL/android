@@ -45,6 +45,13 @@ int AudioSystem::gPrevInChannelCount = 1;
 size_t AudioSystem::gInBuffSize = 0;
 
 
+#ifdef STE_HARDWARE
+// Clients for receiving latency update notifications
+Mutex AudioSystem::gLatencyLock;
+int AudioSystem::gNextUniqueLatencyId = 0;
+DefaultKeyedVector<int, sp<AudioSystem::NotificationClient> > AudioSystem::gLatencyNotificationClients(0);
+#endif
+
 // establish binder interface to AudioFlinger service
 const sp<IAudioFlinger>& AudioSystem::get_audio_flinger()
 {
@@ -370,9 +377,32 @@ void AudioSystem::releaseAudioSessionId(int audioSession) {
     }
 }
 
+#ifdef STE_HARDWARE
+int AudioSystem::registerLatencyNotificationClient(latency_update_callback cb, void *cookie) {
+    Mutex::Autolock _l(gLatencyLock);
+
+    sp<NotificationClient> notificationClient = new NotificationClient();
+    notificationClient->mCb = cb;
+    notificationClient->mCookie = cookie;
+
+    gNextUniqueLatencyId++;
+    gLatencyNotificationClients.add(gNextUniqueLatencyId, notificationClient);
+    return gNextUniqueLatencyId;
+}
+
+void AudioSystem::unregisterLatencyNotificationClient(int clientId) {
+    Mutex::Autolock _l(gLatencyLock);
+    gLatencyNotificationClients.removeItem(clientId);
+}
 // ---------------------------------------------------------------------------
+#endif
 
 void AudioSystem::AudioFlingerClient::binderDied(const wp<IBinder>& who) {
+#ifdef STE_HARDWARE
+    gLatencyLock.lock();
+    AudioSystem::gLatencyNotificationClients.clear();
+    gLatencyLock.unlock();
+#endif
     Mutex::Autolock _l(AudioSystem::gLock);
 
     AudioSystem::gAudioFlinger.clear();
@@ -445,9 +475,27 @@ void AudioSystem::AudioFlingerClient::ioConfigChanged(int event, int ioHandle, v
                 ioHandle, desc->samplingRate, desc->format,
                 desc->channels, desc->frameCount, desc->latency);
         OutputDescriptor *outputDesc = gOutputs.valueAt(index);
+#ifdef STE_HARDWARE
+        uint32_t oldLatency = outputDesc->latency;
+#endif
         delete outputDesc;
         outputDesc =  new OutputDescriptor(*desc);
         gOutputs.replaceValueFor(ioHandle, outputDesc);
+#ifdef STE_HARDWARE
+        if (oldLatency == outputDesc->latency) {
+            break;
+        }
+        uint32_t newLatency = outputDesc->latency;
+        gLock.unlock();
+        gLatencyLock.lock();
+        size_t size = gLatencyNotificationClients.size();
+        for (size_t i = 0; i < size; i++) {
+            sp<NotificationClient> client = gLatencyNotificationClients.valueAt(i);
+            (*client->mCb)(client->mCookie, ioHandle, newLatency);
+        }
+        gLatencyLock.unlock();
+        gLock.lock();
+#endif
     } break;
     case INPUT_OPENED:
     case INPUT_CLOSED:
@@ -596,6 +644,27 @@ audio_io_handle_t AudioSystem::getOutput(audio_stream_type_t stream,
     return output;
 }
 
+#ifdef WITH_QCOM_LPA
+audio_io_handle_t AudioSystem::getSession(audio_stream_type_t stream,
+                                          uint32_t      format,
+                                          audio_policy_output_flags_t flags,
+                                          int           sessionId)
+{
+    audio_io_handle_t output = 0;
+
+    if ((flags & AUDIO_POLICY_OUTPUT_FLAG_DIRECT) == 0) {
+        return 0;
+    }
+
+    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
+    if (aps == 0) return 0;
+
+    output = aps->getSession(stream, format, flags, sessionId);
+
+    return output;
+}
+#endif
+
 status_t AudioSystem::startOutput(audio_io_handle_t output,
                                   audio_stream_type_t stream,
                                   int session)
@@ -621,16 +690,48 @@ void AudioSystem::releaseOutput(audio_io_handle_t output)
     aps->releaseOutput(output);
 }
 
+#ifdef WITH_QCOM_LPA
+status_t AudioSystem::pauseSession(audio_io_handle_t output, audio_stream_type_t stream)
+{
+    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
+    if (aps == 0) return PERMISSION_DENIED;
+    return aps->pauseSession(output, stream);
+}
+
+status_t AudioSystem::resumeSession(audio_io_handle_t output, audio_stream_type_t stream)
+{
+    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
+    if (aps == 0) return PERMISSION_DENIED;
+    return aps->resumeSession(output, stream);
+}
+
+void AudioSystem::closeSession(audio_io_handle_t output)
+{
+    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
+    if (aps == 0) return;
+    aps->closeSession(output);
+}
+#endif
+
 audio_io_handle_t AudioSystem::getInput(int inputSource,
                                     uint32_t samplingRate,
                                     uint32_t format,
                                     uint32_t channels,
                                     audio_in_acoustics_t acoustics,
+#ifdef STE_AUDIO
+                                    int sessionId,
+                                    audio_input_clients *inputClientId)
+#else
                                     int sessionId)
+#endif
 {
     const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
     if (aps == 0) return 0;
+#ifdef STE_AUDIO
+    return aps->getInput(inputSource, samplingRate, format, channels, acoustics, sessionId, inputClientId);
+#else
     return aps->getInput(inputSource, samplingRate, format, channels, acoustics, sessionId);
+#endif
 }
 
 status_t AudioSystem::startInput(audio_io_handle_t input)
@@ -749,6 +850,86 @@ void AudioSystem::AudioPolicyServiceClient::binderDied(const wp<IBinder>& who) {
 
     LOGW("AudioPolicyService server died!");
 }
+
+#ifdef USES_AUDIO_LEGACY
+extern "C" uint32_t _ZN7android11AudioSystem8popCountEj(uint32_t u)
+{
+    return popcount(u);
+}
+
+extern "C" bool _ZN7android11AudioSystem12isA2dpDeviceENS0_13audio_devicesE(uint32_t device)
+{
+    return audio_is_a2dp_device((audio_devices_t)device);
+}
+
+extern "C" bool _ZN7android11AudioSystem13isInputDeviceENS0_13audio_devicesE(uint32_t device)
+{
+    return audio_is_input_device((audio_devices_t)device);
+}
+
+extern "C" bool _ZN7android11AudioSystem14isOutputDeviceENS0_13audio_devicesE(uint32_t device)
+{
+    return audio_is_output_device((audio_devices_t)device);
+}
+
+extern "C" bool _ZN7android11AudioSystem20isBluetoothScoDeviceENS0_13audio_devicesE(uint32_t device)
+{
+    return audio_is_bluetooth_sco_device((audio_devices_t)device);
+}
+
+extern "C" status_t _ZN7android11AudioSystem24setDeviceConnectionStateENS0_13audio_devicesENS0_23device_connection_stateEPKc(audio_devices_t device,
+                                               audio_policy_dev_state_t state,
+                                               const char *device_address) 
+{
+    return AudioSystem::setDeviceConnectionState(device, state, device_address);
+}
+
+extern "C" audio_io_handle_t _ZN7android11AudioSystem9getOutputENS0_11stream_typeEjjjNS0_12output_flagsE(audio_stream_type_t stream,
+                                    uint32_t samplingRate,
+                                    uint32_t format,
+                                    uint32_t channels,
+                                    audio_policy_output_flags_t flags) 
+{
+   return AudioSystem::getOutput(stream,samplingRate,format,channels>>2,flags);
+}
+
+extern "C" bool _ZN7android11AudioSystem11isLinearPCMEj(uint32_t format)
+{
+    return audio_is_linear_pcm(format);
+}
+
+extern "C" bool _ZN7android11AudioSystem15isLowVisibilityENS0_11stream_typeE(audio_stream_type_t stream)
+{
+    if (stream == AUDIO_STREAM_SYSTEM ||
+        stream == AUDIO_STREAM_NOTIFICATION ||
+        stream == AUDIO_STREAM_RING) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+#endif // AUDIO_LEGACY
+
+#ifdef USE_SAMSUNG_SEPARATEDSTREAM
+extern "C" bool _ZN7android11AudioSystem17isSeparatedStreamE19audio_stream_type_t(audio_stream_type_t stream)
+{
+    LOGD("android::AudioSystem::isSeparatedStream(audio_stream_type_t) called!");
+    LOGD("audio_stream_type_t: %d", stream);
+
+/* this is the correct implementation, but breaks headset volume rocker.
+    if (stream == 3  || stream == 9  || stream == 10
+     || stream == 12 || stream == 13 || stream == 14)
+    {
+        LOGD("isSeparatedStream: true");
+        return true;
+    }
+*/
+
+    LOGD("isSeparatedStream: false");
+    return false;
+}
+#endif // USE_SAMSUNG_SEPARATEDSTREAM
 
 }; // namespace android
 

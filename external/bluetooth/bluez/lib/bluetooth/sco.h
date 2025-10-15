@@ -41,9 +41,10 @@ extern "C" {
 struct sockaddr_sco {
 	sa_family_t	sco_family;
 	bdaddr_t	sco_bdaddr;
+#ifndef STE_BT
 	/* for use with eSCO masks such as SCO_ESCO_MASK */
 	uint16_t	sco_pkt_type;
-
+#endif
 };
 
 /* set/get sockopt defines */

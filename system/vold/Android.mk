@@ -8,9 +8,11 @@ common_src_files := \
 	NetlinkHandler.cpp \
 	Volume.cpp \
 	DirectVolume.cpp \
+	AutoVolume.cpp \
 	logwrapper.c \
 	Process.cpp \
 	Fat.cpp \
+	Ntfs.cpp \
 	Loop.cpp \
 	Devmapper.cpp \
 	ResponseCode.cpp \
@@ -30,6 +32,18 @@ common_shared_libraries := \
 	libcrypto
 
 include $(CLEAR_VARS)
+
+ifneq ($(BOARD_VOLD_MAX_PARTITIONS),)
+LOCAL_CFLAGS += -DVOLD_MAX_PARTITIONS=$(BOARD_VOLD_MAX_PARTITIONS)
+endif
+
+ifeq ($(BOARD_VOLD_EMMC_SHARES_DEV_MAJOR), true)
+LOCAL_CFLAGS += -DVOLD_EMMC_SHARES_DEV_MAJOR
+endif
+
+ifeq ($(BOARD_VOLD_DISC_HAS_MULTIPLE_MAJORS), true)
+LOCAL_CFLAGS += -DVOLD_DISC_HAS_MULTIPLE_MAJORS
+endif
 
 LOCAL_MODULE := libvold
 
@@ -54,6 +68,26 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := $(common_c_includes)
 
 LOCAL_CFLAGS := 
+
+ifneq ($(BOARD_VOLD_MAX_PARTITIONS),)
+LOCAL_CFLAGS += -DVOLD_MAX_PARTITIONS=$(BOARD_VOLD_MAX_PARTITIONS)
+endif
+
+ifeq ($(BOARD_VOLD_EMMC_SHARES_DEV_MAJOR), true)
+LOCAL_CFLAGS += -DVOLD_EMMC_SHARES_DEV_MAJOR
+endif
+
+ifeq ($(BOARD_VOLD_DISC_HAS_MULTIPLE_MAJORS), true)
+LOCAL_CFLAGS += -DVOLD_DISC_HAS_MULTIPLE_MAJORS
+endif
+
+ifneq ($(TARGET_USE_CUSTOM_LUN_FILE_PATH),)
+LOCAL_CFLAGS += -DCUSTOM_LUN_FILE=\"$(TARGET_USE_CUSTOM_LUN_FILE_PATH)\"
+endif
+
+ifneq ($(TARGET_USE_CUSTOM_SECOND_LUN_NUM),)
+LOCAL_CFLAGS += -DCUSTOM_SECOND_LUN_NUM=$(TARGET_USE_CUSTOM_SECOND_LUN_NUM)
+endif
 
 LOCAL_SHARED_LIBRARIES := $(common_shared_libraries)
 

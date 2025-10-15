@@ -56,8 +56,14 @@ static char iface[PROPERTY_VALUE_MAX];
 #ifndef WIFI_DRIVER_MODULE_ARG
 #define WIFI_DRIVER_MODULE_ARG          ""
 #endif
+#ifndef WIFI_AP_DRIVER_MODULE_ARG
+#define WIFI_AP_DRIVER_MODULE_ARG       ""
+#endif
 #ifndef WIFI_FIRMWARE_LOADER
 #define WIFI_FIRMWARE_LOADER		""
+#endif
+#ifndef WIFI_AP_FIRMWARE_LOADER
+#define WIFI_AP_FIRMWARE_LOADER         ""
 #endif
 #define WIFI_TEST_INTERFACE		"sta"
 
@@ -71,11 +77,21 @@ static char iface[PROPERTY_VALUE_MAX];
 #define WIFI_DRIVER_FW_PATH_P2P		NULL
 #endif
 
+#ifdef WIFI_EXT_MODULE_NAME
+static const char EXT_MODULE_NAME[] = WIFI_EXT_MODULE_NAME;
+#ifdef WIFI_EXT_MODULE_ARG
+static const char EXT_MODULE_ARG[] = WIFI_EXT_MODULE_ARG;
+#else
+static const char EXT_MODULE_ARG[] = "";
+#endif
+#endif
+#ifdef WIFI_EXT_MODULE_PATH
+static const char EXT_MODULE_PATH[] = WIFI_EXT_MODULE_PATH;
+#endif
+
 #ifndef WIFI_DRIVER_FW_PATH_PARAM
 #define WIFI_DRIVER_FW_PATH_PARAM	"/sys/module/wlan/parameters/fwpath"
 #endif
-
-#define WIFI_DRIVER_LOADER_DELAY	1000000
 
 static const char IFACE_DIR[]           = "/data/system/wpa_supplicant";
 #ifdef WIFI_DRIVER_MODULE_PATH
@@ -84,21 +100,59 @@ static const char DRIVER_MODULE_TAG[]   = WIFI_DRIVER_MODULE_NAME " ";
 static const char DRIVER_MODULE_PATH[]  = WIFI_DRIVER_MODULE_PATH;
 static const char DRIVER_MODULE_ARG[]   = WIFI_DRIVER_MODULE_ARG;
 #endif
-static const char FIRMWARE_LOADER[]     = WIFI_FIRMWARE_LOADER;
-static const char DRIVER_PROP_NAME[]    = "wlan.driver.status";
-static const char SUPPLICANT_NAME[]     = "wpa_supplicant";
-static const char SUPP_PROP_NAME[]      = "init.svc.wpa_supplicant";
-static const char SUPP_CONFIG_TEMPLATE[]= "/system/etc/wifi/wpa_supplicant.conf";
-static const char SUPP_CONFIG_FILE[]    = "/data/misc/wifi/wpa_supplicant.conf";
-static const char P2P_CONFIG_FILE[]     = "/data/misc/wifi/p2p_supplicant.conf";
-static const char CONTROL_IFACE_PATH[]  = "/data/misc/wifi";
-static const char MODULE_FILE[]         = "/proc/modules";
+#ifdef WIFI_AP_DRIVER_MODULE_PATH
+static const char AP_DRIVER_MODULE_NAME[] = WIFI_AP_DRIVER_MODULE_NAME;
+static const char AP_DRIVER_MODULE_TAG[]  = WIFI_AP_DRIVER_MODULE_NAME " ";
+static const char AP_DRIVER_MODULE_PATH[] = WIFI_AP_DRIVER_MODULE_PATH;
+static const char AP_DRIVER_MODULE_ARG[]  = WIFI_AP_DRIVER_MODULE_ARG;
+#endif
+static const char FIRMWARE_LOADER[]           = WIFI_FIRMWARE_LOADER;
+static const char AP_FIRMWARE_LOADER[]        = WIFI_AP_FIRMWARE_LOADER;
+static const char DRIVER_PROP_NAME[]          = "wlan.driver.status";
+static const char DRIVER_PROP_MODULE_ARG[]    = "wlan.module.arg";
+static const char AP_DRIVER_PROP_NAME[]       = "wlan.ap.driver.status";
+static const char AP_DRIVER_PROP_MODULE_ARG[] = "wlan.ap.module.arg";
+static const char SUPPLICANT_NAME[]           = "wpa_supplicant";
+static const char SUPP_PROP_NAME[]            = "init.svc.wpa_supplicant";
+static const char SUPP_CONFIG_TEMPLATE[]      = "/system/etc/wifi/wpa_supplicant.conf";
+static const char SUPP_CONFIG_FILE[]          = "/data/misc/wifi/wpa_supplicant.conf";
+static const char P2P_CONFIG_FILE[]           = "/data/misc/wifi/p2p_supplicant.conf";
+static const char CONTROL_IFACE_PATH[]        = "/data/misc/wifi";
+static const char MODULE_FILE[]               = "/proc/modules";
 
 static const char SUPP_ENTROPY_FILE[]   = WIFI_ENTROPY_FILE;
 static unsigned char dummy_key[21] = { 0x02, 0x11, 0xbe, 0x33, 0x43, 0x35,
                                        0x68, 0x47, 0x84, 0x99, 0xa9, 0x2b,
                                        0x1c, 0xd3, 0xee, 0xff, 0xf1, 0xe2,
                                        0xf3, 0xf4, 0xf5 };
+
+#ifdef SAMSUNG_WIFI
+char* get_samsung_wifi_type()
+{
+    char buf[10];
+    int fd = open("/data/.cid.info", O_RDONLY);
+    if (fd < 0)
+        return NULL;
+
+    if (read(fd, buf, sizeof(buf)) < 0) {
+        close(fd);
+        return NULL;
+    }
+
+    close(fd);
+
+    if (strncmp(buf, "murata", 6) == 0)
+        return "_murata";
+
+    if (strncmp(buf, "semcove", 7) == 0)
+        return "_semcove";
+
+    if (strncmp(buf, "semcosh", 7) == 0)
+        return "_semcosh";
+
+    return NULL;
+}
+#endif
 
 static int insmod(const char *filename, const char *args)
 {
@@ -200,16 +254,41 @@ int wifi_load_driver()
 #ifdef WIFI_DRIVER_MODULE_PATH
     char driver_status[PROPERTY_VALUE_MAX];
     int count = 100; /* wait at most 20 seconds for completion */
+    char module_arg[PROPERTY_VALUE_MAX];
+    char module_arg2[256];
 
     if (is_wifi_driver_loaded()) {
         return 0;
     }
 
-    if (insmod(DRIVER_MODULE_PATH, DRIVER_MODULE_ARG) < 0)
+    property_set(DRIVER_PROP_NAME, "loading");
+
+#ifdef WIFI_EXT_MODULE_PATH
+    if (insmod(EXT_MODULE_PATH, EXT_MODULE_ARG) < 0)
         return -1;
+    usleep(200000);
+#endif
+
+    property_get(DRIVER_PROP_MODULE_ARG, module_arg, DRIVER_MODULE_ARG);
+
+#ifdef SAMSUNG_WIFI
+    char* type = get_samsung_wifi_type();
+    snprintf(module_arg2, sizeof(module_arg2), "%s%s", module_arg, type == NULL ? "" : type);
+
+    if (insmod(DRIVER_MODULE_PATH, module_arg2) < 0) {
+#else
+    if (insmod(DRIVER_MODULE_PATH, module_arg) < 0) {
+#endif
+#ifdef WIFI_EXT_MODULE_NAME
+        rmmod(EXT_MODULE_NAME);
+#endif
+        return -1;
+    }
 
     if (strcmp(FIRMWARE_LOADER,"") == 0) {
-        /* usleep(WIFI_DRIVER_LOADER_DELAY); */
+#ifdef WIFI_DRIVER_LOADER_DELAY
+        usleep(WIFI_DRIVER_LOADER_DELAY);
+#endif
         property_set(DRIVER_PROP_NAME, "ok");
     }
     else {
@@ -249,6 +328,9 @@ int wifi_unload_driver()
         }
         usleep(500000); /* allow card removal */
         if (count) {
+#ifdef WIFI_EXT_MODULE_NAME
+            if (rmmod(EXT_MODULE_NAME) == 0)
+#endif
             return 0;
         }
         return -1;
@@ -257,6 +339,123 @@ int wifi_unload_driver()
 #else
     property_set(DRIVER_PROP_NAME, "unloaded");
     return 0;
+#endif
+}
+
+int is_wifi_hotspot_driver_loaded() {
+#ifndef WIFI_AP_DRIVER_MODULE_PATH
+    return is_wifi_driver_loaded();
+#else
+    char driver_status[PROPERTY_VALUE_MAX];
+    FILE *proc;
+    char line[sizeof(AP_DRIVER_MODULE_TAG)+10];
+
+    if (!property_get(AP_DRIVER_PROP_NAME, driver_status, NULL)
+            || strcmp(driver_status, "ok") != 0) {
+        return 0;  /* driver not loaded */
+    }
+    /*
+     * If the property says the driver is loaded, check to
+     * make sure that the property setting isn't just left
+     * over from a previous manual shutdown or a runtime
+     * crash.
+     */
+    if ((proc = fopen(MODULE_FILE, "r")) == NULL) {
+        LOGW("Could not open %s: %s", MODULE_FILE, strerror(errno));
+        property_set(AP_DRIVER_PROP_NAME, "unloaded");
+        return 0;
+    }
+    while ((fgets(line, sizeof(line), proc)) != NULL) {
+        if (strncmp(line, AP_DRIVER_MODULE_TAG, strlen(AP_DRIVER_MODULE_TAG)) == 0) {
+            fclose(proc);
+            return 1;
+        }
+    }
+    fclose(proc);
+    property_set(AP_DRIVER_PROP_NAME, "unloaded");
+    return 0;
+#endif
+}
+
+int wifi_load_hotspot_driver()
+{
+#ifndef WIFI_AP_DRIVER_MODULE_PATH
+    return wifi_load_driver();
+#else
+    char driver_status[PROPERTY_VALUE_MAX];
+    int count = 100; /* wait at most 20 seconds for completion */
+    char module_arg[PROPERTY_VALUE_MAX];
+
+    if (is_wifi_hotspot_driver_loaded()) {
+        return 0;
+    }
+
+    property_set(AP_DRIVER_PROP_NAME, "loading");
+
+#ifdef WIFI_EXT_MODULE_PATH
+    if (insmod(EXT_MODULE_PATH, EXT_MODULE_ARG) < 0)
+        return -1;
+    usleep(200000);
+#endif
+
+    property_get(AP_DRIVER_PROP_MODULE_ARG, module_arg, AP_DRIVER_MODULE_ARG);
+    if (insmod(AP_DRIVER_MODULE_PATH, module_arg) < 0) {
+#ifdef WIFI_EXT_MODULE_NAME
+        rmmod(EXT_MODULE_NAME);
+#endif
+        return -1;
+    }
+
+    if (strcmp(AP_FIRMWARE_LOADER,"") == 0) {
+#ifdef WIFI_DRIVER_LOADER_DELAY
+        usleep(WIFI_DRIVER_LOADER_DELAY);
+#endif
+        property_set(AP_DRIVER_PROP_NAME, "ok");
+    }
+    else {
+        property_set("ctl.start", AP_FIRMWARE_LOADER);
+    }
+    sched_yield();
+    while (count-- > 0) {
+        if (property_get(AP_DRIVER_PROP_NAME, driver_status, NULL)) {
+            if (strcmp(driver_status, "ok") == 0)
+                return 0;
+            else if (strcmp(AP_DRIVER_PROP_NAME, "failed") == 0) {
+                wifi_unload_hotspot_driver();
+                return -1;
+            }
+        }
+        usleep(200000);
+    }
+    property_set(AP_DRIVER_PROP_NAME, "timeout");
+    wifi_unload_hotspot_driver();
+    return -1;
+#endif
+}
+
+int wifi_unload_hotspot_driver()
+{
+#ifndef WIFI_AP_DRIVER_MODULE_PATH
+    return wifi_unload_driver();
+#else
+    usleep(200000); /* allow to finish interface down */
+    if (rmmod(AP_DRIVER_MODULE_NAME) == 0) {
+        int count = 20; /* wait at most 10 seconds for completion */
+        while (count-- > 0) {
+            if (!is_wifi_hotspot_driver_loaded())
+                break;
+            usleep(500000);
+        }
+        usleep(500000); /* allow card removal */
+        if (count) {
+#ifdef WIFI_EXT_MODULE_NAME
+            if (rmmod(EXT_MODULE_NAME) == 0)
+#endif
+            return 0;
+        }
+        return -1;
+    } else
+        return -1;
 #endif
 }
 
@@ -784,6 +983,14 @@ int wifi_change_fw_path(const char *fwpath)
 
     if (!fwpath)
         return ret;
+
+    if (!is_wifi_driver_loaded()) {
+        LOGD("Loading wifi driver so that we may set the fw path");
+        if (wifi_load_driver() != 0) {
+            LOGE("Could not load wifi driver!");
+        }
+    }
+
     fd = open(WIFI_DRIVER_FW_PATH_PARAM, O_WRONLY);
     if (fd < 0) {
         LOGE("Failed to open wlan fw path param (%s)", strerror(errno));

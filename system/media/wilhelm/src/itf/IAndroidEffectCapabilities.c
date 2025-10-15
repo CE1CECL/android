@@ -52,10 +52,12 @@ static SLresult IAndroidEffectCapabilities_QueryEffect(SLAndroidEffectCapabiliti
     } else {
         interface_lock_shared(thiz);
         if (NULL != pEffectType) {
-            *pEffectType = (SLInterfaceID) &thiz->mFxDescriptors[index].type;
+            effect_uuid_t *tmpslid = &thiz->mFxDescriptors[index].type;
+            memcpy(pEffectType, &tmpslid, sizeof(SLInterfaceID));
         }
         if (NULL != pEffectImplementation) {
-            *pEffectImplementation = (SLInterfaceID) &thiz->mFxDescriptors[index].uuid;
+            effect_uuid_t *tmpslid = &thiz->mFxDescriptors[index].uuid;
+            memcpy(pEffectImplementation, &tmpslid, sizeof(SLInterfaceID));
         }
         if ((NULL != pName) && (0 < *pNameSize)) {
             int len = strlen(thiz->mFxDescriptors[index].name);

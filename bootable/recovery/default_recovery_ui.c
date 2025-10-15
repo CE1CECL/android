@@ -18,16 +18,17 @@
 
 #include "recovery_ui.h"
 #include "common.h"
+#include "extendedcommands.h"
 
-char* MENU_HEADERS[] = { "Android system recovery utility",
-                         "",
-                         NULL };
+char* MENU_HEADERS[] = { NULL };
 
 char* MENU_ITEMS[] = { "reboot system now",
-                       "apply update from external storage",
+                       "install zip from sdcard",
                        "wipe data/factory reset",
                        "wipe cache partition",
-                       "apply update from cache",
+                       "backup and restore",
+                       "mounts and storage",
+                       "advanced",
                        NULL };
 
 void device_ui_init(UIParameters* ui_parameters) {
@@ -37,31 +38,8 @@ int device_recovery_start() {
     return 0;
 }
 
-int device_toggle_display(volatile char* key_pressed, int key_code) {
-    return key_code == KEY_HOME;
-}
-
 int device_reboot_now(volatile char* key_pressed, int key_code) {
     return 0;
-}
-
-int device_handle_key(int key_code, int visible) {
-    if (visible) {
-        switch (key_code) {
-            case KEY_DOWN:
-            case KEY_VOLUMEDOWN:
-                return HIGHLIGHT_DOWN;
-
-            case KEY_UP:
-            case KEY_VOLUMEUP:
-                return HIGHLIGHT_UP;
-
-            case KEY_ENTER:
-                return SELECT_ITEM;
-        }
-    }
-
-    return NO_ACTION;
 }
 
 int device_perform_action(int which) {

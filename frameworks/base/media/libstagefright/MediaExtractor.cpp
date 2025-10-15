@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (C) 2010-2011 Code Aurora Forum
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,11 +25,17 @@
 #include "include/WAVExtractor.h"
 #include "include/OggExtractor.h"
 #include "include/MPEG2PSExtractor.h"
+#ifdef STE_FM
+#include "include/PCMExtractor.h"
+#endif
 #include "include/MPEG2TSExtractor.h"
 #include "include/DRMExtractor.h"
 #include "include/WVMExtractor.h"
 #include "include/FLACExtractor.h"
 #include "include/AACExtractor.h"
+#ifdef QCOM_HARDWARE
+#include "include/ExtendedExtractor.h"
+#endif
 
 #include "matroska/MatroskaExtractor.h"
 
@@ -115,6 +122,10 @@ sp<MediaExtractor> MediaExtractor::Create(
         ret = new AACExtractor(source);
     } else if (!strcasecmp(mime, MEDIA_MIMETYPE_CONTAINER_MPEG2PS)) {
         ret = new MPEG2PSExtractor(source);
+#ifdef STE_FM
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RAW)) {
+        ret = new PCMExtractor(source);
+#endif
     }
 
     if (ret != NULL) {
@@ -125,7 +136,14 @@ sp<MediaExtractor> MediaExtractor::Create(
        }
     }
 
+#ifdef QCOM_HARDWARE
+    if (ret) return ret;
+
+        LOGV(" Using ExtendedExtractor\n");
+    return ExtendedExtractor::CreateExtractor(source, mime);
+#else
     return ret;
+#endif
 }
 
 }  // namespace android

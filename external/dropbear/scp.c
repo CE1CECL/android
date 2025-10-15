@@ -70,8 +70,9 @@
  *
  */
 
+#ifndef S_IWRITE
 #define S_IWRITE 0200
-#define HAVE_BWLIMIT 0
+#endif
 
 #include "includes.h"
 /*RCSID("$OpenBSD: scp.c,v 1.130 2006/01/31 10:35:43 djm Exp $");*/
@@ -133,13 +134,22 @@ do_local_cmd(arglist *a)
 			fprintf(stderr, " %s", a->list[i]);
 		fprintf(stderr, "\n");
 	}
-	if ((pid = fork()) == -1)
+#ifdef __uClinux__
+	pid = vfork();
+#else
+	pid = fork();
+#endif /* __uClinux__ */
+	if (pid == -1)
 		fatal("do_local_cmd: fork: %s", strerror(errno));
 
 	if (pid == 0) {
 		execvp(a->list[0], a->list);
 		perror(a->list[0]);
+#ifdef __uClinux__
+		_exit(1);
+#else
 		exit(1);
+#endif /* __uClinux__ */
 	}
 
 	do_cmd_pid = pid;
@@ -203,7 +213,7 @@ do_cmd(char *host, char *remuser, char *cmd, int *fdin, int *fdout, int argc)
 #endif /* __uClinux__ */
 
 	/* Fork a child to execute the command on the remote host using ssh. */
-#ifndef __uClinux__
+#ifdef __uClinux__
 	do_cmd_pid = vfork();
 #else
 	do_cmd_pid = fork();
@@ -228,7 +238,11 @@ do_cmd(char *host, char *remuser, char *cmd, int *fdin, int *fdout, int argc)
 
 		execvp(ssh_program, args.list);
 		perror(ssh_program);
+#ifndef __uClinux__
 		exit(1);
+#else
+		_exit(1);
+#endif /* __uClinux__ */
 	} else if (do_cmd_pid == -1) {
 		fatal("fork: %s", strerror(errno));
 	}
@@ -311,12 +325,6 @@ main(int argc, char **argv)
 	memset(&args, '\0', sizeof(args));
 	args.list = NULL;
 	addargs(&args, "%s", ssh_program);
-#if 0 /* dropbear ssh client doesn't understand these */
-	addargs(&args, "-x");
-	addargs(&args, "-oForwardAgent no");
-	addargs(&args, "-oPermitLocalCommand no");
-	addargs(&args, "-oClearAllForwardings yes");
-#endif
 
 	fflag = tflag = 0;
 	while ((ch = getopt(argc, argv, "dfl:prtvBCc:i:P:q1246S:o:F:")) != -1)
@@ -339,7 +347,7 @@ main(int argc, char **argv)
 			addargs(&args, "-p%s", optarg);
 			break;
 		case 'B':
-			addargs(&args, "-oBatchmode yes");
+			fprintf(stderr, "Note: -B option is disabled in this version of scp");
 			break;
 		case 'l':
 			speed = strtod(optarg, &endp);
@@ -488,9 +496,13 @@ toremote(char *targ, int argc, char **argv)
 			addargs(&alist, "%s", ssh_program);
 			if (verbose_mode)
 				addargs(&alist, "-v");
+#if 0
+			// Disabled since dbclient won't understand them
+			// and scp works fine without them.
 			addargs(&alist, "-x");
 			addargs(&alist, "-oClearAllForwardings yes");
 			addargs(&alist, "-n");
+#endif
 
 			*src++ = 0;
 			if (*src == 0)
@@ -686,10 +698,8 @@ next:			if (fd != -1) {
 					haderr = errno;
 				statbytes += result;
 			}
-#if HAVE_BWLIMIT
 			if (limit_rate)
 				bwlimit(amt);
-#endif
 		}
 #ifdef PROGRESS_METER
 		if (showprogress)
@@ -762,13 +772,12 @@ rsource(char *name, struct stat *statp)
 	(void) response();
 }
 
-#if HAVE_BWLIMIT
 void
 bwlimit(int amount)
 {
 	static struct timeval bwstart, bwend;
 	static int lamt, thresh = 16384;
-	u_int64_t waitlen;
+	uint64_t waitlen;
 	struct timespec ts, rm;
 
 	if (!timerisset(&bwstart)) {
@@ -816,7 +825,6 @@ bwlimit(int amount)
 	lamt = 0;
 	gettimeofday(&bwstart, NULL);
 }
-#endif
 
 void
 sink(int argc, char **argv)
@@ -1022,10 +1030,8 @@ bad:			run_err("%s: %s", np, strerror(errno));
 				statbytes += j;
 			} while (amt > 0);
 
-#if HAVE_BWLIMIT
 			if (limit_rate)
 				bwlimit(4096);
-#endif
 
 			if (count == bp->cnt) {
 				/* Keep reading so we stay sync'd up. */

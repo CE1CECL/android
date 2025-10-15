@@ -43,6 +43,12 @@ import android.os.storage.IMountShutdownObserver;
 import com.android.internal.telephony.ITelephony;
 import android.util.Log;
 import android.view.WindowManager;
+import android.view.KeyEvent;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.io.OutputStreamWriter;
 
 public final class ShutdownThread extends Thread {
     // constants
@@ -65,6 +71,10 @@ public final class ShutdownThread extends Thread {
 
     // Provides shutdown assurance in case the system_server is killed
     public static final String SHUTDOWN_ACTION_PROPERTY = "sys.shutdown.requested";
+    public static final String RADIO_SHUTDOWN_PROPERTY = "sys.radio.shutdown";
+
+    private static final String SYSFS_MSM_EFS_SYNC_COMPLETE = "/sys/devices/platform/rs300000a7.65536/sync_sts";
+    private static final String SYSFS_MDM_EFS_SYNC_COMPLETE = "/sys/devices/platform/rs300100a7.65536/sync_sts";
 
     // static instance of this thread
     private static final ShutdownThread sInstance = new ShutdownThread();
@@ -107,19 +117,61 @@ public final class ShutdownThread extends Thread {
         Log.d(TAG, "Notifying thread to start shutdown longPressBehavior=" + longPressBehavior);
 
         if (confirm) {
-            final CloseDialogReceiver closer = new CloseDialogReceiver(context);
-            final AlertDialog dialog = new AlertDialog.Builder(context)
-                    .setTitle(com.android.internal.R.string.power_off)
-                    .setMessage(resourceId)
-                    .setPositiveButton(com.android.internal.R.string.yes, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            beginShutdownSequence(context);
-                        }
-                    })
-                    .setNegativeButton(com.android.internal.R.string.no, null)
-                    .create();
-            closer.dialog = dialog;
-            dialog.setOnDismissListener(closer);
+            final AlertDialog dialog;
+            // Set different dialog message based on whether or not we're rebooting
+            if (mReboot) {
+                dialog = new AlertDialog.Builder(context)
+                        .setIconAttribute(android.R.attr.alertDialogIcon)
+                        .setTitle(com.android.internal.R.string.reboot_system)
+                        .setSingleChoiceItems(com.android.internal.R.array.shutdown_reboot_options, 0, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (which < 0)
+                                    return;
+
+                                String actions[] = context.getResources().getStringArray(com.android.internal.R.array.shutdown_reboot_actions);
+
+                                if (actions != null && which < actions.length)
+                                    mRebootReason = actions[which];
+                            }
+                        })
+                        .setPositiveButton(com.android.internal.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                mReboot = true;
+                                beginShutdownSequence(context);
+                            }
+                        })
+                        .setNegativeButton(com.android.internal.R.string.no, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                mReboot = false;
+                                dialog.cancel();
+                            }
+                        })
+                        .create();
+                        dialog.setOnKeyListener(new DialogInterface.OnKeyListener() {
+                            public boolean onKey (DialogInterface dialog, int keyCode, KeyEvent event) {
+                                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                                    mReboot = false;
+                                    dialog.cancel();
+                                }
+                                return true;
+                            }
+                        });
+                // Initialize to the first reason
+                String actions[] = context.getResources().getStringArray(com.android.internal.R.array.shutdown_reboot_actions);
+                mRebootReason = actions[0];
+            } else {
+                dialog = new AlertDialog.Builder(context)
+                        .setIconAttribute(android.R.attr.alertDialogIcon)
+                        .setTitle(com.android.internal.R.string.power_off)
+                        .setMessage(com.android.internal.R.string.shutdown_confirm)
+                        .setPositiveButton(com.android.internal.R.string.yes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                beginShutdownSequence(context);
+                            }
+                        })
+                        .setNegativeButton(com.android.internal.R.string.no, null)
+                        .create();
+            }
             dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
             dialog.show();
         } else {
@@ -175,8 +227,13 @@ public final class ShutdownThread extends Thread {
         // throw up an indeterminate system dialog to indicate radio is
         // shutting down.
         ProgressDialog pd = new ProgressDialog(context);
-        pd.setTitle(context.getText(com.android.internal.R.string.power_off));
-        pd.setMessage(context.getText(com.android.internal.R.string.shutdown_progress));
+        if (mReboot) {
+            pd.setTitle(context.getText(com.android.internal.R.string.reboot_system));
+            pd.setMessage(context.getText(com.android.internal.R.string.reboot_progress));
+        } else {
+            pd.setTitle(context.getText(com.android.internal.R.string.power_off));
+            pd.setMessage(context.getText(com.android.internal.R.string.shutdown_progress));
+        }
         pd.setIndeterminate(true);
         pd.setCancelable(false);
         pd.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
@@ -232,6 +289,7 @@ public final class ShutdownThread extends Thread {
     public void run() {
         boolean bluetoothOff;
         boolean radioOff;
+        boolean msmEfsSyncDone = false, mdmEfsSyncDone = false;
 
         BroadcastReceiver br = new BroadcastReceiver() {
             @Override public void onReceive(Context context, Intent intent) {
@@ -314,6 +372,48 @@ public final class ShutdownThread extends Thread {
         } catch (RemoteException ex) {
             Log.e(TAG, "RemoteException during radio shutdown", ex);
             radioOff = true;
+        }
+
+        SystemProperties.set(RADIO_SHUTDOWN_PROPERTY, "true");
+
+        if (SystemProperties.QCOM_HARDWARE) {
+            Log.i(TAG, "Waiting for radio file system sync to complete ...");
+
+            // Wait a max of 8 seconds
+            for (int i = 0; i < MAX_NUM_PHONE_STATE_READS; i++) {
+                if (!msmEfsSyncDone) {
+                    try {
+                        FileInputStream fis = new FileInputStream(SYSFS_MSM_EFS_SYNC_COMPLETE);
+                        int result = fis.read();
+                        fis.close();
+                        if (result == '1') {
+                            msmEfsSyncDone = true;
+                        }
+                    } catch (Exception ex) {
+                        Log.e(TAG, "Exception during msmEfsSyncDone", ex);
+                        msmEfsSyncDone = true;
+                    }
+                }
+                if (!mdmEfsSyncDone) {
+                    try {
+                        FileInputStream fis = new FileInputStream(SYSFS_MDM_EFS_SYNC_COMPLETE);
+                        int result = fis.read();
+                        fis.close();
+                        if (result == '1') {
+                            mdmEfsSyncDone = true;
+                        }
+                    } catch (Exception ex) {
+                        Log.e(TAG, "Exception during mdmEfsSyncDone", ex);
+                        mdmEfsSyncDone = true;
+                    }
+                }
+                if (msmEfsSyncDone && mdmEfsSyncDone) {
+                    Log.i(TAG, "Radio file system sync complete.");
+                    break;
+                }
+                Log.i(TAG, "Radio file system sync incomplete - retry.");
+                SystemClock.sleep(PHONE_STATE_POLL_SLEEP_MSEC);
+            }
         }
 
         Log.i(TAG, "Waiting for Bluetooth and Radio...");

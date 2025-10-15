@@ -53,7 +53,12 @@
 #include "error.h"
 #include "telephony.h"
 #include "headset.h"
+#ifndef STE_BT
 #include "glib-helper.h"
+#else
+#include "glib-compat.h"
+#include "sdp-client.h"
+#endif
 #include "btio.h"
 #include "dbus-common.h"
 #include "../src/adapter.h"

@@ -52,13 +52,6 @@
     <string name="pref_camera_settings_category" msgid="2576236450859613120">"カメラ設定"</string>
     <string name="pref_camcorder_settings_category" msgid="460313486231965141">"ビデオ録画設定"</string>
     <string name="pref_camera_picturesize_title" msgid="4333724936665883006">"表示サイズ"</string>
-    <string name="pref_camera_picturesize_entry_2592x1936" msgid="6980117304679164339">"5メガピクセル"</string>
-    <string name="pref_camera_picturesize_entry_2048x1536" msgid="4391030755438075447">"3メガピクセル"</string>
-    <string name="pref_camera_picturesize_entry_1600x1200" msgid="8081839485457681369">"2メガピクセル"</string>
-    <string name="pref_camera_picturesize_entry_1280x960" msgid="7820672028447972964">"1.3メガピクセル"</string>
-    <string name="pref_camera_picturesize_entry_1024x768" msgid="3705686683403524018">"1メガピクセル"</string>
-    <string name="pref_camera_picturesize_entry_640x480" msgid="5557572917973022995">"VGA"</string>
-    <string name="pref_camera_picturesize_entry_320x240" msgid="5729711026478753025">"QVGA"</string>
     <string name="pref_camera_focusmode_title" msgid="2877248921829329127">"フォーカスモード"</string>
     <string name="pref_camera_focusmode_entry_auto" msgid="7374820710300362457">"オート"</string>
     <string name="pref_camera_focusmode_entry_infinity" msgid="3413922419264967552">"無限遠"</string>
@@ -130,4 +123,56 @@
     <string name="accessibility_decrement" msgid="1411194318538035666">"-%1$s"</string>
     <string name="accessibility_increment" msgid="8447850530444401135">"+%1$s"</string>
     <string name="accessibility_switch" msgid="6995966685498958895">"%1$sの切り替え"</string>
+
+    <!-- CM Extra entries -->
+    <!-- More Settings screen, focus sound title -->
+    <string name="pref_camera_focus_sound_title">Focus sound</string>
+    <string name="pref_camera_focus_sound_default">on</string>
+
+
+    <!-- More Settings screen, storage title -->
+    <string name="pref_camera_storage_title">ストレージ</string>
+
+    <string name="pref_camera_power_shutter_title">電源ボタンシャッター</string>
+    <string name="pref_camera_power_shutter_default">オフ</string>
+
+    <string name="pref_camera_focusmode_entry_fixed">固定</string>
+    <string name="pref_camera_focusmode_entry_facedetect">顔認識</string>
+    <string name="pref_camera_focusmode_entry_continuouspicture">Continuous Picture</string>
+
+    <string name="pref_camera_whitebalance_entry_cloudydaylight">日中の曇</string>
+    <string name="pref_camera_scenemode_entry_backlight">バックライト</string>
+    <string name="pref_camera_scenemode_entry_duskdawn">夕暮れ</string>
+    <string name="pref_camera_scenemode_entry_fallcolor">秋色</string>
+    <string name="pref_camera_scenemode_entry_text">テキスト</string>
+    <string name="pref_camera_scenemode_entry_portrait">ポートレイト</string>
+    <string name="pref_camera_scenemode_entry_landscape">ランドスケープ</string>
+    <string name="pref_camera_scenemode_entry_beach">ビーチ</string>
+    <string name="pref_camera_scenemode_entry_snow">スノー</string>
+    <string name="pref_camera_scenemode_entry_fireworks">花火</string>
+    <string name="pref_camera_scenemode_entry_sports">スポーツ</string>
+    <string name="pref_camera_scenemode_entry_candlelight">キャンドル</string>
+
+    <string name="pref_camera_iso_entry_auto">自動</string>
+    <string name="pref_camera_iso_entry_isodeblur">自動 (HJR)</string>
+
+    <!-- Settings screen, Burst mode title -->
+    <string name="pref_camera_burst_title">連写</string>
+
+    <!-- Settings screen, Burst mode entries -->
+    <string name="pref_camera_burst_entry_off">オフ</string>
+    <string name="pref_camera_burst_entry_5">5枚</string>
+    <string name="pref_camera_burst_entry_10">10枚</string>
+    <string name="pref_camera_burst_entry_15">15枚</string>
+    <string name="pref_camera_burst_entry_20">20枚</string>
+
+    <string name="pref_camera_timer_title">タイマーモード</string>
+    <string name="pref_camera_timer_entry_0">オフ</string>
+    <string name="pref_camera_timer_entry_10">10秒</string>
+    <string name="pref_camera_timer_entry_20">20秒</string>
+    <string name="pref_camera_timer_entry_30">30秒</string>
+    <string name="pref_camera_timer_entry_40">40秒</string>
+    <string name="pref_camera_timer_entry_50">50秒</string>
+    <string name="pref_camera_timer_entry_60">60秒</string>
+
 </resources>

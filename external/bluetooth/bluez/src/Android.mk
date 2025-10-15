@@ -8,14 +8,12 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:= \
 	android_bluez.c \
-	adapter.c \
 	agent.c \
 	dbus-common.c \
 	device.c \
 	eir.c \
 	error.c \
 	event.c \
-	glib-helper.c \
 	log.c \
 	main.c \
 	manager.c \
@@ -23,9 +21,7 @@ LOCAL_SRC_FILES:= \
 	oui.c \
 	plugin.c \
 	rfkill.c \
-	sdpd-request.c \
 	sdpd-service.c \
-	sdpd-server.c \
 	sdpd-database.c \
 	sdp-xml.c \
 	storage.c \
@@ -36,6 +32,21 @@ LOCAL_SRC_FILES:= \
 	../attrib/gatt.c \
 	../attrib/gattrib.c \
 	../attrib/utils.c \
+
+ifneq ($(BOARD_HAVE_BLUETOOTH_STE),true)
+LOCAL_SRC_FILES+= \
+	sdpd-request.c \
+	sdpd-server.c \
+	glib-helper.c \
+	adapter.c
+else
+LOCAL_SRC_FILES+= \
+	ste-sdpd-request.c \
+	ste-sdpd-server.c \
+	ste-adapter.c \
+	ste-glib-helper.c \
+	sdp-client.c
+endif
 
 LOCAL_CFLAGS:= \
 	-DVERSION=\"4.93\" \

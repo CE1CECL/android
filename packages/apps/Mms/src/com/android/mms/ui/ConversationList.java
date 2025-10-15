@@ -266,9 +266,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // threads, don't invalidate the cache because we're in the process of building it.
         // TODO: think of a better way to invalidate cache more surgically or based on actual
         // TODO: changes we care about
+        /*
         if (!Conversation.loadingThreads()) {
             Contact.invalidateCache();
         }
+        */
     }
 
     @Override
@@ -280,6 +282,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
         // multi-select mode (if we're in it) and remove all the selections.
         getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+
+        // Close the cursor in the ListAdapter if the activity stopped.
+        Cursor cursor = mListAdapter.getCursor();
+
+        if (cursor != null && !cursor.isClosed()) {
+            cursor.close();
+        }
 
         mListAdapter.changeCursor(null);
     }

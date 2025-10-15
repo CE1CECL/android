@@ -55,7 +55,12 @@ public:
         EVENT_LOOP_END = 2,         // Sample loop end was reached; playback restarted from loop start if loop count was not 0.
         EVENT_MARKER = 3,           // Playback head is at the specified marker position (See setMarkerPosition()).
         EVENT_NEW_POS = 4,          // Playback head is at a new position (See setPositionUpdatePeriod()).
+#ifdef STE_HARDWARE
+        EVENT_BUFFER_END = 5,       // Playback head is at the end of the buffer.
+        EVENT_LATENCY_CHANGED = 6   // Audio output has been reconfigured and latency has changed.
+#else
         EVENT_BUFFER_END = 5        // Playback head is at the end of the buffer.
+#endif
     };
 
     /* Create Buffer on the stack and pass it to obtainBuffer()
@@ -172,6 +177,20 @@ public:
                                     void* user          = 0,
                                     int notificationFrames = 0,
                                     int sessionId = 0);
+#ifdef WITH_QCOM_LPA
+    /* Creates an audio track and registers it with AudioFlinger. With this constructor,
+     * session ID of compressed stream can be registered AudioFlinger and AudioHardware,
+     * for routing purpose.
+     */
+
+                        AudioTrack( int streamType,
+                                    uint32_t sampleRate = 0,
+                                    int format          = 0,
+                                    int channels        = 0,
+                                    uint32_t flags      = 0,
+                                    int sessionId       = 0,
+                                    int lpaSessionId    =-1);
+#endif
 
     /* Terminates the AudioTrack and unregisters it from AudioFlinger.
      * Also destroys all resources assotiated with the AudioTrack.
@@ -198,7 +217,22 @@ public:
                             const sp<IMemory>& sharedBuffer = 0,
                             bool threadCanCallJava = false,
                             int sessionId = 0);
-
+#ifdef WITH_QCOM_LPA
+    /* Initialize an AudioTrack and registers session Id for Tunneled audio decoding.
+     * Returned status (from utils/Errors.h) can be:
+     *  - NO_ERROR: successful intialization
+     *  - INVALID_OPERATION: AudioTrack is already intitialized
+     *  - BAD_VALUE: invalid parameter (channels, format, sampleRate...)
+     *  - NO_INIT: audio server or audio hardware not initialized
+     * */
+            status_t    set(int streamType      =-1,
+                            uint32_t sampleRate = 0,
+                            int format          = 0,
+                            int channels        = 0,
+                            uint32_t flags      = 0,
+                            int sessionId       = 0,
+                            int lpaSessionId    =-1);
+#endif
 
     /* Result of constructing the AudioTrack. This must be checked
      * before using any AudioTrack API (except for set()), using
@@ -451,6 +485,10 @@ private:
             status_t setLoop_l(uint32_t loopStart, uint32_t loopEnd, int loopCount);
             audio_io_handle_t getOutput_l();
             status_t restoreTrack_l(audio_track_cblk_t*& cblk, bool fromStart);
+#ifdef STE_HARDWARE
+    static void LatencyCallbackWrapper(void *cookie, audio_io_handle_t output, uint32_t latency);
+    void latencyCallback(audio_io_handle_t output, uint32_t latency);
+#endif
 
     sp<IAudioTrack>         mAudioTrack;
     sp<IMemory>             mCblkMemory;
@@ -485,10 +523,16 @@ private:
     uint32_t                mUpdatePeriod;
     bool                    mFlushed; // FIXME will be made obsolete by making flush() synchronous
     uint32_t                mFlags;
+#ifdef WITH_QCOM_LPA
+    audio_io_handle_t       mAudioSession;
+#endif
     int                     mSessionId;
     int                     mAuxEffectId;
     Mutex                   mLock;
     status_t                mRestoreStatus;
+#ifdef STE_HARDWARE
+    int                     mLatencyClientId;
+#endif
 };
 
 

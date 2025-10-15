@@ -4,8 +4,8 @@
  * Copyright (C) 1993, 1994, 1995, 1996 Theodore Ts'o.
  *
  * %Begin-Header%
- * This file may be redistributed under the terms of the GNU Public
- * License.
+ * This file may be redistributed under the terms of the GNU Library
+ * General Public License, version 2.
  * %End-Header%
  */
 
@@ -26,6 +26,14 @@ extern "C" {
  * Non-GNU C compilers won't necessarily understand inline
  */
 #if (!defined(__GNUC__) && !defined(__WATCOMC__))
+#define NO_INLINE_FUNCS
+#endif
+
+/*
+ * The Apple compiler in Xcode 4.3 fails when inlines are enabled in
+ * so disable them for that compiler.
+ */
+#if __APPLE_CC__ >= 5621
 #define NO_INLINE_FUNCS
 #endif
 
@@ -942,6 +950,7 @@ extern errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
 
 /* getsectsize.c */
 errcode_t ext2fs_get_device_sectsize(const char *file, int *sectsize);
+errcode_t ext2fs_get_device_phys_sectsize(const char *file, int *sectsize);
 
 /* i_block.c */
 errcode_t ext2fs_iblk_add_blocks(ext2_filsys fs, struct ext2_inode *inode,

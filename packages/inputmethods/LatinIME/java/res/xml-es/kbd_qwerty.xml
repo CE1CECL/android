@@ -20,8 +20,9 @@
 
 <Keyboard
     xmlns:latin="http://schemas.android.com/apk/res/com.android.inputmethod.latin"
-    latin:keyboardLocale="es,es_US"
+    latin:keyboardLocale="es"
 >
-    <include
+<include
         latin:keyboardLayout="@xml/kbd_rows_spanish" />
+
 </Keyboard>

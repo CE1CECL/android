@@ -18,10 +18,6 @@ PRODUCT_BRAND := generic
 PRODUCT_DEVICE := generic
 PRODUCT_NAME := core
 
-PRODUCT_PROPERTY_OVERRIDES := \
-    ro.config.notification_sound=OnTheHunt.ogg \
-    ro.config.alarm_alert=Alarm_Classic.ogg
-
 PRODUCT_PACKAGES := \
     ApplicationsProvider \
     BackupRestoreConfirmation \
@@ -76,6 +72,7 @@ PRODUCT_PACKAGES := \
     libfilterfw \
     libfilterpack_imageproc \
     libgabi++ \
+    libanalogradiobroadcasting \
     libicui18n \
     libicuuc \
     libnativehelper \

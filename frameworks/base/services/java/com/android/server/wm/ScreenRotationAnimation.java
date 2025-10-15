@@ -62,19 +62,31 @@ class ScreenRotationAnimation {
 
     public ScreenRotationAnimation(Context context, SurfaceSession session,
             boolean inTransaction, int originalWidth, int originalHeight, int originalRotation) {
+        boolean isTegra = android.os.SystemProperties.get("ro.board.platform","").equals("tegra");
         mContext = context;
 
         // Screenshot does NOT include rotation!
-        mSnapshotRotation = 0;
-        if (originalRotation == Surface.ROTATION_90
+        // Allow for abnormal hardware orientation
+        mSnapshotRotation = (4 - android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90) % 4;
+        if (mSnapshotRotation == Surface.ROTATION_0 || mSnapshotRotation == Surface.ROTATION_180) {
+            if (originalRotation == Surface.ROTATION_90
                 || originalRotation == Surface.ROTATION_270) {
-            mWidth = originalHeight;
-            mHeight = originalWidth;
+                mWidth = originalHeight;
+                mHeight = originalWidth;
+            } else {
+                mWidth = originalWidth;
+                mHeight = originalHeight;
+            }
         } else {
-            mWidth = originalWidth;
-            mHeight = originalHeight;
+            if (originalRotation == Surface.ROTATION_90
+                || originalRotation == Surface.ROTATION_270) {
+                mWidth = originalWidth;
+                mHeight = originalHeight;
+            } else {
+                mWidth = originalHeight;
+                mHeight = originalWidth;
+            }
         }
-
         mOriginalRotation = originalRotation;
         mOriginalWidth = originalWidth;
         mOriginalHeight = originalHeight;
@@ -88,7 +100,7 @@ class ScreenRotationAnimation {
         try {
             try {
                 mSurface = new Surface(session, 0, "FreezeSurface",
-                        -1, mWidth, mHeight, PixelFormat.OPAQUE, Surface.FX_SURFACE_SCREENSHOT | Surface.HIDDEN);
+                        -1, mWidth, mHeight, PixelFormat.OPAQUE, isTegra ? 0 : (Surface.FX_SURFACE_SCREENSHOT | Surface.HIDDEN));
                 if (mSurface == null || !mSurface.isValid()) {
                     // Screenshot failed, punt.
                     mSurface = null;
@@ -105,6 +117,35 @@ class ScreenRotationAnimation {
                             "  FREEZE " + mSurface + ": CREATE");
 
             setRotation(originalRotation);
+
+            if (isTegra) {
+                Rect rect = new Rect(0, 0, mWidth, mHeight);
+                Canvas canvas = null;
+
+                try {
+                    canvas = mSurface.lockCanvas(rect);
+                } catch (IllegalArgumentException e) {
+                    Slog.w(TAG, "Unable to lock surface", e);
+                } catch (Surface.OutOfResourcesException e) {
+                    Slog.w(TAG, "Unable to lock surface", e);
+                }
+
+                Bitmap screenshot = Surface.screenshot(0, 0);
+                if (canvas == null || screenshot == null) {
+                    Slog.w(TAG, "Null surface canvas");
+                    mSurface.destroy();
+                    mSurface = null;
+                    return;
+                }
+
+                Paint paint = new Paint(0);
+                paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+
+                canvas.drawBitmap(screenshot, 0, 0, paint);
+                mSurface.unlockCanvasAndPost(canvas);
+
+            }
+
         } finally {
             if (!inTransaction) {
                 Surface.closeTransaction();

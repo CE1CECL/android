@@ -33,6 +33,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.CommandException;
@@ -41,6 +42,7 @@ import com.android.internal.telephony.OperatorInfo;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * "Networks" settings UI for the Phone app.
@@ -386,8 +388,10 @@ public class NetworkSetting extends PreferenceActivity
         // update the state of the preferences.
         if (DBG) log("hideProgressPanel");
 
-        if (mIsForeground) {
+        try {
             dismissDialog(DIALOG_NETWORK_LIST_LOAD);
+        } catch (IllegalArgumentException e){
+            if (DBG) log(" DIALOG_NETWORK_LIST_LOAD dismissed already");
         }
 
         getPreferenceScreen().setEnabled(true);
@@ -404,19 +408,45 @@ public class NetworkSetting extends PreferenceActivity
                 // create a preference for each item in the list.
                 // just use the operator name instead of the mildly
                 // confusing mcc/mnc.
+                ArrayList <String> operatorNumerics = new ArrayList<String>();
                 for (OperatorInfo ni : result) {
-                    Preference carrier = new Preference(this, null);
-                    carrier.setTitle(ni.getOperatorAlphaLong());
-                    carrier.setPersistent(false);
-                    mNetworkList.addPreference(carrier);
-                    mNetworkMap.put(carrier, ni);
+                    String operatorNumeric = ni.getOperatorNumeric();
+                    if (!operatorNumerics.contains(operatorNumeric)) {
+                        operatorNumerics.add(operatorNumeric);
+                        Preference carrier = new Preference(this, null);
+                        carrier.setTitle(getNetworkTitle(ni));
+                        carrier.setPersistent(false);
+                        mNetworkList.addPreference(carrier);
+                        mNetworkMap.put(carrier, ni);
 
-                    if (DBG) log("  " + ni);
+                        if (DBG) log("  adding:   " + ni);
+                    } else {
+                        if (DBG) log("  skipping: " + ni);
+                    }
                 }
 
             } else {
                 displayEmptyNetworkList(true);
             }
+        }
+    }
+
+    /**
+     * Returns the title of the network obtained in the manual search.
+     *
+     * @param OperatorInfo contains the information of the network.
+     *
+     * @return Long Name if not null/empty, otherwise Short Name if not null/empty,
+     * else MCCMNC string.
+     */
+
+    private String getNetworkTitle(OperatorInfo ni) {
+        if (!TextUtils.isEmpty(ni.getOperatorAlphaLong())) {
+            return ni.getOperatorAlphaLong();
+        } else if (!TextUtils.isEmpty(ni.getOperatorAlphaShort())) {
+            return ni.getOperatorAlphaShort();
+        } else {
+            return ni.getOperatorNumeric();
         }
     }
 

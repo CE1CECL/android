@@ -1137,6 +1137,14 @@ public class LatinIME extends InputMethodServiceCompatWrapper implements Keyboar
                 }
             }
             break;
+        case KeyEvent.KEYCODE_VOLUME_UP:
+        case KeyEvent.KEYCODE_VOLUME_DOWN:
+            if (mKeyboardSwitcher.isInputViewShown() && mSettingsValues.mEnableVolumeCursor) {
+                sendDownUpKeyEvents((keyCode == KeyEvent.KEYCODE_VOLUME_UP ? KeyEvent.KEYCODE_DPAD_RIGHT
+                        : KeyEvent.KEYCODE_DPAD_LEFT));
+                return true;
+            }
+            break;
         }
         return super.onKeyDown(keyCode, event);
     }
@@ -1161,6 +1169,10 @@ public class LatinIME extends InputMethodServiceCompatWrapper implements Keyboar
                 return true;
             }
             break;
+        case KeyEvent.KEYCODE_VOLUME_DOWN:
+        case KeyEvent.KEYCODE_VOLUME_UP:
+            if (mKeyboardSwitcher.isInputViewShown() && mSettingsValues.mEnableVolumeCursor)
+                return true;
         }
         return super.onKeyUp(keyCode, event);
     }

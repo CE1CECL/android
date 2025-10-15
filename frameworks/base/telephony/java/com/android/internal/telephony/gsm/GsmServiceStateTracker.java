@@ -610,7 +610,7 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
                             regState = Integer.parseInt(states[0]);
 
                             // states[3] (if present) is the current radio technology
-                            if (states.length >= 4 && states[3] != null) {
+                            if (states.length >= 4 && states[3] != null && !states[3].equals("")) {
                                 type = Integer.parseInt(states[3]);
                             }
                             if ((states.length >= 5 ) && (regState == 3)) {
@@ -1222,7 +1222,9 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
         } catch (Exception e){
         }
 
-        return gsmRoaming && !(equalsMcc && (equalsOnsl || equalsOnss));
+        boolean mvnoRoaming = Settings.System.getInt(phone.getContext().getContentResolver(),
+            Settings.System.MVNO_ROAMING, 0) == 1;
+        return gsmRoaming && !(equalsMcc && (equalsOnsl || equalsOnss || mvnoRoaming));
     }
 
     private static int twoDigitsAt(String s, int offset) {
@@ -1354,8 +1356,10 @@ final class GsmServiceStateTracker extends ServiceStateTracker {
             // As a special extension, the Android emulator appends the name of
             // the host computer's timezone to the nitz string. this is zoneinfo
             // timezone name of the form Area!Location or Area!Location!SubLocation
-            // so we need to convert the ! into /
-            if (nitzSubs.length >= 9) {
+            // so we need to convert the ! into /.  If there's no "!", then maybe
+            // the carrier is appending something extra (as AT&T does) and it
+            // should be ignored
+            if ((nitzSubs.length >= 9) && (nitzSubs[8].indexOf('!') != -1)) {
                 String  tzname = nitzSubs[8].replace('!','/');
                 zone = TimeZone.getTimeZone( tzname );
             }

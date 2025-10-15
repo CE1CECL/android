@@ -53,6 +53,10 @@
 #include "dbus-common.h"
 #include "event.h"
 #include "error.h"
+#ifdef STE_BT
+#include "glib-compat.h"
+#include "sdp-client.h"
+#endif
 #include "glib-helper.h"
 #include "gattrib.h"
 #include "gatt.h"
@@ -106,7 +110,11 @@ struct browse_req {
 
 struct btd_device {
 	bdaddr_t	bdaddr;
+#ifndef STE_BT
 	device_type_t	type;
+#else
+	addr_type_t	type;
+#endif
 	gchar		*path;
 	char		name[MAX_NAME_LENGTH + 1];
 	char		*alias;
@@ -136,6 +144,9 @@ struct btd_device {
 
 	gboolean	authorizing;
 	gint		ref;
+#ifdef STE_BT
+	uint8_t		features[8];
+#endif
 };
 
 static uint16_t uuid_list[] = {
@@ -226,10 +237,29 @@ static void device_free(gpointer user_data)
 	g_free(device);
 }
 
+#ifdef STE_BT
+gboolean device_is_bredr(struct btd_device *device)
+{
+	return (device->type == ADDR_TYPE_BREDR);
+}
+
+gboolean device_is_le(struct btd_device *device)
+{
+	return (device->type != ADDR_TYPE_BREDR);
+}
+#endif
+
 gboolean device_is_paired(struct btd_device *device)
 {
 	return device->paired;
 }
+
+#ifdef STE_BT
+gboolean device_is_bonded(struct btd_device *device)
+{
+	return device->bonded;
+}
+#endif
 
 gboolean device_is_trusted(struct btd_device *device)
 {
@@ -776,6 +806,12 @@ static DBusMessage *get_service_attribute_value_reply(DBusMessage *msg, DBusConn
 	DBusMessage *reply;
 	DBusMessageIter iter;
 
+#ifdef STE_BT
+	if (attr->attrId != SDP_ATTR_PROTO_DESC_LIST)
+		return g_dbus_create_error(msg, ERROR_INTERFACE ".Failed",
+				"GetServiceAttribute Failed");
+#endif
+
 	reply = dbus_message_new_method_return(msg);
 	if (!reply)
 		return NULL;
@@ -897,7 +933,11 @@ void device_remove_connection(struct btd_device *device, DBusConnection *conn)
 		device->disconnects = g_slist_remove(device->disconnects, msg);
 	}
 
+#ifndef STE_BT
 	if (device_is_paired(device) && !device->bonded)
+#else
+	if (device_is_paired(device) && !device_is_bonded(device))
+#endif
 		device_set_paired(device, FALSE);
 
 	emit_property_changed(conn, device->path,
@@ -943,7 +983,11 @@ void device_remove_disconnect_watch(struct btd_device *device, guint id)
 
 struct btd_device *device_create(DBusConnection *conn,
 				struct btd_adapter *adapter,
+#ifndef STE_BT
 				const gchar *address, device_type_t type)
+#else
+				const gchar *address, addr_type_t type)
+#endif
 {
 	gchar *address_up;
 	struct btd_device *device;
@@ -983,7 +1027,11 @@ struct btd_device *device_create(DBusConnection *conn,
 		device_block(conn, device);
 
 	if (read_link_key(&src, &device->bdaddr, NULL, NULL) == 0) {
+#ifndef STE_BT
 		device->paired = TRUE;
+#else
+		device_set_paired(device, TRUE);
+#endif
 		device_set_bonded(device, TRUE);
 	}
 
@@ -1016,10 +1064,12 @@ void device_get_name(struct btd_device *device, char *name, size_t len)
 	strncpy(name, device->name, len);
 }
 
+#ifndef STE_BT
 device_type_t device_get_type(struct btd_device *device)
 {
 	return device->type;
 }
+#endif
 
 void device_remove_bonding(struct btd_device *device)
 {
@@ -1050,8 +1100,17 @@ static void device_remove_stored(struct btd_device *device)
 	adapter_get_address(device->adapter, &src);
 	ba2str(&device->bdaddr, addr);
 
+#ifndef STE_BT
 	if (device->paired)
 		device_remove_bonding(device);
+#else
+	if (device_is_bonded(device)) {
+		delete_entry(&src, "linkkeys", addr);
+		delete_entry(&src, "aliases", addr);
+		device_set_bonded(device, FALSE);
+		device_set_paired(device, FALSE);
+	}
+#endif
 	delete_entry(&src, "profiles", addr);
 	delete_entry(&src, "trusts", addr);
 	delete_entry(&src, "types", addr);
@@ -1876,7 +1935,11 @@ void device_set_bonded(struct btd_device *device, gboolean bonded)
 	device->bonded = bonded;
 }
 
+#ifndef STE_BT
 void device_set_type(struct btd_device *device, device_type_t type)
+#else
+void device_set_type(struct btd_device *device, addr_type_t type)
+#endif
 {
 	if (!device)
 		return;
@@ -1993,6 +2056,11 @@ void device_set_paired(struct btd_device *device, gboolean value)
 
 	if (device->paired == value)
 		return;
+
+#ifdef STE_BT
+	if (!value)
+		btd_adapter_remove_bonding(device->adapter, &device->bdaddr);
+#endif
 
 	device->paired = value;
 
@@ -2283,8 +2351,14 @@ static void confirm_cb(struct agent *agent, DBusError *err, void *data)
 
 	((agent_cb) auth->cb)(agent, err, device);
 
+#ifdef STE_BT
+	if (device->authr) {
+#endif
 	device->authr->cb = NULL;
 	device->authr->agent = NULL;
+#ifdef STE_BT
+	}
+#endif
 }
 
 static void passkey_cb(struct agent *agent, DBusError *err,
@@ -2556,3 +2630,23 @@ void device_set_class(struct btd_device *device, uint32_t value)
 	emit_property_changed(conn, device->path, DEVICE_INTERFACE, "Class",
 				DBUS_TYPE_UINT32, &value);
 }
+
+#ifdef STE_BT
+void device_set_features(struct btd_device *device, uint8_t *features)
+{
+	if (!device)
+		return;
+
+	memcpy(device->features, features, sizeof(device->features));
+}
+
+uint8_t *device_get_features(struct btd_device *device)
+{
+	return device->features;
+}
+
+void device_set_qos(struct btd_device *device, struct ste_qos_params *params)
+{
+	btd_adapter_set_qos(device->adapter, &device->bdaddr, params);
+}
+#endif

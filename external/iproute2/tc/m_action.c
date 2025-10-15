@@ -31,7 +31,13 @@
 static struct action_util * action_list;
 
 #ifdef ANDROID
-extern struct action_util mirred_action_util;
+extern struct action_util mirred_action_util;  /* android hard-wiring again*/
+extern struct action_util gact_action_util;
+extern struct action_util ipt_action_util;
+extern struct action_util nat_action_util;
+extern struct action_util pedit_action_util;
+extern struct action_util police_action_util;
+extern struct action_util skbedit_action_util;
 #endif
 
 #ifdef CONFIG_GACT
@@ -464,7 +470,7 @@ int tc_action_gd(int cmd, unsigned flags, int *argc_p, char ***argv_p)
 	if (cmd == RTM_GETACTION)
 		ans = &req.n;
 
-	if (rtnl_talk(&rth, &req.n, 0, 0, ans, NULL, NULL) < 0) {
+	if (rtnl_talk(&rth, &req.n, 0, 0, ans) < 0) {
 		fprintf(stderr, "We have an error talking to the kernel\n");
 		return 1;
 	}
@@ -509,7 +515,7 @@ int tc_action_modify(int cmd, unsigned flags, int *argc_p, char ***argv_p)
 	}
 	tail->rta_len = (void *) NLMSG_TAIL(&req.n) - (void *) tail;
 
-	if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0) {
+	if (rtnl_talk(&rth, &req.n, 0, 0, NULL) < 0) {
 		fprintf(stderr, "We have an error talking to the kernel\n");
 		ret = -1;
 	}
@@ -571,7 +577,7 @@ int tc_act_list_or_flush(int argc, char **argv, int event)
 			perror("Cannot send dump request");
 			return 1;
 		}
-		ret = rtnl_dump_filter(&rth, print_action, stdout, NULL, NULL);
+		ret = rtnl_dump_filter(&rth, print_action, stdout);
 	}
 
 	if (event == RTM_DELACTION) {
@@ -579,7 +585,7 @@ int tc_act_list_or_flush(int argc, char **argv, int event)
 		req.n.nlmsg_type = RTM_DELACTION;
 		req.n.nlmsg_flags |= NLM_F_ROOT;
 		req.n.nlmsg_flags |= NLM_F_REQUEST;
-		if (rtnl_talk(&rth, &req.n, 0, 0, NULL, NULL, NULL) < 0) {
+		if (rtnl_talk(&rth, &req.n, 0, 0, NULL) < 0) {
 			fprintf(stderr, "We have an error flushing\n");
 			return 1;
 		}

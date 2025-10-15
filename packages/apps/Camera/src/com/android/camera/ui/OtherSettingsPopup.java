@@ -63,7 +63,9 @@ public class OtherSettingsPopup extends AbstractSettingPopup
 
             // Currently, the RecordLocationPreference is the only setting
             // which applies the on/off switch.
-            if (CameraSettings.KEY_RECORD_LOCATION.equals(pref.getKey())) {
+            if (CameraSettings.KEY_POWER_SHUTTER.equals(pref.getKey()) ||
+                    CameraSettings.KEY_RECORD_LOCATION.equals(pref.getKey()) ||
+                    CameraSettings.KEY_FOCUS_SOUND.equals(pref.getKey())) {
                 return R.layout.in_line_setting_switch;
             }
             return R.layout.in_line_setting_knob;
@@ -71,8 +73,6 @@ public class OtherSettingsPopup extends AbstractSettingPopup
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView != null) return convertView;
-
             ListPreference pref = mListItem.get(position);
 
             int viewLayoutId = getSettingLayoutId(pref);
@@ -149,7 +149,9 @@ public class OtherSettingsPopup extends AbstractSettingPopup
             if (pref != null) {
                 InLineSettingItem settingItem =
                         (InLineSettingItem) mSettingList.getChildAt(i);
-                settingItem.reloadPreference();
+                if( !(settingItem instanceof InLineSettingRestore) ) {
+                    settingItem.reloadPreference();
+                }
             }
         }
     }

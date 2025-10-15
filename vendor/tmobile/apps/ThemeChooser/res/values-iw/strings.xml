@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ # Copyright (C) 2010, T-Mobile USA, Inc.
+ #
+ # Licensed under the Apache License, Version 2.0 (the "License");
+ # you may not use this file except in compliance with the License.
+ # You may obtain a copy of the License at
+ #
+ #      http://www.apache.org/licenses/LICENSE-2.0
+ #
+ # Unless required by applicable law or agreed to in writing, software
+ # distributed under the License is distributed on an "AS IS" BASIS,
+ # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="apply">החל</string>
+    <string name="menu_header">אפשרויות ערכת נושא</string>
+    <string name="menu_uninstall">הסר</string>
+    <string name="theme_current">%s (נוכחי)</string>
+    <string name="theme_change_dialog_title">מחיל...</string>
+    <string name="switching_to_theme">מחליף ל <xliff:g id="theme" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">%s</xliff:g>...</string>
+    <string name="dialog_theme_error_title">שגיאת בערכת נושא</string>
+    <string name="dialog_missing_host_density_msg">מצטערים, בערכת נושא זו חסרים קבצים לגודל המסך של המכשיר שלך</string>
+    <string name="dialog_missing_theme_package_scope_msg">ערכת נושא זו הורכבה באופן שגוי ואין אפשרות להחילה. אנא דווח על מקרה זה ליוצר ערכת הנושא.</string>
+    <string name="dialog_apply_anyway_btn">החל בכל מקרה</string>
+    <string name="dialog_bummer_btn">באסה</string>
+    <string name="app_name">ערכות נושא</string>
+    <string name="app_title">ערכות נושא</string>
+</resources>

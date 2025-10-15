@@ -191,7 +191,16 @@
     <string name="preferred_network_mode_cdma_only_summary" msgid="1309770926198634150">"優先ネットワークモード: CDMAのみ"</string>
     <string name="preferred_network_mode_evdo_only_summary" msgid="8472220691721269155">"優先ネットワークモード: EvDoのみ"</string>
     <string name="preferred_network_mode_lte_cdma_summary" msgid="3722647806454528426">"優先ネットワークモード: LTE/CDMA"</string>
+    <string name="preferred_network_mode_lte_gsm_summary">"優先ネットワークモード: LTE / WCDMA / GSM"</string>
+    <string name="preferred_network_mode_lte_cdma_evdo_summary">"優先ネットワークモード: LTE / CDMA / EvDo"</string>
+    <!-- Mobile network settings, summary for preferred network mode LTE / CMDA / EvDo / GSM/WCDMA [CHAR LIMIT=100] -->
+    <string name="preferred_network_mode_lte_cdma_evdo_gsm_wcdma_summary">"優先ネットワークモード: LTE / CMDA / EvDo / GSM / WCDMA"</string>
+
   <string-array name="preferred_network_mode_choices">
+    <item>"LTEのみ"</item>
+    <item>"LTE / CMDA / EvDo / GSM / WCDMA"</item>
+    <item>"LTE / WCDMA / GSM"</item>
+    <item>"LTE / CDMA / EvDo"</item>
     <item msgid="5886604709726177211">"LTE/CDMA"</item>
     <item msgid="3273348576277144124">"EV-DOのみ"</item>
     <item msgid="454610224530856274">"CDMA（EV-DO非準拠）"</item>
@@ -713,6 +722,26 @@
     <string name="description_target_answer" msgid="7205604197797472471">"電話に出る"</string>
     <string name="description_target_send_sms" msgid="2098326025587950144">"SMSを送信"</string>
     <string name="description_target_decline" msgid="4789834364389731957">"着信拒否"</string>
+
+    <!-- CM Extra entries -->
+    <!-- Mobile network settings screen, setting check box name -->
+    <string name="national_roaming">国内データローミング</string>
+    <!-- Mobile network settings screen, setting summary text when check box is selected -->
+    <string name="national_roaming_enable">国内ローミング中にデータサービスに接続する</string>
+    <!-- Mobile network settings screen, setting summary text when check box is clear -->
+    <string name="national_roaming_disable">国内ローミング中にデータサービスに接続する</string>
+    <!-- Call settings screen, message wait indicator name -->
+    <string name="mwi_notification_title">メッセージ待機中表示</string>
+    <!-- Call settings screen, message wait indicator summary -->
+    <string name="mwi_notification_summary">ボイスメールの通知にメッセージ待機中のインジケータを表示する</string>
+
+    <!-- Dialer UI Settings -->
+    <string name="dialer_ui_settings_title">ダイヤルパッドの設定</string>
+    <string name="dialer_ui_settings_summary">ダイヤルパッドの設定</string>
+
+    <string name="phone_number_label">自分の電話番号</string>
+    <string name="phone_number_summary">この端末に電話番号をセットする</string>
+
     <string name="voicemail_notification_vibrate_when_title" msgid="8361970092063604886">"バイブレーション"</string>
     <string name="voicemail_notification_vibarte_when_dialog_title" msgid="5739583146522136440">"バイブレーション"</string>
   <string-array name="voicemail_notification_vibrate_when_entries">
@@ -720,4 +749,22 @@
     <item msgid="1595097872875714252">"マナーモード時のみ"</item>
     <item msgid="1458182414036878616">"使用しない"</item>
   </string-array>
+    <string name="advanced_setting">追加設定</string>
+    <string name="vibrate_outgoing">応答時に振動</string>
+    <string name="vibrate_outgoing_sum">相手が呼び出しに応答した時にバイブレーションする</string>
+    <string name="vibrate_45">45秒間隔で振動</string>
+    <string name="vibrate_45_sum">こちらから発信した通話では45秒間隔でバイブレーションする</string>
+    <string name="vibrate_hangup">切断時に振動</string>
+    <string name="vibrate_hangup_sum">通話を終了した時にバイブレーションする</string>
+    <string name="vibrate_call_waiting">呼出中に振動</string>
+    <string name="vibrate_call_waiting_sum">呼び出し中にバイブレーションする</string>
+    <string name="perm_change_mobile_network">ネットワークを変更(2G/3G)</string>
+    <string name="perm_change_mobile_network_desc">この権限を許可されたアプリケーションは、いつでも2G/3Gデータの切り替えが可能です。3Gは高速ですが、バッテリ消費が増加します。また、キャリアの課金も増加することがあります。</string>
+    <!-- Noise suppression -->
+    <string name="noise_suppression_title">ノイズ抑制</string>
+    <string name="noise_suppression_summary">通話中のノイズを抑制する</string>
+    <!-- End Noise suppression -->
+
+
 </resources>
+

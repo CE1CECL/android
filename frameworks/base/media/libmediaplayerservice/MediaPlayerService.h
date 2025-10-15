@@ -84,15 +84,33 @@ class MediaPlayerService : public BnMediaPlayerService
         virtual status_t        open(
                 uint32_t sampleRate, int channelCount,
                 int format, int bufferCount,
+#ifdef STE_HARDWARE
+                AudioCallback cb, void *cookie,
+                LatencyCallback latencyCb = NULL);
+#else
                 AudioCallback cb, void *cookie);
-
+#endif
+#ifdef WITH_QCOM_LPA
+        virtual status_t        openSession(
+                int format, int sessionId, uint32_t sampleRate, int channels);
+#endif
         virtual void            start();
         virtual ssize_t         write(const void* buffer, size_t size);
         virtual void            stop();
         virtual void            flush();
         virtual void            pause();
+#ifdef WITH_QCOM_LPA
+        virtual void            pauseSession();
+        virtual void            resumeSession();
+#endif
         virtual void            close();
+#ifdef WITH_QCOM_LPA
+        virtual void            closeSession();
+#endif
                 void            setAudioStreamType(int streamType) { mStreamType = streamType; }
+#ifdef WITH_QCOM_LPA
+        virtual int             getAudioStreamType() { return mStreamType; }
+#endif
                 void            setVolume(float left, float right);
                 status_t        setAuxEffectSendLevel(float level);
                 status_t        attachAuxEffect(int effectId);
@@ -106,12 +124,21 @@ class MediaPlayerService : public BnMediaPlayerService
                 int event, void *me, void *info);
 
         AudioTrack*             mTrack;
+#ifdef WITH_QCOM_LPA
+        AudioTrack*             mSession;
+#endif
         AudioCallback           mCallback;
         void *                  mCallbackCookie;
+#ifdef STE_HARDWARE
+        LatencyCallback         mLatencyCallback;
+#endif
         int                     mStreamType;
         float                   mLeftVolume;
         float                   mRightVolume;
         float                   mMsecsPerFrame;
+#ifdef STE_HARDWARE
+        uint32_t                mLatency;
+#endif
         int                     mSessionId;
         float                   mSendLevel;
         int                     mAuxEffectId;
@@ -140,7 +167,12 @@ class MediaPlayerService : public BnMediaPlayerService
         virtual status_t        open(
                 uint32_t sampleRate, int channelCount, int format,
                 int bufferCount = 1,
+#ifdef STE_HARDWARE
+                AudioCallback cb = NULL, void *cookie = NULL,
+                LatencyCallback latencyCb = NULL);
+#else
                 AudioCallback cb = NULL, void *cookie = NULL);
+#endif
 
         virtual void            start();
         virtual ssize_t         write(const void* buffer, size_t size);
@@ -149,6 +181,9 @@ class MediaPlayerService : public BnMediaPlayerService
         virtual void            pause() {}
         virtual void            close() {}
                 void            setAudioStreamType(int streamType) {}
+#ifdef WITH_QCOM_LPA
+        virtual int             getAudioStreamType() { return 0; }
+#endif
                 void            setVolume(float left, float right) {}
                 uint32_t        sampleRate() const { return mSampleRate; }
                 uint32_t        format() const { return (uint32_t)mFormat; }

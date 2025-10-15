@@ -47,6 +47,9 @@
 #include "textfile.h"
 #include "adapter.h"
 #include "device.h"
+#ifdef STE_BT
+#include "glib-compat.h"
+#endif
 #include "glib-helper.h"
 #include "storage.h"
 
@@ -1024,7 +1027,14 @@ int read_device_id(const gchar *srcaddr, const gchar *dstaddr,
 					uint16_t *source, uint16_t *vendor,
 					uint16_t *product, uint16_t *version)
 {
+#ifndef STE_BT
 	uint16_t lsource, lvendor, lproduct, lversion;
+#else
+	uint16_t lsource = 0xffff;
+	uint16_t lvendor = 0x0000;
+	uint16_t lproduct = 0x0000;
+	uint16_t lversion = 0x0000;
+#endif
 	sdp_list_t *recs;
 	sdp_record_t *rec;
 	bdaddr_t src, dst;
@@ -1065,6 +1075,7 @@ int read_device_id(const gchar *srcaddr, const gchar *dstaddr,
 
 	sdp_list_free(recs, (sdp_free_func_t)sdp_record_free);
 
+#ifndef STE_BT
 	if (err) {
 		/* FIXME: We should try EIR data if we have it, too */
 
@@ -1075,6 +1086,7 @@ int read_device_id(const gchar *srcaddr, const gchar *dstaddr,
 		lproduct = 0x0000;
 		lversion = 0x0000;
 	}
+#endif
 
 	store_device_id(srcaddr, dstaddr, lsource, lvendor, lproduct, lversion);
 
@@ -1307,7 +1319,11 @@ int read_device_attributes(const bdaddr_t *sba, textfile_cb func, void *data)
 }
 
 int write_device_type(const bdaddr_t *sba, const bdaddr_t *dba,
+#ifndef STE_BT
 						device_type_t type)
+#else
+						addr_type_t type)
+#endif
 {
 	char filename[PATH_MAX + 1], addr[18], chars[3];
 
@@ -1322,10 +1338,17 @@ int write_device_type(const bdaddr_t *sba, const bdaddr_t *dba,
 	return textfile_put(filename, addr, chars);
 }
 
+#ifndef STE_BT
 device_type_t read_device_type(const bdaddr_t *sba, const bdaddr_t *dba)
 {
 	char filename[PATH_MAX + 1], addr[18], *chars;
 	device_type_t type;
+#else
+addr_type_t read_device_type(const bdaddr_t *sba, const bdaddr_t *dba)
+{
+	char filename[PATH_MAX + 1], addr[18], *chars;
+	addr_type_t type;
+#endif
 
 	create_filename(filename, PATH_MAX, sba, "types");
 
@@ -1335,7 +1358,11 @@ device_type_t read_device_type(const bdaddr_t *sba, const bdaddr_t *dba)
 
 	chars = textfile_caseget(filename, addr);
 	if (chars == NULL)
+#ifndef STE_BT
 		return DEVICE_TYPE_UNKNOWN;
+#else
+		return ADDR_TYPE_UNKNOWN;
+#endif
 
 	type = strtol(chars, NULL, 16);
 

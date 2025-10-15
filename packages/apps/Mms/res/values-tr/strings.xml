@@ -328,4 +328,63 @@
     <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> kişi"</item>
   </plurals>
     <string name="disable_notifications_dialog_message" msgid="7644011234972074096">"Varsayılan Mesajlaşma uygulamasından gelen kısa mesaj bildirimlerinin yinelenmesi durdurulsun mu?"</string>
+
+    <!-- Sms templates -->
+    <string name="prefs_templates_settings">Sms şablonları</string>
+    <string name="pref_title_templates_manage">Şablonlar</string>
+    <string name="pref_summary_templates_manage">Sms şablonlarınızı düzenleyin</string>
+    <string name="pref_title_templates_show_gesture">Şekil</string>
+    <string name="pref_summary_templates_show_gesture">Şekil izini göster</string>
+    <string name="pref_title_template_gestures_sensitivity">Hareket duyarlılığı</string>
+    <string name="template_save">Kaydet</string>
+    <string name="template_insert_hint">Şablon metnini giriniz</string>
+    <string name="template_empty_text">Metin alanı boş olamaz</string>
+    <string name="template_explanation">Şablon metnini girin veya düzenleyin. Şekil çizerek de ilişkilendirebilirsiniz.</string>
+    <string name="template_edit">Düzenle</string>
+    <string name="template_delete">Sil</string>
+    <string name="template_ctx_menu_title">Eylemler</string>
+    <string name="template_list_title">Şablonlar</string>
+    <string name="template_new_title">Yeni şablon</string>
+    <string name="template_insert">Şablon ekle</string>
+    <string name="template_gesture_draw">Aşağıdaki boşluğa şekli çizin</string>
+    <string name="template_not_present_error">Tanımlanmış şablon yok</string>
+    <string name="template_not_present_error_title">Hata</string>
+    <string name="template_select">Bir şablon seç</string>
+    <string name="template_cancel_confirm_title">Uyarı</string>
+    <string name="template_cancel_confirm_text">Şablon silinecek. Devam edilsin mi?</string>
+    <string name="gestures_already_present">Uyarı: Benzer bir şekil başka şablona ait!</string>
+
+    <!-- Extra Settings: -->
+    <string name="pref_extra_settings">Ekstra ayarlar</string>
+
+    <!-- Strip unicode -->
+    <string name="pref_title_strip_unicode">Unicode\'u çıkar</string>
+    <string name="pref_summary_strip_unicode">160 karakter SMSlerde desteklenmeyen karakterleri değiştir</string>
+    <!-- Enable emojis -->
+    <string name="pref_title_enable_emojis">Emoji desteği</string>
+    <string name="pref_summary_enable_emojis">461 tane şık ifadeden oluşan unicode emojiler için desteği etkinleştir</string>
+    <!-- Full timestamps -->
+    <string name="pref_title_mms_full_timestamp">Zamanın hepsi</string>
+    <string name="pref_summary_mms_full_timestamp">Mesajlardaki zamanlarda hem tarihi hem de saati göster</string>
+    <!-- Which timestamps -->
+    <string name="pref_title_mms_use_sent_timestamp">Özgün zaman</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Geliş zamanı yerine, gönderilme zamanını göster</string>
+
+    <!-- Change Vibrate pattern/method for message notification -->
+    <string name="pref_title_mms_notification_vibrate_settings">Titreşim ayarları</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Titreşim modeli</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Titreşim modelini değiştir</string>
+    <string name="pref_title_mms_notification_vibrate_call">Çağrıda titreşim</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Çağrı sırasında titreşime izin ver</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Özel titreşim modeli</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Milisaniye cinsinden kapalı/açık süresini giriniz: kapalı, açık, kapalı, açık, ...</string>
+
+    <string name="pref_title_sms_EnableMultipartSMS">"SMS\'ten MMS\'e"</string>
+    <string name="pref_summary_sms_EnableMultipartSMS">"Uzun mesajları MMS\'e çevir"</string>
+    <string name="pref_title_sms_SmsToMmsTextThreshold">"SMS sayısı"</string>
+    <string name="pref_summary_sms_SmsToMmsTextThreshold">"<xliff:g id="COUNT">%1$s</xliff:g> mesajtan sonra MMS\'e çevirilir"</string>
+
+    <string name="pref_title_input_type">Klavye ayarı</string>
+    <string name="pref_summary_input_type">Mesaj yazarken kullanılacak klavye ayarı</string>
+
 </resources>

@@ -33,8 +33,13 @@
     -->
     <string-array name="tips">
         <!-- Tip: Where the launcher icon is and what it does. With icon. -->
+        <item>Welcome to CyanogenMod\n
+        CyanogenMod is a free, community-supported variant of Android. For more tips about the ICS-based CM9, touch this bubble. @drawable/cyanogenmod_icon</item>
+        <item>CyanogenMod 9\n
+	The CM9 firmware you\'re using is based on Google\'s own version 4.0 (Ice Cream Sandwich), and a derivative of the Android Open Source Project (AOSP) @drawable/cyanogenmod_icon</item>
+        <!-- Tip: Where the launcher icon is and what it does. With icon. -->
         <item>See all your apps.\n
-        Touch the Launcher icon. @drawable/all_apps</item>
+        Touch the Launcher icon at the bottom of the screen @drawable/all_apps</item>
 
         <!-- Tip: Longpress in Launcher (all apps) to drag apps to the home screen. -->
         <item>Drag apps to your Home screen.\n
@@ -44,9 +49,15 @@
         <item>Rearrange your Home screen.\n
         Touch &amp; hold an item and when it vibrates, drag it where you want.</item>
 
+        <!-- Tip: App removal -->
+        <item>Quickly uninstall an app\n
+        Touch &amp; hold an item in the full app list and when it vibrates, drag it to the upper left corner. The "Cancel" option will become "Uninstall" after 2 seconds.</item>
         <!-- Tip: Longpress icons/widgets and drag to trash to remove them. -->
         <item>Remove items.\n
-        Touch &amp; hold an item and when it vibrates, drag it to the Trash icon. @drawable/trash</item>
+        Touch &amp; hold an item and when it vibrates, drag it to the "Remove" option at the top. @drawable/trash</item>
+        <!-- Tip: Portal -->
+        <item>Join applications.\n
+        Touch &amp; hold an icon and when it vibrates, drag it on top of another. You now have a folder with those two apps.</item>
 
         <!-- Tip: Swipe to switch workspaces; drag items to move them to other
              workspaces. -->
@@ -56,7 +67,7 @@
         <!-- Tip: Reminder about how to delete widgets, reinforcing that this
              technique can be used to remove the tips widget iteself. -->
         <item>Done with this widget?\n
-        Touch &amp; hold it and when it vibrates, drag it to the Trash icon.</item>
+        Touch &amp; hold it and when it vibrates, drag it to the "Remove" option.</item>
     </string-array>
     
     <!-- dial *#*#TIPS#*#* -->
@@ -71,9 +82,6 @@
         <item>Want some more home screens?
         \nSwipe left and right to find them
         \n(No theft required)</item>
-        <item>Little Home screen dots
-        \nWhat could they possibly do?
-        \nTouch &amp; hold to learn.</item>
         <item>Status bar icons
         \nTo discover their secrets
         \nPull the windowshade</item>

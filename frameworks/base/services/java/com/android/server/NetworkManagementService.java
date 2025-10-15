@@ -25,10 +25,12 @@ import static android.net.NetworkStats.TAG_NONE;
 import static android.net.NetworkStats.UID_ALL;
 import static android.net.TrafficStats.UID_TETHERING;
 import static android.provider.Settings.Secure.NETSTATS_ENABLED;
+import static android.provider.Settings.Secure.TETHER_LEASE_TIME;
 import static com.android.server.NetworkManagementSocketTagger.PROP_QTAGUID_ENABLED;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.net.INetworkManagementEventObserver;
 import android.net.InterfaceConfiguration;
 import android.net.LinkAddress;
@@ -89,6 +91,11 @@ public class NetworkManagementService extends INetworkManagementService.Stub
      * {@link INetworkManagementEventObserver#limitReached(String, String)}.
      */
     public static final String LIMIT_GLOBAL_ALERT = "globalAlert";
+
+    /**
+     * Constant representing the default DHCP lease time
+     */
+    public static final int DEFAULT_LEASE_TIME = -1;
 
     class NetdResponseCode {
         /* Keep in sync with system/netd/ResponseCode.h */
@@ -569,9 +576,13 @@ public class NetworkManagementService extends INetworkManagementService.Stub
         try {
             rsp = mConnector.doCommand(cmd.toString());
         } catch (NativeDaemonConnectorException e) {
-            throw new IllegalStateException(
-                    "Unable to communicate with native dameon to add routes - "
+            if (action != REMOVE) {
+                throw new IllegalStateException(
+                    "Unable to communicate with native daemon to add routes - "
                     + e);
+            } else {
+                Log.w(TAG, "Unable to remove route on interface " + interfaceName);
+            }
         }
 
         if (DBG) {
@@ -730,14 +741,29 @@ public class NetworkManagementService extends INetworkManagementService.Stub
     }
 
     public void startTethering(String[] dhcpRange)
+            throws IllegalStateException {
+        startTethering(dhcpRange, Settings.Secure.getInt(mContext.getContentResolver(),
+            TETHER_LEASE_TIME, Settings.Secure.TETHER_LEASE_TIME_DEFAULT));
+    }
+
+    public void startTethering(String[] dhcpRange, int leaseTime)
              throws IllegalStateException {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.CHANGE_NETWORK_STATE, "NetworkManagementService");
-        // cmd is "tether start first_start first_stop second_start second_stop ..."
-        // an odd number of addrs will fail
+
+        // cmd is "tether start first_start first_stop second_start second_stop ... [lease_time]"
+
+        // Make sure CMD_ARGS_MAX in system/core/include/sysutils/FrameworkListener.h is big
+        // enough to hold 2 (tether start) + dhcpRange.length (by default 14) + optionally
+        // 1 (lease time) = (16/17) arguments.
         String cmd = "tether start";
+
         for (String d : dhcpRange) {
             cmd += " " + d;
+        }
+
+        if (leaseTime != Settings.Secure.TETHER_LEASE_TIME_DEFAULT) {
+            cmd += " " + leaseTime;
         }
 
         try {
@@ -850,12 +876,14 @@ public class NetworkManagementService extends INetworkManagementService.Stub
         }
     }
 
-    private void modifyNat(String cmd, String internalInterface, String externalInterface)
-            throws SocketException {
+    private void modifyNat(String cmd, String internalInterface, String externalInterface) {
         cmd = String.format("nat %s %s %s", cmd, internalInterface, externalInterface);
-
-        NetworkInterface internalNetworkInterface =
-                NetworkInterface.getByName(internalInterface);
+        NetworkInterface internalNetworkInterface = null;
+        try {
+            internalNetworkInterface = NetworkInterface.getByName(internalInterface);
+        } catch (SocketException e) {
+            Log.e(TAG, "failed to get ifindex. continuing.");
+        }
         if (internalNetworkInterface == null) {
             cmd += " 0";
         } else {
@@ -945,10 +973,16 @@ public class NetworkManagementService extends INetworkManagementService.Stub
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.CHANGE_WIFI_STATE, "NetworkManagementService");
         try {
-            wifiFirmwareReload(wlanIface, "AP");
-            mConnector.doCommand(String.format("softap start " + wlanIface));
+            Resources resources = mContext.getResources();
+            String mainIface = resources.getBoolean(
+                    com.android.internal.R.bool.config_wifi_ap_use_single_interface)
+                    ? softapIface : wlanIface;
+
+            if (resources.getBoolean(com.android.internal.R.bool.config_wifi_ap_firmware_reload))
+                wifiFirmwareReload(wlanIface, "AP");
+            mConnector.doCommand(String.format("softap start " + mainIface));
             if (wifiConfig == null) {
-                mConnector.doCommand(String.format("softap set " + wlanIface + " " + softapIface));
+                mConnector.doCommand(String.format("softap set " + mainIface + " " + softapIface));
             } else {
                 /**
                  * softap set arg1 arg2 arg3 [arg4 arg5 arg6 arg7 arg8]
@@ -961,7 +995,7 @@ public class NetworkManagementService extends INetworkManagementService.Stub
                  * argv7 - Preamble
                  * argv8 - Max SCB
                  */
-                 String str = String.format("softap set " + wlanIface + " " + softapIface +
+                 String str = String.format("softap set " + mainIface + " " + softapIface +
                                        " %s %s %s", convertQuotedString(wifiConfig.SSID),
                                        getSecurityType(wifiConfig),
                                        convertQuotedString(wifiConfig.preSharedKey));

@@ -283,6 +283,7 @@
     <string name="saved_ringtone" msgid="3847363932276708626">"Рингтон сохранен."</string>
     <string name="saved_ringtone_fail" msgid="4778500070919251116">"Рингтон не сохранен."</string>
     <string name="menu_insert_smiley" msgid="4964504393061025071">"Вставить смайлик"</string>
+    <string name="menu_insert_emoji">Вставить emoji</string>
     <string name="select_link_title" msgid="3371818607625768447">"Выбор действия"</string>
     <string name="slide_number" msgid="1923958526266726635">"Слайд <xliff:g id="NUMBER">%s</xliff:g>"</string>
   <plurals name="slide_duration">
@@ -324,8 +325,69 @@
     <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="error_state" msgid="5177386717626893507">"Данные были изменены"</string>
     <string name="error_state_text" msgid="7918866106335387710">"Цепочки не соответствуют получателям. Сделайте снимок экрана и отправьте сообщение об ошибке через веб-сайт http://go/droidanizer"</string>
+    <string name="label_mms_push">Передача MMS</string>
+    <string name="desc_mms_push">Передавать MMS из исходящих в сеть</string>
   <plurals name="recipient_count">
     <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> чел."</item>
   </plurals>
     <string name="disable_notifications_dialog_message" msgid="7644011234972074096">"Не дублировать уведомления об SMS из приложения обмена сообщениями по умолчанию"</string>
+
+    <!-- Sms templates -->
+    <string name="prefs_templates_settings">SMS шаблоны</string>
+    <string name="pref_title_templates_manage">Шаблоны</string>
+    <string name="pref_summary_templates_manage">Управление шаблонами SMS</string>
+    <string name="pref_title_templates_show_gesture">Жесты</string>
+    <string name="pref_summary_templates_show_gesture">Показывать след жеста</string>
+    <string name="pref_title_template_gestures_sensitivity">Чувствительность жеста</string>
+    <string name="template_save">Сохранить</string>
+    <string name="template_insert_hint">Введите сюда текст шаблона</string>
+    <string name="template_empty_text">Текстовое поле не может быть пустым</string>
+    <string name="template_explanation">Введите или измените текст шаблона и нарисуйте жест, чтобы связать их</string>
+    <string name="template_edit">Изменить</string>
+    <string name="template_delete">Удалить</string>
+    <string name="template_ctx_menu_title">Действия</string>
+    <string name="template_list_title">Шаблоны</string>
+    <string name="template_new_title">Новый шаблон</string>
+    <string name="template_insert">Ввести шаблон</string>
+    <string name="template_gesture_draw">Нарисуйте жест в области ниже</string>
+    <string name="template_not_present_error">Вы не определили шаблон</string>
+    <string name="template_not_present_error_title">Ошибка</string>
+    <string name="template_select">Выберите шаблон</string>
+    <string name="template_cancel_confirm_title">Внимание</string>
+    <string name="template_cancel_confirm_text">Желаете отменить?</string>
+    <string name="gestures_already_present">Внимание: подобный жест связан с другим шаблоном!</string>
+
+    <!-- Extra Settings: -->
+    <string name="pref_extra_settings">Доп. настройки</string>
+
+    <!-- Strip unicode -->
+    <string name="pref_title_strip_unicode">Раскрывать юникод</string>
+    <string name="pref_summary_strip_unicode">Замена не поддерживаемых символов в сообщении обычными</string>
+    <!-- Enable emojis -->
+    <string name="pref_title_enable_emojis">Включить emojis</string>
+    <string name="pref_summary_enable_emojis">Включить поддержку emojis, набора из 471 отличных юникод смайликов</string>
+    <!-- Full timestamps -->
+    <string name="pref_title_mms_full_timestamp">Полная метка времени</string>
+    <string name="pref_summary_mms_full_timestamp">Включение отображения полной даты и времени в сообщениях</string>
+    <!-- Which timestamps -->
+    <string name="pref_title_mms_use_sent_timestamp">Исходная метка времени</string>
+    <string name="pref_summary_mms_use_sent_timestamp">Отображение и сохранение даты отправки, а не даты приёма</string>
+
+    <!-- Change Vibrate pattern/method for message notification -->
+    <string name="pref_title_mms_notification_vibrate_settings">Настройки вибрации</string>
+    <string name="pref_title_mms_notification_vibrate_pattern">Режим вибрации</string>
+    <string name="pref_summary_mms_notification_vibrate_pattern">Изменение режима вибрации</string>
+    <string name="pref_title_mms_notification_vibrate_call">Вибрация при разговоре</string>
+    <string name="pref_summary_mms_notification_vibrate_call">Разрешить вибрацию при разговоре</string>
+    <string name="pref_title_mms_notification_vibrate_custom">Пользоват. режим вибрации</string>
+    <string name="pref_text_mms_notification_vibrate_custom">Формат выкл/вкл в миллисекундах: выкл, вкл, выкл, вкл</string>
+
+    <string name="pref_title_sms_EnableMultipartSMS">SMS в MMS</string>
+    <string name="pref_summary_sms_EnableMultipartSMS">Преобразовывать длинные текстовые сообщения в MMS</string>
+    <string name="pref_title_sms_SmsToMmsTextThreshold">Кол-во SMS</string>
+    <string name="pref_summary_sms_SmsToMmsTextThreshold"><xliff:g id="COUNT">%1$s</xliff:g> сообщения до преобразования в MMS</string>
+
+    <!-- Settings item for the soft keyboard picker -->
+    <string name="pref_title_input_type">Тип клавиатуры</string>
+    <string name="pref_summary_input_type">Выберите тип клавиатуры при написании сообщения</string>
 </resources>

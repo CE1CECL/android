@@ -39,8 +39,12 @@
 #include "SurfaceFlinger.h"
 #include "SurfaceTextureLayer.h"
 
-#define DEBUG_RESIZE    0
+#ifdef QCOM_HARDWARE
+#include <qcom_ui.h>
+#define SHIFT_SRC_TRANSFORM 4
+#endif
 
+#define DEBUG_RESIZE    0
 
 namespace android {
 
@@ -59,10 +63,16 @@ Layer::Layer(SurfaceFlinger* flinger,
         mOpaqueLayer(true),
         mNeedsDithering(false),
         mSecure(false),
+#ifdef QCOM_HARDWARE
+        mLayerQcomFlags(0),
+#endif
         mProtectedByApp(false)
 {
     mCurrentCrop.makeInvalid();
     glGenTextures(1, &mTextureName);
+#ifdef QCOM_HARDWARE
+    updateLayerQcomFlags(LAYER_UPDATE_STATUS, true, mLayerQcomFlags);
+#endif
 }
 
 void Layer::onFirstRef()
@@ -83,7 +93,11 @@ void Layer::onFirstRef()
     mSurfaceTexture = new SurfaceTextureLayer(mTextureName, this);
     mSurfaceTexture->setFrameAvailableListener(new FrameQueuedListener(this));
     mSurfaceTexture->setSynchronousMode(true);
+#ifdef QCOM_HARDWARE
+    mSurfaceTexture->setBufferCountServer(BUFFER_COUNT_SERVER);
+#else
     mSurfaceTexture->setBufferCountServer(2);
+#endif
 }
 
 Layer::~Layer()
@@ -168,10 +182,14 @@ status_t Layer::setBuffers( uint32_t w, uint32_t h,
     mSurfaceTexture->setDefaultBufferSize(w, h);
     mSurfaceTexture->setDefaultBufferFormat(format);
 
-    // we use the red index
-    int displayRedSize = displayInfo.getSize(PixelFormatInfo::INDEX_RED);
-    int layerRedsize = info.getSize(PixelFormatInfo::INDEX_RED);
-    mNeedsDithering = layerRedsize > displayRedSize;
+    if (mFlinger->getUseDithering()) {
+        // we use the red index
+        int displayRedSize = displayInfo.getSize(PixelFormatInfo::INDEX_RED);
+        int layerRedsize = info.getSize(PixelFormatInfo::INDEX_RED);
+        mNeedsDithering = layerRedsize > displayRedSize;
+    } else {
+        mNeedsDithering = false;
+    }
 
     return NO_ERROR;
 }
@@ -182,11 +200,28 @@ void Layer::setGeometry(hwc_layer_t* hwcl)
 
     hwcl->flags &= ~HWC_SKIP_LAYER;
 
+#ifdef QCOM_HARDWARE
+    const DisplayHardware& hw(graphicPlane(0).displayHardware());
+    // we can't do alpha-fade with the hwc HAL. C2D composition
+    // can handle fade cases
+    const State& s(drawingState());
+    if (s.alpha < 0xFF) {
+        if ((DisplayHardware::C2D_COMPOSITION & hw.getFlags()) && (!isOpaque())) {
+            hwcl->blending = mPremultipliedAlpha ?
+                HWC_BLENDING_PREMULT : HWC_BLENDING_COVERAGE;
+        } else {
+            hwcl->flags = HWC_SKIP_LAYER;
+        }
+    }
+
+    hwcl->alpha = s.alpha;
+#else
     // we can't do alpha-fade with the hwc HAL
     const State& s(drawingState());
     if (s.alpha < 0xFF) {
-        hwcl->flags = HWC_SKIP_LAYER;
+	hwcl->flags = HWC_SKIP_LAYER;
     }
+#endif
 
     /*
      * Transformations are applied in this order:
@@ -208,6 +243,12 @@ void Layer::setGeometry(hwc_layer_t* hwcl)
         hwcl->flags = HWC_SKIP_LAYER;
     } else {
         hwcl->transform = finalTransform;
+#ifdef QCOM_HARDWARE
+        //mBufferTransform will have the srcTransform
+        //include src and final transform in the hwcl->transform
+        hwcl->transform = (( bufferOrientation.getOrientation() <<
+                                       SHIFT_SRC_TRANSFORM) | hwcl->transform);
+#endif
     }
 
     if (isCropped()) {
@@ -240,10 +281,26 @@ void Layer::setPerFrameData(hwc_layer_t* hwcl) {
     } else {
         hwcl->handle = buffer->handle;
     }
+#ifdef QCOM_HARDWARE
+    updateLayerQcomFlags(LAYER_ASYNCHRONOUS_STATUS, !mSurfaceTexture->isSynchronousMode(), mLayerQcomFlags);
+    hwcl->flags = getPerFrameFlags(hwcl->flags, mLayerQcomFlags);
+#endif
 }
 
 void Layer::onDraw(const Region& clip) const
 {
+#ifdef STE_HARDWARE
+    // Convert the texture to a native format if need be.
+    // convert() returns immediately if no conversion is necessary.
+    if (mSurfaceTexture != NULL) {
+        status_t res = mSurfaceTexture->convert();
+        if (res != NO_ERROR) {
+            LOGE("Layer::onDraw: texture conversion failed. "
+                "Texture content for this layer will not be initialized.");
+        }
+    }
+#endif
+
     if (CC_UNLIKELY(mActiveBuffer == 0)) {
         // the texture has not been created yet, this Layer has
         // in fact never been drawn into. This happens frequently with
@@ -267,38 +324,91 @@ void Layer::onDraw(const Region& clip) const
         // if not everything below us is covered, we plug the holes!
         Region holes(clip.subtract(under));
         if (!holes.isEmpty()) {
+#ifdef SAMSUNG_CODEC_SUPPORT
+            clearWithOpenGL(holes, 0, 0, 0, 0);
+#else
             clearWithOpenGL(holes, 0, 0, 0, 1);
+#endif
         }
         return;
     }
 
+#ifdef QCOM_HARDWARE
+	if (!isGPUSupportedFormat(mActiveBuffer->format)) {
+	    clearWithOpenGL(clip, 0, 0, 0, 1);
+        return;
+	}
+
+#ifdef DECIDE_TEXTURE_TARGET
+    GLuint currentTextureTarget = mSurfaceTexture->getCurrentTextureTarget();
+#endif
+#endif
+
     if (!isProtected()) {
+#ifdef DECIDE_TEXTURE_TARGET
+        glBindTexture(currentTextureTarget, mTextureName);
+#else
         glBindTexture(GL_TEXTURE_EXTERNAL_OES, mTextureName);
+#endif
         GLenum filter = GL_NEAREST;
         if (getFiltering() || needsFiltering() || isFixedSize() || isCropped()) {
             // TODO: we could be more subtle with isFixedSize()
             filter = GL_LINEAR;
         }
+#ifdef DECIDE_TEXTURE_TARGET
+        glTexParameterx(currentTextureTarget, GL_TEXTURE_MAG_FILTER, filter);
+        glTexParameterx(currentTextureTarget, GL_TEXTURE_MIN_FILTER, filter);
+#else
         glTexParameterx(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, filter);
         glTexParameterx(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, filter);
+#endif
         glMatrixMode(GL_TEXTURE);
         glLoadMatrixf(mTextureMatrix);
         glMatrixMode(GL_MODELVIEW);
         glDisable(GL_TEXTURE_2D);
+#ifdef DECIDE_TEXTURE_TARGET
+        glEnable(currentTextureTarget);
+#else
         glEnable(GL_TEXTURE_EXTERNAL_OES);
+#endif
     } else {
+#ifdef DECIDE_TEXTURE_TARGET
+        glBindTexture(currentTextureTarget, mFlinger->getProtectedTexName());
+#else
         glBindTexture(GL_TEXTURE_2D, mFlinger->getProtectedTexName());
+#endif
         glMatrixMode(GL_TEXTURE);
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW);
+#ifdef DECIDE_TEXTURE_TARGET
+        glEnable(currentTextureTarget);
+#else
         glDisable(GL_TEXTURE_EXTERNAL_OES);
         glEnable(GL_TEXTURE_2D);
+#endif
     }
 
+#ifdef QCOM_HARDWARE
+    if(needsDithering()) {
+        glEnable(GL_DITHER);
+    }
+
+    int composeS3DFormat = mQCLayer->needsS3DCompose();
+    if (composeS3DFormat)
+        drawS3DUIWithOpenGL(clip);
+    else
+        drawWithOpenGL(clip);
+#else
     drawWithOpenGL(clip);
+#endif
 
     glDisable(GL_TEXTURE_EXTERNAL_OES);
     glDisable(GL_TEXTURE_2D);
+#ifdef QCOM_HARDWARE
+    if(needsDithering()) {
+        glDisable(GL_DITHER);
+    }
+#endif
 }
 
 // As documented in libhardware header, formats in the range
@@ -339,6 +449,13 @@ bool Layer::isProtected() const
     return (activeBuffer != 0) &&
             (activeBuffer->getUsage() & GRALLOC_USAGE_PROTECTED);
 }
+
+#ifdef QCOM_HARDWARE
+void Layer::setIsUpdating(bool isUpdating)
+{
+    updateLayerQcomFlags(LAYER_UPDATE_STATUS, isUpdating, mLayerQcomFlags);
+}
+#endif
 
 uint32_t Layer::doTransaction(uint32_t flags)
 {
@@ -400,14 +517,37 @@ void Layer::lockPageFlip(bool& recomputeVisibleRegions)
             mFlinger->signalEvent();
         }
 
+#ifdef DECIDE_TEXTURE_TARGET
+        // While calling updateTexImage() from SurfaceFlinger, let it know
+        // by passing an extra parameter
+        // This will be true always.
+
+        bool isComposition = true;
+
+        if (mSurfaceTexture->updateTexImage(isComposition) < NO_ERROR) {
+#else
+#ifndef STE_HARDWARE
         if (mSurfaceTexture->updateTexImage() < NO_ERROR) {
+#else
+        if (mSurfaceTexture->updateTexImage(true) < NO_ERROR) {
+#endif
+#endif
             // something happened!
             recomputeVisibleRegions = true;
             return;
         }
-
+#ifdef QCOM_HARDWARE
+        updateLayerQcomFlags(LAYER_UPDATE_STATUS, true, mLayerQcomFlags);
+#endif
         // update the active buffer
         mActiveBuffer = mSurfaceTexture->getCurrentBuffer();
+
+#ifdef QCOM_HARDWARE
+        //Buffer validity changed. Reset HWC geometry flags.
+        if(oldActiveBuffer == NULL && mActiveBuffer != NULL) {
+            mFlinger->invalidateHwcGeometry();
+        }
+#endif
 
         const Rect crop(mSurfaceTexture->getCurrentCrop());
         const uint32_t transform(mSurfaceTexture->getCurrentTransform());
@@ -493,6 +633,10 @@ void Layer::lockPageFlip(bool& recomputeVisibleRegions)
                     bufWidth, bufHeight, mCurrentTransform,
                     front.requested_w, front.requested_h);
         }
+#ifdef QCOM_HARDWARE
+    } else {
+        updateLayerQcomFlags(LAYER_UPDATE_STATUS, false, mLayerQcomFlags);
+#endif
     }
 }
 
@@ -550,7 +694,12 @@ uint32_t Layer::getEffectiveUsage(uint32_t usage) const
         // need a hardware-protected path to external video sink
         usage |= GraphicBuffer::USAGE_PROTECTED;
     }
+#ifdef MISSING_GRALLOC_BUFFERS
+    usage |= GraphicBuffer::USAGE_HW_TEXTURE;
+#else
     usage |= GraphicBuffer::USAGE_HW_COMPOSER;
+#endif
+
     return usage;
 }
 

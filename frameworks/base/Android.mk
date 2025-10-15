@@ -72,6 +72,7 @@ LOCAL_SRC_FILES += \
 	core/java/android/app/IBackupAgent.aidl \
 	core/java/android/app/IInstrumentationWatcher.aidl \
 	core/java/android/app/INotificationManager.aidl \
+	core/java/android/app/IProfileManager.aidl \
 	core/java/android/app/IProcessObserver.aidl \
 	core/java/android/app/ISearchManager.aidl \
 	core/java/android/app/ISearchManagerCallback.aidl \
@@ -123,6 +124,7 @@ LOCAL_SRC_FILES += \
 	core/java/android/os/IHardwareService.aidl \
 	core/java/android/os/IMessenger.aidl \
 	core/java/android/os/INetworkManagementService.aidl \
+	core/java/android/os/IHDMIService.aidl  \
 	core/java/android/os/IPermissionController.aidl \
 	core/java/android/os/IPowerManager.aidl \
 	core/java/android/os/IRemoteCallback.aidl \
@@ -147,6 +149,7 @@ LOCAL_SRC_FILES += \
 	core/java/com/android/internal/app/IBatteryStats.aidl \
 	core/java/com/android/internal/app/IUsageStats.aidl \
 	core/java/com/android/internal/app/IMediaContainerService.aidl \
+	core/java/com/android/internal/app/IAssetRedirectionManager.aidl \
 	core/java/com/android/internal/appwidget/IAppWidgetService.aidl \
 	core/java/com/android/internal/appwidget/IAppWidgetHost.aidl \
 	core/java/com/android/internal/backup/IBackupTransport.aidl \
@@ -199,7 +202,21 @@ LOCAL_SRC_FILES += \
 	telephony/java/com/android/internal/telephony/IExtendedNetworkService.aidl \
 	voip/java/android/net/sip/ISipSession.aidl \
 	voip/java/android/net/sip/ISipSessionListener.aidl \
-	voip/java/android/net/sip/ISipService.aidl
+	voip/java/android/net/sip/ISipService.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IFmReceiver.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IFmTransmitter.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnStateChangedListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnStartedListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnErrorListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnScanListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnForcedPauseListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnForcedResetListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnBlockScanListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnRDSDataFoundListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnSignalStrengthListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnStereoListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnExtraCommandListener.aidl \
+	fmradio/java/com/stericsson/hardware/fm/IOnAutomaticSwitchListener.aidl
 #
 
 
@@ -249,6 +266,8 @@ aidl_files := \
 	frameworks/base/core/java/android/accounts/IAccountAuthenticator.aidl \
 	frameworks/base/core/java/android/accounts/IAccountAuthenticatorResponse.aidl \
 	frameworks/base/core/java/android/app/Notification.aidl \
+	frameworks/base/core/java/android/app/NotificationGroup.aidl \
+	frameworks/base/core/java/android/app/Profile.aidl \
 	frameworks/base/core/java/android/app/PendingIntent.aidl \
 	frameworks/base/core/java/android/bluetooth/BluetoothDevice.aidl \
 	frameworks/base/core/java/android/bluetooth/BluetoothHealthAppConfiguration.aidl \
@@ -527,7 +546,7 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES:=$(framework_docs_LOCAL_API_CHECK_SRC_FILES)
 LOCAL_INTERMEDIATE_SOURCES:=$(framework_docs_LOCAL_INTERMEDIATE_SOURCES)
-LOCAL_JAVA_LIBRARIES:=$(framework_docs_LOCAL_JAVA_LIBRARIES)
+LOCAL_JAVA_LIBRARIES:=$(framework_docs_LOCAL_JAVA_LIBRARIES) framework
 LOCAL_MODULE_CLASS:=$(framework_docs_LOCAL_MODULE_CLASS)
 LOCAL_DROIDDOC_SOURCE_PATH:=$(framework_docs_LOCAL_DROIDDOC_SOURCE_PATH)
 LOCAL_DROIDDOC_HTML_DIR:=$(framework_docs_LOCAL_DROIDDOC_HTML_DIR)

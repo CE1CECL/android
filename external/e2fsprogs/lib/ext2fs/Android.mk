@@ -25,6 +25,7 @@ libext2fs_src_files := \
 	expanddir.c \
 	ext_attr.c \
 	extent.c \
+	fileio.c \
 	finddev.c \
 	flushb.c \
 	freefs.c \
@@ -45,6 +46,7 @@ libext2fs_src_files := \
 	lookup.c \
 	mkdir.c \
 	mkjournal.c \
+	namei.c \
 	native.c \
 	newdir.c \
 	openfs.c \
@@ -73,7 +75,7 @@ libext2fs_system_shared_libraries := libc
 
 libext2fs_c_includes := external/e2fsprogs/lib
 
-libext2fs_cflags := -O2 -g -W -Wall \
+libext2fs_cflags := -Os -g -W -Wall \
 	-DHAVE_UNISTD_H \
 	-DHAVE_ERRNO_H \
 	-DHAVE_NETINET_IN_H \
@@ -112,6 +114,19 @@ LOCAL_MODULE := libext2fs
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(libext2fs_src_files)
+LOCAL_STATIC_LIBRARIES := $(libext2fs_system_shared_libraries)
+LOCAL_STATIC_LIBRARIES += $(libext2fs_shared_libraries)
+LOCAL_C_INCLUDES := $(libext2fs_c_includes)
+LOCAL_CFLAGS := $(libext2fs_cflags) $(libext2fs_cflags_linux)
+LOCAL_PRELINK_MODULE := false
+LOCAL_MODULE := libext2fs
+LOCAL_MODULE_TAGS := eng
+
+include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 

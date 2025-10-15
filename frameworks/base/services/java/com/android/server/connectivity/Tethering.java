@@ -46,6 +46,7 @@ import android.os.ServiceManager;
 import android.provider.Settings;
 import android.util.Log;
 
+import com.android.internal.app.ThemeUtils;
 import com.android.internal.telephony.Phone;
 import com.android.internal.util.IState;
 import com.android.internal.util.State;
@@ -72,6 +73,7 @@ import java.util.Set;
 public class Tethering extends INetworkManagementEventObserver.Stub {
 
     private Context mContext;
+    private Context mUiContext;
     private final static String TAG = "Tethering";
     private final static boolean DBG = true;
     private final static boolean VDBG = false;
@@ -156,6 +158,13 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         mContext.registerReceiver(mStateReceiver, filter);
 
+        ThemeUtils.registerThemeChangeReceiver(mContext, new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context content, Intent intent) {
+                mUiContext = null;
+            }
+        });
+
         filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_SHARED);
         filter.addAction(Intent.ACTION_MEDIA_UNSHARED);
@@ -219,18 +228,18 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
             if (found == false) return;
 
             TetherInterfaceSM sm = mIfaces.get(iface);
-            if (up) {
+            if (up || usb) {
+                // Present-at-boot USB interfaces are discovered here, and only go up after
+                // RNDIS is enabled and a link is established.  Keep track of USB
+                // interfaces even if they're in the down state, to avoid a race between
+                // tetherUsb(true) and when the link actually goes up.
                 if (sm == null) {
                     sm = new TetherInterfaceSM(iface, mLooper, usb);
                     mIfaces.put(iface, sm);
                     sm.start();
                 }
             } else {
-                if (isUsb(iface)) {
-                    // ignore usb0 down after enabling RNDIS
-                    // we will handle disconnect in interfaceRemoved instead
-                    if (VDBG) Log.d(TAG, "ignore interface down for " + iface);
-                } else if (sm != null) {
+                if (sm != null) {
                     sm.sendMessage(TetherInterfaceSM.CMD_INTERFACE_DOWN);
                     mIfaces.remove(iface);
                 }
@@ -472,9 +481,16 @@ public class Tethering extends INetworkManagementEventObserver.Stub {
         mTetheredNotification.defaults &= ~Notification.DEFAULT_SOUND;
         mTetheredNotification.flags = Notification.FLAG_ONGOING_EVENT;
         mTetheredNotification.tickerText = title;
-        mTetheredNotification.setLatestEventInfo(mContext, title, message, pi);
+        mTetheredNotification.setLatestEventInfo(getUiContext(), title, message, pi);
 
         notificationManager.notify(mTetheredNotification.icon, mTetheredNotification);
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     private void clearTetheredNotification() {

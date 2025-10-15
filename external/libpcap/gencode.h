@@ -18,7 +18,7 @@
  * WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  *
- * @(#) $Header: /tcpdump/master/libpcap/gencode.h,v 1.60.2.11 2007/06/11 09:52:04 guy Exp $ (LBL)
+ * @(#) $Header: /tcpdump/master/libpcap/gencode.h,v 1.71 2007-11-18 02:03:52 guy Exp $ (LBL)
  */
 
 /*
@@ -126,12 +126,20 @@
 
 #define Q_RADIO		40
 
+#define Q_CARP		41
+
 /* Directional qualifiers. */
 
 #define Q_SRC		1
 #define Q_DST		2
 #define Q_OR		3
 #define Q_AND		4
+#define Q_ADDR1		5
+#define Q_ADDR2		6
+#define Q_ADDR3		7
+#define Q_ADDR4		8
+#define Q_RA		9
+#define Q_TA		10
 
 #define Q_DEFAULT	0
 #define Q_UNDEF		255
@@ -232,8 +240,8 @@ struct block {
 	struct slist *stmts;	/* side effect stmts */
 	struct stmt s;		/* branch stmt */
 	int mark;
-	int longjt;		/* jt branch requires long jump */
-	int longjf;		/* jf branch requires long jump */
+	u_int longjt;		/* jt branch requires long jump */
+	u_int longjf;		/* jf branch requires long jump */
 	int level;
 	int offset;
 	int sense;
@@ -312,6 +320,9 @@ struct block *gen_pf_reason(int);
 struct block *gen_pf_action(int);
 struct block *gen_pf_dir(int);
 
+struct block *gen_p80211_type(int, int);
+struct block *gen_p80211_fcdir(int);
+
 void bpf_optimize(struct block **);
 void bpf_error(const char *, ...)
     __attribute__((noreturn, format (printf, 1, 2)));
@@ -319,7 +330,7 @@ void bpf_error(const char *, ...)
 void finish_parse(struct block *);
 char *sdup(const char *);
 
-struct bpf_insn *icode_to_fcode(struct block *, int *);
+struct bpf_insn *icode_to_fcode(struct block *, u_int *);
 int pcap_parse(void);
 void lex_init(const char *);
 void lex_cleanup(void);

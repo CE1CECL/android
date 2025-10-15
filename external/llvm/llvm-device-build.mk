@@ -4,6 +4,7 @@ LOCAL_CFLAGS :=	\
 	-D__STDC_CONSTANT_MACROS	\
 	-O2	\
 	-fomit-frame-pointer	\
+	-fno-strict-aliasing	\
 	-Wall	\
 	-W	\
 	-Wno-unused-parameter	\
@@ -18,6 +19,11 @@ LOCAL_CFLAGS := -DANDROID_TARGET_BUILD \
 		-finline-functions \
 		-fno-inline-functions-called-once \
 		$(LOCAL_CFLAGS)
+
+ifeq ($(TARGET_BUILD_VARIANT),eng)
+LOCAL_CFLAGS := -DANDROID_ENGINEERING_BUILD \
+                $(LOCAL_CFLAGS)
+endif
 
 ifeq ($(LLVM_ENABLE_ASSERTION),true)
 LOCAL_CFLAGS :=	\
@@ -43,7 +49,7 @@ endif
 LOCAL_CPPFLAGS :=	\
 	$(LOCAL_CPPFLAGS)	\
 	-Woverloaded-virtual	\
-	-Wno-sign-promo   
+	-Wno-sign-promo
 
 # Make sure bionic is first so we can include system headers.
 LOCAL_C_INCLUDES :=	\

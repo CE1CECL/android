@@ -269,8 +269,17 @@ void btd_event_bonding_complete(bdaddr_t *local, bdaddr_t *peer,
 	if (!get_adapter_and_device(local, peer, &adapter, &device, create))
 		return;
 
-	if (device)
+	if (device) {
+#ifdef STE_BT
+		unsigned char features[8];
+
+		/* Read the remote device features from file. */
+		read_remote_features(local, peer, features, NULL);
+		device_set_features(device, features);
+#endif
+
 		device_bonding_complete(device, status);
+	}
 }
 
 void btd_event_simple_pairing_complete(bdaddr_t *local, bdaddr_t *peer,
@@ -315,8 +324,15 @@ static void update_lastused(bdaddr_t *sba, bdaddr_t *dba)
 	write_lastused_info(sba, dba, tm);
 }
 
+#ifndef STE_BT
 void btd_event_device_found(bdaddr_t *local, bdaddr_t *peer, uint32_t class,
 				int8_t rssi, uint8_t *data)
+#else
+void btd_event_device_found(bdaddr_t *local, bdaddr_t *peer, addr_type_t type,
+					uint32_t class, int8_t rssi,
+					uint8_t confirm_name, uint8_t *data,
+					uint8_t data_len)
+#endif
 {
 	struct btd_adapter *adapter;
 
@@ -332,7 +348,12 @@ void btd_event_device_found(bdaddr_t *local, bdaddr_t *peer, uint32_t class,
 	if (data)
 		write_remote_eir(local, peer, data);
 
+#ifndef STE_BT
 	adapter_update_found_devices(adapter, peer, class, rssi, data);
+#else
+	adapter_update_found_devices(adapter, peer, type, class, rssi,
+						confirm_name, data, data_len);
+#endif
 }
 
 void btd_event_set_legacy_pairing(bdaddr_t *local, bdaddr_t *peer,

@@ -272,6 +272,15 @@ struct wpa_driver_scan_params {
 	 * num_filter_ssids - Number of entries in filter_ssids array
 	 */
 	size_t num_filter_ssids;
+
+	/**
+	 * p2p_probe - Used to disable CCK (802.11b) rates for P2P probes
+	 *
+	 * When set, the driver is expected to remove rates 1, 2, 5.5, and 11
+	 * Mbps from the support rates element(s) in the Probe Request frames
+	 * and not to transmit the frames at any of those rates.
+	 */
+	u8 p2p_probe;
 };
 
 /**
@@ -290,6 +299,12 @@ struct wpa_driver_auth_params {
 	size_t wep_key_len[4];
 	int wep_tx_keyidx;
 	int local_state_change;
+
+	/**
+	 * p2p - Whether this connection is a P2P group
+	 */
+	int p2p;
+
 };
 
 enum wps_mode {
@@ -610,6 +625,9 @@ struct hostapd_sta_add_params {
 	size_t supp_rates_len;
 	u16 listen_interval;
 	const struct ieee80211_ht_capabilities *ht_capabilities;
+	u32 flags; /* bitmask of WPA_STA_* flags */
+	u8 uapsd_queues;
+	u8 max_sp;
 };
 
 struct hostapd_freq_params {
@@ -1864,19 +1882,6 @@ struct wpa_driver_ops {
 	 * reported, e.g., during remain-on-channel operations.
 	 */
 	int (*probe_req_report)(void *priv, int report);
-
-	/**
-	 * disable_11b_rates - Set whether IEEE 802.11b rates are used for TX
-	 * @priv: Private driver interface data
-	 * @disabled: Whether IEEE 802.11b rates are disabled
-	 * Returns: 0 on success, -1 on failure (or if not supported)
-	 *
-	 * This command is used to disable IEEE 802.11b rates (1, 2, 5.5, and
-	 * 11 Mbps) as TX rates for data and management frames. This can be
-	 * used to optimize channel use when there is no need to support IEEE
-	 * 802.11b-only devices.
-	 */
-	int (*disable_11b_rates)(void *priv, int disabled);
 
 	/**
 	 * deinit_ap - Deinitialize AP mode

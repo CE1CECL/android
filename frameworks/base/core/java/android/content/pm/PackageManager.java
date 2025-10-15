@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -806,6 +807,22 @@ public abstract class PackageManager {
 
     /**
      * Feature for {@link #getSystemAvailableFeatures} and
+     * {@link #hasSystemFeature}: The device is able to receive FM radio.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.FEATURE)
+    public static final String FEATURE_RADIO_FM_RECEIVER = "com.stericsson.hardware.fm.receiver";
+
+    /**
+     * Feature for {@link #getSystemAvailableFeatures} and
+     * {@link #hasSystemFeature}: The device is able to transmit FM radio.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.FEATURE)
+    public static final String FEATURE_RADIO_FM_TRANSMITTER = "com.stericsson.hardware.fm.transmitter";
+
+    /**
+     * Feature for {@link #getSystemAvailableFeatures} and
      * {@link #hasSystemFeature}: The device supports one or more methods of
      * reporting current location.
      */
@@ -1405,6 +1422,17 @@ public abstract class PackageManager {
      *
      */
     public abstract List<PackageInfo> getInstalledPackages(int flags);
+
+    /**
+     * Return a List of all theme packages that are installed
+     * on the device.
+     *
+     * @return A List of PackageInfo objects, one for each theme package
+     *         that is installed on the device.
+     *
+     * @hide
+     */
+    public abstract List<PackageInfo> getInstalledThemePackages();
 
     /**
      * Check whether a particular package has been granted a particular

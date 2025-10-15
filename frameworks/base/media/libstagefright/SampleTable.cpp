@@ -360,8 +360,9 @@ status_t SampleTable::setCompositionTimeToSampleParams(
         return ERROR_IO;
     }
 
-    if (U32_AT(header) != 0) {
-        // Expected version = 0, flags = 0.
+    if (U32_AT(header) != 0 &&
+        U32_AT(header) != 0x01000000) { //version 1 (1 byte), flags (3 bytes)
+        // Expected version = 0 or 1, flags = 0.
         return ERROR_MALFORMED;
     }
 
@@ -502,7 +503,7 @@ void SampleTable::buildSampleEntriesTable() {
 
                 mSampleTimeEntries[sampleIndex].mSampleIndex = sampleIndex;
 
-                uint32_t compTimeDelta =
+                int32_t compTimeDelta = (int32_t)
                     mCompositionDeltaLookup->getCompositionTimeOffset(
                             sampleIndex);
 
@@ -814,5 +815,9 @@ uint32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
     return mCompositionDeltaLookup->getCompositionTimeOffset(sampleIndex);
 }
 
+uint32_t SampleTable::getNumSyncSamples()
+{
+    return mNumSyncSamples;
+}
 }  // namespace android
 

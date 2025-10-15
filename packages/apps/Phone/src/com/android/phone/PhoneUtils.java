@@ -65,6 +65,8 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 
+import android.preference.PreferenceManager;
+
 /**
  * Misc utilities for the Phone app.
  */
@@ -239,13 +241,16 @@ public class PhoneUtils {
         final PhoneApp app = PhoneApp.getInstance();
 
         // If the ringer is currently ringing and/or vibrating, stop it
-        // right now (before actually answering the call.)
-        app.getRinger().stopRing();
+        // right now and prevent new rings (before actually answering the call.)
+        app.notifier.silenceRinger();
 
         boolean answered = false;
         Phone phone = ringing.getPhone();
         boolean phoneIsCdma = (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA);
         BluetoothHandsfree bthf = null;
+
+        // enable noise suppression
+        turnOnNoiseSuppression(app.getApplicationContext(), true);
 
         if (phoneIsCdma) {
             // Stop any signalInfo tone being played when a Call waiting gets answered
@@ -351,6 +356,53 @@ public class PhoneUtils {
 
         return hungup;
     }
+
+    static Call getCurrentCall(Phone phone) {
+        Call ringing = phone.getRingingCall();
+        Call fg = phone.getForegroundCall();
+        Call bg = phone.getBackgroundCall();
+        if (!ringing.isIdle()) {
+            return ringing;
+        }
+        if (!fg.isIdle()) {
+            return fg;
+        }
+        if (!bg.isIdle()) {
+            return bg;
+        }
+        return fg;
+    }
+
+    static Connection getConnection(Phone phone, Call call) {
+        if (call == null) {
+            return null;
+        }
+
+        if (phone.getPhoneType() == Phone.PHONE_TYPE_CDMA) {
+            return call.getLatestConnection();
+        }
+
+        return call.getEarliestConnection();
+    }
+
+    static class PhoneSettings {
+        static boolean vibOn45Secs(Context context) {
+            return PreferenceManager.getDefaultSharedPreferences(context)
+                       .getBoolean("button_vibrate_45", false);
+        }
+        static boolean vibHangup(Context context) {
+            return PreferenceManager.getDefaultSharedPreferences(context)
+                       .getBoolean("button_vibrate_hangup", false);
+        }
+        static boolean vibOutgoing(Context context) {
+            return PreferenceManager.getDefaultSharedPreferences(context)
+                       .getBoolean("button_vibrate_outgoing", false);
+        }
+        static boolean vibCallWaiting(Context context) {
+            return PreferenceManager.getDefaultSharedPreferences(context)
+                       .getBoolean("button_vibrate_call_waiting", false);
+        }
+    };
 
     static boolean hangupRingingCall(Call ringing) {
         if (DBG) log("hangup ringing call");
@@ -943,7 +995,7 @@ public class PhoneUtils {
                 if (DBG) log("- using text from PENDING MMI message: '" + text + "'");
                 break;
             case CANCELLED:
-                text = context.getText(R.string.mmiCancelled);
+                text = null;
                 break;
             case COMPLETE:
                 if (app.getPUKEntryActivity() != null) {
@@ -1010,10 +1062,10 @@ public class PhoneUtils {
                     } catch (RemoteException e) {
                         mNwService = null;
                     }
-                    if (DBG) log("Extended NW displayMMIInitiate (" + text + ")");
-                    if (text == null || text.length() == 0)
-                        return;
                 }
+                if (DBG) log("Extended NW displayMMIInitiate (" + text + ")");
+                if (text == null || text.length() == 0)
+                    return;
 
                 // displaying system alert dialog on the screen instead of
                 // using another activity to display the message.  This
@@ -1760,8 +1812,7 @@ public class PhoneUtils {
         return audioManager.isSpeakerphoneOn();
     }
 
-
-    static void turnOnNoiseSuppression(Context context, boolean flag, boolean store) {
+    static void turnOnNoiseSuppression(Context context, boolean flag) {
         if (DBG) log("turnOnNoiseSuppression: " + flag);
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
 
@@ -1769,47 +1820,31 @@ public class PhoneUtils {
             return;
         }
 
-        if (flag) {
-            audioManager.setParameters("noise_suppression=auto");
+        int nsp = android.provider.Settings.System.getInt(context.getContentResolver(),
+                                                              android.provider.Settings.System.NOISE_SUPPRESSION,
+                                                              1);
+
+        String aParam = context.getResources().getString(R.string.in_call_noise_suppression_audioparameter);
+        String[] aPValues = aParam.split("=");
+
+        if(aPValues[0].length() == 0) {
+            aPValues[0] = "noise_suppression";
+        }
+
+        if(aPValues[1].length() == 0) {
+            aPValues[1] = "on";
+        }
+
+        if(aPValues[2].length() == 0) {
+            aPValues[2] = "off";
+        }
+
+        if (nsp == 1 && flag) {
+            if (DBG) log("turnOnNoiseSuppression: " + aPValues[0] + "=" + aPValues[1]);
+            audioManager.setParameters(aPValues[0] + "=" + aPValues[1]);
         } else {
-            audioManager.setParameters("noise_suppression=off");
-        }
-
-        // record the speaker-enable value
-        if (store) {
-            sIsNoiseSuppressionEnabled = flag;
-        }
-
-        // TODO: implement and manage ICON
-
-    }
-
-    static void restoreNoiseSuppression(Context context) {
-        if (DBG) log("restoreNoiseSuppression, restoring to: " + sIsNoiseSuppressionEnabled);
-
-        if (!context.getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
-            return;
-        }
-
-        // change the mode if needed.
-        if (isNoiseSuppressionOn(context) != sIsNoiseSuppressionEnabled) {
-            turnOnNoiseSuppression(context, sIsNoiseSuppressionEnabled, false);
-        }
-    }
-
-    static boolean isNoiseSuppressionOn(Context context) {
-
-        if (!context.getResources().getBoolean(R.bool.has_in_call_noise_suppression)) {
-            return false;
-        }
-
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        String noiseSuppression = audioManager.getParameters("noise_suppression");
-        if (DBG) log("isNoiseSuppressionOn: " + noiseSuppression);
-        if (noiseSuppression.contains("off")) {
-            return false;
-        } else {
-            return true;
+            if (DBG) log("turnOnNoiseSuppression: " + aPValues[0] + "=" + aPValues[2]);
+            audioManager.setParameters(aPValues[0] + "=" + aPValues[2]);
         }
     }
 

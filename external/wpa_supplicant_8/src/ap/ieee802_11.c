@@ -593,14 +593,26 @@ static u16 check_wmm(struct hostapd_data *hapd, struct sta_info *sta,
 {
 	sta->flags &= ~WLAN_STA_WMM;
 	if (wmm_ie && hapd->conf->wmm_enabled) {
-		if (hostapd_eid_wmm_valid(hapd, wmm_ie, wmm_ie_len))
+		struct wmm_information_element *wmm;
+		u8 qos_info;
+
+		if (hostapd_eid_wmm_valid(hapd, wmm_ie, wmm_ie_len)) {
 			hostapd_logger(hapd, sta->addr,
 				       HOSTAPD_MODULE_WPA,
 				       HOSTAPD_LEVEL_DEBUG,
 				       "invalid WMM element in association "
 				       "request");
-		else
-			sta->flags |= WLAN_STA_WMM;
+			return WLAN_STATUS_UNSPECIFIED_FAILURE;
+		}
+
+		sta->flags |= WLAN_STA_WMM;
+		wmm = (struct wmm_information_element *) wmm_ie;
+		qos_info = wmm->qos_info;
+		sta->uapsd_queues = qos_info & 0xf;
+		sta->max_sp = qos_info >> 5;
+
+		wpa_printf(MSG_DEBUG, "EPBUG: queues=0x%x, max_sp=%d",
+			   sta->uapsd_queues, sta->max_sp);
 	}
 	return WLAN_STATUS_SUCCESS;
 }
@@ -917,7 +929,14 @@ static void send_assoc_resp(struct hostapd_data *hapd, struct sta_info *sta,
 		p = hostapd_eid_wmm(hapd, p);
 
 #ifdef CONFIG_WPS
+#ifdef CONFIG_WPS2
+	/* WPS2 must have a WPS IE in the Assoc Resp
+	 * even if there's only a small chance that the STA
+	 * tries to connect using WPS */
+	if (sta->flags & (WLAN_STA_WPS | WLAN_STA_MAYBE_WPS)) {
+#else /* CONFIG_WPS2 */
 	if (sta->flags & WLAN_STA_WPS) {
+#endif /* CONFIG_WPS2 */
 		struct wpabuf *wps = wps_build_assoc_resp_ie();
 		if (wps) {
 			os_memcpy(p, wpabuf_head(wps), wpabuf_len(wps));
@@ -1536,6 +1555,10 @@ void ieee802_11_mgmt(struct hostapd_data *hapd, const u8 *buf, size_t len,
 		mgmt->bssid[4] == 0xff && mgmt->bssid[5] == 0xff;
 
 	if (!broadcast &&
+#ifdef CONFIG_P2P
+	    /* Invitation responses can be sent the responder MAC as BSSID */
+	    !(hapd->conf->p2p & P2P_GROUP_OWNER) &&
+#endif /* CONFIG_P2P */
 	    os_memcmp(mgmt->bssid, hapd->own_addr, ETH_ALEN) != 0) {
 		printf("MGMT: BSSID=" MACSTR " not our address\n",
 		       MAC2STR(mgmt->bssid));
@@ -1722,7 +1745,8 @@ static void handle_assoc_cb(struct hostapd_data *hapd,
 	if (hostapd_sta_add(hapd, sta->addr, sta->aid, sta->capability,
 			    sta->supported_rates, sta->supported_rates_len,
 			    sta->listen_interval,
-			    sta->flags & WLAN_STA_HT ? &ht_cap : NULL)) {
+			    sta->flags & WLAN_STA_HT ? &ht_cap : NULL,
+			    sta->flags, sta->uapsd_queues, sta->max_sp)) {
 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE80211,
 			       HOSTAPD_LEVEL_NOTICE,
 			       "Could not add STA to kernel driver");

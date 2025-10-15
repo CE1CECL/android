@@ -68,6 +68,9 @@ public:
         // Callback returns the number of bytes actually written to the buffer.
         typedef size_t (*AudioCallback)(
                 AudioSink *audioSink, void *buffer, size_t size, void *cookie);
+#ifdef STE_HARDWARE
+        typedef void (*LatencyCallback)(uint32_t latency, void *cookie);
+#endif
 
         virtual             ~AudioSink() {}
         virtual bool        ready() const = 0; // audio output is open and ready
@@ -88,14 +91,33 @@ public:
                 int format=AUDIO_FORMAT_PCM_16_BIT,
                 int bufferCount=DEFAULT_AUDIOSINK_BUFFERCOUNT,
                 AudioCallback cb = NULL,
+#ifdef STE_HARDWARE
+                void *cookie = NULL,
+                LatencyCallback latencyCb = NULL) = 0;
+#else
                 void *cookie = NULL) = 0;
+#endif
+
+#ifdef WITH_QCOM_LPA
+        // API to open a routing session for tunneled audio playback
+        virtual status_t        openSession(
+                int format, int sessionId, uint32_t sampleRate = 44100, int channels = 2) {return 0;};
+#endif
 
         virtual void        start() = 0;
         virtual ssize_t     write(const void* buffer, size_t size) = 0;
         virtual void        stop() = 0;
         virtual void        flush() = 0;
         virtual void        pause() = 0;
+#ifdef WITH_QCOM_LPA
+        virtual void        pauseSession() {return;};
+        virtual void        resumeSession() {return;};
+#endif
         virtual void        close() = 0;
+#ifdef WITH_QCOM_LPA
+        virtual void        closeSession() {return;};
+        virtual int         getAudioStreamType() {return 0;};
+#endif
     };
 
                         MediaPlayerBase() : mCookie(0), mNotify(0) {}

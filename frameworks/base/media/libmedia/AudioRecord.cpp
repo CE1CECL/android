@@ -81,7 +81,17 @@ status_t AudioRecord::getMinFrameCount(
 
 AudioRecord::AudioRecord()
     : mStatus(NO_INIT), mSessionId(0)
+#ifdef STE_AUDIO
+      , mpInputClientId(NULL)
+#endif
 {
+#ifdef STE_AUDIO
+    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+    if (audioFlinger != 0) {
+        mpInputClientId = (audio_input_clients*)audioFlinger->addInputClient(
+                                                 (uint32_t)AUDIO_INPUT_CLIENT_RECORD);
+    }
+#endif
 }
 
 AudioRecord::AudioRecord(
@@ -96,10 +106,53 @@ AudioRecord::AudioRecord(
         int notificationFrames,
         int sessionId)
     : mStatus(NO_INIT), mSessionId(0)
+#ifdef STE_AUDIO
+      , mpInputClientId(NULL)
+#endif
 {
+#ifdef STE_AUDIO
+    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+    if (audioFlinger != 0) {
+        mpInputClientId = (audio_input_clients*)audioFlinger->addInputClient(
+                                                 (uint32_t)AUDIO_INPUT_CLIENT_RECORD);
+    }
+#endif
+
     mStatus = set(inputSource, sampleRate, format, channelMask,
             frameCount, flags, cbf, user, notificationFrames, sessionId);
 }
+
+#ifdef USE_KINETO_COMPATIBILITY
+// Really dirty hack to give a Froyo-compatible constructor
+extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t cbf,
+        void* user,
+        int notificationFrames,
+        int sessionId);
+extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i(
+        AudioRecord *This,
+        int inputSource,
+        uint32_t sampleRate,
+        int format,
+        uint32_t channels,
+        int frameCount,
+        uint32_t flags,
+        AudioRecord::callback_t cbf,
+        void* user,
+        int notificationFrames)
+{
+    return _ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii(This,
+        inputSource, sampleRate, format, channels,
+        frameCount, flags, cbf, user, notificationFrames, 0);
+}
+#endif
 
 AudioRecord::~AudioRecord()
 {
@@ -116,6 +169,12 @@ AudioRecord::~AudioRecord()
         IPCThreadState::self()->flushCommands();
         AudioSystem::releaseAudioSessionId(mSessionId);
     }
+#ifdef STE_AUDIO
+    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+    if (audioFlinger != 0) {
+        audioFlinger->removeInputClient((uint32_t*)mpInputClientId);
+    }
+#endif
 }
 
 status_t AudioRecord::set(
@@ -175,7 +234,12 @@ status_t AudioRecord::set(
                                                     format,
                                                     channelMask,
                                                     (audio_in_acoustics_t)flags,
+#ifdef STE_AUDIO
+                                                    mSessionId,
+                                                    mpInputClientId);
+#else
                                                     mSessionId);
+#endif
     if (input == 0) {
         LOGE("Could not get audio input for record source %d", inputSource);
         return BAD_VALUE;

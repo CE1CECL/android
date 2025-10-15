@@ -16,8 +16,6 @@
 
 package com.android.camera;
 
-import com.android.camera.ui.PopupManager;
-
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.content.Context;
@@ -27,6 +25,9 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.WindowManager;
+
+import com.android.camera.ui.PopupManager;
 
 /**
  * Superclass of Camera and VideoCamera activities.
@@ -38,6 +39,7 @@ abstract public class ActivityBase extends Activity {
     private boolean mOnResumePending;
     private Intent mResultDataForTesting;
     protected Camera mCameraDevice;
+    protected int mCaptureMode;
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -56,6 +58,30 @@ abstract public class ActivityBase extends Activity {
         if (hasFocus && mOnResumePending) {
             doOnResume();
             mOnResumePending = false;
+        }
+    }
+
+    protected boolean powerShutter(ComboPreferences prefs) {
+        prefs.setLocalId(getApplicationContext(), 0);
+        String val = prefs.getString(CameraSettings.KEY_POWER_SHUTTER,
+                getResources().getString(R.string.pref_camera_power_shutter_default));
+        if (val.equals(CameraSettings.VALUE_ON)){
+            getWindow().addFlags(WindowManager.LayoutParams.PREVENT_POWER_KEY);
+            return true;
+        }else{
+            getWindow().clearFlags(WindowManager.LayoutParams.PREVENT_POWER_KEY);
+            return false;
+        }
+    }
+
+    protected boolean focusSound(ComboPreferences prefs) {
+        prefs.setLocalId(getApplicationContext(), 0);
+        String val = prefs.getString(CameraSettings.KEY_FOCUS_SOUND,
+                getResources().getString(R.string.pref_camera_focus_sound_default));
+        if (val.equals(CameraSettings.VALUE_ON)){
+            return true;
+        }else{
+            return false;
         }
     }
 

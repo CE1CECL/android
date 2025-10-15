@@ -54,6 +54,18 @@ status_t AudioTrack::getMinFrameCount(
         int streamType,
         uint32_t sampleRate)
 {
+#ifdef QCOM_HARDWARE
+    if(streamType == AUDIO_STREAM_VOICE_CALL) {
+        LOGV("AudioTrack :: getMinFramecount voice call \n");
+        if(sampleRate == 8000) {
+            *frameCount = 160;
+        } else if (sampleRate == 16000) {
+            *frameCount = 320;
+        }
+        return NO_ERROR;
+    }
+#endif
+
     int afSampleRate;
     if (AudioSystem::getOutputSamplingRate(&afSampleRate, streamType) != NO_ERROR) {
         return NO_INIT;
@@ -66,7 +78,6 @@ status_t AudioTrack::getMinFrameCount(
     if (AudioSystem::getOutputLatency(&afLatency, streamType) != NO_ERROR) {
         return NO_INIT;
     }
-
     // Ensure that buffer depth covers at least audio hardware latency
     uint32_t minBufCount = afLatency / ((1000 * afFrameCount) / afSampleRate);
     if (minBufCount < 2) minBufCount = 2;
@@ -77,6 +88,38 @@ status_t AudioTrack::getMinFrameCount(
 }
 
 // ---------------------------------------------------------------------------
+
+#ifdef USE_KINETO_COMPATIBILITY
+// Really dirty hack to give a Froyo-compatible constructor
+extern "C" AudioTrack *_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii(
+        AudioTrack *This,
+        int streamType,
+        uint32_t sampleRate,
+        int format,
+        int channels,
+        int frameCount,
+        uint32_t flags,
+        AudioTrack::callback_t cbf,
+        void* user,
+        int notificationFrames,
+        int sessionId);
+extern "C" AudioTrack *_ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_i(
+        AudioTrack *This,
+        int streamType,
+        uint32_t sampleRate,
+        int format,
+        int channels,
+        int frameCount,
+        uint32_t flags,
+        AudioTrack::callback_t cbf,
+        void* user,
+        int notificationFrames)
+{
+    return _ZN7android10AudioTrackC1EijiiijPFviPvS1_ES1_ii(This,
+        streamType, sampleRate, format, channels,
+        frameCount, flags, cbf, user, notificationFrames, 0);
+}
+#endif
 
 AudioTrack::AudioTrack()
     : mStatus(NO_INIT)
@@ -118,7 +161,20 @@ AudioTrack::AudioTrack(
             0, flags, cbf, user, notificationFrames,
             sharedBuffer, false, sessionId);
 }
-
+#ifdef WITH_QCOM_LPA
+AudioTrack::AudioTrack(
+        int streamType,
+        uint32_t sampleRate,
+        int format,
+        int channels,
+        uint32_t flags,
+        int sessionId,
+        int lpaSessionId)
+    : mStatus(NO_INIT), mAudioSession(-1)
+{
+    mStatus = set(streamType, sampleRate, format, channels, flags, sessionId, lpaSessionId);
+}
+#endif
 AudioTrack::~AudioTrack()
 {
     LOGV_IF(mSharedBuffer != 0, "Destructor sharedBuffer: %p", mSharedBuffer->pointer());
@@ -132,10 +188,35 @@ AudioTrack::~AudioTrack()
             mAudioTrackThread->requestExitAndWait();
             mAudioTrackThread.clear();
         }
+#ifndef WITH_QCOM_LPA
         mAudioTrack.clear();
+#else
+        if(mAudioTrack != NULL) {
+            mAudioTrack.clear();
+            AudioSystem::releaseAudioSessionId(mSessionId);
+        }
+        if(mAudioSession >= 0) {
+            const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+            if (audioFlinger != 0) {
+                status_t status;
+                LOGV("Calling AudioFlinger::deleteSession");
+                audioFlinger->deleteSession();
+            } else {
+                LOGE("Could not get audioflinger");
+            }
+
+            AudioSystem::closeSession(mAudioSession);
+            mAudioSession = -1;
+        }
+#endif
         IPCThreadState::self()->flushCommands();
+#ifndef WITH_QCOM_LPA
         AudioSystem::releaseAudioSessionId(mSessionId);
+#endif
     }
+#ifdef STE_HARDWARE
+    AudioSystem::unregisterLatencyNotificationClient(mLatencyClientId);
+#endif
 }
 
 status_t AudioTrack::set(
@@ -261,11 +342,101 @@ status_t AudioTrack::set(
     mUpdatePeriod = 0;
     mFlushed = false;
     mFlags = flags;
+#ifdef WITH_QCOM_LPA
+    mAudioSession = -1;
+#endif
     AudioSystem::acquireAudioSessionId(mSessionId);
     mRestoreStatus = NO_ERROR;
+#ifdef STE_HARDWARE
+    mLatencyClientId = AudioSystem::registerLatencyNotificationClient(
+                                    &AudioTrack::LatencyCallbackWrapper, this);
+#endif
     return NO_ERROR;
 }
 
+#ifdef WITH_QCOM_LPA
+status_t AudioTrack::set(
+        int streamType,
+        uint32_t sampleRate,
+        int format,
+        int channels,
+        uint32_t flags,
+        int sessionId,
+        int lpaSessionId)
+{
+
+    // handle default values first.
+    if (streamType == AUDIO_STREAM_DEFAULT) {
+        streamType = AUDIO_STREAM_MUSIC;
+    }
+    // these below should probably come from the audioFlinger too...
+    if (format == 0) {
+        format = AUDIO_FORMAT_PCM_16_BIT;
+    }
+    // validate parameters
+    if (!audio_is_valid_format(format)) {
+        LOGE("Invalid format");
+        return BAD_VALUE;
+    }
+    // force direct flag if format is not linear PCM
+    if (!audio_is_linear_pcm(format)) {
+        flags |= AUDIO_POLICY_OUTPUT_FLAG_DIRECT;
+    }
+
+    audio_io_handle_t output = AudioSystem::getSession((audio_stream_type_t)streamType,
+            format, (audio_policy_output_flags_t)flags, lpaSessionId);
+
+    if (output == 0) {
+        LOGE("Could not get audio output for stream type %d", streamType);
+        return BAD_VALUE;
+    }
+    mVolume[LEFT] = 1.0f;
+    mVolume[RIGHT] = 1.0f;
+    mStatus = NO_ERROR;
+    mStreamType = streamType;
+    mFormat = format;
+    mChannelCount = 2;
+    mSharedBuffer = NULL;
+    mMuted = false;
+    mActive = 0;
+    mCbf = NULL;
+    mNotificationFramesReq = 0;
+    mRemainingFrames = 0;
+    mUserData = NULL;
+    mLatency = 0;
+    mLoopCount = 0;
+    mMarkerPosition = 0;
+    mMarkerReached = false;
+    mNewPosition = 0;
+    mUpdatePeriod = 0;
+    mFlags = flags;
+    mAudioTrack = NULL;
+    mAudioSession = output;
+
+    mSessionId = sessionId;
+    mAuxEffectId = 0;
+
+    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+    if (audioFlinger == 0) {
+       LOGE("Could not get audioflinger");
+       return NO_INIT;
+    }
+    status_t status;
+    audioFlinger->createSession(getpid(),
+                                sampleRate,
+                                channels,
+                                &mSessionId,
+                                &status);
+    if(status != NO_ERROR) {
+        LOGE("createSession returned with status %d", status);
+    }
+    /* Make the track active and start output */
+    android_atomic_or(1, &mActive);
+    AudioSystem::startOutput(output, (audio_stream_type_t)mStreamType);
+    LOGV("AudioTrack::set() - Started output(%d)",output);
+    return NO_ERROR;
+}
+#endif
 status_t AudioTrack::initCheck() const
 {
     return mStatus;
@@ -316,6 +487,16 @@ sp<IMemory>& AudioTrack::sharedBuffer()
 
 void AudioTrack::start()
 {
+#ifdef WITH_QCOM_LPA
+    if ( mAudioSession != -1  ) {
+        if ( NO_ERROR != AudioSystem::resumeSession(mAudioSession,
+                                   (audio_stream_type_t)mStreamType) )
+        {
+            LOGE("ResumeSession failed");
+        }
+        return;
+    }
+#endif
     sp<AudioTrackThread> t = mAudioTrackThread;
     status_t status = NO_ERROR;
 
@@ -391,25 +572,31 @@ void AudioTrack::stop()
 
     AutoMutex lock(mLock);
     if (mActive == 1) {
-        mActive = 0;
-        mCblk->cv.signal();
-        mAudioTrack->stop();
-        // Cancel loops (If we are in the middle of a loop, playback
-        // would not stop until loopCount reaches 0).
-        setLoop_l(0, 0, 0);
-        // the playback head position will reset to 0, so if a marker is set, we need
-        // to activate it again
-        mMarkerReached = false;
-        // Force flush if a shared buffer is used otherwise audioflinger
-        // will not stop before end of buffer is reached.
-        if (mSharedBuffer != 0) {
-            flush_l();
+#ifdef WITH_QCOM_LPA
+        if (mAudioTrack != NULL) {
+#endif
+            mActive = 0;
+            mCblk->cv.signal();
+            mAudioTrack->stop();
+            // Cancel loops (If we are in the middle of a loop, playback
+            // would not stop until loopCount reaches 0).
+            setLoop_l(0, 0, 0);
+            // the playback head position will reset to 0, so if a marker is set, we need
+            // to activate it again
+            mMarkerReached = false;
+            // Force flush if a shared buffer is used otherwise audioflinger
+            // will not stop before end of buffer is reached.
+            if (mSharedBuffer != 0) {
+                flush_l();
+            }
+            if (t != 0) {
+                t->requestExit();
+            } else {
+                setpriority(PRIO_PROCESS, 0, ANDROID_PRIORITY_NORMAL);
+            }
+#ifdef WITH_QCOM_LPA
         }
-        if (t != 0) {
-            t->requestExit();
-        } else {
-            setpriority(PRIO_PROCESS, 0, ANDROID_PRIORITY_NORMAL);
-        }
+#endif
     }
 
     if (t != 0) {
@@ -450,6 +637,16 @@ void AudioTrack::flush_l()
 void AudioTrack::pause()
 {
     LOGV("pause");
+#ifdef WITH_QCOM_LPA
+    if ( mAudioSession != -1 ) {
+        if ( NO_ERROR != AudioSystem::pauseSession(mAudioSession,
+                                  (audio_stream_type_t)mStreamType) )
+        {
+            LOGE("PauseSession failed");
+        }
+        return;
+    }
+#endif
     AutoMutex lock(mLock);
     if (mActive == 1) {
         mActive = 0;
@@ -475,6 +672,16 @@ status_t AudioTrack::setVolume(float left, float right)
     }
 
     AutoMutex lock(mLock);
+
+#ifdef WITH_QCOM_LPA
+    if(mAudioSession != -1) {
+        // LPA output
+        const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
+        status_t status = audioFlinger->setSessionVolume(mStreamType, left, right);
+        return NO_ERROR;
+    }
+#endif
+
     mVolume[LEFT] = left;
     mVolume[RIGHT] = right;
 
@@ -1277,6 +1484,30 @@ status_t AudioTrack::dump(int fd, const Vector<String16>& args) const
     ::write(fd, result.string(), result.size());
     return NO_ERROR;
 }
+
+#ifdef STE_HARDWARE
+// static
+void AudioTrack::LatencyCallbackWrapper(void *cookie, audio_io_handle_t output, uint32_t latency)
+{
+    static_cast<AudioTrack *>(cookie)->latencyCallback(output, latency);
+}
+
+void AudioTrack::latencyCallback(audio_io_handle_t output, uint32_t latency)
+{
+    audio_io_handle_t myOutput = getOutput();
+    if (output != myOutput) {
+        return;
+    }
+
+    uint32_t oldLatency = mLatency;
+    mLatency = latency + (1000*mCblk->frameCount) / mCblk->sampleRate;
+    LOGV("new latency for output %d (old latency %d, new latency %d)", output, oldLatency, mLatency);
+
+    if (mCbf != NULL) {
+        mCbf(EVENT_LATENCY_CHANGED, mUserData, &mLatency);
+    }
+}
+#endif
 
 // =========================================================================
 

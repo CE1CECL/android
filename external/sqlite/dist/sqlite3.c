@@ -26,8 +26,6 @@
 # define SQLITE_API
 #endif
 // Begin Android Add
-#define fdatasync fsync
-#undef __APPLE__
 // End Android Add
 /************** Begin file sqliteInt.h ***************************************/
 /*
@@ -25886,7 +25884,7 @@ SQLITE_API int sqlite3_fullsync_count = 0;
 ** If you know that your system does support fdatasync() correctly,
 ** then simply compile with -Dfdatasync=fdatasync
 */
-#if !defined(fdatasync) && !defined(__linux__)
+#if !defined(fdatasync) 
 # define fdatasync fsync
 #endif
 

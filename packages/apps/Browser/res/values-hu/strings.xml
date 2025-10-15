@@ -266,8 +266,10 @@
     <string name="pref_accessibility_title" msgid="5127836981587423215">"Kisegítő lehetőségek"</string>
     <string name="pref_font_size_category" msgid="6683754355084218254">"Szöveg mérete"</string>
     <string name="pref_lab_title" msgid="5571091610359629423">"Labs"</string>
-    <string name="pref_lab_quick_controls" msgid="3267606522082281367">"Gyorsbeállítások"</string>
-    <string name="pref_lab_quick_controls_summary" msgid="3149664132600968775">"Csúsztassa hüvelykujját a bal vagy jobb oldalra a gyorsbeállítások megnyitásához, és az alkalmazás- és URL-sávok elrejtéséhez"</string>
+    <string name="pref_lab_quick_controls" msgid="3267606522082281367">"Gyorsgombok"</string>
+    <string name="pref_lab_quick_controls_summary" msgid="3149664132600968775">"Csúsztassa hüvelykujját a bal vagy jobb oldalra a gyorsgombok megnyitásához, az alkalmazás- és URL-sávok elrejtéséhez"</string>
+    <string name="pref_lab_quick_controls_ext">Kiterjesztett gyorsgombok</string>
+    <string name="pref_lab_quick_controls_ext_summary">Használjon még több gyorsgombot</string>
     <string name="pref_use_instant_search" msgid="1119176077760723740">"Google Instant"</string>
     <string name="pref_use_instant_search_summary" msgid="839320474961917522">"A Google-keresésnél használja a Google Instantot, és a találatok gépelés közben megjelennek (az adatforgalom nőhet)."</string>
     <string name="pref_lab_fullscreen" msgid="8173609016657987973">"Teljes képernyő"</string>
@@ -380,9 +382,18 @@
     <string name="accessibility_button_clear" msgid="6943152307986161598">"Beírt szöveg törlése"</string>
     <string name="accessibility_button_uaswitch" msgid="6286804719724282339">"Felhasználói ügynök váltása"</string>
     <string name="accessibility_button_go" msgid="1182818872083055958">"Mehet"</string>
+    <string name="accessibility_button_homepage">Kezdőlap</string>
     <string name="accessibility_button_navscreen" msgid="9142904748728713075">"Oldalkezelő"</string>
     <string name="accessibility_button_more" msgid="3054251446394224216">"További beállítások"</string>
     <string name="accessibility_state_incognito" msgid="5786038488425202355">"Inkognitóoldal"</string>
     <string name="accessibility_state_frozen" msgid="8041539250447035570">"Mentett oldal"</string>
     <string name="accessibility_transition_navscreen" msgid="2734915619351519547">"Lapkezelés"</string>
+
+<!-- 20120502 -->
+
+    <string name="contextmenu_openlink_incognito_newwindow">Megnyitás új lapfülön, inkognitó módban</string>
+    <string name="contextmenu_openlink_incognito_newwindow_background">Megnyitás új lapfülön, inkognitó módban (háttérben)</string>
+    <string name="pref_content_uastring">Böngészőazonosító</string>
+    <string name="pref_content_uastring_summary">Válasszon böngészőazonosítót az oldal lekéréséhez</string>
+
 </resources>

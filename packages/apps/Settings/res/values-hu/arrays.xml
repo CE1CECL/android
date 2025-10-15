@@ -82,9 +82,9 @@
   <string-array name="wifi_status">
     <item msgid="1922181315419294640"></item>
     <item msgid="8934131797783724664">"Keresés..."</item>
-    <item msgid="8513729475867537913">"Kapcsolódás…"</item>
+    <item msgid="8513729475867537913">"Kapcsolódás..."</item>
     <item msgid="515055375277271756">"Hitelesítés..."</item>
-    <item msgid="1943354004029184381">"IP-cím lekérése..."</item>
+    <item msgid="1943354004029184381">"IP cím lekérése..."</item>
     <item msgid="4221763391123233270">"Csatlakozva"</item>
     <item msgid="624838831631122137">"Felfüggesztve"</item>
     <item msgid="7979680559596111948">"Kapcsolat bontása..."</item>
@@ -208,8 +208,17 @@
   </string-array>
   <string-array name="app_install_location_entries">
     <item msgid="8151497958991952759">"Belső tárhely"</item>
-    <item msgid="3738430123799803530">"Eltávolítható SD-kártya"</item>
+    <item msgid="3738430123799803530">"Külső SD kártya"</item>
     <item msgid="4498124044785815005">"Döntse el a rendszer"</item>
+  </string-array>
+
+  <!-- New 20120411 -->
+  <!-- Volume Overlay options. -->
+  <string-array name="volume_overlay_entries">
+    <item>Egyszerű</item>
+    <item>Kiterjeszthető</item>
+    <item>Kiterjesztett</item>
+    <item>Nincs</item>
   </string-array>
   <string-array name="silent_mode_entries">
     <item msgid="783505504936446770">"Ki"</item>
@@ -222,8 +231,8 @@
     <item msgid="2372711992605524591">"Hosszú"</item>
   </string-array>
   <string-array name="hdcp_checking_titles">
-    <item msgid="441827799230089869">"Ellenőrzés soha"</item>
-    <item msgid="6042769699089883931">"Csak DRM-tartalom ellenőrzése"</item>
+    <item msgid="441827799230089869">"Nincs ellenőrzés"</item>
+    <item msgid="6042769699089883931">"Csak DRM tartalom ellenőrzése"</item>
     <item msgid="9174900380056846820">"Ellenőrzés mindig"</item>
   </string-array>
   <string-array name="hdcp_checking_summaries">
@@ -262,8 +271,8 @@
     <item msgid="3799752201662127867">"L2TP/IPSec VPN megosztott kulcsokkal"</item>
     <item msgid="4725504331295252103">"L2TP/IPSec VPN-tanúsítványokkal"</item>
     <item msgid="7526551163264034377">"IPSec VPN előre megosztott kulcsokkal és Xauth azonosítás"</item>
-    <item msgid="8064740940687465039">"IPSec VPN-tanúsítványokkal és Xauth azonosítás"</item>
-    <item msgid="4946199982372391490">"IPSec VPN-tanúsítványokkal és hibrid azonosítás"</item>
+    <item msgid="8064740940687465039">"IPSec VPN tanúsítványokkal és Xauth azonosítás"</item>
+    <item msgid="4946199982372391490">"IPSec VPN tanúsítványokkal és hibrid azonosítás"</item>
   </string-array>
   <string-array name="vpn_states">
     <item msgid="8621078286418985762">"Szétkapcsolva"</item>
@@ -273,4 +282,98 @@
     <item msgid="4042143101664725090">"Időtúllépés"</item>
     <item msgid="7664124146786465092">"Sikertelen"</item>
   </string-array>
+
+  <!-- New 20120411 -->
+  <!-- **** CYANOGENMOD EDITS START **** -->
+  <!-- Arrays required by Automatic Backlight. -->
+  <string-array name="entries_light_filter_window">
+    <item>2 másodperc</item>
+    <item>5 másodperc</item>
+    <item>10 másodperc</item>
+    <item>20 másodperc</item>
+    <item>30 másodperc</item>
+    <item>60 másodperc</item>
+    </string-array>
+  <string-array name="entries_light_filter_reset">
+    <item>Letiltva</item>
+    <item>400 lux</item>
+    <item>500 lux</item>
+    <item>600 lux</item>
+    <item>700 lux</item>
+    <item>800 lux</item>
+    <item>900 lux</item>
+    <item>1000 lux</item>
+    <item>1500 lux</item>
+    <item>2000 lux</item>
+     <item>2500 lux</item>
+  </string-array>
+  <string-array name="entries_light_filter_interval">
+    <item>0.5 másodperc</item>
+    <item>1 másodperc</item>
+    <item>2 másodperc</item>
+    <item>5 másodperc</item>
+    <item>10 másodperc</item>
+  </string-array>
+  <string-array name="entries_network_widget">
+    <item>2G/3G+2G</item>
+    <item>2G/3G</item>
+    <item>2G/3G/3G+2G</item>
+  </string-array>
+  <string-array name="entries_screentimeout_widget">
+    <item>15m/1p/5p</item>
+    <item>30m/2p/5p</item>
+  </string-array>
+  <string-array name="entries_flash_widget">
+    <item>Normál</item>
+    <item>Magas</item>
+  </string-array>
+  <string-array name="haptic_feedback_entries">
+    <item>Alapértelmezett</item>
+    <item>Be</item>
+    <item>Ki</item>
+  </string-array>
+  <string-array name="pref_zram_size_entries">
+    <item>Letiltva</item>
+    <item>10%</item>
+    <item>18% (alapértelmezett)</item>
+    <item>26%</item>
+  </string-array>
+  <string-array name="entries_status_bar_am_pm">
+    <item>Normál</item>
+    <item>Kicsi</item>
+    <item>Nincs (alapértelmezett)</item>
+  </string-array>
+  <string-array name="entries_status_bar_battery">
+    <item>Ikon (alapértelmezett)</item>
+    <item>Százalék</item>
+    <item>Rejtett</item>
+  </string-array>
+  <string-array name="lockscreen_delay_entries">
+    <item>Azonnal</item>
+    <item>1 másodperc</item>
+    <item>5 másodperc</item>
+    <item>10 másodperc</item>
+    <item>15 másodperc</item>
+    <item>30 másodperc</item>
+    <item>1 perc</item>
+    <item>5 perc</item>
+    <item>10 perc</item>
+    <item>30 perc</item>
+  </string-array>
+  <!-- Profile mode options. -->
+  <string-array name="profile_entries">
+    <item>Bekapcsolva</item>
+    <item>Kikapcsolva</item>
+    <item>Alapértelmezett</item>
+  </string-array>
+  <!-- Profile mode options. -->
+  <string-array name="profile_connection_entries">
+    <item>Letiltva</item>
+    <item>Engedélyezve</item>
+  </string-array>
+  <string-array name="location_entries_gps_source">
+    <item>Használja a beépített GPS-t</item>
+  </string-array>
+
+  <!-- **** CYANOGENMOD EDITS END **** -->
 </resources>

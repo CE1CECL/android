@@ -35,6 +35,9 @@
 
 #include <sdpd.h>
 #include <bluetooth/sdp_lib.h>
+#ifdef STE_BT
+#include <sdp-client.h>
+#endif
 #include <glib-helper.h>
 
 #include <btio.h>

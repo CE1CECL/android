@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2008-2012, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,14 +62,21 @@ enum audio_source {
     AUDIO_SOURCE_CAMCORDER = 5,
     AUDIO_SOURCE_VOICE_RECOGNITION = 6,
     AUDIO_SOURCE_VOICE_COMMUNICATION = 7,
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+    AUDIO_SOURCE_FM_RX = 8,
+    AUDIO_SOURCE_FM_RX_A2DP = 9,
+#endif
+#ifdef STE_FM
+    AUDIO_SOURCE_FM_RADIO_RX = 8,
+    AUDIO_SOURCE_MAX = AUDIO_SOURCE_FM_RADIO_RX,
+#else
     AUDIO_SOURCE_MAX = AUDIO_SOURCE_VOICE_COMMUNICATION,
-
+#endif
     AUDIO_SOURCE_LIST_END  // must be last - used to validate audio source type
 };
 
 class AudioSystem {
 public:
-#if 1
     enum stream_type {
         DEFAULT          =-1,
         VOICE_CALL       = 0,
@@ -81,6 +89,9 @@ public:
         ENFORCED_AUDIBLE = 7, // Sounds that cannot be muted by user and must be routed to speaker
         DTMF             = 8,
         TTS              = 9,
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+        FM               = 10,
+#endif
         NUM_STREAM_TYPES
     };
 
@@ -241,17 +252,52 @@ public:
         DEVICE_OUT_AUX_DIGITAL = 0x400,
         DEVICE_OUT_ANLG_DOCK_HEADSET = 0x800,
         DEVICE_OUT_DGTL_DOCK_HEADSET = 0x1000,
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+        DEVICE_OUT_FM = 0x2000,
+        DEVICE_OUT_ANC_HEADSET = 0x4000,
+        DEVICE_OUT_ANC_HEADPHONE = 0x8000,
+        DEVICE_OUT_FM_TX = 0x10000,
+        DEVICE_OUT_DIRECTOUTPUT = 0x20000,
+        DEVICE_OUT_PROXY = 0x40000,
+        DEVICE_OUT_DEFAULT = 0x80000,
+#else
+#if defined(STE_FM)
+        DEVICE_OUT_FM = 0x2000,
+        DEVICE_OUT_FM_TX = 0x10000,
+#endif
         DEVICE_OUT_DEFAULT = 0x8000,
+#endif
         DEVICE_OUT_ALL = (DEVICE_OUT_EARPIECE | DEVICE_OUT_SPEAKER | DEVICE_OUT_WIRED_HEADSET |
                 DEVICE_OUT_WIRED_HEADPHONE | DEVICE_OUT_BLUETOOTH_SCO | DEVICE_OUT_BLUETOOTH_SCO_HEADSET |
                 DEVICE_OUT_BLUETOOTH_SCO_CARKIT | DEVICE_OUT_BLUETOOTH_A2DP | DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
                 DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER | DEVICE_OUT_AUX_DIGITAL |
                 DEVICE_OUT_ANLG_DOCK_HEADSET | DEVICE_OUT_DGTL_DOCK_HEADSET |
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+                DEVICE_OUT_ANC_HEADSET | DEVICE_OUT_ANC_HEADPHONE |
+                DEVICE_OUT_FM | DEVICE_OUT_FM_TX | DEVICE_OUT_DIRECTOUTPUT |
+                DEVICE_OUT_PROXY |
+#endif
+#if defined(STE_FM)
+                DEVICE_OUT_FM | DEVICE_OUT_FM_TX |
+#endif
                 DEVICE_OUT_DEFAULT),
         DEVICE_OUT_ALL_A2DP = (DEVICE_OUT_BLUETOOTH_A2DP | DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
                 DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER),
 
         // input devices
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+        DEVICE_IN_COMMUNICATION = 0x100000,
+        DEVICE_IN_AMBIENT = 0x200000,
+        DEVICE_IN_BUILTIN_MIC = 0x400000,
+        DEVICE_IN_BLUETOOTH_SCO_HEADSET = 0x800000,
+        DEVICE_IN_WIRED_HEADSET = 0x1000000,
+        DEVICE_IN_AUX_DIGITAL = 0x2000000,
+        DEVICE_IN_VOICE_CALL = 0x4000000,
+        DEVICE_IN_BACK_MIC = 0x8000000,
+        DEVICE_IN_ANC_HEADSET = 0x10000000,
+        DEVICE_IN_FM_RX = 0x20000000,
+        DEVICE_IN_FM_RX_A2DP = 0x40000000,
+#else
         DEVICE_IN_COMMUNICATION = 0x10000,
         DEVICE_IN_AMBIENT = 0x20000,
         DEVICE_IN_BUILTIN_MIC = 0x40000,
@@ -260,11 +306,22 @@ public:
         DEVICE_IN_AUX_DIGITAL = 0x200000,
         DEVICE_IN_VOICE_CALL = 0x400000,
         DEVICE_IN_BACK_MIC = 0x800000,
+#ifdef STE_FM
+        DEVICE_IN_FM_RADIO_RX = 0x1000000,
+#endif
+#endif
         DEVICE_IN_DEFAULT = 0x80000000,
 
         DEVICE_IN_ALL = (DEVICE_IN_COMMUNICATION | DEVICE_IN_AMBIENT | DEVICE_IN_BUILTIN_MIC |
                 DEVICE_IN_BLUETOOTH_SCO_HEADSET | DEVICE_IN_WIRED_HEADSET | DEVICE_IN_AUX_DIGITAL |
-                DEVICE_IN_VOICE_CALL | DEVICE_IN_BACK_MIC | DEVICE_IN_DEFAULT)
+                DEVICE_IN_VOICE_CALL | DEVICE_IN_BACK_MIC |
+#if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
+                DEVICE_IN_ANC_HEADSET | DEVICE_IN_FM_RX | DEVICE_IN_FM_RX_A2DP |
+#endif
+#ifdef STE_FM
+                DEVICE_IN_FM_RADIO_RX |
+#endif
+                DEVICE_IN_DEFAULT)
     };
 
     // request to open a direct output with getOutput() (by opposition to sharing an output with other AudioTracks)
@@ -298,6 +355,18 @@ public:
         NUM_FORCE_USE
     };
 
+#ifdef STE_AUDIO
+#define AUDIO_INPUT_CLIENT_ID_BASE AUDIO_INPUT_CLIENT_ID1
+
+    enum audio_input_clients {
+        AUDIO_INPUT_CLIENT_ID1 = 0x1,
+        AUDIO_INPUT_CLIENT_ID2 = 0x2,
+        AUDIO_INPUT_CLIENT_ID3 = 0x3,
+        AUDIO_INPUT_CLIENT_ID4 = 0x4,
+        AUDIO_INPUT_CLIENT_PLAYBACK = 0x80000000,
+        AUDIO_INPUT_CLIENT_RECORD = 0x80000001
+    };
+#endif
     //
     // AudioPolicyService interface
     //
@@ -309,13 +378,10 @@ public:
         NUM_DEVICE_STATES
     };
 
-#endif
-
     static uint32_t popCount(uint32_t u) {
         return popcount(u);
     }
 
-#if 1
     static bool isOutputDevice(audio_devices device) {
         return audio_is_output_device((audio_devices_t)device);
     }
@@ -344,7 +410,6 @@ public:
         return audio_is_input_channel(channel);
     }
 
-#endif
 };
 
 };  // namespace android

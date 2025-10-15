@@ -23,13 +23,38 @@
 #include <ctype.h>
 
 #include "mtdutils/mtdutils.h"
-#include "mtdutils/mounts.h"
+#include "mounts.h"
 #include "roots.h"
 #include "common.h"
 #include "make_ext4fs.h"
 
-static int num_volumes = 0;
-static Volume* device_volumes = NULL;
+#include "flashutils/flashutils.h"
+#include "extendedcommands.h"
+
+int num_volumes;
+Volume* device_volumes;
+
+int get_num_volumes() {
+    return num_volumes;
+}
+
+Volume* get_device_volumes() {
+    return device_volumes;
+}
+
+static int is_null(const char* sz) {
+    if (sz == NULL)
+        return 1;
+    if (strcmp("NULL", sz) == 0)
+        return 1;
+    return 0;
+}
+
+static char* dupe_string(const char* sz) {
+    if (is_null(sz))
+        return NULL;
+    return strdup(sz);
+}
 
 static int parse_options(char* options, Volume* volume) {
     char* option;
@@ -38,6 +63,15 @@ static int parse_options(char* options, Volume* volume) {
 
         if (strncmp(option, "length=", 7) == 0) {
             volume->length = strtoll(option+7, NULL, 10);
+        } else if (strncmp(option, "fstype2=", 8) == 0) {
+            volume->fs_type2 = volume->fs_type;
+            volume->fs_type = strdup(option + 8);
+        } else if (strncmp(option, "fs_options=", 11) == 0) {
+            volume->fs_options = strdup(option + 11);
+        } else if (strncmp(option, "fs_options2=", 12) == 0) {
+            volume->fs_options2 = strdup(option + 12);
+        } else if (strncmp(option, "lun=", 4) == 0) {
+            volume->lun = strdup(option + 4);
         } else {
             LOGE("bad option \"%s\"\n", option);
             return -1;
@@ -55,6 +89,10 @@ void load_volume_table() {
     device_volumes[0].fs_type = "ramdisk";
     device_volumes[0].device = NULL;
     device_volumes[0].device2 = NULL;
+    device_volumes[0].fs_type2 = NULL;
+    device_volumes[0].fs_options = NULL;
+    device_volumes[0].fs_options2 = NULL;
+    device_volumes[0].lun = NULL;
     device_volumes[0].length = 0;
     num_volumes = 1;
 
@@ -100,6 +138,12 @@ void load_volume_table() {
                 device2 ? strdup(device2) : NULL;
 
             device_volumes[num_volumes].length = 0;
+
+            device_volumes[num_volumes].fs_type2 = NULL;
+            device_volumes[num_volumes].fs_options = NULL;
+            device_volumes[num_volumes].fs_options2 = NULL;
+            device_volumes[num_volumes].lun = NULL;
+
             if (parse_options(options, device_volumes + num_volumes) != 0) {
                 LOGE("skipping malformed recovery.fstab line: %s\n", original);
             } else {
@@ -136,11 +180,70 @@ Volume* volume_for_path(const char* path) {
     return NULL;
 }
 
+int try_mount(const char* device, const char* mount_point, const char* fs_type, const char* fs_options) {
+    if (device == NULL || mount_point == NULL || fs_type == NULL)
+        return -1;
+    int ret = 0;
+    if (fs_options == NULL) {
+        ret = mount(device, mount_point, fs_type,
+                       MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
+    }
+    else {
+        char mount_cmd[PATH_MAX];
+        sprintf(mount_cmd, "mount -t %s -o%s %s %s", fs_type, fs_options, device, mount_point);
+        ret = __system(mount_cmd);
+    }
+    if (ret == 0)
+        return 0;
+    LOGW("failed to mount %s (%s)\n", device, strerror(errno));
+    return ret;
+}
+
+int is_data_media() {
+    int i;
+    for (i = 0; i < num_volumes; i++) {
+        Volume* vol = device_volumes + i;
+        if (strcmp(vol->fs_type, "datamedia") == 0)
+            return 1;
+    }
+    return 0;
+}
+
+void setup_data_media() {
+    int i;
+    for (i = 0; i < num_volumes; i++) {
+        Volume* vol = device_volumes + i;
+        if (strcmp(vol->fs_type, "datamedia") == 0) {
+            rmdir(vol->mount_point);
+            mkdir("/data/media", 0755);
+            symlink("/data/media", vol->mount_point);
+            return;
+        }
+    }
+}
+
+int is_data_media_volume_path(const char* path) {
+    Volume* v = volume_for_path(path);
+    return strcmp(v->fs_type, "datamedia") == 0;
+}
+
 int ensure_path_mounted(const char* path) {
+    return ensure_path_mounted_at_mount_point(path, NULL);
+}
+
+int ensure_path_mounted_at_mount_point(const char* path, const char* mount_point) {
     Volume* v = volume_for_path(path);
     if (v == NULL) {
         LOGE("unknown volume for path [%s]\n", path);
         return -1;
+    }
+    if (is_data_media_volume_path(path)) {
+        LOGI("using /data/media for %s.\n", path);
+        int ret;
+        if (0 != (ret = ensure_path_mounted("/data")))
+            return ret;
+        setup_data_media();
+        return 0;
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // the ramdisk is always mounted.
@@ -154,14 +257,17 @@ int ensure_path_mounted(const char* path) {
         return -1;
     }
 
+    if (NULL == mount_point)
+        mount_point = v->mount_point;
+
     const MountedVolume* mv =
-        find_mounted_volume_by_mount_point(v->mount_point);
+        find_mounted_volume_by_mount_point(mount_point);
     if (mv) {
         // volume is already mounted
         return 0;
     }
 
-    mkdir(v->mount_point, 0755);  // in case it doesn't already exist
+    mkdir(mount_point, 0755);  // in case it doesn't already exist
 
     if (strcmp(v->fs_type, "yaffs2") == 0) {
         // mount an MTD partition as a YAFFS2 filesystem.
@@ -170,37 +276,47 @@ int ensure_path_mounted(const char* path) {
         partition = mtd_find_partition_by_name(v->device);
         if (partition == NULL) {
             LOGE("failed to find \"%s\" partition to mount at \"%s\"\n",
-                 v->device, v->mount_point);
+                 v->device, mount_point);
             return -1;
         }
-        return mtd_mount_partition(partition, v->mount_point, v->fs_type, 0);
+        return mtd_mount_partition(partition, mount_point, v->fs_type, 0);
     } else if (strcmp(v->fs_type, "ext4") == 0 ||
+               strcmp(v->fs_type, "ext3") == 0 ||
+               strcmp(v->fs_type, "rfs") == 0 ||
                strcmp(v->fs_type, "vfat") == 0) {
-        result = mount(v->device, v->mount_point, v->fs_type,
-                       MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
-        if (result == 0) return 0;
-
-        if (v->device2) {
-            LOGW("failed to mount %s (%s); trying %s\n",
-                 v->device, strerror(errno), v->device2);
-            result = mount(v->device2, v->mount_point, v->fs_type,
-                           MS_NOATIME | MS_NODEV | MS_NODIRATIME, "");
-            if (result == 0) return 0;
-        }
-
-        LOGE("failed to mount %s (%s)\n", v->mount_point, strerror(errno));
-        return -1;
+        if ((result = try_mount(v->device, mount_point, v->fs_type, v->fs_options)) == 0)
+            return 0;
+        if ((result = try_mount(v->device2, mount_point, v->fs_type, v->fs_options)) == 0)
+            return 0;
+        if ((result = try_mount(v->device, mount_point, v->fs_type2, v->fs_options2)) == 0)
+            return 0;
+        if ((result = try_mount(v->device2, mount_point, v->fs_type2, v->fs_options2)) == 0)
+            return 0;
+        return result;
+    } else {
+        // let's try mounting with the mount binary and hope for the best.
+        char mount_cmd[PATH_MAX];
+        sprintf(mount_cmd, "mount %s", path);
+        return __system(mount_cmd);
     }
 
-    LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, v->mount_point);
+    LOGE("unknown fs_type \"%s\" for %s\n", v->fs_type, mount_point);
     return -1;
 }
 
 int ensure_path_unmounted(const char* path) {
+    // if we are using /data/media, do not ever unmount volumes /data or /sdcard
+    if (strstr(path, "/data") == path && is_data_media()) {
+        return 0;
+    }
+
     Volume* v = volume_for_path(path);
     if (v == NULL) {
         LOGE("unknown volume for path [%s]\n", path);
         return -1;
+    }
+    if (is_data_media_volume_path(path)) {
+        return ensure_path_unmounted("/data");
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // the ramdisk is always mounted; you can't unmount it.
@@ -227,8 +343,19 @@ int ensure_path_unmounted(const char* path) {
 int format_volume(const char* volume) {
     Volume* v = volume_for_path(volume);
     if (v == NULL) {
+        // silent failure for sd-ext
+        if (strcmp(volume, "/sd-ext") == 0)
+            return -1;
         LOGE("unknown volume \"%s\"\n", volume);
         return -1;
+    }
+    if (is_data_media_volume_path(volume)) {
+        return format_unknown_device(NULL, volume, NULL);
+    }
+    // check to see if /data is being formatted, and if it is /data/media
+    // Note: the /sdcard check is redundant probably, just being safe.
+    if (strstr(volume, "/data") == volume && is_data_media()) {
+        return format_unknown_device(NULL, volume, NULL);
     }
     if (strcmp(v->fs_type, "ramdisk") == 0) {
         // you can't format the ramdisk.
@@ -236,8 +363,11 @@ int format_volume(const char* volume) {
         return -1;
     }
     if (strcmp(v->mount_point, volume) != 0) {
+#if 0
         LOGE("can't give path \"%s\" to format_volume\n", volume);
         return -1;
+#endif
+        return format_unknown_device(v->device, volume, NULL);
     }
 
     if (ensure_path_unmounted(volume) != 0) {
@@ -277,6 +407,9 @@ int format_volume(const char* volume) {
         return 0;
     }
 
+#if 0
     LOGE("format_volume: fs_type \"%s\" unsupported\n", v->fs_type);
     return -1;
+#endif
+    return format_unknown_device(v->device, volume, v->fs_type);
 }

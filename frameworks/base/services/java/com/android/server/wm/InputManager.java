@@ -97,7 +97,9 @@ public class InputManager implements Watchdog.Monitor {
     private static native void nativeSetShowTouches(boolean enabled);
     private static native String nativeDump();
     private static native void nativeMonitor();
-    
+    private static native void nativeSetKeyLayout(String deviceName, String keyLayout);
+    private static native void nativeSetStylusIconEnabled(boolean enabled);
+
     // Input event injection constants defined in InputDispatcher.h.
     static final int INPUT_EVENT_INJECTION_SUCCEEDED = 0;
     static final int INPUT_EVENT_INJECTION_PERMISSION_DENIED = 1;
@@ -149,11 +151,15 @@ public class InputManager implements Watchdog.Monitor {
 
         registerPointerSpeedSettingObserver();
         registerShowTouchesSettingObserver();
+        registerKeyLayoutSettingObserver();
+        registerStylusIconEnabledSettingObserver();
 
         updatePointerSpeedFromSettings();
         updateShowTouchesFromSettings();
+        updateKeyLayoutFromSettings();
+        updateStylusIconEnabledFromSettings();
     }
-    
+
     public void setDisplaySize(int displayId, int width, int height,
             int externalWidth, int externalHeight) {
         if (width <= 0 || height <= 0 || externalWidth <= 0 || externalHeight <= 0) {
@@ -458,6 +464,35 @@ public class InputManager implements Watchdog.Monitor {
         return speed;
     }
 
+    /**
+     * Show the pointer icon when a stylus is used
+     * @param enabled
+     */
+    public void setStylusIconEnabled(boolean enabled) {
+        nativeSetStylusIconEnabled(enabled);
+    }
+
+    public void updateStylusIconEnabledFromSettings() {
+        boolean enabled = getStylusIconEnabled();
+        setStylusIconEnabled(enabled);
+    }
+
+    private void registerStylusIconEnabledSettingObserver() {
+        mContext.getContentResolver().registerContentObserver(
+                Settings.System.getUriFor(Settings.System.STYLUS_ICON_ENABLED), false,
+                new ContentObserver(mWindowManagerService.mH) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        updateStylusIconEnabledFromSettings();
+                    }
+                });
+    }
+
+    private boolean getStylusIconEnabled() {
+        return Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.STYLUS_ICON_ENABLED, 0) == 1;
+    }
+
     public void updateShowTouchesFromSettings() {
         int setting = getShowTouchesSetting(0);
         nativeSetShowTouches(setting != 0);
@@ -495,6 +530,42 @@ public class InputManager implements Watchdog.Monitor {
     public void monitor() {
         synchronized (mInputFilterLock) { }
         nativeMonitor();
+    }
+
+    private void setKeyLayout(String deviceName, String keyLayout) {
+        nativeSetKeyLayout(deviceName, keyLayout);
+    }
+
+    private void updateKeyLayoutFromSettings() {
+        String setting = getKeyLayoutSetting();
+        if (setting == null || setting.length() == 0) {
+            return;
+        }
+        String[] opts = setting.split(",", 2);
+        if (opts.length != 2) {
+            Slog.e(TAG, "Invalid layout setting " + setting);
+            return;
+        }
+        Slog.d(TAG, "changing layout " + opts[0] + " to keymap " + opts[1] + ", setting: " + setting);
+
+        setKeyLayout(opts[0], opts[1]);
+    }
+
+    private void registerKeyLayoutSettingObserver() {
+        mContext.getContentResolver().registerContentObserver(
+                Settings.System.getUriFor(Settings.System.KEYLAYOUT_OVERRIDES), true,
+                new ContentObserver(mWindowManagerService.mH) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        updateKeyLayoutFromSettings();
+                    }
+                });
+    }
+
+    private String getKeyLayoutSetting() {
+        String setting = Settings.System.getString(mContext.getContentResolver(),
+                Settings.System.KEYLAYOUT_OVERRIDES);
+        return setting;
     }
 
     private final class InputFilterHost implements InputFilter.Host {

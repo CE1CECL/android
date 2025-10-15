@@ -380,7 +380,12 @@ status_t VideoEditorPlayer::VeAudioOutput::getPosition(uint32_t *position) {
 
 status_t VideoEditorPlayer::VeAudioOutput::open(
         uint32_t sampleRate, int channelCount, int format, int bufferCount,
+#ifdef STE_HARDWARE
+        AudioCallback cb, void *cookie,
+        LatencyCallback latencyCb) {
+#else
         AudioCallback cb, void *cookie) {
+#endif
 
     mCallback = cb;
     mCallbackCookie = cookie;

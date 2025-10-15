@@ -34,10 +34,12 @@
 #include "mincrypt/sha.h"
 #include "minzip/DirUtil.h"
 #include "minelf/Retouch.h"
-#include "mtdutils/mounts.h"
+#include "mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "updater.h"
 #include "applypatch/applypatch.h"
+
+#include "flashutils/flashutils.h"
 
 #ifdef USE_EXT4
 #include "make_ext4fs.h"
@@ -249,6 +251,24 @@ Value* FormatFn(const char* name, State* state, int argc, Expr* argv[]) {
         }
         result = location;
 #endif
+    } else if (strcmp(fs_type, "ext2") == 0) {
+        int status = format_ext2_device(location);
+        if (status != 0) {
+            fprintf(stderr, "%s: format_ext2_device failed (%d) on %s",
+                    name, status, location);
+            result = strdup("");
+            goto done;
+        }
+        result = location;
+    } else if (strcmp(fs_type, "ext3") == 0) {
+        int status = format_ext3_device(location);
+        if (status != 0) {
+            fprintf(stderr, "%s: format_ext3_device failed (%d) on %s",
+                    name, status, location);
+            result = strdup("");
+            goto done;
+        }
+        result = location;
     } else {
         fprintf(stderr, "%s: unsupported fs_type \"%s\" partition_type \"%s\"",
                 name, fs_type, partition_type);
@@ -458,8 +478,6 @@ Value* RetouchBinariesFn(const char* name, State* state,
         fclose(f_random);
     }
     random_base = (random_base + random_bits) % 1024;
-    fprintf(ui->cmd_pipe, "ui_print Random offset: 0x%x\n", random_base);
-    fprintf(ui->cmd_pipe, "ui_print\n");
 
     // make sure we never randomize to zero; this let's us look at a file
     // and know for sure whether it has been processed; important in the
@@ -806,65 +824,13 @@ Value* WriteRawImageFn(const char* name, State* state, int argc, Expr* argv[]) {
         goto done;
     }
 
-    mtd_scan_partitions();
-    const MtdPartition* mtd = mtd_find_partition_by_name(partition);
-    if (mtd == NULL) {
-        fprintf(stderr, "%s: no mtd partition named \"%s\"\n", name, partition);
+    char* filename = contents->data;
+    if (0 == restore_raw_partition(NULL, partition, filename))
+        result = strdup(partition);
+    else {
         result = strdup("");
         goto done;
     }
-
-    MtdWriteContext* ctx = mtd_write_partition(mtd);
-    if (ctx == NULL) {
-        fprintf(stderr, "%s: can't write mtd partition \"%s\"\n",
-                name, partition);
-        result = strdup("");
-        goto done;
-    }
-
-    bool success;
-
-    if (contents->type == VAL_STRING) {
-        // we're given a filename as the contents
-        char* filename = contents->data;
-        FILE* f = fopen(filename, "rb");
-        if (f == NULL) {
-            fprintf(stderr, "%s: can't open %s: %s\n",
-                    name, filename, strerror(errno));
-            result = strdup("");
-            goto done;
-        }
-
-        success = true;
-        char* buffer = malloc(BUFSIZ);
-        int read;
-        while (success && (read = fread(buffer, 1, BUFSIZ, f)) > 0) {
-            int wrote = mtd_write_data(ctx, buffer, read);
-            success = success && (wrote == read);
-        }
-        free(buffer);
-        fclose(f);
-    } else {
-        // we're given a blob as the contents
-        ssize_t wrote = mtd_write_data(ctx, contents->data, contents->size);
-        success = (wrote == contents->size);
-    }
-    if (!success) {
-        fprintf(stderr, "mtd_write_data to %s failed: %s\n",
-                partition, strerror(errno));
-    }
-
-    if (mtd_erase_blocks(ctx, -1) == -1) {
-        fprintf(stderr, "%s: error erasing blocks of %s\n", name, partition);
-    }
-    if (mtd_write_close(ctx) != 0) {
-        fprintf(stderr, "%s: error closing write of %s\n", name, partition);
-    }
-
-    printf("%s %s partition\n",
-           success ? "wrote" : "failed to write", partition);
-
-    result = success ? partition : strdup("");
 
 done:
     if (result != partition) FreeValue(partition_value);
@@ -1022,14 +988,6 @@ Value* UIPrintFn(const char* name, State* state, int argc, Expr* argv[]) {
     fprintf(((UpdaterInfo*)(state->cookie))->cmd_pipe, "ui_print\n");
 
     return StringValue(buffer);
-}
-
-Value* WipeCacheFn(const char* name, State* state, int argc, Expr* argv[]) {
-    if (argc != 0) {
-        return ErrorAbort(state, "%s() expects no args, got %d", name, argc);
-    }
-    fprintf(((UpdaterInfo*)(state->cookie))->cmd_pipe, "wipe_cache\n");
-    return StringValue(strdup("t"));
 }
 
 Value* RunProgramFn(const char* name, State* state, int argc, Expr* argv[]) {
@@ -1205,8 +1163,6 @@ void RegisterInstallFunctions() {
 
     RegisterFunction("read_file", ReadFileFn);
     RegisterFunction("sha1_check", Sha1CheckFn);
-
-    RegisterFunction("wipe_cache", WipeCacheFn);
 
     RegisterFunction("ui_print", UIPrintFn);
 

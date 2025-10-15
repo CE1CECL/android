@@ -1,5 +1,6 @@
 /*
  * Copyright 2007, The Android Open Source Project
+ * Copyright (C) 2011, Sony Ericsson Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -585,6 +586,9 @@ public:
         // This is required to enable the XMLTreeViewer when loading an XML document that
         // has no style attached to it. http://trac.webkit.org/changeset/79799
         s->setDeveloperExtrasEnabled(true);
+#if ENABLE(WEBGL)
+        s->setWebGLEnabled(true);
+#endif
     }
 };
 

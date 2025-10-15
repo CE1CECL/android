@@ -1385,7 +1385,7 @@ static void genInterpSingleStep(CompilationUnit *cUnit, MIR *mir)
     opReg(cUnit, kOpBlx, r2);
 }
 
-#if defined(_ARMV5TE) || defined(_ARMV5TE_VFP)
+#if defined(_ARMV5TE) || defined(_ARMV5TE_VFP) || defined(_ARMV6J) || defined(_ARMV6_VFP)
 /*
  * To prevent a thread in a monitor wait from blocking the Jit from
  * resetting the code cache, heavyweight monitor lock will not
@@ -2255,7 +2255,9 @@ static bool handleEasyMultiply(CompilationUnit *cUnit,
     // Can we simplify this multiplication?
     bool powerOfTwo = false;
     bool popCountLE2 = false;
-    bool powerOfTwoMinusOne = false;
+#ifndef NDEBUG
+    bool powerOfTwoMinusOne = false; // used only in assert
+#endif
     if (lit < 2) {
         // Avoid special cases.
         return false;
@@ -2264,7 +2266,9 @@ static bool handleEasyMultiply(CompilationUnit *cUnit,
     } else if (isPopCountLE2(lit)) {
         popCountLE2 = true;
     } else if (isPowerOfTwo(lit + 1)) {
+#ifndef NDEBUG
         powerOfTwoMinusOne = true;
+#endif
     } else {
         return false;
     }

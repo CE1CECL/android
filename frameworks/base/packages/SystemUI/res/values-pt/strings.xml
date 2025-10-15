@@ -140,4 +140,20 @@
     <string name="gps_notification_searching_text" msgid="8574247005642736060">"Buscando GPS"</string>
     <string name="gps_notification_found_text" msgid="4619274244146446464">"Local definido por GPS"</string>
     <string name="accessibility_clear_all" msgid="5235938559247164925">"Limpar todas as notificações."</string>
+    <string name="notifications_off_title">Notificações desligadas</string>
+    <string name="notifications_off_text">Toque para ativar notificações.</string>
+    <string name="accessibility_battery_level">%d porcentos de bateria.</string>
+    <string name="navbar_dialog_title">Escolha a ação para atribuir</string>
+    <string name="navbar_home_button">Botão Home</string>
+    <string name="navbar_recent_button">Botão de Apps Recentes</string>
+    <string name="navbar_search_button">Botão de Busca</string>
+    <string name="navbar_back_button">Botão de Voltar</string>
+    <string name="navbar_empty_button">Botão Vazio</string>
+    <string name="navbar_menu_conditional_button">Botão (auto ocultar) Menu</string>
+    <string name="navbar_menu_always_button">Botão (sempre mostrar) Menu</string>
+    <string name="navbar_menu_big_button">Botão Menu</string>
+    <string name="status_bar_settings_flashlight">Lanterna de LED</string>
+    <string name="status_bar_settings_mobile_data">Dados móveis</string>
+    <string name="status_bar_settings_sound_mode">Som</string>
+    <string name="powerwidget_screen_timeout_toast">Tempo limite da tela ajustado para: %1$d %2$s</string>
 </resources>

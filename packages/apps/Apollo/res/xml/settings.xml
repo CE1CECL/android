@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <PreferenceCategory android:title="@string/header_interface" >
+        <PreferenceScreen
+            android:icon="@drawable/apollo_settings_themes"
+            android:key="@string/key_themes_preferences"
+            android:title="@string/themes" >
+            <ListPreference
+                android:key="@string/key_themes_package"
+                android:summary="@string/apollo_themes"
+                android:title="@string/select_theme" />
+
+            <com.andrew.apollo.preferences.ThemePreview
+                android:key="@string/key_themes"
+                android:layout="@layout/theme_preview" />
+        </PreferenceScreen>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/about" >
+        <Preference
+            style="?android:preferenceInformationStyle"
+            android:enabled="false"
+            android:key="@string/key_build_version"
+            android:summary="1.0"
+            android:title="@string/version" />
+    </PreferenceCategory>
+
+</PreferenceScreen>

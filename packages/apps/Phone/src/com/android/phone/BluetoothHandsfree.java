@@ -125,6 +125,7 @@ public class BluetoothHandsfree {
 
     private final BluetoothPhoneState mBluetoothPhoneState;  // for CIND and CIEV updates
     private final BluetoothAtPhonebook mPhonebook;
+    private final BluetoothSMSAccess mSMSAccess;
     private Phone.State mPhoneState = Phone.State.IDLE;
     CdmaPhoneCallState.PhoneCallState mCdmaThreeWayCallState =
                                             CdmaPhoneCallState.PhoneCallState.IDLE;
@@ -250,6 +251,7 @@ public class BluetoothHandsfree {
         mVirtualCallStarted = false;
         mVoiceRecognitionStarted = false;
         mPhonebook = new BluetoothAtPhonebook(mContext, this);
+        mSMSAccess = new BluetoothSMSAccess(mContext, this);
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         cdmaSetSecondCallState(false);
 
@@ -611,6 +613,7 @@ public class BluetoothHandsfree {
         }
         mRemoteBrsf = 0;
         mPhonebook.resetAtState();
+        mSMSAccess.resetAtState();
     }
 
     /* package */ HeadsetBase getHeadset() {
@@ -1639,10 +1642,22 @@ public class BluetoothHandsfree {
         mBluetoothPhoneState.ignoreRing();
     }
 
-    private void sendURC(String urc) {
+    /* package */ void sendURC(String urc) {
         if (isHeadsetConnected()) {
             mHeadset.sendURC(urc);
         }
+    }
+
+    /**
+     * Allows a mechanism to override the default line by line input handling with a custom handler
+     * @param stringToSend - initial string of characters to send out
+     * @param inputHandler - callback for handling the specialized input
+     */
+    void setSpecialPDUInputHandler(String stringToSend, HeadsetBase.SpecialPDUInputHandler inputHandler) {
+        if ((null != inputHandler) && (null != stringToSend) && (0 < stringToSend.length())) {
+            mHeadset.sendURCChars(stringToSend);
+        }
+        mHeadset.specialPDUInputHandler = inputHandler;
     }
 
     /** helper to redial last dialled number */
@@ -2693,6 +2708,7 @@ public class BluetoothHandsfree {
         });
 
         mPhonebook.register(parser);
+        mSMSAccess.register(parser);
     }
 
     public void sendScoGainUpdate(int gain) {
@@ -2942,31 +2958,31 @@ public class BluetoothHandsfree {
      *  are polled and mock updates sent every 1 second */
     private class DebugThread extends Thread {
         /** Turns on/off handsfree profile debugging mode */
-        private static final String DEBUG_HANDSFREE = "debug.bt.hfp";
+        static final String DEBUG_HANDSFREE = "debug.bt.hfp";
 
         /** Mock battery level change - use 0 to 5 */
-        private static final String DEBUG_HANDSFREE_BATTERY = "debug.bt.hfp.battery";
+        static final String DEBUG_HANDSFREE_BATTERY = "debug.bt.hfp.battery";
 
         /** Mock no cellular service when false */
-        private static final String DEBUG_HANDSFREE_SERVICE = "debug.bt.hfp.service";
+        static final String DEBUG_HANDSFREE_SERVICE = "debug.bt.hfp.service";
 
         /** Mock cellular roaming when true */
-        private static final String DEBUG_HANDSFREE_ROAM = "debug.bt.hfp.roam";
+        static final String DEBUG_HANDSFREE_ROAM = "debug.bt.hfp.roam";
 
         /** false to true transition will force an audio (SCO) connection to
          *  be established. true to false will force audio to be disconnected
          */
-        private static final String DEBUG_HANDSFREE_AUDIO = "debug.bt.hfp.audio";
+        static final String DEBUG_HANDSFREE_AUDIO = "debug.bt.hfp.audio";
 
         /** true allows incoming SCO connection out of call.
          */
-        private static final String DEBUG_HANDSFREE_AUDIO_ANYTIME = "debug.bt.hfp.audio_anytime";
+        static final String DEBUG_HANDSFREE_AUDIO_ANYTIME = "debug.bt.hfp.audio_anytime";
 
         /** Mock signal strength change in ASU - use 0 to 31 */
-        private static final String DEBUG_HANDSFREE_SIGNAL = "debug.bt.hfp.signal";
+        static final String DEBUG_HANDSFREE_SIGNAL = "debug.bt.hfp.signal";
 
         /** Debug AT+CLCC: print +CLCC result */
-        private static final String DEBUG_HANDSFREE_CLCC = "debug.bt.hfp.clcc";
+        static final String DEBUG_HANDSFREE_CLCC = "debug.bt.hfp.clcc";
 
         /** Debug AT+BSIR - Send In Band Ringtones Unsolicited AT command.
          * debug.bt.unsol.inband = 0 => AT+BSIR = 0 sent by the AG
@@ -2974,8 +2990,7 @@ public class BluetoothHandsfree {
          * Other values are ignored.
          */
 
-        private static final String DEBUG_UNSOL_INBAND_RINGTONE =
-            "debug.bt.unsol.inband";
+        static final String DEBUG_UNSOL_INBAND_RINGTONE = "debug.bt.unsol.inband";
 
         @Override
         public void run() {

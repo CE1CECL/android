@@ -24,10 +24,16 @@ import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.Size;
 import android.media.CamcorderProfile;
+import android.os.Environment;
+import android.os.storage.StorageManager;
+import android.os.storage.StorageVolume;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  *  Provides utilities and keys for Camera settings.
@@ -43,6 +49,8 @@ public class CameraSettings {
     public static final String KEY_PICTURE_SIZE = "pref_camera_picturesize_key";
     public static final String KEY_JPEG_QUALITY = "pref_camera_jpegquality_key";
     public static final String KEY_FOCUS_MODE = "pref_camera_focusmode_key";
+    public static final String KEY_TIMER_MODE = "pref_camera_timer_key";
+    public static final String KEY_BURST_MODE = "pref_camera_burst_key";
     public static final String KEY_FLASH_MODE = "pref_camera_flashmode_key";
     public static final String KEY_VIDEOCAMERA_FLASH_MODE = "pref_camera_video_flashmode_key";
     public static final String KEY_WHITE_BALANCE = "pref_camera_whitebalance_key";
@@ -52,6 +60,11 @@ public class CameraSettings {
     public static final String KEY_CAMERA_ID = "pref_camera_id_key";
     public static final String KEY_CAMERA_FIRST_USE_HINT_SHOWN = "pref_camera_first_use_hint_shown_key";
     public static final String KEY_VIDEO_FIRST_USE_HINT_SHOWN = "pref_video_first_use_hint_shown_key";
+    public static final String KEY_POWER_SHUTTER = "pref_power_shutter";
+    public static final String KEY_STORAGE = "pref_camera_storage_key";
+    public static final String KEY_ZSL = "pref_camera_zsl_key";
+    public static final String KEY_ISO = "pref_camera_iso_key";
+    public static final String KEY_FOCUS_SOUND = "pref_focus_sound";
 
     public static final String EXPOSURE_DEFAULT_VALUE = "0";
 
@@ -61,6 +74,8 @@ public class CameraSettings {
     public static final int DEFAULT_VIDEO_DURATION = 0; // no limit
 
     private static final String TAG = "CameraSettings";
+    public static final String VALUE_ON = "on";
+    public static final String VALUE_OFF = "off";
 
     private final Context mContext;
     private final Parameters mParameters;
@@ -146,6 +161,9 @@ public class CameraSettings {
         ListPreference videoFlashMode =
                 group.findPreference(KEY_VIDEOCAMERA_FLASH_MODE);
         ListPreference videoEffect = group.findPreference(KEY_VIDEO_EFFECT);
+        ListPreference storage = group.findPreference(KEY_STORAGE);
+        ListPreference iso = group.findPreference(KEY_ISO);
+
 
         // Since the screen could be loaded from different resources, we need
         // to check if the preference is available here
@@ -170,11 +188,13 @@ public class CameraSettings {
                     flashMode, mParameters.getSupportedFlashModes());
         }
         if (focusMode != null) {
-            if (mParameters.getMaxNumFocusAreas() == 0) {
+            boolean wantsFocus = mContext.getResources().getBoolean(R.bool.wantsFocusModes)
+                || Util.useSamsungCamSettings();
+            if (mParameters.getMaxNumFocusAreas() == 0 || wantsFocus) {
                 filterUnsupportedOptions(group,
                         focusMode, mParameters.getSupportedFocusModes());
             } else {
-                // Remove the focus mode if we can use tap-to-focus.
+                // Remove the focus mode if we can use tap-to-focus
                 removePreference(group, focusMode.getKey());
             }
         }
@@ -189,6 +209,11 @@ public class CameraSettings {
         if (videoEffect != null) {
             initVideoEffect(group, videoEffect);
             resetIfInvalid(videoEffect);
+        }
+        if (storage != null) buildStorage(group, storage);
+        if (iso != null) {
+            filterUnsupportedOptions(group,
+                    iso, mParameters.getSupportedIsoValues());
         }
     }
 
@@ -237,6 +262,34 @@ public class CameraSettings {
             }
         }
         preference.setEntryValues(entryValues);
+    }
+
+    private void buildStorage(PreferenceGroup group, ListPreference storage) {
+        StorageManager sm = (StorageManager) mContext.getSystemService(Context.STORAGE_SERVICE);
+        StorageVolume[] volumes = sm.getVolumeList();
+        String[] entries = new String[volumes.length];
+        String[] entryValues = new String[volumes.length];
+
+        if (volumes.length < 2) {
+            // No need for storage setting
+            removePreference(group, storage.getKey());
+            return;
+        }
+
+        for (int i = 0; i < volumes.length; i++) {
+            StorageVolume v = volumes[i];
+            entries[i] = v.getDescription();
+            entryValues[i] = v.getPath();
+        }
+        storage.setEntries(entries);
+        storage.setEntryValues(entryValues);
+        storage.setDefaultValue(entryValues[0]); // Primary storage
+
+        // Filter saved invalid value
+        if (storage.findIndexOfValue(storage.getValue()) < 0) {
+            // Default to the primary storage
+            storage.setValueIndex(0);
+        }
     }
 
     private static boolean removePreference(PreferenceGroup group, String key) {
@@ -341,7 +394,7 @@ public class CameraSettings {
         if (version == 2) {
             editor.putString(KEY_RECORD_LOCATION,
                     pref.getBoolean(KEY_RECORD_LOCATION, false)
-                    ? RecordLocationPreference.VALUE_ON
+                    ? CameraSettings.VALUE_ON
                     : RecordLocationPreference.VALUE_NONE);
             version = 3;
         }
@@ -424,6 +477,10 @@ public class CameraSettings {
         return null;
     }
 
+    public static String readStorage(SharedPreferences pref) {
+        return pref.getString(KEY_STORAGE,
+            Environment.getExternalStorageDirectory().toString());
+    }
 
     public static void restorePreferences(Context context,
             ComboPreferences preferences, Parameters parameters) {
@@ -475,6 +532,34 @@ public class CameraSettings {
         return supported;
     }
 
+
+    /**
+     * Enable video mode for certain cameras.
+     *
+     * @param params
+     * @param on
+     */
+    public static void setVideoMode(Parameters params, boolean on) {
+        if (Util.useSamsungCamMode()) {
+            params.set("cam_mode", on ? "1" : "0");
+        }
+        if (Util.useHTCCamMode()) {
+            params.set("cam-mode", on ? "1" : "0");
+        }
+    }
+
+    /**
+     * Set video size for certain cameras.
+     *
+     * @param params
+     * @param profile
+     */
+    public static void setEarlyVideoSize(Parameters params, CamcorderProfile profile) {
+        if (Util.needsEarlyVideoSize()) {
+            params.set("video-size", profile.videoFrameWidth + "x" + profile.videoFrameHeight);
+        }
+    }
+
     private void initVideoEffect(PreferenceGroup group, ListPreference videoEffect) {
         CharSequence[] values = videoEffect.getEntryValues();
 
@@ -494,5 +579,11 @@ public class CameraSettings {
         }
 
         filterUnsupportedOptions(group, videoEffect, supported);
+    }
+
+    public static void dumpParameters(Parameters params) {
+        Set<String> sortedParams = new TreeSet<String>();
+        sortedParams.addAll(Arrays.asList(params.flatten().split(";")));
+        Log.d(TAG, "Parameters: " + sortedParams.toString());
     }
 }

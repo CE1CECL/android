@@ -70,18 +70,35 @@ int device_wipe_data();
 #define HIGHLIGHT_UP        -2
 #define HIGHLIGHT_DOWN      -3
 #define SELECT_ITEM         -4
+#define GO_BACK             -5
 
 #define ITEM_REBOOT          0
 #define ITEM_APPLY_EXT       1
 #define ITEM_APPLY_SDCARD    1  // historical synonym for ITEM_APPLY_EXT
 #define ITEM_WIPE_DATA       2
 #define ITEM_WIPE_CACHE      3
+// unused in cwr
 #define ITEM_APPLY_CACHE     4
+#define ITEM_NANDROID        4
+#define ITEM_PARTITION       5
+#define ITEM_ADVANCED        6
+#define ITEM_POWEROFF        7
 
 // Header text to display above the main menu.
 extern char* MENU_HEADERS[];
 
 // Text of menu items.
 extern char* MENU_ITEMS[];
+
+// Loosely track the depth of the current menu
+extern int ui_root_menu;
+
+int
+get_menu_selection(char** headers, char** items, int menu_only, int initial_selection);
+
+void
+set_sdcard_update_bootloader_message();
+
+extern int ui_handle_key(int key, int visible);
 
 #endif
