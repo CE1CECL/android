@@ -1,9 +1,0 @@
-*~
-*.bak
-*.pyc
-Thumbs.db
-local.properties
-build.xml
-samples/
-platforms/
-toolchains/*/prebuilt/
