@@ -42,15 +42,6 @@
 
 /*****************************************************************************/
 
-// numbers of buffers for page flipping
-#if defined(NO_PAGE_FLIPPING)
-// page-flipping is buggy on some devices
-#define NUM_BUFFERS 1
-#else
-#define NUM_BUFFERS 2
-#endif
-
-
 enum {
     PAGE_FLIP = 0x00000001,
     LOCKED = 0x00000002
@@ -175,43 +166,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
     info.xoffset = 0;
     info.yoffset = 0;
     info.activate = FB_ACTIVATE_NOW;
-
-#if defined(NO_32BPP)
-    /*
-     * Explicitly request 5/6/5
-     */
-    info.bits_per_pixel = 16;
-    info.red.offset     = 11;
-    info.red.length     = 5;
-    info.green.offset   = 5;
-    info.green.length   = 6;
-    info.blue.offset    = 0;
-    info.blue.length    = 5;
-    info.transp.offset  = 0;
-    info.transp.length  = 0;
-#endif
-
-    /*
-     * Request NUM_BUFFERS screens (at lest 2 for page flipping)
-     */
-    info.yres_virtual = info.yres * NUM_BUFFERS;
-
-
-    uint32_t flags = PAGE_FLIP;
-    if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1) {
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        LOGW("FBIOPUT_VSCREENINFO failed, page flipping not supported");
-    }
-
-    if (info.yres_virtual < info.yres * 2) {
-        // we need at least 2 for page-flipping
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        LOGW("page flipping not supported (yres_virtual=%d, requested=%d)",
-                info.yres_virtual, info.yres*2);
-    }
-
+    uint32_t flags = 0;
     if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
         return -errno;
 
@@ -355,11 +310,8 @@ int fb_device_open(hw_module_t const* module, const char* name,
         if (status >= 0) {
             int stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
             int format = (m->info.bits_per_pixel == 32)
-                         ? HAL_PIXEL_FORMAT_RGBX_8888
+                         ? (m->info.red.offset ? HAL_PIXEL_FORMAT_BGRA_8888 : HAL_PIXEL_FORMAT_RGBX_8888)
                          : HAL_PIXEL_FORMAT_RGB_565;
-#ifdef NO_32BPP
-            format = HAL_PIXEL_FORMAT_RGB_565;
-#endif
             const_cast<uint32_t&>(dev->device.flags) = 0;
             const_cast<uint32_t&>(dev->device.width) = m->info.xres;
             const_cast<uint32_t&>(dev->device.height) = m->info.yres;

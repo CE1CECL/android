@@ -8,14 +8,12 @@ TARGET_NO_BOOTLOADER := true
 TARGET_NO_KERNEL := true
 TARGET_CPU_ABI := x86
 TARGET_ARCH := x86
-TARGET_ARCH_VARIANT := x86-atom
+TARGET_ARCH_VARIANT := x86
 TARGET_PRELINK_MODULE := false
 
-# The IA emulator (qemu) uses the Goldfish devices
-HAVE_HTC_AUDIO_DRIVER := true
-BOARD_USES_GENERIC_AUDIO := true
+BOARD_USES_GENERIC_AUDIO := false
+BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
-# no hardware camera
 USE_CAMERA_STUB := true
 
 # Set /system/bin/sh to mksh, not ash, to test the transition.

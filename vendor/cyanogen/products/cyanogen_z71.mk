@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for z71.
-$(call inherit-product, device/commtiva/z71/device_z71.mk)
+$(call inherit-product-if-exists, device/commtiva/z71/device_z71.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

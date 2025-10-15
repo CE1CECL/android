@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for skate.
-$(call inherit-product, device/zte/skate/device_skate.mk)
+$(call inherit-product-if-exists, device/zte/skate/device_skate.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

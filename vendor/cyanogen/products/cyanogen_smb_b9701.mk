@@ -1,4 +1,4 @@
-$(call inherit-product, device/malata/smb_b9701/smb_b9701.mk)
+$(call inherit-product-if-exists, device/malata/smb_b9701/smb_b9701.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

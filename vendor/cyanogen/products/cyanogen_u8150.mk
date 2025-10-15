@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for U8150.
-$(call inherit-product, device/huawei/u8150/device_u8150.mk)
+$(call inherit-product-if-exists, device/huawei/u8150/device_u8150.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

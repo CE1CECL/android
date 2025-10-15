@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for blade.
-$(call inherit-product, device/zte/blade/device_blade.mk)
+$(call inherit-product-if-exists, device/zte/blade/device_blade.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

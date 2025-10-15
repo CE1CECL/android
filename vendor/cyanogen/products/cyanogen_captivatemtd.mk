@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for captivate.
-$(call inherit-product, device/samsung/captivatemtd/full_captivatemtd.mk)
+$(call inherit-product-if-exists, device/samsung/captivatemtd/full_captivatemtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

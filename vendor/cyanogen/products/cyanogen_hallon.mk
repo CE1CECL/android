@@ -1,5 +1,5 @@
 # Inherit device configuration for hallon.
-$(call inherit-product, device/semc/hallon/device_hallon.mk)
+$(call inherit-product-if-exists, device/semc/hallon/device_hallon.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

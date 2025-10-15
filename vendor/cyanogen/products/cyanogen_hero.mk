@@ -1,8 +1,8 @@
 # Inherit AOSP device configuration for hero.
 ifdef CYANOGEN_SMALL
-$(call inherit-product, device/htc/hero/small_hero.mk)
+$(call inherit-product-if-exists, device/htc/hero/small_hero.mk)
 else
-$(call inherit-product, device/htc/hero/full_hero.mk)
+$(call inherit-product-if-exists, device/htc/hero/full_hero.mk)
 endif
 
 # Inherit some common cyanogenmod stuff.

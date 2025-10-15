@@ -1,5 +1,5 @@
 # Inherit device configuration for ace.
-$(call inherit-product, device/htc/ace/ace.mk)
+$(call inherit-product-if-exists, device/htc/ace/ace.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

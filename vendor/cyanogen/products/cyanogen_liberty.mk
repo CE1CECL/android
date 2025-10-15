@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for liberty.
-$(call inherit-product, device/htc/liberty/liberty.mk)
+$(call inherit-product-if-exists, device/htc/liberty/liberty.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

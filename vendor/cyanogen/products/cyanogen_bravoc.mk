@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for bravoc.
-$(call inherit-product, device/htc/bravoc/full_bravoc.mk)
+$(call inherit-product-if-exists, device/htc/bravoc/full_bravoc.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

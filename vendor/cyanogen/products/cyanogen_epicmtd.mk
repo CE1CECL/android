@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for epic.
-$(call inherit-product, device/samsung/epicmtd/full_epicmtd.mk)
+$(call inherit-product-if-exists, device/samsung/epicmtd/full_epicmtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

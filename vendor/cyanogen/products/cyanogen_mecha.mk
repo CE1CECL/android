@@ -1,5 +1,5 @@
 # Inherit device configuration for mecha.
-$(call inherit-product, device/htc/mecha/device_mecha.mk)
+$(call inherit-product-if-exists, device/htc/mecha/device_mecha.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

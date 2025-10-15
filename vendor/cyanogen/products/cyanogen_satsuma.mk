@@ -1,5 +1,5 @@
 # Inherit device configuration for satsuma.
-$(call inherit-product, device/semc/satsuma/device_satsuma.mk)
+$(call inherit-product-if-exists, device/semc/satsuma/device_satsuma.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

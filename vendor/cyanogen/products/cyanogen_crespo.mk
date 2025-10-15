@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for crespo.
-$(call inherit-product, device/samsung/crespo/full_crespo.mk)
+$(call inherit-product-if-exists, device/samsung/crespo/full_crespo.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

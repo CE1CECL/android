@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for v9.
-$(call inherit-product, device/zte/v9/device_v9.mk)
+$(call inherit-product-if-exists, device/zte/v9/device_v9.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

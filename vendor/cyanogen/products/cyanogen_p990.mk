@@ -1,5 +1,5 @@
 # Inherit device configuration
-$(call inherit-product, device/lge/p990/p990.mk)
+$(call inherit-product-if-exists, device/lge/p990/p990.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

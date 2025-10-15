@@ -1,5 +1,5 @@
 # Inherit device configuration for haida.
-$(call inherit-product, device/semc/haida/device_haida.mk)
+$(call inherit-product-if-exists, device/semc/haida/device_haida.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

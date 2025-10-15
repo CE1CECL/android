@@ -1,5 +1,5 @@
 # Inherit device configuration for sunfire.
-$(call inherit-product, device/motorola/sunfire/sunfire.mk)
+$(call inherit-product-if-exists, device/motorola/sunfire/sunfire.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

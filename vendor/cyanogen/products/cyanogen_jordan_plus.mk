@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration.
-$(call inherit-product, device/motorola/jordan_plus/jordan_plus.mk)
+$(call inherit-product-if-exists, device/motorola/jordan_plus/jordan_plus.mk)
 
 # Inherit common GSM stuff
 $(call inherit-product, vendor/cyanogen/products/gsm.mk)

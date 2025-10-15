@@ -1,5 +1,5 @@
 # Inherit device configuration for saga.
-$(call inherit-product, device/htc/saga/saga.mk)
+$(call inherit-product-if-exists, device/htc/saga/saga.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

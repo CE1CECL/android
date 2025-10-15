@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for galaxy5.
-$(call inherit-product, device/samsung/galaxy5/device_galaxy5.mk)
+$(call inherit-product-if-exists, device/samsung/galaxy5/device_galaxy5.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

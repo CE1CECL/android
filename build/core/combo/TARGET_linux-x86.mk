@@ -104,11 +104,7 @@ TARGET_GLOBAL_CFLAGS += -fstack-protector
 TARGET_GLOBAL_CPPFLAGS += \
 			-fno-use-cxa-atexit
 
-ifeq ($(TARGET_ARCH_VARIANT),x86-atom)
-    TARGET_GLOBAL_CFLAGS += -march=atom -mstackrealign -DUSE_SSSE3 -DUSE_SSE2 -mfpmath=sse
-else
-    TARGET_GLOBAL_CFLAGS += -march=i686
-endif
+TARGET_GLOBAL_CFLAGS += -march=i486 -mtune=i386 -mfpmath=387 -mno-sse
 
 TARGET_GLOBAL_CFLAGS += -mbionic
 TARGET_GLOBAL_CFLAGS += -D__ANDROID__

@@ -1,5 +1,5 @@
 # Inherit device configuration for olympus.
-$(call inherit-product, device/motorola/olympus/olympus.mk)
+$(call inherit-product-if-exists, device/motorola/olympus/olympus.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

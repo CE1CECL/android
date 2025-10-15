@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for geeksphone one.
-$(call inherit-product, device/geeksphone/one/one.mk)
+$(call inherit-product-if-exists, device/geeksphone/one/one.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common.mk)

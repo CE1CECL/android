@@ -2,7 +2,7 @@
 $(call inherit-product, vendor/cyanogen/products/gsm.mk)
 
 # Inherit device configuration
-$(call inherit-product, device/lge/p920/p920.mk)
+$(call inherit-product-if-exists, device/lge/p920/p920.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

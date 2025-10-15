@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for dream_sapphire.
-$(call inherit-product, device/huawei/u8220/device_u8220.mk)
+$(call inherit-product-if-exists, device/huawei/u8220/device_u8220.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common.mk)

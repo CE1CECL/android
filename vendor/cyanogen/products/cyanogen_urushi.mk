@@ -1,5 +1,5 @@
 # Inherit device configuration for urushi.
-$(call inherit-product, device/semc/urushi/device_urushi.mk)
+$(call inherit-product-if-exists, device/semc/urushi/device_urushi.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

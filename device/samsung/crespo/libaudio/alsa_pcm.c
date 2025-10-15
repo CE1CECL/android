@@ -361,12 +361,10 @@ struct pcm *pcm_open(unsigned flags)
                    SNDRV_PCM_SUBFORMAT_STD);
     param_set_min(&params, SNDRV_PCM_HW_PARAM_PERIOD_SIZE, period_sz);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_SAMPLE_BITS, 16);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS,
-                  (flags & PCM_MONO) ? 16 : 32);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS,
-                  (flags & PCM_MONO) ? 1 : 2);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_FRAME_BITS, 32);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_CHANNELS, 2);
     param_set_int(&params, SNDRV_PCM_HW_PARAM_PERIODS, period_cnt);
-    param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, 44100);
+    param_set_int(&params, SNDRV_PCM_HW_PARAM_RATE, 32000);
 
     if (ioctl(pcm->fd, SNDRV_PCM_IOCTL_HW_PARAMS, &params)) {
         oops(pcm, errno, "cannot set hw params");

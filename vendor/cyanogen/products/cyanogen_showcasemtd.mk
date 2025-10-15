@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for showcasemtd.
-$(call inherit-product, device/samsung/showcasemtd/full_showcasemtd.mk)
+$(call inherit-product-if-exists, device/samsung/showcasemtd/full_showcasemtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

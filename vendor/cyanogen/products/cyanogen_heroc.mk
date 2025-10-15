@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for heroc.
-$(call inherit-product, device/htc/heroc/heroc.mk)
+$(call inherit-product-if-exists, device/htc/heroc/heroc.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

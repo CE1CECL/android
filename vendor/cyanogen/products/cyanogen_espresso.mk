@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for espresso.
-$(call inherit-product, device/htc/espresso/espresso.mk)
+$(call inherit-product-if-exists, device/htc/espresso/espresso.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

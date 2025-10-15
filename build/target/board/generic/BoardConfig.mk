@@ -21,11 +21,17 @@ TARGET_NO_KERNEL := true
 TARGET_ARCH_VARIANT := armv7-a
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
+ARCH_ARM_HAVE_ARMV7A := true
+ARCH_ARM_HAVE_ARMV7A_BUG := false
+ARCH_ARM_HAVE_NEON := false
+ARCH_ARM_HAVE_THUMB_SUPPORT := true
+ARCH_ARM_HAVE_TLS_REGISTER := true
+ARCH_ARM_HAVE_VFP := true
+ARCH_ARM_HAVE_VFP_D32 := false
 
-HAVE_HTC_AUDIO_DRIVER := true
-BOARD_USES_GENERIC_AUDIO := true
+BOARD_USES_GENERIC_AUDIO := false
+BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
-# no hardware camera
 USE_CAMERA_STUB := true
 
 # Enable dex-preoptimization to speed up the first boot sequence

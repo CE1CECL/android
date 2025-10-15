@@ -1,5 +1,5 @@
 # Inherit device configuration for robyn.
-$(call inherit-product, device/semc/robyn/device_robyn.mk)
+$(call inherit-product-if-exists, device/semc/robyn/device_robyn.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

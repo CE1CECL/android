@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for leo.
-$(call inherit-product, device/htc/leo/full_leo.mk)
+$(call inherit-product-if-exists, device/htc/leo/full_leo.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

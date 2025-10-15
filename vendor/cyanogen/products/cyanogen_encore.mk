@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for encore.
-$(call inherit-product, device/bn/encore/encore.mk)
+$(call inherit-product-if-exists, device/bn/encore/encore.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

@@ -1,5 +1,5 @@
 # Inherit device configuration for Droid2WE.
-$(call inherit-product, device/motorola/droid2we/droid2we.mk)
+$(call inherit-product-if-exists, device/motorola/droid2we/droid2we.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

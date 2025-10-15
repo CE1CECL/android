@@ -100,9 +100,9 @@ int rec_wav(const char *fn)
     hdr.audio_format = FORMAT_PCM;
     hdr.fmt_sz = 16;
     hdr.bits_per_sample = 16;
-    hdr.num_channels = 1;
+    hdr.num_channels = 2;
     hdr.data_sz = 0;
-    hdr.sample_rate = 44100;
+    hdr.sample_rate = 32000;
 
     if (write(fd, &hdr, sizeof(hdr)) != sizeof(hdr)) {
         fprintf(stderr, "arec: cannot write header\n");

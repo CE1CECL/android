@@ -1,5 +1,5 @@
 # Inherit device configuration for anzu.
-$(call inherit-product, device/semc/anzu/device_anzu.mk)
+$(call inherit-product-if-exists, device/semc/anzu/device_anzu.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

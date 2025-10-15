@@ -1,5 +1,5 @@
 # Inherit device configuration for iyokan.
-$(call inherit-product, device/semc/iyokan/device_iyokan.mk)
+$(call inherit-product-if-exists, device/semc/iyokan/device_iyokan.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

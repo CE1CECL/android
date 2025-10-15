@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for zeppelin.
-$(call inherit-product, device/motorola/morrison/morrison.mk)
+$(call inherit-product-if-exists, device/motorola/morrison/morrison.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

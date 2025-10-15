@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for click
-$(call inherit-product, device/htc/click/click.mk)
+$(call inherit-product-if-exists, device/htc/click/click.mk)
 
 # Inherit some common cyanogenmod stuff
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

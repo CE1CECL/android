@@ -1,5 +1,5 @@
 # Inherit device configuration for mimmi.
-$(call inherit-product, device/semc/mimmi/device_mimmi.mk)
+$(call inherit-product-if-exists, device/semc/mimmi/device_mimmi.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

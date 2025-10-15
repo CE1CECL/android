@@ -1,5 +1,5 @@
 # Inherit device configuration for es209ra.
-$(call inherit-product, device/semc/es209ra/device_es209ra.mk)
+$(call inherit-product-if-exists, device/semc/es209ra/device_es209ra.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

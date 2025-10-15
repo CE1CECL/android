@@ -1,5 +1,5 @@
 # Inherit device configuration for vision.
-$(call inherit-product, device/htc/vision/vision.mk)
+$(call inherit-product-if-exists, device/htc/vision/vision.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

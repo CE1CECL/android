@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for vibrantmtd.
-$(call inherit-product, device/samsung/vibrantmtd/full_vibrantmtd.mk)
+$(call inherit-product-if-exists, device/samsung/vibrantmtd/full_vibrantmtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

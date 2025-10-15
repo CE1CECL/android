@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for zero.
-$(call inherit-product, device/geeksphone/zero/zero.mk)
+$(call inherit-product-if-exists, device/geeksphone/zero/zero.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

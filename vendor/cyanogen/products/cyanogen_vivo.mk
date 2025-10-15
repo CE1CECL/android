@@ -1,5 +1,5 @@
 # Inherit device configuration for vivo.
-$(call inherit-product, device/htc/vivo/vivo.mk)
+$(call inherit-product-if-exists, device/htc/vivo/vivo.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

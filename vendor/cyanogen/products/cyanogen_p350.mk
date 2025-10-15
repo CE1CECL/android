@@ -2,7 +2,7 @@
 $(call inherit-product, vendor/cyanogen/products/gsm.mk)
 
 # Inherit device configuration for p350.
-$(call inherit-product, device/lge/p350/p350.mk)
+$(call inherit-product-if-exists, device/lge/p350/p350.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

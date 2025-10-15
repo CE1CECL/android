@@ -2,7 +2,7 @@
 $(call inherit-product, vendor/cyanogen/products/gsm.mk)
 
 # Inherit device configuration for c660.
-$(call inherit-product, device/lge/c660/c660.mk)
+$(call inherit-product-if-exists, device/lge/c660/c660.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

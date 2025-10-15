@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for beni
-$(call inherit-product, device/samsung/s5670/device_s5670.mk)
+$(call inherit-product-if-exists, device/samsung/s5670/device_s5670.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

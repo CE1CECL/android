@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for galaxys.
-$(call inherit-product, device/samsung/galaxysmtd/full_galaxysmtd.mk)
+$(call inherit-product-if-exists, device/samsung/galaxysmtd/full_galaxysmtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

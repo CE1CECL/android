@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for passion.
-$(call inherit-product, device/motorola/shadow/shadow.mk)
+$(call inherit-product-if-exists, device/motorola/shadow/shadow.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

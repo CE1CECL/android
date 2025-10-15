@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for desirec.
-$(call inherit-product, device/htc/desirec/device_desirec.mk)
+$(call inherit-product-if-exists, device/htc/desirec/device_desirec.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

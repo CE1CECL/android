@@ -1,5 +1,5 @@
 # Inherit device configuration for vivow.
-$(call inherit-product, device/htc/vivow/vivow.mk)
+$(call inherit-product-if-exists, device/htc/vivow/vivow.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

@@ -96,6 +96,31 @@ PixelFormat DisplayHardware::getFormat() const  { return mFormat; }
 uint32_t DisplayHardware::getMaxTextureSize() const { return mMaxTextureSize; }
 uint32_t DisplayHardware::getMaxViewportDims() const { return mMaxViewportDims; }
 
+static status_t selectConfigForPixelFormat(
+        EGLDisplay dpy,
+        EGLint * attrs,
+        PixelFormat format,
+        EGLConfig* outConfig)
+{
+    EGLConfig config = NULL;
+    EGLint numConfigs = -1, n=0;
+    eglGetConfigs(dpy, NULL, 0, &numConfigs);
+    EGLConfig* configs = new EGLConfig[numConfigs];
+    eglChooseConfig(dpy, attrs, configs, numConfigs, &n);
+    for (int i=0 ; i<n ; i++) {
+        EGLint nativeVisualId = 0;
+        eglGetConfigAttrib(dpy, configs[i], EGL_NATIVE_VISUAL_ID, &nativeVisualId);
+        if (nativeVisualId>0 && format == nativeVisualId) {
+            *outConfig = configs[i];
+            delete [] configs;
+            return NO_ERROR;
+        }
+    }
+    delete [] configs;
+    return NAME_NOT_FOUND;
+}
+
+
 void DisplayHardware::init(uint32_t dpy)
 {
     mNativeWindow = new FramebufferNativeWindow();
@@ -105,6 +130,9 @@ void DisplayHardware::init(uint32_t dpy)
     mRefreshRate = fbDev->fps;
 
     mOverlayEngine = NULL;
+    int format;
+    ANativeWindow * window = mNativeWindow.get();
+    window->query(window, NATIVE_WINDOW_FORMAT, &format);
     hw_module_t const* module;
     if (hw_get_module(OVERLAY_HARDWARE_MODULE_ID, &module) == 0) {
         overlay_control_open(module, &mOverlayEngine);
@@ -114,6 +142,8 @@ void DisplayHardware::init(uint32_t dpy)
     EGLint numConfigs=0;
     EGLSurface surface;
     EGLContext context;
+    EGLBoolean result;
+    status_t err;
 
     // initialize EGL
     EGLint attribs[] = {
@@ -139,9 +169,8 @@ void DisplayHardware::init(uint32_t dpy)
     eglInitialize(display, NULL, NULL);
     eglGetConfigs(display, NULL, 0, &numConfigs);
 
-    EGLConfig config;
-    status_t err = EGLUtils::selectConfigForNativeWindow(
-            display, attribs, mNativeWindow.get(), &config);
+    EGLConfig config = NULL;
+    err = selectConfigForPixelFormat(display, attribs, format, &config);
     LOGE_IF(err, "couldn't find an EGLConfig matching the screen format");
     
     EGLint r,g,b,a;

@@ -1,4 +1,4 @@
-$(call inherit-product, device/advent/vega/vega.mk)
+$(call inherit-product-if-exists, device/advent/vega/vega.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common.mk)

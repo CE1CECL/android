@@ -1,5 +1,5 @@
 # Inherit device configuration for zeusc.
-$(call inherit-product, device/semc/zeusc/device_zeusc.mk)
+$(call inherit-product-if-exists, device/semc/zeusc/device_zeusc.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

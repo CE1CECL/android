@@ -1,5 +1,5 @@
 # Inherit device configuration for zeus.
-$(call inherit-product, device/semc/zeus/device_zeus.mk)
+$(call inherit-product-if-exists, device/semc/zeus/device_zeus.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

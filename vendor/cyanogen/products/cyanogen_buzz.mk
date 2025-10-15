@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for buzz
-$(call inherit-product, device/htc/buzz/buzz.mk)
+$(call inherit-product-if-exists, device/htc/buzz/buzz.mk)
 
 # Inherit some common cyanogenmod stuff
 $(call inherit-product, vendor/cyanogen/products/common_full_no_themes.mk)

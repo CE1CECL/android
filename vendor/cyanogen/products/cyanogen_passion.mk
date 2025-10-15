@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for passion.
-$(call inherit-product, device/htc/passion/full_passion.mk)
+$(call inherit-product-if-exists, device/htc/passion/full_passion.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

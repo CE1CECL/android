@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for fascinatemtd.
-$(call inherit-product, device/samsung/fascinatemtd/full_fascinatemtd.mk)
+$(call inherit-product-if-exists, device/samsung/fascinatemtd/full_fascinatemtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

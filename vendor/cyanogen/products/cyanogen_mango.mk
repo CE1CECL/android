@@ -1,5 +1,5 @@
 # Inherit device configuration for mango.
-$(call inherit-product, device/semc/mango/device_mango.mk)
+$(call inherit-product-if-exists, device/semc/mango/device_mango.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)

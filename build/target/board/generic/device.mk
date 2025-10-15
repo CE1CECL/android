@@ -22,5 +22,6 @@ PRODUCT_PROPERTY_OVERRIDES := \
     ro.ril.gprsclass=10
 
 PRODUCT_COPY_FILES := \
+    external/wpa_supplicant/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
     development/data/etc/apns-conf.xml:system/etc/apns-conf.xml \
     development/data/etc/vold.conf:system/etc/vold.conf

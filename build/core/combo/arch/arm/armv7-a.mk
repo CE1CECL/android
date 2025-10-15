@@ -1,25 +1,15 @@
 # Configuration for Linux on ARM.
 # Generating binaries for the ARMv7-a architecture and higher
 #
-ARCH_ARM_HAVE_THUMB_SUPPORT     := true
-ARCH_ARM_HAVE_FAST_INTERWORKING := true
-ARCH_ARM_HAVE_64BIT_DATA        := true
-ARCH_ARM_HAVE_HALFWORD_MULTIPLY := true
-ARCH_ARM_HAVE_CLZ               := true
-ARCH_ARM_HAVE_FFS               := true
-ARCH_ARM_HAVE_ARMV7A            := true
 ifneq ($(strip $(TARGET_ARCH_VARIANT_FPU)),none)
-ARCH_ARM_HAVE_VFP               := true
 else
-ARCH_ARM_HAVE_VFP               := false
 endif
 
 ifeq ($(strip $(TARGET_ARCH_VARIANT_FPU)),)
-TARGET_ARCH_VARIANT_FPU         := neon
+TARGET_ARCH_VARIANT_FPU         := vfpv3-d16
 endif
 
 ifeq ($(strip $(TARGET_ARCH_VARIANT_FPU)),neon)
-ARCH_ARM_HAVE_NEON              := true
 endif
 
 ifeq ($(strip $(TARGET_ARCH_VARIANT_CPU)),)
@@ -27,7 +17,6 @@ TARGET_ARCH_VARIANT_CPU         := cortex-a8
 endif
 
 ifeq ($(strip $(TARGET_CPU_SMP)),true)
-ARCH_ARM_HAVE_TLS_REGISTER      := true
 endif
 
 arch_variant_cflags := \

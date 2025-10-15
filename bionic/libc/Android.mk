@@ -529,7 +529,7 @@ else # !arm
 
     # Enable recent IA friendly memory routines (such as for Atom)
     # These will not work on the earlier x86 machines
-    libc_common_cflags += -mtune=i686 -DUSE_SSSE3 -DUSE_SSE2
+    libc_common_cflags += -march=i486 -mtune=i386 -mfpmath=387 -mno-sse
   endif # x86
 endif # !arm
 

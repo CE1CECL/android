@@ -1,5 +1,5 @@
 # Inherit AOSP device configuration for mesmerizemtd.
-$(call inherit-product, device/samsung/mesmerizemtd/full_mesmerizemtd.mk)
+$(call inherit-product-if-exists, device/samsung/mesmerizemtd/full_mesmerizemtd.mk)
 
 # Inherit some common cyanogenmod stuff.
 $(call inherit-product, vendor/cyanogen/products/common_full.mk)
