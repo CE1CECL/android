@@ -23,10 +23,11 @@ PRODUCT_PACKAGES := \
     Camera
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-$(call inherit-product, $(SRC_TARGET_DIR)/board/generic/device.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/board/generic_armv5/device.mk)
+$(call inherit-product-if-exists, vendor/cm/config/common_full_phone.mk)
 
 # Overrides
 PRODUCT_NAME := full
-PRODUCT_DEVICE := generic
+PRODUCT_DEVICE := generic_armv5
 PRODUCT_BRAND := Android
 PRODUCT_MODEL := Full Android on Emulator

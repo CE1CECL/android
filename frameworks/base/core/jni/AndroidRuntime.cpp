@@ -561,13 +561,17 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
      * values should be specified in a product property override.
      */
     strcpy(heapstartsizeOptsBuf, "-Xms");
-    property_get("dalvik.vm.heapstartsize", heapstartsizeOptsBuf+4, "4m");
-    opt.optionString = heapstartsizeOptsBuf;
-    mOptions.add(opt);
+    property_get("dalvik.vm.heapstartsize", heapstartsizeOptsBuf+4, "");
+    if (heapstartsizeOptsBuf[4] != '\0') {
+        opt.optionString = heapstartsizeOptsBuf;
+        mOptions.add(opt);
+    }
     strcpy(heapsizeOptsBuf, "-Xmx");
-    property_get("dalvik.vm.heapsize", heapsizeOptsBuf+4, "16m");
-    opt.optionString = heapsizeOptsBuf;
-    mOptions.add(opt);
+    property_get("dalvik.vm.heapsize", heapsizeOptsBuf+4, "18m");
+    if (heapsizeOptsBuf[4] != '\0') {
+        opt.optionString = heapsizeOptsBuf;
+        mOptions.add(opt);
+    }
 
     strcpy(heapgrowthlimitOptsBuf, "-XX:HeapGrowthLimit=");
     property_get("dalvik.vm.heapgrowthlimit", heapgrowthlimitOptsBuf+20, "");

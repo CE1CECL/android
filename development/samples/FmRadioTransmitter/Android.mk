@@ -1,3 +1,4 @@
+ifneq (0,0)
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -10,3 +11,4 @@ LOCAL_PACKAGE_NAME := FmRadioTransmitter
 LOCAL_SDK_VERSION := current
 
 include $(BUILD_PACKAGE)
+endif

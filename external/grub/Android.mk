@@ -1,3 +1,4 @@
+ifneq (0,0)
 ## Copyright 2008, The Android Open Source Project
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
@@ -191,3 +192,4 @@ $(grub_full) : $(grub_stage1) $(grub_stage2)
 #ALL_PREBUILT += $(grub_full)
 
 endif # x86
+endif

@@ -53,11 +53,14 @@ static char iface[PROPERTY_VALUE_MAX];
 // TODO: use new ANDROID_SOCKET mechanism, once support for multiple
 // sockets is in
 
-#ifndef WIFI_DRIVER_MODULE_ARG
-#define WIFI_DRIVER_MODULE_ARG          ""
+#ifndef WIFI_DRIVER_MODULE_PATH
+#define WIFI_DRIVER_MODULE_PATH         "/system/lib/modules/3.4.67/kernel/drivers/net/wireless/arcadyan/dhd.ko"
 #endif
-#ifndef WIFI_AP_DRIVER_MODULE_ARG
-#define WIFI_AP_DRIVER_MODULE_ARG       ""
+#ifndef WIFI_DRIVER_MODULE_NAME
+#define WIFI_DRIVER_MODULE_NAME         "dhd"
+#endif
+#ifndef WIFI_DRIVER_MODULE_ARG
+#define WIFI_DRIVER_MODULE_ARG          "firmware_path=/system/lib/firmware/arcadyan/bcm4319.bin nvram_path=/system/lib/firmware/arcadyan/nvram.fw iface_name=wlan0 dhd_watchdog_ms=100"
 #endif
 #ifndef WIFI_FIRMWARE_LOADER
 #define WIFI_FIRMWARE_LOADER		""
@@ -65,7 +68,7 @@ static char iface[PROPERTY_VALUE_MAX];
 #ifndef WIFI_AP_FIRMWARE_LOADER
 #define WIFI_AP_FIRMWARE_LOADER         ""
 #endif
-#define WIFI_TEST_INTERFACE		"sta"
+#define WIFI_TEST_INTERFACE		"wlan0"
 
 #ifndef WIFI_DRIVER_FW_PATH_STA
 #define WIFI_DRIVER_FW_PATH_STA		NULL
@@ -90,7 +93,7 @@ static const char EXT_MODULE_PATH[] = WIFI_EXT_MODULE_PATH;
 #endif
 
 #ifndef WIFI_DRIVER_FW_PATH_PARAM
-#define WIFI_DRIVER_FW_PATH_PARAM	"/sys/module/wlan/parameters/fwpath"
+#define WIFI_DRIVER_FW_PATH_PARAM	"/sys/module/dhd/parameters/fwpath"
 #endif
 
 static const char IFACE_DIR[]           = "/data/system/wpa_supplicant";

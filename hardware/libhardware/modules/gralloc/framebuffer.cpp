@@ -42,10 +42,6 @@
 
 /*****************************************************************************/
 
-// numbers of buffers for page flipping
-#define NUM_BUFFERS 2
-
-
 enum {
     PAGE_FLIP = 0x00000001,
     LOCKED = 0x00000002
@@ -170,28 +166,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
     info.xoffset = 0;
     info.yoffset = 0;
     info.activate = FB_ACTIVATE_NOW;
-
-    /*
-     * Request NUM_BUFFERS screens (at lest 2 for page flipping)
-     */
-    info.yres_virtual = info.yres * NUM_BUFFERS;
-
-
-    uint32_t flags = PAGE_FLIP;
-    if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1) {
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        LOGW("FBIOPUT_VSCREENINFO failed, page flipping not supported");
-    }
-
-    if (info.yres_virtual < info.yres * 2) {
-        // we need at least 2 for page-flipping
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        LOGW("page flipping not supported (yres_virtual=%d, requested=%d)",
-                info.yres_virtual, info.yres*2);
-    }
-
+    uint32_t flags = 0;
     if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
         return -errno;
 
@@ -335,7 +310,7 @@ int fb_device_open(hw_module_t const* module, const char* name,
         if (status >= 0) {
             int stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
             int format = (m->info.bits_per_pixel == 32)
-                         ? HAL_PIXEL_FORMAT_RGBX_8888
+                         ? (m->info.red.offset ? HAL_PIXEL_FORMAT_BGRA_8888 : HAL_PIXEL_FORMAT_RGBX_8888)
                          : HAL_PIXEL_FORMAT_RGB_565;
             const_cast<uint32_t&>(dev->device.flags) = 0;
             const_cast<uint32_t&>(dev->device.width) = m->info.xres;

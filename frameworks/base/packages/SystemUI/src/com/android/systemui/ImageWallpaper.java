@@ -64,22 +64,12 @@ public class ImageWallpaper extends WallpaperService {
 
     WallpaperManager mWallpaperManager;
 
-    boolean mIsHwAccelerated;
+    final boolean mIsHwAccelerated = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
         mWallpaperManager = (WallpaperManager) getSystemService(WALLPAPER_SERVICE);
-
-        //noinspection PointlessBooleanExpression,ConstantConditions
-        if (FIXED_SIZED_SURFACE && USE_OPENGL) {
-            if (!isEmulator()) {
-                WindowManager windowManager =
-                        (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-                Display display = windowManager.getDefaultDisplay();
-                mIsHwAccelerated = ActivityManager.isHighEndGfx(display);
-            }
-        }
     }
 
     private static boolean isEmulator() {
