@@ -42,11 +42,6 @@ HOST_AR  := $(HOST_SDK_TOOLCHAIN_PREFIX)-ar
 endif # $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc exists
 endif # TARGET_PRODUCT == sdk
 
-ifneq ($(TARGET_PRODUCT),sdk)
-HOST_CC  := gcc-4.4
-HOST_CXX := g++-4.4
-endif
-
 # Does the build machine have the expected gcc version?
 IS_EXPECTED_HOST_GCC := $(filter 4.4.%, $(shell $(HOST_CC) --version))
 
