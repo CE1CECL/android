@@ -42,11 +42,6 @@ HOST_AR  := $(HOST_SDK_TOOLCHAIN_PREFIX)-ar
 endif # $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc exists
 endif # TARGET_PRODUCT == sdk
 
-ifneq ($(TARGET_PRODUCT),sdk)
-HOST_CC  := gcc-4.4
-HOST_CXX := g++-4.4
-endif
-
 # We build everything in 32-bit, because some host tools are
 # 32-bit-only anyway (emulator, acc), and because it gives us
 # more consistency between the host tools and the target.
