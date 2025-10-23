@@ -36,11 +36,16 @@ ifeq ($(TARGET_PRODUCT),sdk)
 HOST_SDK_TOOLCHAIN_PREFIX := prebuilt/linux-x86/toolchain/i686-linux-glibc2.7-4.4.3/bin/i686-linux
 # Don't do anything if the toolchain is not there
 ifneq (,$(strip $(wildcard $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc)))
-HOST_CC  := $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc-4.4
-HOST_CXX := $(HOST_SDK_TOOLCHAIN_PREFIX)-g++-4.4
+HOST_CC  := $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc
+HOST_CXX := $(HOST_SDK_TOOLCHAIN_PREFIX)-g++
 HOST_AR  := $(HOST_SDK_TOOLCHAIN_PREFIX)-ar
 endif # $(HOST_SDK_TOOLCHAIN_PREFIX)-gcc exists
 endif # TARGET_PRODUCT == sdk
+
+ifneq ($(TARGET_PRODUCT),sdk)
+HOST_CC  := gcc-4.4
+HOST_CXX := g++-4.4
+endif
 
 # We build everything in 32-bit, because some host tools are
 # 32-bit-only anyway (emulator, acc), and because it gives us
