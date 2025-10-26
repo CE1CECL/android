@@ -347,6 +347,11 @@ InputDevice* InputReader::createDevice(int32_t deviceId, const String8& name, ui
         device->addMapper(new SingleTouchInputMapper(device, associatedDisplayId));
     }
 
+    // Mouse-like devices.
+    if (classes & INPUT_DEVICE_CLASS_MOUSE) {
+        device->addMapper(new MouseInputMapper(device, associatedDisplayId));
+    }
+
     return device;
 }
 
@@ -3177,6 +3182,274 @@ bool TouchInputMapper::markSupportedKeyCodes(uint32_t sourceMask, size_t numCode
     return true;
 }
 
+// --- MouseInputMapper ---
+
+MouseInputMapper::MouseInputMapper(InputDevice* device, int32_t associatedDisplayId) :
+        InputMapper(device), mAssociatedDisplayId(associatedDisplayId) {
+    initializeLocked();
+}
+
+uint32_t MouseInputMapper::getSources() {
+    return AINPUT_SOURCE_MOUSE;
+}
+
+void MouseInputMapper::populateDeviceInfo(InputDeviceInfo* info) {
+    InputMapper::populateDeviceInfo(info);
+}
+
+void MouseInputMapper::dump(String8& dump) {
+    AutoMutex _l(mLock);
+    dump.append(INDENT2 "Mouse Input Mapper:\n");
+    dump.appendFormat(INDENT3 "AssociatedDisplayId: %d\n", mAssociatedDisplayId);
+    dump.appendFormat(INDENT3 "Down: %s\n", toString(mLocked.down));
+    dump.appendFormat(INDENT3 "DownTime: %lld\n", mLocked.downTime);
+}
+
+void MouseInputMapper::reset() {
+    for (;;) {
+        { // acquire lock
+            AutoMutex _l(mLock);
+
+            if (! mLocked.down) {
+                initializeLocked();
+                break; // done
+            }
+        } // release lock
+
+        // Synthesize trackball button up event on reset.
+        nsecs_t when = systemTime(SYSTEM_TIME_MONOTONIC);
+        mAccumulator.fields = Accumulator::FIELD_BTN_LEFT;
+        mAccumulator.btnLeft = false;
+        mAccumulator.btnScrollUp = false;
+        mAccumulator.btnScrollDown = false;
+        sync(when);
+    }
+
+    InputMapper::reset();
+}
+
+void MouseInputMapper::process(const RawEvent* rawEvent) {
+    switch (rawEvent->type) {
+    case EV_KEY:
+        switch (rawEvent->scanCode) {
+        case BTN_LEFT:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_LEFT;
+            mAccumulator.btnLeft = rawEvent->value;
+            break;
+        case BTN_RIGHT:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_RIGHT;
+            mAccumulator.btnRight = rawEvent->value;
+            break;
+        case BTN_MIDDLE:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_MIDDLE;
+            mAccumulator.btnMiddle = rawEvent->value;
+            break;
+        case BTN_SIDE:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_SIDE;
+            mAccumulator.btnSide = rawEvent->value;
+            break;
+        case BTN_EXTRA:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_EXTRA;
+            mAccumulator.btnExtra = rawEvent->value;
+            break;
+        case BTN_FORWARD:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_FORWARD;
+            mAccumulator.btnForward = rawEvent->value;
+            break;
+        case BTN_BACK:
+            mAccumulator.fields |= Accumulator::FIELD_BTN_BACK;
+            mAccumulator.btnBack = rawEvent->value;
+            break;
+        }
+        sync(rawEvent->when);
+        break;
+
+    case EV_REL:
+        switch (rawEvent->scanCode) {
+        case REL_X:
+            mAccumulator.fields |= Accumulator::FIELD_REL_X;
+            mAccumulator.relX = rawEvent->value;
+            break;
+        case REL_Y:
+            mAccumulator.fields |= Accumulator::FIELD_REL_Y;
+            mAccumulator.relY = rawEvent->value;
+            break;
+        case REL_WHEEL:
+            mAccumulator.fields |= Accumulator::FIELD_REL_WHEEL;
+            mAccumulator.btnScrollUp = (rawEvent->value == 1);
+            mAccumulator.btnScrollDown = (rawEvent->value == -1);
+            break;
+        }
+        break;
+
+    case EV_SYN:
+        switch (rawEvent->scanCode) {
+        case SYN_REPORT:
+            sync(rawEvent->when);
+            break;
+        }
+        break;
+    }
+}
+
+int32_t MouseInputMapper::getScanCodeState(uint32_t sourceMask, int32_t scanCode) {
+    return (scanCode >= BTN_LEFT && scanCode < BTN_JOYSTICK) ?
+            getEventHub()->getScanCodeState(getDeviceId(), scanCode) : AKEY_STATE_UNKNOWN;
+}
+
+void MouseInputMapper::initializeLocked() {
+    mAccumulator.clear();
+
+    mLocked.down = false;
+    mLocked.downTime = 0;
+
+    int32_t screenWidth;
+    int32_t screenHeight;
+    if (mAssociatedDisplayId < 0 || ! getPolicy()->getDisplayInfo(mAssociatedDisplayId, &screenWidth, &screenHeight, NULL)) {
+        mAccumulator.absX = 0;
+        mAccumulator.absY = 0;
+    } else {
+        mAccumulator.absX = screenWidth / 2;
+        mAccumulator.absY = screenHeight / 2;
+    }
+
+    // FIXME: should be read from a config file like idc of honeycomb
+    // Now only hardcoded touchpad to be orientation aware
+    mOrientationAware = (getDeviceName() == "ImPS/2 Generic Wheel Mouse");
+}
+
+void MouseInputMapper::sync(nsecs_t when) {
+    uint32_t fields = mAccumulator.fields;
+    if (fields == 0) {
+        return; // no new state changes, so nothing to do
+    }
+
+    int motionEventAction;
+    PointerCoords pointerCoords;
+    Vector<Keyevent> events;
+    nsecs_t downTime;
+    { // acquire lock
+        AutoMutex _l(mLock);
+
+        if (fields & Accumulator::FIELD_BTN_LEFT) {
+            if ((mLocked.down = mAccumulator.btnLeft)) {
+                mLocked.downTime = when;
+                motionEventAction = AMOTION_EVENT_ACTION_DOWN;
+            } else {
+                motionEventAction = AMOTION_EVENT_ACTION_UP;
+            }
+        } else {
+            motionEventAction = AMOTION_EVENT_ACTION_MOVE;
+        }
+
+        Keyevent kevent;
+        if (fields & Accumulator::FIELD_BTN_RIGHT) {
+            kevent.down = mAccumulator.btnRight;
+            kevent.keycode = mLocked.down ? AKEYCODE_HOME : AKEYCODE_BACK;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_BTN_MIDDLE) {
+            kevent.down = mAccumulator.btnMiddle;
+            kevent.keycode = mLocked.down ? AKEYCODE_ENTER : AKEYCODE_MENU;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_BTN_SIDE) {
+            kevent.down = mAccumulator.btnSide;
+            kevent.keycode = mLocked.down ? AKEYCODE_DPAD_RIGHT : AKEYCODE_HOME;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_BTN_EXTRA) {
+            kevent.down = mAccumulator.btnExtra;
+            kevent.keycode = mLocked.down ? AKEYCODE_DPAD_LEFT : AKEYCODE_ENTER;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_BTN_FORWARD) {
+            kevent.down = mAccumulator.btnForward;
+            kevent.keycode = AKEYCODE_DPAD_RIGHT;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_BTN_BACK) {
+            kevent.down = mAccumulator.btnBack;
+            kevent.keycode = AKEYCODE_DPAD_LEFT;
+            events.push(kevent);
+        }
+        if (fields & Accumulator::FIELD_REL_WHEEL) {
+            if (mAccumulator.btnScrollUp) {
+                kevent.keycode = mLocked.down ? AKEYCODE_MEDIA_NEXT : AKEYCODE_DPAD_UP;
+                kevent.down = true;
+                events.push(kevent);
+                kevent.down = false;
+                events.push(kevent);
+            } else if (mAccumulator.btnScrollDown) {
+                kevent.keycode = mLocked.down ? AKEYCODE_MEDIA_PREVIOUS : AKEYCODE_DPAD_DOWN;
+                kevent.down = true;
+                events.push(kevent);
+                kevent.down = false;
+                events.push(kevent);
+            }
+        }
+
+        downTime = mLocked.downTime;
+
+        float x = fields & Accumulator::FIELD_REL_X ? mAccumulator.relX : 0.0f;
+        float y = fields & Accumulator::FIELD_REL_Y ? mAccumulator.relY : 0.0f;
+
+        int32_t screenWidth;
+        int32_t screenHeight;
+        int32_t orientation;
+
+        if (mAssociatedDisplayId  < 0 || ! getPolicy()->getDisplayInfo(mAssociatedDisplayId, &screenWidth, &screenHeight, &orientation)) {
+            return;
+        }
+
+        float temp;
+        switch (orientation) {
+        case InputReaderPolicyInterface::ROTATION_90:
+            swap(screenWidth, screenHeight);
+            if (mOrientationAware)
+                temp = x, x = y, y = -temp;
+            break;
+
+        case InputReaderPolicyInterface::ROTATION_180:
+            if (mOrientationAware)
+                x = -x, y = -y;
+            break;
+
+        case InputReaderPolicyInterface::ROTATION_270:
+            swap(screenWidth, screenHeight);
+            if (mOrientationAware)
+                temp = x, x = -y, y = temp;
+            break;
+        }
+
+        mAccumulator.absX = (mAccumulator.absX + x) > screenWidth ? screenWidth - 1 : ((mAccumulator.absX + x) < 0 ? 0 : mAccumulator.absX + x);
+        mAccumulator.absY = (mAccumulator.absY + y) > screenHeight ? screenHeight - 1 : ((mAccumulator.absY + y) < 0 ? 0 : mAccumulator.absY + y);
+        pointerCoords.x = mAccumulator.absX;
+        pointerCoords.y = mAccumulator.absY;
+        pointerCoords.pressure = mLocked.down ? 1.0f : 0.0f;
+        pointerCoords.size = 0;
+        pointerCoords.touchMajor = 0;
+        pointerCoords.touchMinor = 0;
+        pointerCoords.toolMajor = 0;
+        pointerCoords.toolMinor = 0;
+        pointerCoords.orientation = 0;
+
+    } // release lock
+
+    int32_t metaState = mContext->getGlobalMetaState();
+    for (size_t i = 0; i < events.size(); ++i) {
+        getDispatcher()->notifyKey(when, getDeviceId(), AINPUT_SOURCE_DPAD, 0,
+                events[i].down ? AKEY_EVENT_ACTION_DOWN : AKEY_EVENT_ACTION_UP,
+                AKEY_EVENT_FLAG_FROM_SYSTEM, events[i].keycode, 0,
+                metaState, when);
+    }
+
+    int32_t pointerId = 0;
+    getDispatcher()->notifyMotion(when, getDeviceId(), AINPUT_SOURCE_MOUSE, 0,
+            motionEventAction, 0, metaState, AMOTION_EVENT_EDGE_FLAG_NONE,
+            1, &pointerId, &pointerCoords, 1, 1, downTime);
+    mAccumulator.clear();
+}
 
 // --- SingleTouchInputMapper ---
 
