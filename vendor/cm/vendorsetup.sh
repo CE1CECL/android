@@ -15,7 +15,7 @@
 # add_lunch_combo cm_zeusc-userdebug
 
 # ./vendor/cm/get-prebuilts
-mkdir -pv $(pwd)/vendor/cm/proprietary
-curl -L -o $(pwd)/vendor/cm/proprietary/Term.apk -O -L http://jackpal.github.io/Android-Terminal-Emulator/downloads/Term-1.0.65.apk
-unzip -o -d $(pwd)/vendor/cm/proprietary $(pwd)/vendor/cm/proprietary/Term.apk lib/armeabi/libjackpal-androidterm4.so
+# mkdir -pv $(pwd)/vendor/cm/proprietary
+# curl -L -o $(pwd)/vendor/cm/proprietary/Term.apk -O -L http://jackpal.github.io/Android-Terminal-Emulator/downloads/Term-1.0.65.apk
+# unzip -o -d $(pwd)/vendor/cm/proprietary $(pwd)/vendor/cm/proprietary/Term.apk lib/armeabi/libjackpal-androidterm4.so
 # ./vendor/cm/get-prebuilts
