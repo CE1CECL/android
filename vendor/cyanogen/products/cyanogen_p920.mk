@@ -26,8 +26,8 @@ PRODUCT_VERSION_DEVICE_SPECIFIC :=
 #
 # Copy prebuilt files
 #
-PRODUCT_COPY_FILES +=  \
-    vendor/cyanogen/prebuilt/hdpi/media/bootanimation.zip:system/media/bootanimation.zip
+# PRODUCT_COPY_FILES +=  \
+#     vendor/cyanogen/prebuilt/hdpi/media/bootanimation.zip:system/media/bootanimation.zip
 
 # TI FM radio
 $(call inherit-product, vendor/cyanogen/products/ti_fm_radio.mk)
