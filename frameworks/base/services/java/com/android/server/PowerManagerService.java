@@ -172,7 +172,7 @@ public class PowerManagerService extends IPowerManager.Stub
 
     private boolean mDoneBooting = false;
     private boolean mBootCompleted = false;
-    private int mStayOnConditions = -1;
+    private int mStayOnConditions = 0;
     private final int[] mBroadcastQueue = new int[] { -1, -1, -1 };
     private final int[] mBroadcastWhy = new int[3];
     private boolean mPreparingForScreenOn = false;
@@ -499,6 +499,8 @@ public class PowerManagerService extends IPowerManager.Stub
 
             synchronized (mLocks) {
                 // STAY_ON_WHILE_PLUGGED_IN, default to when plugged into AC
+                mStayOnConditions = getInt(STAY_ON_WHILE_PLUGGED_IN,
+                        BatteryManager.BATTERY_PLUGGED_AC);
                 updateWakeLockLocked();
 
                 // SCREEN_OFF_TIMEOUT, default to 15 seconds
