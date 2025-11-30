@@ -73,7 +73,7 @@ public class ZygoteInit {
      * the framework code.
      */
     private static final String heapSize =
-                    SystemProperties.get("dalvik.vm.heapsize", "16m");
+                    SystemProperties.get("dalvik.vm.heapsize", "18m");
     private static final int PRELOAD_GC_THRESHOLD = Integer.parseInt(
                     heapSize.substring(0, heapSize.length()-1))*1024*1024/2;
 
