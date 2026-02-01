@@ -14,7 +14,7 @@ TARGET_PRELINK_MODULE := false
 BOARD_USES_GENERIC_AUDIO := false
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
-USE_CAMERA_STUB := true
+USE_CAMERA_STUB := false
 
 # Set /system/bin/sh to mksh, not ash, to test the transition.
 TARGET_SHELL := mksh
