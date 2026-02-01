@@ -21,6 +21,7 @@ TARGET_NO_KERNEL := true
 TARGET_ARCH_VARIANT := armv7-a
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
+TARGET_PRELINK_MODULE := false
 ARCH_ARM_HAVE_ARMV7A := true
 ARCH_ARM_HAVE_NEON := false
 ARCH_ARM_HAVE_THUMB_SUPPORT := true
@@ -32,7 +33,7 @@ BOARD_USES_GENERIC_AUDIO := false
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
 # no hardware camera
-USE_CAMERA_STUB := true
+USE_CAMERA_STUB := false
 
 # Enable dex-preoptimization to speed up the first boot sequence
 # of an SDK AVD. Note that this operation only works on Linux for now
