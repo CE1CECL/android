@@ -33,7 +33,7 @@ BOARD_USES_GENERIC_AUDIO := false
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
 # no hardware camera
-USE_CAMERA_STUB := false
+USE_CAMERA_STUB := true
 
 # Enable dex-preoptimization to speed up the first boot sequence
 # of an SDK AVD. Note that this operation only works on Linux for now
