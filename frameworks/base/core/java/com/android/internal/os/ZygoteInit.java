@@ -95,7 +95,7 @@ public class ZygoteInit {
     private static final String PRELOADED_CLASSES = "preloaded-classes";
 
     /** Controls whether we should preload resources during zygote init. */
-    private static final boolean PRELOAD_RESOURCES = true;
+    private static final boolean PRELOAD_RESOURCES = false;
 
     /**
      * List of methods we "warm up" in the register map cache.  These were
