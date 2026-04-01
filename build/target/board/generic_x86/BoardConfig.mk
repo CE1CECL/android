@@ -28,8 +28,8 @@ WITH_DEXPREOPT := true
 endif
 
 # Build OpenGLES emulation host and guest libraries
-BUILD_EMULATOR_OPENGL := true
+BUILD_EMULATOR_OPENGL := false
 
 # Build and enable the OpenGL ES View renderer. When running on the emulator,
 # the GLES renderer disables itself if host GL acceleration isn't available.
-USE_OPENGL_RENDERER := true
+USE_OPENGL_RENDERER := false

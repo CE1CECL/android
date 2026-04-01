@@ -2793,7 +2793,7 @@ void TouchInputMapper::configureParameters() {
         mParameters.deviceType = Parameters::DEVICE_TYPE_TOUCH_PAD;
     } else {
         // The device is a touch pad of unknown purpose.
-        mParameters.deviceType = Parameters::DEVICE_TYPE_POINTER;
+        mParameters.deviceType = Parameters::DEVICE_TYPE_TOUCH_SCREEN;
     }
 
     String8 deviceTypeString;
