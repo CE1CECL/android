@@ -4,6 +4,8 @@
  *           (C) 2001 Peter Kelly (pmk@post.com)
  *           (C) 2001 Dirk Mueller (mueller@kde.org)
  * Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2012 Sony Ericsson Mobile Communications AB
+ * Copyright (C) 2012 Sony Mobile Communications AB
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -126,11 +128,11 @@ public:
 
     bool hasAttributes() const;
 
-    bool hasAttribute(const String& name) const;
-    bool hasAttributeNS(const String& namespaceURI, const String& localName) const;
+    bool hasAttribute(const AtomicString& name) const;
+    bool hasAttributeNS(const AtomicString& namespaceURI, const AtomicString& localName) const;
 
-    const AtomicString& getAttribute(const String& name) const;
-    const AtomicString& getAttributeNS(const String& namespaceURI, const String& localName) const;
+    const AtomicString& getAttribute(const AtomicString& name) const;
+    const AtomicString& getAttributeNS(const AtomicString& namespaceURI, const AtomicString& localName) const;
 
     void setAttribute(const AtomicString& name, const AtomicString& value, ExceptionCode&);
     void setAttributeNS(const AtomicString& namespaceURI, const AtomicString& qualifiedName, const AtomicString& value, ExceptionCode&, FragmentScriptingPermission = FragmentScriptingAllowed);
@@ -174,11 +176,11 @@ public:
     // Returns the absolute bounding box translated into screen coordinates:
     IntRect screenRect() const;
 
-    void removeAttribute(const String& name, ExceptionCode&);
-    void removeAttributeNS(const String& namespaceURI, const String& localName, ExceptionCode&);
+    void removeAttribute(const AtomicString& name, ExceptionCode&);
+    void removeAttributeNS(const AtomicString& namespaceURI, const AtomicString& localName, ExceptionCode&);
 
-    PassRefPtr<Attr> getAttributeNode(const String& name);
-    PassRefPtr<Attr> getAttributeNodeNS(const String& namespaceURI, const String& localName);
+    PassRefPtr<Attr> getAttributeNode(const AtomicString& name);
+    PassRefPtr<Attr> getAttributeNodeNS(const AtomicString& namespaceURI, const AtomicString& localName);
     PassRefPtr<Attr> setAttributeNode(Attr*, ExceptionCode&);
     PassRefPtr<Attr> setAttributeNodeNS(Attr*, ExceptionCode&);
     PassRefPtr<Attr> removeAttributeNode(Attr*, ExceptionCode&);
@@ -350,6 +352,11 @@ public:
     virtual bool isSpellCheckingEnabled() const;
 
     PassRefPtr<WebKitAnimationList> webkitGetAnimations() const;
+
+#if ENABLE(WEBGL) && PLATFORM(ANDROID)
+    virtual void documentWasSuspended() {}
+    virtual void documentWillResume() {}
+#endif
 
 protected:
     Element(const QualifiedName& tagName, Document* document, ConstructionType type)

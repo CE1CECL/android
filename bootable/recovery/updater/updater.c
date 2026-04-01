@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 
     if (!sehandle) {
         fprintf(stderr, "Warning:  No file_contexts\n");
-        fprintf(cmd_pipe, "ui_print Warning: No file_contexts\n");
+        // fprintf(cmd_pipe, "ui_print Warning: No file_contexts\n");
     }
 
     // Evaluate the parsed script.

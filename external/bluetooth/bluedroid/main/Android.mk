@@ -6,6 +6,10 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 
+ifneq ($(filter caf bfam,$(TARGET_QCOM_AUDIO_VARIANT)),)
+	LOCAL_CFLAGS += -DSAMPLE_RATE_48K
+endif
+
 # HAL layer
 LOCAL_SRC_FILES:= \
 	../btif/src/bluetooth.c
@@ -26,6 +30,7 @@ LOCAL_SRC_FILES += \
     ../btif/src/btif_util.c \
     ../btif/src/btif_sm.c \
     ../btif/src/btif_hf.c \
+    ../btif/src/btif_hf_client.c \
     ../btif/src/btif_av.c \
     ../btif/src/btif_rc.c \
     ../btif/src/btif_media_task.c \
@@ -37,6 +42,7 @@ LOCAL_SRC_FILES += \
     ../btif/src/btif_sock_sdp.c \
     ../btif/src/btif_sock_util.c \
     ../btif/src/btif_pan.c \
+    ../btif/src/btif_mce.c \
     ../btif/src/btif_gatt.c \
     ../btif/src/btif_gatt_client.c \
     ../btif/src/btif_gatt_server.c \
@@ -75,6 +81,7 @@ LOCAL_SRC_FILES+= \
 
 LOCAL_C_INCLUDES+= . \
 	$(LOCAL_PATH)/../bta/include \
+	$(LOCAL_PATH)/../btc/include \
 	$(LOCAL_PATH)/../bta/sys \
 	$(LOCAL_PATH)/../bta/dm \
 	$(LOCAL_PATH)/../gki/common \
@@ -99,7 +106,7 @@ LOCAL_C_INCLUDES+= . \
 	$(bdroid_C_INCLUDES) \
 	external/tinyxml2
 
-LOCAL_CFLAGS += -DBUILDCFG $(bdroid_CFLAGS)  -Wno-error=maybe-uninitialized -Wno-error=uninitialized
+LOCAL_CFLAGS += -DBUILDCFG $(bdroid_CFLAGS)  -Wno-error=maybe-uninitialized -Wno-error=uninitialized -Wno-unused-parameter
 
 ifeq ($(TARGET_PRODUCT), full_crespo)
      LOCAL_CFLAGS += -DTARGET_CRESPO
@@ -126,7 +133,7 @@ LOCAL_SHARED_LIBRARIES := \
     libbt-utils
 
 #LOCAL_WHOLE_STATIC_LIBRARIES := libbt-brcm_gki libbt-brcm_stack libbt-brcm_bta
-LOCAL_STATIC_LIBRARIES := libbt-brcm_gki libbt-brcm_bta libbt-brcm_stack libtinyxml2
+LOCAL_STATIC_LIBRARIES := libbt-brcm_gki libbt-brcm_bta libbt-brcm_stack libbt-btc libtinyxml2
 
 LOCAL_MODULE := bluetooth.default
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw

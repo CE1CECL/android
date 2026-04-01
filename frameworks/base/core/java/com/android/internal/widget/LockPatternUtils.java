@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (C) 2012 The CyanogenMod Project (Calendar)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +18,16 @@
 package com.android.internal.widget;
 
 import android.app.ActivityManagerNative;
+import android.app.Profile;
+import android.app.ProfileManager;
 import android.app.admin.DevicePolicyManager;
 import android.appwidget.AppWidgetManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -30,10 +35,13 @@ import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.os.storage.IMountService;
+import android.provider.CalendarContract;
 import android.provider.Settings;
 import android.security.KeyStore;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.text.format.DateFormat;
+import android.text.format.Time;
 import android.util.Log;
 import android.view.IWindowManager;
 import android.view.View;
@@ -46,7 +54,10 @@ import com.google.android.collect.Lists;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 /**
  * Utilities for the lock pattern and its settings.
@@ -89,6 +100,11 @@ public class LockPatternUtils {
      * The minimum number of dots in a valid pattern.
      */
     public static final int MIN_LOCK_PATTERN_SIZE = 4;
+
+    /**
+     * The default size of the pattern lockscreen. Ex: 3x3
+     */
+    public static final byte PATTERN_SIZE_DEFAULT = 3;
 
     /**
      * The minimum number of dots the user must include in a wrong pattern
@@ -148,6 +164,7 @@ public class LockPatternUtils {
     private final ContentResolver mContentResolver;
     private DevicePolicyManager mDevicePolicyManager;
     private ILockSettings mLockSettingsService;
+    private ProfileManager mProfileManager;
 
     // The current user is set by KeyguardViewMediator and shared by all LockPatternUtils.
     private static volatile int sCurrentUserId = UserHandle.USER_NULL;
@@ -170,6 +187,7 @@ public class LockPatternUtils {
     public LockPatternUtils(Context context) {
         mContext = context;
         mContentResolver = context.getContentResolver();
+        mProfileManager = (ProfileManager) context.getSystemService(Context.PROFILE_SERVICE);
     }
 
     private ILockSettings getLockSettings() {
@@ -497,7 +515,7 @@ public class LockPatternUtils {
      */
     public void saveLockPattern(List<LockPatternView.Cell> pattern, boolean isFallback) {
         // Compute the hash
-        final byte[] hash = LockPatternUtils.patternToHash(pattern);
+        final byte[] hash = patternToHash(pattern);
         try {
             getLockSettings().setLockPattern(hash, getCurrentOrCallingUserId());
             DevicePolicyManager dpm = getDevicePolicyManager();
@@ -757,13 +775,16 @@ public class LockPatternUtils {
      * @param string The pattern serialized with {@link #patternToString}
      * @return The pattern.
      */
-    public static List<LockPatternView.Cell> stringToPattern(String string) {
+    public List<LockPatternView.Cell> stringToPattern(String string) {
         List<LockPatternView.Cell> result = Lists.newArrayList();
+
+        final byte size = getLockPatternSize();
+        LockPatternView.Cell.updateSize(size);
 
         final byte[] bytes = string.getBytes();
         for (int i = 0; i < bytes.length; i++) {
             byte b = bytes[i];
-            result.add(LockPatternView.Cell.of(b / 3, b % 3));
+            result.add(LockPatternView.Cell.of(b / size, b % size, size));
         }
         return result;
     }
@@ -773,7 +794,7 @@ public class LockPatternUtils {
      * @param pattern The pattern.
      * @return The pattern in string form.
      */
-    public static String patternToString(List<LockPatternView.Cell> pattern) {
+    public String patternToString(List<LockPatternView.Cell> pattern) {
         if (pattern == null) {
             return "";
         }
@@ -782,7 +803,7 @@ public class LockPatternUtils {
         byte[] res = new byte[patternSize];
         for (int i = 0; i < patternSize; i++) {
             LockPatternView.Cell cell = pattern.get(i);
-            res[i] = (byte) (cell.getRow() * 3 + cell.getColumn());
+            res[i] = (byte) (cell.getRow() * getLockPatternSize() + cell.getColumn());
         }
         return new String(res);
     }
@@ -794,7 +815,7 @@ public class LockPatternUtils {
      * @param pattern the gesture pattern.
      * @return the hash of the pattern in a byte array.
      */
-    private static byte[] patternToHash(List<LockPatternView.Cell> pattern) {
+    private byte[] patternToHash(List<LockPatternView.Cell> pattern) {
         if (pattern == null) {
             return null;
         }
@@ -803,7 +824,7 @@ public class LockPatternUtils {
         byte[] res = new byte[patternSize];
         for (int i = 0; i < patternSize; i++) {
             LockPatternView.Cell cell = pattern.get(i);
-            res[i] = (byte) (cell.getRow() * 3 + cell.getColumn());
+            res[i] = (byte) (cell.getRow() * getLockPatternSize() + cell.getColumn());
         }
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-1");
@@ -969,6 +990,40 @@ public class LockPatternUtils {
     public boolean isTactileFeedbackEnabled() {
         return Settings.System.getIntForUser(mContentResolver,
                 Settings.System.HAPTIC_FEEDBACK_ENABLED, 1, UserHandle.USER_CURRENT) != 0;
+    }
+
+    /**
+     * @return the pattern lockscreen size
+     */
+    public byte getLockPatternSize() {
+        try {
+            return getLockSettings().getLockPatternSize(getCurrentOrCallingUserId());
+        } catch (RemoteException re) {
+            return PATTERN_SIZE_DEFAULT;
+        }
+    }
+
+    /**
+     * Set the pattern lockscreen size
+     */
+    public void setLockPatternSize(long size) {
+        setLong(Settings.Secure.LOCK_PATTERN_SIZE, size);
+    }
+
+    public void setVisibleDotsEnabled(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, enabled);
+    }
+
+    public boolean isVisibleDotsEnabled() {
+        return getBoolean(Settings.Secure.LOCK_DOTS_VISIBLE, true);
+    }
+
+    public void setShowErrorPath(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, enabled);
+    }
+
+    public boolean isShowErrorPath() {
+        return getBoolean(Settings.Secure.LOCK_SHOW_ERROR_PATH, true);
     }
 
     /**
@@ -1244,8 +1299,9 @@ public class LockPatternUtils {
                 || mode == DevicePolicyManager.PASSWORD_QUALITY_ALPHABETIC
                 || mode == DevicePolicyManager.PASSWORD_QUALITY_ALPHANUMERIC
                 || mode == DevicePolicyManager.PASSWORD_QUALITY_COMPLEX;
-        final boolean secure = isPattern && isLockPatternEnabled() && savedPatternExists()
-                || isPassword && savedPasswordExists();
+        final boolean isProfileSecure = mProfileManager.getActiveProfile().getScreenLockModeWithDPM(mContext) == Profile.LockMode.DEFAULT;
+        final boolean secure = (isPattern && isLockPatternEnabled() && savedPatternExists()
+                || isPassword && savedPasswordExists()) && isProfileSecure;
         return secure;
     }
 
@@ -1351,6 +1407,15 @@ public class LockPatternUtils {
             // Shouldn't happen!
         }
         return false;
+    }
+
+    /**
+     * @hide
+     * Set the lock-before-unlock option (show widgets before the secure
+     * unlock screen). See config_enableLockBeforeUnlockScreen
+     */
+    public void setLockBeforeUnlock(boolean enabled) {
+        setBoolean(Settings.Secure.LOCK_BEFORE_UNLOCK, enabled);
     }
 
 }

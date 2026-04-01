@@ -69,6 +69,7 @@ public:
     virtual ~SkPicturePlayback();
 
     void draw(SkCanvas& canvas);
+    void drawAltCanvas(SkAltCanvas& canvas);
 
     void serialize(SkWStream*, SkSerializationHelpers::EncodeBitmap) const;
 
@@ -79,7 +80,7 @@ public:
     // drawing and return from draw() after the "current" op code is done
     void abort() { fAbortCurrentPlayback = true; }
 #endif
-
+ bool canUseGpuRendering()   {   return fCanUseGpuRendering; }
 protected:
 #ifdef SK_DEVELOPER
     virtual size_t preDraw(size_t offset, int type);
@@ -223,6 +224,7 @@ private:
     SkMutex fDrawMutex;
     bool fAbortCurrentPlayback;
 #endif
+    bool fCanUseGpuRendering;
 };
 
 #endif

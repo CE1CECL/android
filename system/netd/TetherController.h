@@ -21,6 +21,12 @@
 
 #include "List.h"
 
+#define HOUR 3600
+
+/* Keep this in sync with packages/apps/Settings/res/values/arrays.xml's
+ * tethering_lease_time_entries/values */
+#define DEFAULT_LEASE_TIME (1*HOUR)
+
 typedef android::netd::List<char *> InterfaceCollection;
 typedef android::netd::List<struct in_addr> NetAddressCollection;
 
@@ -29,6 +35,8 @@ class TetherController {
     NetAddressCollection *mDnsForwarders;
     pid_t                 mDaemonPid;
     int                   mDaemonFd;
+    pid_t                 mRtrAdvPid; // IPv6 support
+    InterfaceCollection  *mUpstreamInterfaces;
 
 public:
     TetherController();
@@ -37,7 +45,7 @@ public:
     int setIpFwdEnabled(bool enable);
     bool getIpFwdEnabled();
 
-    int startTethering(int num_addrs, struct in_addr* addrs);
+    int startTethering(int num_addrs, struct in_addr* addrs, int lease_time=DEFAULT_LEASE_TIME);
 
     int stopTethering();
     bool isTetheringStarted();
@@ -48,6 +56,13 @@ public:
     int tetherInterface(const char *interface);
     int untetherInterface(const char *interface);
     InterfaceCollection *getTetheredInterfaceList();
+    int startV6RtrAdv(int num_ifaces, char **ifaces);
+    int stopV6RtrAdv();
+    bool isV6RtrAdvStarted();
+    int addV6RtrAdvIface(const char *iface);
+    int removeV6RtrAdvIface(const char *iface);
+    int addUpstreamInterface(char *iface);
+    int removeUpstreamInterface(char *iface);
 
 private:
     int applyDnsInterfaces();

@@ -17,6 +17,8 @@
 
 package com.android.camera;
 
+import android.content.res.TypedArray;
+import android.graphics.Canvas;
 import android.hardware.Camera;
 import android.hardware.Camera.Face;
 import android.hardware.Camera.FaceDetectionListener;
@@ -31,6 +33,7 @@ import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.FrameLayout;
 import android.widget.FrameLayout.LayoutParams;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.android.camera.CameraPreference.OnPreferenceChangedListener;
@@ -43,6 +46,7 @@ import com.android.camera.ui.FocusIndicator;
 import com.android.camera.ui.PieRenderer;
 import com.android.camera.ui.PieRenderer.PieListener;
 import com.android.camera.ui.RenderOverlay;
+import com.android.camera.ui.RotateImageView;
 import com.android.camera.ui.ZoomRenderer;
 import com.android.gallery3d.R;
 import com.android.gallery3d.common.ApiHelper;
@@ -64,6 +68,7 @@ public class PhotoUI implements PieListener,
     private PreviewGestures mGestures;
 
     private View mRootView;
+    protected PreviewFrameLayout mPreviewFrameLayout;
     private Object mSurfaceTexture;
     private volatile SurfaceHolder mSurfaceHolder;
 
@@ -81,9 +86,13 @@ public class PhotoUI implements PieListener,
     private View mBlocker;
     private PhotoMenu mMenu;
 
+    private ImageView mSceneDetectView;
+
+    private ImageView mBurstModeView;
+
     private OnScreenIndicators mOnScreenIndicators;
 
-    private PieRenderer mPieRenderer;
+    protected PieRenderer mPieRenderer;
     private ZoomRenderer mZoomRenderer;
     private Toast mNotSelectableToast;
 
@@ -93,6 +102,7 @@ public class PhotoUI implements PieListener,
     private int mPreviewWidth = 0;
     private int mPreviewHeight = 0;
     private View mPreviewThumb;
+    public boolean mMenuInitialized = false;
 
     private OnLayoutChangeListener mLayoutListener = new OnLayoutChangeListener() {
         @Override
@@ -100,12 +110,12 @@ public class PhotoUI implements PieListener,
                 int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
             int width = right - left;
             int height = bottom - top;
-            // Full-screen screennail
-            int w = width;
-            int h = height;
+            // Get screennail size from mPreviewFrameLayout
+            int w = mPreviewFrameLayout.getWidth();
+            int h = mPreviewFrameLayout.getHeight();
             if (Util.getDisplayRotation(mActivity) % 180 != 0) {
-                w = height;
-                h = width;
+                w = mPreviewFrameLayout.getHeight();
+                h = mPreviewFrameLayout.getWidth();
             }
             if (mPreviewWidth != width || mPreviewHeight != height) {
                 mPreviewWidth = width;
@@ -127,7 +137,8 @@ public class PhotoUI implements PieListener,
         initIndicators();
         mCountDownView = (CountDownView) (mRootView.findViewById(R.id.count_down_to_capture));
         mCountDownView.setCountDownFinishedListener((OnCountDownFinishedListener) mController);
-
+        mPreviewFrameLayout = (PreviewFrameLayout) mRootView.findViewById(R.id.frame);
+        mPreviewFrameLayout.setOnLayoutChangeListener(mActivity);
         if (ApiHelper.HAS_FACE_DETECTION) {
             ViewStub faceViewStub = (ViewStub) mRootView
                     .findViewById(R.id.face_view_stub);
@@ -136,7 +147,8 @@ public class PhotoUI implements PieListener,
                 mFaceView = (FaceView) mRootView.findViewById(R.id.face_view);
             }
         }
-
+        mSceneDetectView = (ImageView) mRootView.findViewById(R.id.scene_detect_icon);
+        mBurstModeView = (ImageView) mRootView.findViewById(R.id.burst_mode_icon);
     }
 
     public View getRootView() {
@@ -160,6 +172,7 @@ public class PhotoUI implements PieListener,
             mMenu.setListener(listener);
         }
         mMenu.initialize(prefGroup);
+        mMenuInitialized = true;
 
         if (mZoomRenderer == null) {
             mZoomRenderer = new ZoomRenderer(mActivity);
@@ -188,6 +201,10 @@ public class PhotoUI implements PieListener,
 
         initializeZoom(params);
         updateOnScreenIndicators(params, prefGroup, prefs);
+    }
+
+    public void setAspectRatio(double ratio) {
+        mPreviewFrameLayout.setAspectRatio(ratio);
     }
 
     private void openMenu() {
@@ -299,13 +316,22 @@ public class PhotoUI implements PieListener,
     public void hideGpsOnScreenIndicator() { }
 
     public void overrideSettings(final String ... keyvalues) {
+        if (mMenu == null) return;
         mMenu.overrideSettings(keyvalues);
     }
 
     public void updateOnScreenIndicators(Camera.Parameters params,
             PreferenceGroup group, ComboPreferences prefs) {
-        if (params == null) return;
-        mOnScreenIndicators.updateSceneOnScreenIndicator(params.getSceneMode());
+        if (params == null || group == null) return;
+        String scene = params.getSceneMode();
+        // use the scene indicator for beautify/slowshutter since they
+        // will never coexist with scenemodes or hdr
+        if (CameraSettings.isBeautyModeEnabled(params)) {
+            scene = "beauty";
+        } else if (CameraSettings.isSlowShutterEnabled(params)) {
+            scene = "slow";
+        }
+        mOnScreenIndicators.updateSceneOnScreenIndicator(scene);
         mOnScreenIndicators.updateExposureOnScreenIndicator(params,
                 CameraSettings.readExposure(prefs));
         mOnScreenIndicators.updateFlashOnScreenIndicator(params.getFlashMode());
@@ -459,6 +485,7 @@ public class PhotoUI implements PieListener,
         mShutterButton.setVisibility(View.INVISIBLE);
         Util.fadeIn(mReviewRetakeButton);
         pauseFaceDetection();
+        enableGestures(false);
     }
 
     protected void hidePostCaptureAlert() {
@@ -468,6 +495,7 @@ public class PhotoUI implements PieListener,
         mShutterButton.setVisibility(View.VISIBLE);
         Util.fadeOut(mReviewRetakeButton);
         resumeFaceDetection();
+        enableGestures(true);
     }
 
     public void setDisplayOrientation(int orientation) {
@@ -681,6 +709,22 @@ public class PhotoUI implements PieListener,
         mFaceView.setFaces(faces);
     }
 
+
+    public boolean onScaleStepResize(boolean direction)
+    {
+        if(mGestures != null){
+            return mGestures.onScaleStepResize(direction);
+        }
+        return false;
+    }
+
+    public void onScaleChangeDraw(Canvas canvas)
+    {
+        if(mGestures != null){
+            mGestures.onScaleChangeDraw(canvas);
+        }
+    }
+
     @Override
     public void onSwipe(int direction) {
         if (direction == PreviewGestures.DIR_UP) {
@@ -688,4 +732,46 @@ public class PhotoUI implements PieListener,
         }
     }
 
+    public void updateSceneDetectionIcon(String scene) {
+        if (scene == null) {
+            mSceneDetectView.setVisibility(View.GONE);
+            return;
+        }
+        String[] values = mActivity.getResources().getStringArray(R.array.camera_asd_values);
+        int i = 0;
+        for (i = 0; i < values.length; i++) {
+            if (values[i].equals(scene)) {
+                break;
+            }
+        }
+        if (i < values.length) {
+            TypedArray imgs = mActivity.getResources().obtainTypedArray(R.array.camera_asd_icons);
+            mSceneDetectView.setImageResource(imgs.getResourceId(i, -1));
+        }
+        mSceneDetectView.setVisibility(View.VISIBLE);
+    }
+
+    public void updateBurstModeIcon(int burstCount) {
+        if (burstCount == 1) {
+            mBurstModeView.setVisibility(View.GONE);
+            return;
+        }
+
+        switch (burstCount) {
+            case 5:
+                mBurstModeView.setImageResource(R.drawable.burst_mode_5);
+                break;
+            case 10:
+                mBurstModeView.setImageResource(R.drawable.burst_mode_10);
+                break;
+            case 15:
+                mBurstModeView.setImageResource(R.drawable.burst_mode_15);
+                break;
+            case 20:
+                mBurstModeView.setImageResource(R.drawable.burst_mode_20);
+                break;
+        }
+        mBurstModeView.setVisibility(View.VISIBLE);
+    }
 }
+

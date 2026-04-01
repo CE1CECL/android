@@ -26,6 +26,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.TransitionDrawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v13.app.FragmentPagerAdapter;
@@ -37,6 +38,11 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager.LayoutParams;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
+import android.view.animation.AnimationUtils;
+import android.view.animation.TranslateAnimation;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
@@ -371,6 +377,13 @@ public class DeskClock extends Activity implements LabelDialogFragment.TimerLabe
         public void onTabSelected(Tab tab, FragmentTransaction ft) {
             TabInfo info = (TabInfo)tab.getTag();
             mPager.setCurrentItem(getRtlPosition(info.getPosition()));
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+            if (info.getPosition() == STOPWATCH_TAB_INDEX
+                    && prefs.getBoolean(SettingsActivity.KEY_KEEP_DISPLAY_ON_STOPWATCH, true)) {
+                getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON);
+            } else {
+                getWindow().clearFlags(LayoutParams.FLAG_KEEP_SCREEN_ON);
+            }
         }
 
         @Override

@@ -124,6 +124,18 @@ public class NativeNfcManager implements DeviceHost {
     public native void disableDiscovery();
 
     @Override
+    public void enableCE_A() { Log.e(TAG, "NFC Host Emulation not supported with NCI adapters"); return; };
+
+    @Override
+    public void disableCE_A() { Log.e(TAG, "NFC Host Emulation not supported with NCI adapters"); return; };
+
+    @Override
+    public void enableCE_B() { Log.e(TAG, "NFC Host Emulation not supported with NCI adapters"); return; };
+
+    @Override
+    public void disableCE_B() { Log.e(TAG, "NFC Host Emulation not supported with NCI adapters"); return; };
+
+    @Override
     public native int[] doGetSecureElementList();
 
     @Override

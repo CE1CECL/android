@@ -60,6 +60,13 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
     private static final String KEY_CURRENT_INPUT_METHOD = "current_input_method";
     private static final String KEY_INPUT_METHOD_SELECTOR = "input_method_selector";
     private static final String KEY_USER_DICTIONARY_SETTINGS = "key_user_dictionary_settings";
+    private static final String KEY_IME_SWITCHER = "status_bar_ime_switcher";
+    private static final String KEY_VOLUME_KEY_CURSOR_CONTROL = "volume_key_cursor_control";
+    private static final String KEY_POINTER_SETTINGS_CATEGORY = "pointer_settings_category";
+    private static final String KEY_STYLUS_ICON_ENABLED = "stylus_icon_enabled";
+    private static final String KEY_STYLUS_GESTURES = "stylus_gestures";
+    private static final String KEY_TRACKPAD_SETTINGS = "gesture_pad_settings";
+
     // false: on ICS or later
     private static final boolean SHOW_INPUT_METHOD_SWITCHER_SETTINGS = false;
 
@@ -71,12 +78,15 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
         "auto_replace", "auto_caps", "auto_punctuate",
     };
 
+    private CheckBoxPreference mStylusIconEnabled;
+    private CheckBoxPreference mStatusBarImeSwitcher;
     private int mDefaultInputMethodSelectorVisibility = 0;
     private ListPreference mShowInputMethodSelectorPref;
     private PreferenceCategory mKeyboardSettingsCategory;
     private PreferenceCategory mHardKeyboardCategory;
     private PreferenceCategory mGameControllerCategory;
     private Preference mLanguagePref;
+    private PreferenceScreen mStylusGestures;
     private final ArrayList<InputMethodPreference> mInputMethodPreferenceList =
             new ArrayList<InputMethodPreference>();
     private final ArrayList<PreferenceScreen> mHardKeyboardPreferenceList =
@@ -89,6 +99,7 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
     @SuppressWarnings("unused")
     private SettingsObserver mSettingsObserver;
     private Intent mIntentWaitingForResult;
+    private ListPreference mVolumeKeyCursorControl;
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -169,6 +180,34 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
         mIm = (InputManager)getActivity().getSystemService(Context.INPUT_SERVICE);
         updateInputDevices();
 
+        // Enable or disable mStatusBarImeSwitcher based on boolean value: config_show_cmIMESwitcher
+        final Preference keyImeSwitcherPref = findPreference(KEY_IME_SWITCHER);
+        if (keyImeSwitcherPref != null) {
+            if (!getResources().getBoolean(com.android.internal.R.bool.config_show_cmIMESwitcher)) {
+                getPreferenceScreen().removePreference(keyImeSwitcherPref);
+            } else {
+                mStatusBarImeSwitcher = (CheckBoxPreference) keyImeSwitcherPref;
+            }
+        }
+
+        PreferenceCategory pointerSettingsCategory = (PreferenceCategory)
+                        findPreference(KEY_POINTER_SETTINGS_CATEGORY);
+        mStylusGestures = (PreferenceScreen) findPreference(KEY_STYLUS_GESTURES);
+        mStylusIconEnabled = (CheckBoxPreference) findPreference(KEY_STYLUS_ICON_ENABLED);
+
+        if (pointerSettingsCategory != null) {
+            // remove stylus preference for non stylus devices
+            if (!getResources().getBoolean(com.android.internal.R.bool.config_stylusGestures)) {
+                pointerSettingsCategory.removePreference(mStylusGestures);
+                pointerSettingsCategory.removePreference(mStylusIconEnabled);
+            }
+            Utils.updatePreferenceToSpecificActivityFromMetaDataOrRemove(getActivity(),
+                            pointerSettingsCategory, KEY_TRACKPAD_SETTINGS);
+            if (pointerSettingsCategory.getPreferenceCount() == 0) {
+                getPreferenceScreen().removePreference(pointerSettingsCategory);
+            }
+        }
+
         // Spell Checker
         final Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setClass(getActivity(), SpellCheckersSettingsActivity.class);
@@ -176,6 +215,18 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
                 "spellcheckers_settings"));
         if (scp != null) {
             scp.setFragmentIntent(this, intent);
+        }
+
+        mVolumeKeyCursorControl = (ListPreference) findPreference(KEY_VOLUME_KEY_CURSOR_CONTROL);
+        if(mVolumeKeyCursorControl != null) {
+            if (Utils.hasVolumeRocker(getActivity())) {
+                mVolumeKeyCursorControl.setOnPreferenceChangeListener(this);
+                mVolumeKeyCursorControl.setValue(Integer.toString(Settings.System.getInt(getActivity()
+                        .getContentResolver(), Settings.System.VOLUME_KEY_CURSOR_CONTROL, 0)));
+                mVolumeKeyCursorControl.setSummary(mVolumeKeyCursorControl.getEntry());
+            } else {
+                getPreferenceScreen().removePreference(mVolumeKeyCursorControl);
+            }
         }
 
         mHandler = new Handler();
@@ -266,6 +317,16 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
             }
         }
 
+        if (mStatusBarImeSwitcher != null) {
+            mStatusBarImeSwitcher.setChecked(Settings.System.getInt(getActivity().getContentResolver(),
+                    Settings.System.STATUS_BAR_IME_SWITCHER, 1) != 0);
+        }
+
+        if (mStylusIconEnabled != null) {
+            mStylusIconEnabled.setChecked(Settings.System.getInt(getActivity().getContentResolver(),
+                    Settings.System.STYLUS_ICON_ENABLED, 0) == 1);
+        }
+
         // Hard keyboard
         if (!mHardKeyboardPreferenceList.isEmpty()) {
             for (int i = 0; i < sHardKeyboardKeys.length; ++i) {
@@ -319,7 +380,14 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
         if (Utils.isMonkeyRunning()) {
             return false;
         }
-        if (preference instanceof PreferenceScreen) {
+        if (preference == mStatusBarImeSwitcher) {
+            Settings.System.putInt(getActivity().getContentResolver(),
+                Settings.System.STATUS_BAR_IME_SWITCHER, mStatusBarImeSwitcher.isChecked() ? 1 : 0);
+            return true;
+        } else if (preference == mStylusIconEnabled) {
+            Settings.System.putInt(getActivity().getContentResolver(),
+                Settings.System.STYLUS_ICON_ENABLED, mStylusIconEnabled.isChecked() ? 1 : 0);
+        } else if (preference instanceof PreferenceScreen) {
             if (preference.getFragment() != null) {
                 // Fragment will be handled correctly by the super class.
             } else if (KEY_CURRENT_INPUT_METHOD.equals(preference.getKey())) {
@@ -385,6 +453,15 @@ public class InputMethodAndLanguageSettings extends SettingsPreferenceFragment
                     saveInputMethodSelectorVisibility((String)value);
                 }
             }
+        }
+        if (preference == mVolumeKeyCursorControl) {
+            String volumeKeyCursorControl = (String) value;
+            int val = Integer.parseInt(volumeKeyCursorControl);
+            Settings.System.putInt(getActivity().getContentResolver(),
+                    Settings.System.VOLUME_KEY_CURSOR_CONTROL, val);
+            int index = mVolumeKeyCursorControl.findIndexOfValue(volumeKeyCursorControl);
+            mVolumeKeyCursorControl.setSummary(mVolumeKeyCursorControl.getEntries()[index]);
+            return true;
         }
         return false;
     }

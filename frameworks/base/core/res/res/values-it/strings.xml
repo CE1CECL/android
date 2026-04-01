@@ -1168,7 +1168,7 @@
     <string name="sms_short_code_confirm_allow" msgid="4458878637111023413">"Invia"</string>
     <string name="sms_short_code_confirm_deny" msgid="2927389840209170706">"Annulla"</string>
     <string name="sms_short_code_remember_choice" msgid="5289538592272218136">"Memorizza la mia scelta"</string>
-    <string name="sms_short_code_remember_undo_instruction" msgid="4960944133052287484">"Modifica: Impostazioni &gt; Applicazioni"</string>
+    <string name="sms_short_code_remember_undo_instruction" msgid="4960944133052287484">"Modifica: Impostazioni &gt; Applicazioni"</string>
     <string name="sms_short_code_confirm_always_allow" msgid="3241181154869493368">"Consenti sempre"</string>
     <string name="sms_short_code_confirm_never_allow" msgid="446992765774269673">"Non consentire mai"</string>
     <string name="sim_removed_title" msgid="6227712319223226185">"Scheda SIM rimossa"</string>

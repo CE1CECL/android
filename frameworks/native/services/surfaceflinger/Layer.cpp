@@ -44,6 +44,10 @@
 
 #include "DisplayHardware/HWComposer.h"
 
+#ifdef QCOM_BSP
+#include <gralloc_priv.h>
+#endif
+
 #define DEBUG_RESIZE    0
 
 namespace android {
@@ -64,6 +68,7 @@ Layer::Layer(SurfaceFlinger* flinger, const sp<Client>& client,
         mFormat(PIXEL_FORMAT_NONE),
         mGLExtensions(GLExtensions::getInstance()),
         mOpaqueLayer(true),
+        mNeedsDithering(false),
         mTransactionFlags(0),
         mQueuedFrames(0),
         mCurrentTransform(0),
@@ -199,6 +204,14 @@ status_t Layer::setBuffers( uint32_t w, uint32_t h,
     mSurfaceFlingerConsumer->setDefaultBufferSize(w, h);
     mSurfaceFlingerConsumer->setDefaultBufferFormat(format);
     mSurfaceFlingerConsumer->setConsumerUsageBits(getEffectiveUsage(0));
+
+    if (mFlinger->getUseDithering()) {
+        int displayMinColorDepth = mFlinger->getMinColorDepth();
+        // we use the red index
+        int layerRedsize = info.getSize(PixelFormatInfo::INDEX_RED);
+
+        mNeedsDithering = (layerRedsize > displayMinColorDepth);
+    }
 
     return NO_ERROR;
 }
@@ -370,6 +383,15 @@ void Layer::setGeometry(
     frame.intersect(hw->getViewport(), &frame);
     const Transform& tr(hw->getTransform());
     layer.setFrame(tr.transform(frame));
+#ifdef QCOM_BSP
+    // set dest_rect to frame buffer width and height, if external_only flag
+    // for the layer is enabled.
+    if(isExtOnly()) {
+        uint32_t w = hw->getWidth();
+        uint32_t h = hw->getHeight();
+        layer.setFrame(Rect(w,h));
+    }
+#endif
     layer.setCrop(computeCrop(hw));
     layer.setPlaneAlpha(s.alpha);
 
@@ -482,9 +504,20 @@ void Layer::onDraw(const sp<const DisplayDevice>& hw, const Region& clip) const
         // is probably going to have something visibly wrong.
     }
 
+    bool canAllowGPU = false;
+#ifdef QCOM_BSP
+    if(isProtected()) {
+        char property[PROPERTY_VALUE_MAX];
+        if ((property_get("persist.gralloc.cp.level3", property, NULL) > 0) &&
+                (atoi(property) == 1)) {
+            canAllowGPU = true;
+        }
+    }
+#endif
+
     bool blackOutLayer = isProtected() || (isSecure() && !hw->isSecure());
 
-    if (!blackOutLayer) {
+    if (!blackOutLayer || (canAllowGPU)) {
         // TODO: we could be more subtle with isFixedSize()
         const bool useFiltering = getFiltering() || needsFiltering(hw) || isFixedSize();
 
@@ -531,6 +564,7 @@ void Layer::clearWithOpenGL(const sp<const DisplayDevice>& hw, const Region& cli
     glDisable(GL_TEXTURE_EXTERNAL_OES);
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_BLEND);
+    glDisable(GL_DITHER);
 
     LayerMesh mesh;
     computeGeometry(hw, &mesh);
@@ -615,6 +649,12 @@ void Layer::drawWithOpenGL(
     texCoords[3].v = top;
     for (int i = 0; i < 4; i++) {
         texCoords[i].v = 1.0f - texCoords[i].v;
+    }
+
+    if (needsDithering()) {
+        glEnable(GL_DITHER);
+    } else {
+        glDisable(GL_DITHER);
     }
 
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1254,6 +1294,41 @@ Layer::LayerCleaner::~LayerCleaner() {
     mFlinger->onLayerDestroyed(mLayer);
 }
 
+#ifdef QCOM_BSP
+bool Layer::isExtOnly() const
+{
+    const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
+    if (activeBuffer != 0) {
+        uint32_t usage = activeBuffer->getUsage();
+        if(usage & GRALLOC_USAGE_PRIVATE_EXTERNAL_ONLY)
+            return true;
+    }
+    return false;
+}
+
+bool Layer::isIntOnly() const
+{
+    const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
+    if (activeBuffer != 0) {
+        uint32_t usage = activeBuffer->getUsage();
+        if(usage & GRALLOC_USAGE_PRIVATE_INTERNAL_ONLY)
+            return true;
+    }
+    return false;
+}
+
+bool Layer::isSecureDisplay() const
+{
+    const sp<GraphicBuffer>& activeBuffer(mActiveBuffer);
+    if (activeBuffer != 0) {
+        uint32_t usage = activeBuffer->getUsage();
+        if(usage & GRALLOC_USAGE_PRIVATE_SECURE_DISPLAY)
+            return true;
+    }
+    return false;
+}
+
+#endif
 // ---------------------------------------------------------------------------
 
 

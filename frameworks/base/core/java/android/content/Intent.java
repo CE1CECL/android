@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2176,6 +2177,31 @@ public class Intent implements Parcelable, Cloneable {
             "android.intent.action.HEADSET_PLUG";
 
     /**
+     * Broadcast Action: WiFi Display audio is enabled or disabled
+     *
+     * <p>The intent will have the following extra values:
+     * <ul>
+     *   <li><em>state</em> - 0 for disabled, 1 for enabled. </li>
+     * </ul>
+     * @hide
+     */
+    public static final String ACTION_WIFI_DISPLAY_AUDIO =
+            "qualcomm.intent.action.WIFI_DISPLAY_AUDIO";
+
+    /**
+     * Broadcast Action: WiFi Display video is enabled or disabled
+     *
+     * <p>The intent will have the following extra values:
+     * <ul>
+     *   <li><em>state</em> - 0 for disabled, 1 for enabled. </li>
+     * </ul>
+     * @hide
+     */
+
+    public static final String ACTION_WIFI_DISPLAY_VIDEO =
+            "qualcomm.intent.action.WIFI_DISPLAY_VIDEO";
+
+    /**
      * Broadcast Action: An analog audio speaker/headset plugged in or unplugged.
      *
      * <p>The intent will have the following extra values:
@@ -2308,6 +2334,25 @@ public class Intent implements Parcelable, Cloneable {
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
     public static final String ACTION_NEW_OUTGOING_CALL =
             "android.intent.action.NEW_OUTGOING_CALL";
+
+    /**
+     * Broadcast Action: An outgoing sms is about to be sent.
+     *
+     * The Intent will have the following extras:
+     * destAddr - the phone number originally intended to be dialled
+     * scAddr - the service center address
+     * multipart - indicate whether this is a multipart or single message
+     * parts - ArrayList<String> of text parts (one item if multipart=false)
+     * sentIntents - ArrayList<PendingIntent> to send on send
+     * deliveryIntents - ArrayList<PendingIntent> to send on delivery
+     *
+     * Once the broadcast is finished, resultData is used as the actual
+     * number to text.
+     *
+     * @hide
+     */
+    public static final String ACTION_NEW_OUTGOING_SMS =
+            "android.intent.action.NEW_OUTGOING_SMS";
 
     /**
      * Broadcast Action: Have the device reboot.  This is only for use by
@@ -2599,6 +2644,19 @@ public class Intent implements Parcelable, Cloneable {
      */
     public static final String ACTION_GLOBAL_BUTTON = "android.intent.action.GLOBAL_BUTTON";
 
+    /**
+     * Broadcast Action: Indicate that unrecoverable error happened during app launch.
+     * Could indicate that curently applied theme is malicious.
+     * @hide
+     */
+    public static final String ACTION_APP_LAUNCH_FAILURE = "com.tmobile.intent.action.APP_LAUNCH_FAILURE";
+
+    /**
+     * Broadcast Action: Request to reset the unrecoverable errors count to 0.
+     * @hide
+     */
+    public static final String ACTION_APP_LAUNCH_FAILURE_RESET = "com.tmobile.intent.action.APP_LAUNCH_FAILURE_RESET";
+
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
     // Standard intent categories (see addCategory()).
@@ -2732,6 +2790,7 @@ public class Intent implements Parcelable, Cloneable {
      */
     public static final String CATEGORY_FRAMEWORK_INSTRUMENTATION_TEST =
             "android.intent.category.FRAMEWORK_INSTRUMENTATION_TEST";
+
     /**
      * An activity to run when device is inserted into a car dock.
      * Used with {@link #ACTION_MAIN} to launch an activity.  For more
@@ -2767,6 +2826,14 @@ public class Intent implements Parcelable, Cloneable {
      */
     @SdkConstant(SdkConstantType.INTENT_CATEGORY)
     public static final String CATEGORY_CAR_MODE = "android.intent.category.CAR_MODE";
+
+    /**
+     * Used to indicate that a theme package has been installed or un-installed.
+     *
+     * @hide
+     */
+    public static final String CATEGORY_THEME_PACKAGE_INSTALLED_STATE_CHANGE =
+            "com.tmobile.intent.category.THEME_PACKAGE_INSTALL_STATE_CHANGE";
 
     // ---------------------------------------------------------------------
     // ---------------------------------------------------------------------
@@ -6979,7 +7046,7 @@ public class Intent implements Parcelable, Cloneable {
             return null;
         }
 
-        type = type.trim().toLowerCase(Locale.US);
+        type = type.trim().toLowerCase(Locale.ROOT);
 
         final int semicolonIndex = type.indexOf(';');
         if (semicolonIndex != -1) {

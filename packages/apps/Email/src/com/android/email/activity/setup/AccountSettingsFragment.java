@@ -29,6 +29,7 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.SystemProperties;
 import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -78,6 +79,7 @@ public class AccountSettingsFragment extends PreferenceFragment {
     private static final String PREFERENCE_CATEGORY_DATA_USAGE = "data_usage";
     private static final String PREFERENCE_CATEGORY_NOTIFICATIONS = "account_notifications";
     private static final String PREFERENCE_NOTIFY = "account_notify";
+    private static final String PREFERENCE_NOTIFY_LIGHT = "account_notify_light";
     private static final String PREFERENCE_VIBRATE = "account_settings_vibrate";
     private static final String PREFERENCE_VIBRATE_OLD = "account_settings_vibrate_when";
     private static final String PREFERENCE_RINGTONE = "account_ringtone";
@@ -96,7 +98,9 @@ public class AccountSettingsFragment extends PreferenceFragment {
     private ListPreference mSyncWindow;
     private CheckBoxPreference mAccountBackgroundAttachments;
     private CheckBoxPreference mAccountDefault;
+    private ListPreference mSyncSize;
     private CheckBoxPreference mAccountNotify;
+    private CheckBoxPreference mAccountNotifyLight;
     private CheckBoxPreference mAccountVibrate;
     private RingtonePreference mAccountRingtone;
     private CheckBoxPreference mSyncContacts;
@@ -486,6 +490,31 @@ public class AccountSettingsFragment extends PreferenceFragment {
             dataUsageCategory.addPreference(mSyncWindow);
         }
 
+        // add sync size preference
+        mSyncSize = null;
+        if (SystemProperties.getBoolean("persist.env.email.syncsize", true)) {
+            mSyncSize = new ListPreference(mContext);
+            mSyncSize.setTitle(R.string.account_setup_options_mail_sync_size_label);
+            mSyncSize.setEntries(R.array.account_setup_options_mail_sync_size_entries_labels);
+            mSyncSize.setEntryValues(R.array.account_setup_options_mail_sync_size_entries_values);
+            mSyncSize.setValue(String.valueOf(mAccount.getSyncSize()));
+            mSyncSize.setSummary(mSyncSize.getEntry());
+
+            // Must correspond to the hole in the XML file that's reserved.
+            mSyncSize.setOrder(3);
+            mSyncSize.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    final String summary = newValue.toString();
+                    int index = mSyncSize.findIndexOfValue(summary);
+                    mSyncSize.setSummary(mSyncSize.getEntries()[index]);
+                    mSyncSize.setValue(summary);
+                    onPreferenceChanged(preference.getKey(), newValue);
+                    return false;
+                }
+            });
+            dataUsageCategory.addPreference(mSyncSize);
+        }
+
         // Show "background attachments" for IMAP & EAS - hide it for POP3.
         mAccountBackgroundAttachments = (CheckBoxPreference)
                 findPreference(PREFERENCE_BACKGROUND_ATTACHMENTS);
@@ -504,6 +533,10 @@ public class AccountSettingsFragment extends PreferenceFragment {
         mAccountNotify = (CheckBoxPreference) findPreference(PREFERENCE_NOTIFY);
         mAccountNotify.setChecked(0 != (mAccount.getFlags() & Account.FLAGS_NOTIFY_NEW_MAIL));
         mAccountNotify.setOnPreferenceChangeListener(mPreferenceChangeListener);
+
+        mAccountNotifyLight = (CheckBoxPreference) findPreference(PREFERENCE_NOTIFY_LIGHT);
+        mAccountNotifyLight.setChecked(0 != (mAccount.getFlags() & Account.FLAGS_NOTIFY_USE_LED));
+        mAccountNotifyLight.setOnPreferenceChangeListener(mPreferenceChangeListener);
 
         mAccountRingtone = (RingtonePreference) findPreference(PREFERENCE_RINGTONE);
         mAccountRingtone.setOnPreferenceChangeListener(mPreferenceChangeListener);
@@ -639,6 +672,7 @@ public class AccountSettingsFragment extends PreferenceFragment {
         // Turn off all controlled flags - will turn them back on while checking UI elements
         int newFlags = mAccount.getFlags() &
                 ~(Account.FLAGS_NOTIFY_NEW_MAIL |
+                        Account.FLAGS_NOTIFY_USE_LED |
                         Account.FLAGS_VIBRATE |
                         Account.FLAGS_BACKGROUND_ATTACHMENTS);
 
@@ -651,9 +685,13 @@ public class AccountSettingsFragment extends PreferenceFragment {
         mAccount.setSenderName(mAccountName.getText().trim());
         mAccount.setSignature(mAccountSignature.getText());
         newFlags |= mAccountNotify.isChecked() ? Account.FLAGS_NOTIFY_NEW_MAIL : 0;
+        newFlags |= mAccountNotifyLight.isChecked() ? Account.FLAGS_NOTIFY_USE_LED : 0;
         mAccount.setSyncInterval(Integer.parseInt(mCheckFrequency.getValue()));
         if (mSyncWindow != null) {
             mAccount.setSyncLookback(Integer.parseInt(mSyncWindow.getValue()));
+        }
+        if (mSyncSize != null) {
+            mAccount.setSyncSize(Integer.parseInt(mSyncSize.getValue()));
         }
         if (mAccountVibrate.isChecked()) {
             newFlags |= Account.FLAGS_VIBRATE;

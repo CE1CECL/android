@@ -46,6 +46,9 @@ import android.app.AppOpsManager;
 import android.util.TimeUtils;
 import android.view.IWindowId;
 import com.android.internal.app.IBatteryStats;
+import com.android.internal.app.ThemeUtils;
+
+import com.android.internal.os.IDeviceHandler;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.policy.impl.PhoneWindowManager;
 import com.android.internal.view.IInputContext;
@@ -290,6 +293,12 @@ public class WindowManagerService extends IWindowManager.Stub
 
     private final boolean mHeadless;
 
+    private BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
+        }
+    };
+
     final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -305,6 +314,7 @@ public class WindowManagerService extends IWindowManager.Stub
     int mCurrentUserId;
 
     final Context mContext;
+    private Context mUiContext;
 
     final boolean mHaveInputMethods;
 
@@ -312,7 +322,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
     final boolean mLimitedAlphaCompositing;
 
-    final WindowManagerPolicy mPolicy = PolicyManager.makeNewWindowManager();
+    final WindowManagerPolicy mPolicy;
 
     final IActivityManager mActivityManager;
 
@@ -562,6 +572,8 @@ public class WindowManagerService extends IWindowManager.Stub
     final DisplayManagerService mDisplayManagerService;
     final DisplayManager mDisplayManager;
 
+    private boolean mForceDisableHardwareKeyboard = false;
+
     // Who is holding the screen on.
     Session mHoldingScreenOn;
     PowerManager.WakeLock mHoldingScreenWakeLock;
@@ -722,7 +734,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
     public static WindowManagerService main(final Context context,
             final PowerManagerService pm, final DisplayManagerService dm,
-            final InputManagerService im,
+            final InputManagerService im, final IDeviceHandler device,
             final Handler uiHandler, final Handler wmHandler,
             final boolean haveInputMethods, final boolean showBootMsgs,
             final boolean onlyCore) {
@@ -731,7 +743,7 @@ public class WindowManagerService extends IWindowManager.Stub
             @Override
             public void run() {
                 holder[0] = new WindowManagerService(context, pm, dm, im,
-                        uiHandler, haveInputMethods, showBootMsgs, onlyCore);
+                        device, uiHandler, haveInputMethods, showBootMsgs, onlyCore);
             }
         }, 0);
         return holder[0];
@@ -753,7 +765,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
     private WindowManagerService(Context context, PowerManagerService pm,
             DisplayManagerService displayManager, InputManagerService inputManager,
-            Handler uiHandler,
+            IDeviceHandler device, Handler uiHandler,
             boolean haveInputMethods, boolean showBootMsgs, boolean onlyCore) {
         mContext = context;
         mHaveInputMethods = haveInputMethods;
@@ -763,6 +775,7 @@ public class WindowManagerService extends IWindowManager.Stub
                 com.android.internal.R.bool.config_sf_limitedAlpha);
         mDisplayManagerService = displayManager;
         mHeadless = displayManager.isHeadless();
+        mPolicy = PolicyManager.makeNewWindowManager(device);
         mDisplaySettings = new DisplaySettings(context);
         mDisplaySettings.readSettingsLocked();
 
@@ -816,6 +829,9 @@ public class WindowManagerService extends IWindowManager.Stub
         mFxSession = new SurfaceSession();
         mAnimator = new WindowAnimator(this);
 
+        mForceDisableHardwareKeyboard = context.getResources().getBoolean(
+                com.android.internal.R.bool.config_forceDisableHardwareKeyboard);
+
         initPolicy(uiHandler);
 
         // Add ourself to the Watchdog monitors.
@@ -827,6 +843,15 @@ public class WindowManagerService extends IWindowManager.Stub
         } finally {
             SurfaceControl.closeTransaction();
         }
+
+        ThemeUtils.registerThemeChangeReceiver(mContext, mThemeChangeReceiver);
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     public InputMonitor getInputMonitor() {
@@ -4968,13 +4993,13 @@ public class WindowManagerService extends IWindowManager.Stub
     // Called by window manager policy.  Not exposed externally.
     @Override
     public void shutdown(boolean confirm) {
-        ShutdownThread.shutdown(mContext, confirm);
+        ShutdownThread.shutdown(getUiContext(), confirm);
     }
 
     // Called by window manager policy.  Not exposed externally.
     @Override
     public void rebootSafeMode(boolean confirm) {
-        ShutdownThread.rebootSafeMode(mContext, confirm);
+        ShutdownThread.rebootSafeMode(getUiContext(), confirm);
     }
 
     @Override
@@ -4983,6 +5008,12 @@ public class WindowManagerService extends IWindowManager.Stub
             throw new SecurityException("Requires FILTER_EVENTS permission");
         }
         mInputManager.setInputFilter(filter);
+    }
+
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void reboot() {
+        ShutdownThread.reboot(getUiContext(), null, true);
     }
 
     public void setCurrentUser(final int newUserId) {
@@ -5411,11 +5442,6 @@ public class WindowManagerService extends IWindowManager.Stub
                             ws.isDisplayedLw()) {
                         screenshotReady = true;
                     }
-
-                    if (fullscreen) {
-                        // No point in continuing down through windows.
-                        break;
-                    }
                 }
 
                 if (appToken != null && appWin == null) {
@@ -5443,6 +5469,8 @@ public class WindowManagerService extends IWindowManager.Stub
 
                 // The screenshot API does not apply the current screen rotation.
                 rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
+                // Allow for abnormal hardware orientation
+                rot = (rot + (android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90 )) % 4;
                 int fw = frame.width();
                 int fh = frame.height();
 
@@ -6393,65 +6421,99 @@ public class WindowManagerService extends IWindowManager.Stub
         return sw;
     }
 
-    boolean computeScreenConfigurationLocked(Configuration config) {
-        if (!mDisplayReady) {
-            return false;
-        }
+    private static class ApplicationDisplayMetrics {
+        boolean rotated;
+        int dh;
+        int dw;
+        int appWidth;
+        int appHeight;
+    }
 
-        // TODO(multidisplay): For now, apply Configuration to main screen only.
-        final DisplayContent displayContent = getDefaultDisplayContentLocked();
+    private ApplicationDisplayMetrics calculateDisplayMetrics(DisplayContent displayContent) {
+        ApplicationDisplayMetrics dm = new ApplicationDisplayMetrics();
 
-        // Use the effective "visual" dimensions based on current rotation
-        final boolean rotated = (mRotation == Surface.ROTATION_90
-                || mRotation == Surface.ROTATION_270);
-        final int realdw = rotated ?
+        dm.rotated = (mRotation == Surface.ROTATION_90 || mRotation == Surface.ROTATION_270);
+        final int realdw = dm.rotated ?
                 displayContent.mBaseDisplayHeight : displayContent.mBaseDisplayWidth;
-        final int realdh = rotated ?
+        final int realdh = dm.rotated ?
                 displayContent.mBaseDisplayWidth : displayContent.mBaseDisplayHeight;
-        int dw = realdw;
-        int dh = realdh;
+
+        dm.dw = realdw;
+        dm.dh = realdh;
 
         if (mAltOrientation) {
             if (realdw > realdh) {
                 // Turn landscape into portrait.
                 int maxw = (int)(realdh/1.3f);
                 if (maxw < realdw) {
-                    dw = maxw;
+                    dm.dw = maxw;
                 }
             } else {
                 // Turn portrait into landscape.
                 int maxh = (int)(realdw/1.3f);
                 if (maxh < realdh) {
-                    dh = maxh;
+                    dm.dh = maxh;
                 }
             }
         }
+
+        return dm;
+    }
+
+    private ApplicationDisplayMetrics updateApplicationDisplayMetricsLocked(
+            DisplayContent displayContent) {
+        if (!mDisplayReady) {
+            return null;
+        }
+
+        final ApplicationDisplayMetrics m = calculateDisplayMetrics(displayContent);
+        final DisplayInfo displayInfo = displayContent.getDisplayInfo();
+
+        m.appWidth = mPolicy.getNonDecorDisplayWidth(m.dw, m.dh, mRotation);
+        m.appHeight = mPolicy.getNonDecorDisplayHeight(m.dw, m.dh, mRotation);
+
+        synchronized(displayContent.mDisplaySizeLock) {
+            displayInfo.rotation = mRotation;
+            displayInfo.logicalWidth = m.dw;
+            displayInfo.logicalHeight = m.dh;
+            displayInfo.logicalDensityDpi = displayContent.mBaseDisplayDensity;
+            displayInfo.appWidth = m.appWidth;
+            displayInfo.appHeight = m.appHeight;
+            displayInfo.getLogicalMetrics(mRealDisplayMetrics, null);
+            displayInfo.getAppMetrics(mDisplayMetrics, null);
+            mDisplayManagerService.setDisplayInfoOverrideFromWindowManager(
+                    displayContent.getDisplayId(), displayInfo);
+        }
+
+        if (false) {
+            Slog.i(TAG, "Set app display size: " + m.appWidth + " x " + m.appHeight);
+        }
+
+        return m;
+    }
+
+    boolean computeScreenConfigurationLocked(Configuration config) {
+        // TODO(multidisplay): For now, apply Configuration to main screen only.
+        final DisplayContent displayContent = getDefaultDisplayContentLocked();
+
+        // Update application display metrics.
+        final ApplicationDisplayMetrics appDm = updateApplicationDisplayMetricsLocked(
+                displayContent);
+
+        if (appDm == null) {
+            return false;
+        }
+
+        final boolean rotated = appDm.rotated;
+        final int dw = appDm.dw;
+        final int dh = appDm.dh;
 
         if (config != null) {
             config.orientation = (dw <= dh) ? Configuration.ORIENTATION_PORTRAIT :
                     Configuration.ORIENTATION_LANDSCAPE;
         }
 
-        // Update application display metrics.
-        final int appWidth = mPolicy.getNonDecorDisplayWidth(dw, dh, mRotation);
-        final int appHeight = mPolicy.getNonDecorDisplayHeight(dw, dh, mRotation);
         final DisplayInfo displayInfo = displayContent.getDisplayInfo();
-        synchronized(displayContent.mDisplaySizeLock) {
-            displayInfo.rotation = mRotation;
-            displayInfo.logicalWidth = dw;
-            displayInfo.logicalHeight = dh;
-            displayInfo.logicalDensityDpi = displayContent.mBaseDisplayDensity;
-            displayInfo.appWidth = appWidth;
-            displayInfo.appHeight = appHeight;
-            displayInfo.getLogicalMetrics(mRealDisplayMetrics, null);
-            displayInfo.getAppMetrics(mDisplayMetrics, null);
-            mDisplayManagerService.setDisplayInfoOverrideFromWindowManager(
-                    displayContent.getDisplayId(), displayInfo);
-        }
-        if (false) {
-            Slog.i(TAG, "Set app display size: " + appWidth + " x " + appHeight);
-        }
-
         final DisplayMetrics dm = mDisplayMetrics;
         mCompatibleScreenScale = CompatibilityInfo.computeCompatibleScaling(dm,
                 mCompatDisplayMetrics);
@@ -6512,7 +6574,10 @@ public class WindowManagerService extends IWindowManager.Stub
             }
 
             // Determine whether a hard keyboard is available and enabled.
-            boolean hardKeyboardAvailable = config.keyboard != Configuration.KEYBOARD_NOKEYS;
+            boolean hardKeyboardAvailable = false;
+            if (!mForceDisableHardwareKeyboard) {
+                hardKeyboardAvailable = config.keyboard != Configuration.KEYBOARD_NOKEYS;
+            }
             if (hardKeyboardAvailable != mHardKeyboardAvailable) {
                 mHardKeyboardAvailable = hardKeyboardAvailable;
                 mHardKeyboardEnabled = hardKeyboardAvailable;
@@ -8965,10 +9030,32 @@ public class WindowManagerService extends IWindowManager.Stub
                 if (DEBUG_ORIENTATION &&
                         winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING) Slog.i(
                         TAG, "Resizing " + win + " WITH DRAW PENDING");
-                win.mClient.resized(win.mFrame, win.mLastOverscanInsets, win.mLastContentInsets,
-                        win.mLastVisibleInsets,
-                        winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING,
-                        configChanged ? win.mConfiguration : null);
+                final boolean reportDraw
+                        = winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING;
+                final Configuration newConfig = configChanged ? win.mConfiguration : null;
+                if (win.mClient instanceof IWindow.Stub) {
+                    // Simulate one-way call if win.mClient is a local object.
+                    final IWindow client = win.mClient;
+                    final Rect frame = win.mFrame;
+                    final Rect overscanInsets = win.mLastOverscanInsets;
+                    final Rect contentInsets = win.mLastContentInsets;
+                    final Rect visibleInsets = win.mLastVisibleInsets;
+                    mH.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                client.resized(frame, overscanInsets, contentInsets, visibleInsets,
+                                               reportDraw, newConfig);
+                            } catch (RemoteException e) {
+                                // Actually, it's not a remote call.
+                                // RemoteException mustn't be raised.
+                            }
+                        }
+                    });
+                } else {
+                    win.mClient.resized(win.mFrame, win.mLastOverscanInsets, win.mLastContentInsets, win.mLastVisibleInsets,
+                                        reportDraw, newConfig);
+                }
                 win.mOverscanInsetsChanged = false;
                 win.mContentInsetsChanged = false;
                 win.mVisibleInsetsChanged = false;
@@ -9231,6 +9318,7 @@ public class WindowManagerService extends IWindowManager.Stub
     void scheduleAnimationLocked() {
         if (!mAnimationScheduled) {
             mAnimationScheduled = true;
+            mPolicy.windowAnimationStarted();
             mChoreographer.postCallback(
                     Choreographer.CALLBACK_ANIMATION, mAnimator.mAnimationRunnable, null);
         }
@@ -9847,6 +9935,11 @@ public class WindowManagerService extends IWindowManager.Stub
     }
 
     @Override
+    public boolean hasMenuKeyEnabled() {
+        return mPolicy.hasMenuKeyEnabled();
+    }
+
+    @Override
     public void lockNow(Bundle options) {
         mPolicy.lockNow(options);
     }
@@ -9864,6 +9957,40 @@ public class WindowManagerService extends IWindowManager.Stub
             return;
         }
         mPolicy.showAssistant();
+    }
+
+    public void updateDisplayMetrics() {
+        long origId = Binder.clearCallingIdentity();
+        boolean changed = false;
+
+        synchronized (mWindowMap) {
+            final DisplayContent displayContent = getDefaultDisplayContentLocked();
+            final DisplayInfo displayInfo =
+                    displayContent != null ? displayContent.getDisplayInfo() : null;
+            final int oldWidth = displayInfo != null ? displayInfo.appWidth : -1;
+            final int oldHeight = displayInfo != null ? displayInfo.appHeight : -1;
+            final ApplicationDisplayMetrics metrics =
+                    updateApplicationDisplayMetricsLocked(displayContent);
+
+            if (metrics != null && oldWidth >= 0 && oldHeight >= 0) {
+                changed = oldWidth != metrics.appWidth || oldHeight != metrics.appHeight;
+            }
+        }
+
+        if (changed) {
+            final int[] anim = new int[2];
+            if (mAnimator.isDimmingLocked(Display.DEFAULT_DISPLAY)) {
+                anim[0] = anim[1] = 0;
+            } else {
+                mPolicy.selectDisplayMetricsUpdateAnimationLw(anim);
+            }
+
+            mWaitingForConfig = true;
+            startFreezingDisplayLocked(false, anim[0], anim[1]);
+            mH.sendEmptyMessage(H.SEND_NEW_CONFIGURATION);
+        }
+
+        Binder.restoreCallingIdentity(origId);
     }
 
     void dumpPolicyLocked(PrintWriter pw, String[] args, boolean dumpAll) {

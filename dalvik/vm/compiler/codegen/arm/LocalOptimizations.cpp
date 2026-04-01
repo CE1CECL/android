@@ -67,6 +67,23 @@ static void convertMemOpIntoMove(CompilationUnit *cUnit, ArmLIR *origLIR,
     dvmCompilerInsertLIRAfter((LIR *) origLIR, (LIR *) moveLIR);
 }
 
+/* placeholder function for extra check on current lir */
+__attribute__((weak)) bool checkSpecialLIR(ArmLIR **lir)
+{
+    return false;
+}
+
+__attribute__((weak)) void dumpBothLIRs(CompilationUnit *cUnit,
+                                        ArmLIR *thisLIR, ArmLIR *checkLIR)
+{
+    if(cUnit->printMe){
+        ALOGD("thisLIR");
+        dvmDumpLIRInsn((LIR*)thisLIR,0);
+        ALOGD("checkLIR");
+        dvmDumpLIRInsn((LIR*)checkLIR,0);
+    }
+}
+
 /*
  * Perform a pass of top-down walk, from the second-last instruction in the
  * superblock, to eliminate redundant loads and stores.
@@ -101,12 +118,13 @@ static void applyLoadStoreElimination(CompilationUnit *cUnit,
         /* Skip non-interesting instructions */
         if ((thisLIR->flags.isNop == true) ||
             isPseudoOpcode(thisLIR->opcode) ||
-            !(EncodingMap[thisLIR->opcode].flags & (IS_LOAD | IS_STORE))) {
+            checkSpecialLIR(&thisLIR) ||
+            !(getEncoding(thisLIR->opcode)->flags & (IS_LOAD | IS_STORE))) {
             continue;
         }
 
         int nativeRegId = thisLIR->operands[0];
-        bool isThisLIRLoad = EncodingMap[thisLIR->opcode].flags & IS_LOAD;
+        bool isThisLIRLoad = getEncoding(thisLIR->opcode)->flags & IS_LOAD;
         ArmLIR *checkLIR;
         /* Use the mem mask to determine the rough memory location */
         u8 thisMemMask = (thisLIR->useMask | thisLIR->defMask) & ENCODE_MEM;
@@ -146,14 +164,14 @@ static void applyLoadStoreElimination(CompilationUnit *cUnit,
              * Potential aliases seen - check the alias relations
              */
             if (checkMemMask != ENCODE_MEM && aliasCondition != 0) {
-                bool isCheckLIRLoad = EncodingMap[checkLIR->opcode].flags &
+                bool isCheckLIRLoad = getEncoding(checkLIR->opcode)->flags &
                                       IS_LOAD;
                 if  (aliasCondition == ENCODE_LITERAL) {
                     /*
                      * Should only see literal loads in the instruction
                      * stream.
                      */
-                    assert(!(EncodingMap[checkLIR->opcode].flags &
+                    assert(!(getEncoding(checkLIR->opcode)->flags &
                              IS_STORE));
                     /* Same value && same register type */
                     if (checkLIR->aliasInfo == thisLIR->aliasInfo &&
@@ -216,6 +234,7 @@ static void applyLoadStoreElimination(CompilationUnit *cUnit,
                          * case for this so we just stop here to be
                          * conservative.
                          */
+                        dumpBothLIRs(cUnit,thisLIR, checkLIR);
                         stopHere = true;
                     }
                 }
@@ -260,6 +279,7 @@ static void applyLoadStoreElimination(CompilationUnit *cUnit,
             } else if (!checkLIR->flags.isNop) {
                 sinkDistance++;
             }
+            checkSpecialLIR(&checkLIR);
         }
     }
 }
@@ -290,7 +310,8 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
         /* Skip non-interesting instructions */
         if ((thisLIR->flags.isNop == true) ||
             isPseudoOpcode(thisLIR->opcode) ||
-            !(EncodingMap[thisLIR->opcode].flags & IS_LOAD)) {
+            checkSpecialLIR(&thisLIR) ||
+            !(getEncoding(thisLIR->opcode)->flags & IS_LOAD)) {
             continue;
         }
 
@@ -323,6 +344,8 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
              * outdated and misleading).
              */
             if (checkLIR->flags.isNop) continue;
+
+            checkSpecialLIR(&checkLIR);
 
             u8 checkMemMask = checkLIR->defMask & ENCODE_MEM;
             u8 aliasCondition = stopUseAllMask & checkMemMask;
@@ -389,7 +412,7 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
             ArmLIR *depLIR = prevInstList[nextSlot-1];
             /* If there is ld-ld dependency, wait LDLD_DISTANCE cycles */
             if (!isPseudoOpcode(depLIR->opcode) &&
-                (EncodingMap[depLIR->opcode].flags & IS_LOAD)) {
+                (getEncoding(depLIR->opcode)->flags & IS_LOAD)) {
                 firstSlot -= LDLD_DISTANCE;
             }
             /*
@@ -409,7 +432,7 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
                      * If the first instruction is a load, don't hoist anything
                      * above it since it is unlikely to be beneficial.
                      */
-                    if (EncodingMap[curLIR->opcode].flags & IS_LOAD) continue;
+                    if (getEncoding(curLIR->opcode)->flags & IS_LOAD) continue;
                     /*
                      * Need to unconditionally break here even if the hoisted
                      * distance is greater than LD_LATENCY (ie more than enough
@@ -429,7 +452,7 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
                  * the remaining instructions are less than LD_LATENCY.
                  */
                 if (((curLIR->useMask & prevLIR->defMask) &&
-                     (EncodingMap[prevLIR->opcode].flags & IS_LOAD)) ||
+                     (getEncoding(prevLIR->opcode)->flags & IS_LOAD)) ||
                     (slot < LD_LATENCY)) {
                     break;
                 }
@@ -453,6 +476,138 @@ static void applyLoadHoisting(CompilationUnit *cUnit,
     }
 }
 
+#ifndef WITH_QC_PERF
+/*
+ * Find all lsl/lsr and add that can be replaced with a
+ * combined lsl/lsr + add
+ */
+static void applyShiftArithmeticOpts(CompilationUnit *cUnit,
+                                     ArmLIR *headLIR,
+                                     ArmLIR *tailLIR) {
+    ArmLIR *thisLIR = NULL;
+
+    for (thisLIR = headLIR;
+         thisLIR != tailLIR;
+         thisLIR = NEXT_LIR(thisLIR)) {
+
+        if(thisLIR->flags.isNop) {
+            continue;
+        }
+
+        if(thisLIR->opcode == kThumb2LslRRI5 || thisLIR->opcode == kThumb2LsrRRI5 ||
+           thisLIR->opcode == kThumbLslRRI5 || thisLIR->opcode == kThumbLsrRRI5) {
+
+            /* Find next that is not nop and not pseudo code */
+            ArmLIR *nextLIR = NULL;
+            for(nextLIR = NEXT_LIR(thisLIR);
+                nextLIR != tailLIR;
+                nextLIR = NEXT_LIR(nextLIR)) {
+                if (!nextLIR->flags.isNop && !isPseudoOpcode(nextLIR->opcode)) {
+                    break;
+                }
+            }
+
+            if(nextLIR == tailLIR) {
+                return;
+            }
+
+            if(nextLIR->opcode == kThumb2AddRRR &&
+               nextLIR->operands[3] == 0 &&
+               (nextLIR->operands[1] == thisLIR->operands[0] ||
+                nextLIR->operands[2] == thisLIR->operands[0])) {
+
+                bool applyOpt = true;
+                if(!(thisLIR->operands[0] == nextLIR->operands[0])) {
+                    /* Check that shift dest reg is not used after
+                     * the addition. */
+                    ArmLIR* tmpLIR = NULL;
+                    for(tmpLIR = NEXT_LIR(nextLIR);
+                        tmpLIR != tailLIR;
+                        tmpLIR = NEXT_LIR(tmpLIR)) {
+
+                        if (!tmpLIR->flags.isNop &&
+                            !(EncodingMap[tmpLIR->opcode].flags & IS_BRANCH) &&
+                            (tmpLIR->defMask | tmpLIR->useMask) & thisLIR->defMask) {
+                            if(tmpLIR->useMask & thisLIR->defMask) {
+                                /* Shift dest reg is used for src, skip opt. */
+                                applyOpt = false;
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if(applyOpt) {
+
+                    /*
+                     *  Found lsl/lsr & add, use barrel shifter for add instead
+                     *
+                     *   (1) Normal case
+                     *   [lsl/lsr] r9, r1, #x
+                     *   [add]     r0, r2, r9
+                     *
+                     *   (2) Changing place of args for add
+                     *   [lsl/lsr] r9, r1, #x
+                     *   [add]     r0, r9, r2
+                     *
+                     *   (3) Using r1 and r1 shifted as args for add
+                     *   [lsl/lsr] r9, r1, #x
+                     *   [add]     r0, r1, r9
+                     *
+                     *   (4) Using r1 and r1 shifted as args for add, variant 2
+                     *   [lsl/lsr] r9, r1, #x
+                     *   [add]     r0, r9, r1
+                     *
+                     *   Result:
+                     *   [add]     rDest, rSrc1, rSrc2, [lsl/lsr] x
+                     */
+
+                    int type = kArmLsl;
+                    if(thisLIR->opcode == kThumb2LsrRRI5 || thisLIR->opcode == kThumbLsrRRI5) {
+                        type = kArmLsr;
+                    }
+
+                    /* For most cases keep original rSrc1 */
+                    int rSrc1 = nextLIR->operands[1];
+
+                    if(thisLIR->operands[0] == nextLIR->operands[1]) {
+                        /* Case 2 & 4: move original rSrc2 to rScr1 since
+                           reg to be shifted need to be in rSrc2 */
+                        rSrc1 = nextLIR->operands[2];
+                    }
+
+                    /* Reg to be shifted need to be in rSrc2 */
+                    int rSrc2 = thisLIR->operands[1];
+
+                    /* Encode type of shift and amount */
+                    int shift = ((thisLIR->operands[2] & 0x1f) << 2) | type;
+
+                    /* Keep rDest, but change rSrc1, rSrc2 and use shift */
+                    ArmLIR* newLIR = (ArmLIR *)dvmCompilerNew(sizeof(ArmLIR), true);
+                    newLIR->opcode = nextLIR->opcode;
+                    newLIR->operands[0] = nextLIR->operands[0];
+                    newLIR->operands[1] = rSrc1;
+                    newLIR->operands[2] = rSrc2;
+                    newLIR->operands[3] = shift;
+                    dvmCompilerSetupResourceMasks(newLIR);
+                    dvmCompilerInsertLIRBefore((LIR *) nextLIR, (LIR *) newLIR);
+
+                    thisLIR->flags.isNop = true;
+                    nextLIR->flags.isNop = true;
+                }
+
+                /*
+                 * Avoid looping through nops already identified.
+                 * Continue directly after the updated instruction
+                 * instead.
+                 */
+                thisLIR = nextLIR;
+            }
+        }
+    }
+}
+#endif
+
 void dvmCompilerApplyLocalOptimizations(CompilationUnit *cUnit, LIR *headLIR,
                                         LIR *tailLIR)
 {
@@ -463,4 +618,9 @@ void dvmCompilerApplyLocalOptimizations(CompilationUnit *cUnit, LIR *headLIR,
     if (!(gDvmJit.disableOpt & (1 << kLoadHoisting))) {
         applyLoadHoisting(cUnit, (ArmLIR *) headLIR, (ArmLIR *) tailLIR);
     }
+#ifndef WITH_QC_PERF
+    if (!(gDvmJit.disableOpt & (1 << kShiftArithmetic))) {
+        applyShiftArithmeticOpts(cUnit, (ArmLIR *) headLIR, (ArmLIR* ) tailLIR);
+    }
+#endif
 }

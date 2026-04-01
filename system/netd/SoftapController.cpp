@@ -42,6 +42,10 @@
 
 #include "SoftapController.h"
 
+#ifndef HOSTAPD_DRIVER_NAME
+#define HOSTAPD_DRIVER_NAME "nl80211"
+#endif
+
 static const char HOSTAPD_CONF_FILE[]    = "/data/misc/wifi/hostapd.conf";
 static const char HOSTAPD_BIN_FILE[]    = "/system/bin/hostapd";
 
@@ -123,7 +127,8 @@ int SoftapController::setSoftap(int argc, char *argv[]) {
     char *wbuf = NULL;
     char *fbuf = NULL;
 
-    asprintf(&wbuf, "interface=%s\ndriver=nl80211\nctrl_interface="
+
+    asprintf(&wbuf, "interface=%s\ndriver=" HOSTAPD_DRIVER_NAME "\nctrl_interface="
             "/data/misc/wifi/hostapd\nssid=%s\nchannel=6\nieee80211n=1\n"
             "hw_mode=g\n",
             argv[2], argv[3]);

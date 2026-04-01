@@ -60,9 +60,13 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeSet;
 
 /**
  * Collection of utility functions used in this package.
@@ -86,8 +90,12 @@ public class Util {
     private static final String AUTO_WHITE_BALANCE_LOCK_SUPPORTED = "auto-whitebalance-lock-supported";
     private static final String VIDEO_SNAPSHOT_SUPPORTED = "video-snapshot-supported";
     public static final String SCENE_MODE_HDR = "hdr";
+    public static final String SCENE_MODE_ASD = "asd";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
+
+    // Hardware camera key mask
+    private static final int KEY_MASK_CAMERA = 0x20;
 
     public static boolean isSupported(String value, List<String> supported) {
         return supported == null ? false : supported.indexOf(value) >= 0;
@@ -108,6 +116,15 @@ public class Util {
     public static boolean isCameraHdrSupported(Parameters params) {
         List<String> supported = params.getSupportedSceneModes();
         return (supported != null) && supported.contains(SCENE_MODE_HDR);
+    }
+
+    public static boolean isAutoSceneDetectionSupported(Parameters params) {
+        List<String> supported = params.getSupportedSceneModes();
+        return (supported != null) && supported.contains(SCENE_MODE_ASD) && (params.get("asd-mode") != null);
+    }
+
+    public static boolean hasCameraKey() {
+        return (sDeviceKeysPresent & KEY_MASK_CAMERA) != 0;
     }
 
     @TargetApi(ApiHelper.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -135,6 +152,34 @@ public class Util {
     private static float sPixelDensity = 1;
     private static ImageFileNamer sImageFileNamer;
 
+
+    // Samsung ZSL mode
+    private static boolean sEnableZSL;
+
+    // Workaround for QC cameras with broken face detection on front camera
+    private static boolean sNoFaceDetectOnFrontCamera;
+
+    // Use samsung HDR format
+    private static boolean sSamsungHDRFormat;
+
+    // Send magic command to hardware for Samsung ZSL
+    private static boolean sSendMagicSamsungZSLCommand;
+
+    // For setting video size before recording starts
+    private static boolean sEarlyVideoSize;
+
+    // Samsung camcorder mode
+    private static boolean sSamsungCamMode;
+
+    // HTC camcorder mode
+    private static boolean sHTCCamMode;
+
+    // Do not change the focus mode when TTF is used
+    private static boolean sNoFocusModeChangeForTouch;
+
+    // Get available hardware keys
+    private static int sDeviceKeysPresent;
+
     private Util() {
     }
 
@@ -146,10 +191,62 @@ public class Util {
         sPixelDensity = metrics.density;
         sImageFileNamer = new ImageFileNamer(
                 context.getString(R.string.image_file_name_format));
+
+        // These come from the config, but are needed before parameters are set.
+        sEnableZSL = context.getResources().getBoolean(R.bool.enableZSL);
+        sNoFaceDetectOnFrontCamera = context.getResources().getBoolean(
+                R.bool.noFaceDetectOnFrontCamera);
+
+        sSamsungHDRFormat = context.getResources().getBoolean(R.bool.needsSamsungHDRFormat);
+
+        sSendMagicSamsungZSLCommand = context.getResources().getBoolean(
+                R.bool.sendMagicSamsungZSLCommand);
+
+        sEarlyVideoSize = context.getResources().getBoolean(R.bool.needsEarlyVideoSize);
+        sSamsungCamMode = context.getResources().getBoolean(R.bool.needsSamsungCamMode);
+        sHTCCamMode = context.getResources().getBoolean(R.bool.needsHTCCamMode);
+
+        sNoFocusModeChangeForTouch = context.getResources().getBoolean(
+                R.bool.useContinuosFocusForTouch);
+
+        sDeviceKeysPresent = context.getResources().getInteger(
+                com.android.internal.R.integer.config_deviceHardwareKeys);
+
     }
 
     public static int dpToPixel(int dp) {
         return Math.round(sPixelDensity * dp);
+    }
+
+    public static boolean isZSLEnabled() {
+        return sEnableZSL;
+    }
+
+    public static boolean needSamsungHDRFormat() {
+        return sSamsungHDRFormat;
+    }
+    public static boolean noFaceDetectOnFrontCamera() {
+        return sNoFaceDetectOnFrontCamera;
+    }
+
+    public static boolean sendMagicSamsungZSLCommand() {
+        return sSendMagicSamsungZSLCommand;
+    }
+
+    public static boolean needsEarlyVideoSize() {
+        return sEarlyVideoSize;
+    }
+
+    public static boolean useHTCCamMode() {
+        return sHTCCamMode;
+    }
+
+    public static boolean useSamsungCamMode() {
+        return sSamsungCamMode;
+    }
+
+    public static boolean noFocusModeChangeForTouch() {
+        return sNoFocusModeChangeForTouch;
     }
 
     // Rotates the bitmap by the specified degree.
@@ -280,6 +377,49 @@ public class Util {
             Log.e(TAG, "Got oom exception ", ex);
             return null;
         }
+    }
+
+    public static Bitmap decodeYUV422P(byte[] yuv422p, int width, int height) {
+        final int frameSize = width * height;
+        int[] rgb = new int[frameSize];
+
+        for (int j = 0, yp = 0; j < height; j++) {
+            int up = frameSize + (j * (width / 2)), u = 0, v = 0;
+            int vp = ((int)(frameSize * 1.5) + (j * (width / 2)));
+            for (int i = 0; i < width; i++, yp++) {
+                int y = Math.max(0, (0xff & ((int) yuv422p[yp])) - 16);
+                if ((i & 1) == 0) {
+                    u = (0xff & yuv422p[up++]) - 128;
+                    v = (0xff & yuv422p[vp++]) - 128;
+                }
+
+                int y1192 = 1192 * y;
+                int r = (y1192 + 1634 * v);
+                int g = (y1192 - 833 * v - 400 * u);
+                int b = (y1192 + 2066 * u);
+
+                if (r < 0) {
+                    r = 0;
+                } else if (r > 262143) {
+                    r = 262143;
+                }
+                if (g < 0) {
+                    g = 0;
+                } else if (g > 262143) {
+                    g = 262143;
+                }
+                if (b < 0) {
+                    b = 0;
+                } else if (b > 262143) {
+                    b = 262143;
+                }
+                rgb[yp] = 0xff000000
+                        | ((r << 6) & 0xff0000)
+                        | ((g >> 2) & 0xff00)
+                        | ((b >> 10) & 0xff);
+            }
+        }
+        return Bitmap.createBitmap(rgb, width, height, Bitmap.Config.ARGB_8888);
     }
 
     public static void closeSilently(Closeable c) {
@@ -512,13 +652,25 @@ public class Util {
         return optimalSize;
     }
 
-    public static void dumpParameters(Parameters parameters) {
-        String flattened = parameters.flatten();
-        StringTokenizer tokenizer = new StringTokenizer(flattened, ";");
-        Log.d(TAG, "Dump all camera parameters:");
-        while (tokenizer.hasMoreElements()) {
-            Log.d(TAG, tokenizer.nextToken());
+    public static void dumpParameters(Parameters params) {
+        Set<String> sortedParams = new TreeSet<String>();
+        sortedParams.addAll(Arrays.asList(params.flatten().split(";")));
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        Iterator<String> i = sortedParams.iterator();
+        while (i.hasNext()) {
+            String nextParam = i.next();
+            if ((sb.length() + nextParam.length()) > 2044) {
+                Log.d(TAG, "Parameters: " + sb.toString());
+                sb = new StringBuilder();
+            }
+            sb.append(nextParam);
+            if (i.hasNext()) {
+                sb.append(", ");
+            }
         }
+        sb.append("]");
+        Log.d(TAG, "Parameters: " + sb.toString());
     }
 
     /**

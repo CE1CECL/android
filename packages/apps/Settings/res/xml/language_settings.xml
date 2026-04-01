@@ -67,6 +67,20 @@
                 android:persistent="false"/>
     </PreferenceCategory>
 
+    <CheckBoxPreference
+            android:key="status_bar_ime_switcher"
+            android:title="@string/ime_switcher_notify"
+            android:summary="@string/ime_switcher_notify_summary"
+            android:defaultValue="true"
+            android:persistent="false" />
+    <ListPreference
+            android:key="volume_key_cursor_control"
+            android:persistent="false"
+            android:dialogTitle="@string/volume_key_cursor_control_title"
+            android:title="@string/volume_key_cursor_control_title"
+            android:entries="@array/volume_key_cursor_control_entries"
+            android:entryValues="@array/volume_key_cursor_control_values" />
+
     <PreferenceCategory android:key="voice_category"
             android:title="@string/voice_category" >
 
@@ -87,10 +101,31 @@
 
     <PreferenceCategory android:key="pointer_settings_category"
             android:title="@string/pointer_settings_category">
+        <PreferenceScreen
+                android:fragment="com.android.settings.inputmethod.StylusGestures"
+                android:key="stylus_gestures"
+                android:title="@string/gestures_settings_title" />
+
         <com.android.settings.PointerSpeedPreference
                 android:key="pointer_speed"
                 android:title="@string/pointer_speed"
                 android:dialogTitle="@string/pointer_speed" />
+
+        <CheckBoxPreference android:key="stylus_icon_enabled"
+                android:title="@string/stylus_icon_enabled_title"
+                android:summary="@string/stylus_icon_enabled_summary"
+                android:defaultValue="false"
+                android:persistent="false" />
+
+        <!-- Gesture pad settings -->
+        <Preference
+            android:key="gesture_pad_settings">
+            <intent
+                android:action="com.cyanogenmod.action.LAUNCH_GESTURE_PAD_SETTINGS"
+                android:targetPackage="com.cyanogenmod.settings.device"
+                android:targetClass="com.cyanogenmod.settings.device.GesturePadSettings" />
+        </Preference>
+
     </PreferenceCategory>
 
     <PreferenceCategory android:key="game_controller_settings_category"

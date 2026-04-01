@@ -902,7 +902,7 @@
     <string name="permdesc_writeHistoryBookmarks" product="default" msgid="8497389531014185509">"מאפשר ליישום לשנות את ההיסטוריה או ה-Bookmarks של הדפדפן המאוחסנים בטלפון. הדבר עשוי לאפשר ליישום למחוק או לשנות נתוני דפדפן. שים לב: אישור זה אינו ניתן לאכיפה על ידי דפדפני צד שלישי או יישומים אחרים בעלי יכולות גלישה באינטרנט."</string>
     <string name="permlab_setAlarm" msgid="1379294556362091814">"הגדרת התראה"</string>
     <string name="permdesc_setAlarm" msgid="316392039157473848">"מאפשר ליישום להגדיר התראה ביישום שעון מעורר מותקן. יישומי שעון מעורר מסוימים אינם מיישמים תכונה זו."</string>
-    <string name="permlab_addVoicemail" msgid="5525660026090959044">"הוסף דואר קולי"</string>
+    <string name="permlab_addVoicemail" msgid="5525660026090959044">"הוסף הודעה קולית"</string>
     <string name="permdesc_addVoicemail" msgid="6604508651428252437">"מאפשר ליישום להוסיף הודעות לתיבת הדואר הקולי."</string>
     <string name="permlab_writeGeolocationPermissions" msgid="5962224158955273932">"שינוי הרשאות המיקום הגיאוגרפי של הדפדפן"</string>
     <string name="permdesc_writeGeolocationPermissions" msgid="1083743234522638747">"מאפשר ליישום לשנות את הרשאות המיקום הגיאוגרפי של הדפדפן. יישומים זדוניים עלולים להשתמש בכך כדי לאפשר משלוח של פרטי מיקום לאתרים זדוניים אחרים."</string>
@@ -1430,7 +1430,7 @@
     <string name="default_audio_route_name" product="tablet" msgid="4617053898167127471">"טאבלט"</string>
     <string name="default_audio_route_name" product="default" msgid="4239291273420140123">"טלפון"</string>
     <string name="default_audio_route_name_headphones" msgid="8119971843803439110">"אוזניות"</string>
-    <string name="default_audio_route_name_dock_speakers" msgid="6240602982276591864">"רמקולים של מעגן"</string>
+    <string name="default_audio_route_name_dock_speakers" msgid="6240602982276591864">"רמקולים של תחנת עגינה"</string>
     <string name="default_media_route_name_hdmi" msgid="2450970399023478055">"HDMI"</string>
     <string name="default_audio_route_category_name" msgid="3722811174003886946">"מערכת"</string>
     <string name="bluetooth_a2dp_audio_route_name" msgid="8575624030406771015">"אודיו Bluetooth"</string>

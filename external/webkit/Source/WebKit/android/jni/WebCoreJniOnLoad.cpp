@@ -83,6 +83,9 @@ extern int registerViewStateSerializer(JNIEnv*);
 #if ENABLE(DATABASE)
 extern int registerWebStorage(JNIEnv*);
 #endif
+#if ENABLE(WEB_SOCKETS)
+extern int registerWebSockets(JNIEnv*);
+#endif
 extern int registerGeolocationPermissions(JNIEnv*);
 extern int registerMockGeolocation(JNIEnv*);
 #if ENABLE(VIDEO)
@@ -91,7 +94,7 @@ extern int registerMediaPlayerVideo(JNIEnv*);
 #endif
 extern int registerDeviceMotionAndOrientationManager(JNIEnv*);
 extern int registerCookieManager(JNIEnv*);
-
+extern int registerCacheManager(JNIEnv*);
 }
 
 struct RegistrationMethod {
@@ -108,6 +111,9 @@ static RegistrationMethod gWebCoreRegMethods[] = {
     { "WebSettingsClassic", android::registerWebSettings },
 #if ENABLE(DATABASE)
     { "WebStorage", android::registerWebStorage },
+#endif
+#if ENABLE(WEB_SOCKETS)
+    { "WebSockets", android::registerWebSockets },
 #endif
     { "WebView", android::registerWebView },
     { "ViewStateSerializer", android::registerViewStateSerializer },

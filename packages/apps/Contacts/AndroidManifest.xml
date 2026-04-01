@@ -350,6 +350,7 @@
         <activity
             android:name=".activities.ContactEditorActivity"
             android:theme="@style/EditorActivityTheme"
+            android:configChanges="orientation|screenSize|keyboardHidden|locale"
             android:windowSoftInputMode="adjustResize">
 
             <intent-filter android:label="@string/editContactDescription">
@@ -537,6 +538,16 @@
                 <data android:mimeType="vnd.android.cursor.item/contact"/>
             </intent-filter>
         </service>
+
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.android.contacts.files"
+            android:grantUriPermissions="true"
+            android:exported="false">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <meta-data android:name="android.nfc.disable_beam_default" android:value="true" />
     </application>

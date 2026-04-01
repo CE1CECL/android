@@ -186,7 +186,7 @@
     <string name="attachment_info_malware" msgid="6576029010855055528">"U kunt dit bericht niet opslaan of openen omdat dit type bijlage schadelijke software kan bevatten."</string>
     <string name="attachment_info_policy" msgid="3560422300127587508">"Deze bijlage kan niet worden opgeslagen of geopend als gevolg van het beveiligingsbeleid van dit account."</string>
     <string name="attachment_info_wifi_only" msgid="1481120960014563617">"Deze bijlage is te groot om te downloaden via een mobiel netwerk. U kunt de bijlage downloaden wanneer u weer verbinding maakt met een Wi-Fi-netwerk."</string>
-    <string name="attachment_info_no_intent" msgid="8139209405745777924">"Er is geen app geïnstalleerd die de bijlage kan openen. Download een geschikte app van Android Market."</string>
+    <string name="attachment_info_no_intent" msgid="8139209405745777924">"Er is geen app geïnstalleerd die de bijlage kan openen. Download een geschikte app van de Play Store."</string>
     <string name="attachment_info_sideload_disabled" msgid="3270731101769840006">"Deze bijlage is een app. U moet \'Onbekende bronnen\' aanvinken in \'Instellingen\' &gt; \'Apps\' voordat u de app kunt installeren."</string>
     <string name="attachment_info_apk_install_disabled" msgid="2817790592227462682">"Apps kunnen niet rechtstreeks via e-mail worden geïnstalleerd. Sla de app eerst op en installeer deze via de app Downloads."</string>
     <string name="attachment_not_found" msgid="7155322700141145123">"Kan de bijlage niet downloaden."</string>

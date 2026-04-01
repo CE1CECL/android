@@ -23,6 +23,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.common.CallLogAsync;
 
+import android.net.Uri;
 import android.os.SystemProperties;
 import android.provider.CallLog.Calls;
 import android.telephony.PhoneNumberUtils;
@@ -92,8 +93,16 @@ class CallLogger {
         final int callLogType;
 
         if (c.isIncoming()) {
-            callLogType = (cause == Connection.DisconnectCause.INCOMING_MISSED ?
-                           Calls.MISSED_TYPE : Calls.INCOMING_TYPE);
+            // Classify as missed not only the genuinely missed calls, but also the rejected ones
+            // if the respective option has been enabled in the settings.
+            if (cause == Connection.DisconnectCause.INCOMING_MISSED) {
+                callLogType = Calls.MISSED_TYPE;
+            } else if ((cause == Connection.DisconnectCause.INCOMING_REJECTED)
+                    && PhoneUtils.PhoneSettings.markRejectedCallsAsMissed(mApplication)) {
+                callLogType = Calls.MISSED_TYPE;
+            } else {
+                callLogType = Calls.INCOMING_TYPE;
+            }
         } else {
             callLogType = Calls.OUTGOING_TYPE;
         }
@@ -145,6 +154,8 @@ class CallLogger {
 
         if ((o == null) || (o instanceof CallerInfo)) {
             ci = (CallerInfo) o;
+        } else if (o instanceof Uri) {
+            ci = CallerInfo.getCallerInfo(mApplication, (Uri) o);
         } else {
             ci = ((PhoneUtils.CallerInfoToken) o).currentInfo;
         }

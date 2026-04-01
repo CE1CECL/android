@@ -1,5 +1,8 @@
 /******************************************************************************
  *
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  *  Copyright (C) 2009-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +50,8 @@
 #include "btif_util.h"
 #include "btif_sock.h"
 #include "btif_pan.h"
+#include "btif_mce.h"
+#include "btc_common.h"
 #include "btif_profile_queue.h"
 #include "btif_config.h"
 /************************************************************************************
@@ -105,6 +110,8 @@ static btif_core_state_t btif_core_state = BTIF_CORE_STATE_DISABLED;
 
 static int btif_shutdown_pending = 0;
 static tBTA_SERVICE_MASK btif_enabled_services = 0;
+static int btif_data_profile_registered = 0;
+static int btif_pending_mode = BT_SCAN_MODE_NONE;
 
 /*
 * This variable should be set to 1, if the Bluedroid+BTIF libraries are to
@@ -668,7 +675,9 @@ bt_status_t btif_disable_bluetooth(void)
     btif_sock_cleanup();
 
     btif_pan_cleanup();
-
+#if (defined(BTC_INCLUDED) && BTC_INCLUDED == TRUE)
+    btc_deinit();
+#endif /*BTC*/
     status = BTA_DisableBluetooth();
 
     btif_config_flush();
@@ -928,7 +937,7 @@ static bt_status_t btif_in_get_remote_device_properties(bt_bdaddr_t *bd_addr)
     uint32_t num_props = 0;
 
     bt_bdname_t name, alias;
-    uint32_t cod, devtype;
+    uint32_t cod, devtype, trustval;
     bt_uuid_t remote_uuids[BT_MAX_NUM_UUIDS];
 
     memset(remote_properties, 0, sizeof(remote_properties));
@@ -940,6 +949,12 @@ static bt_status_t btif_in_get_remote_device_properties(bt_bdaddr_t *bd_addr)
 
     BTIF_STORAGE_FILL_PROPERTY(&remote_properties[num_props], BT_PROPERTY_REMOTE_FRIENDLY_NAME,
                                sizeof(alias), &alias);
+    btif_storage_get_remote_device_property(bd_addr,
+                                            &remote_properties[num_props]);
+    num_props++;
+
+    BTIF_STORAGE_FILL_PROPERTY(&remote_properties[num_props], BT_PROPERTY_REMOTE_TRUST_VALUE,
+                               sizeof(trustval), &trustval);
     btif_storage_get_remote_device_property(bd_addr,
                                             &remote_properties[num_props]);
     num_props++;
@@ -1234,6 +1249,14 @@ bt_status_t btif_set_adapter_property(const bt_property_t *property)
 
                 BTIF_TRACE_EVENT1("set property scan mode : %x", mode);
 
+                if (!btif_data_profile_registered && mode != BT_SCAN_MODE_NONE)
+                {
+                    btif_pending_mode = mode;
+                    BTIF_TRACE_DEBUG0("btif_set_adapter_property: not setting connectable mode, "
+                        "as data profiles are not yet registered. Mode will be set when "
+                        "data profile(s) are registered");
+                    return BT_STATUS_SUCCESS;
+                }
                 BTA_DmSetVisibility(disc_mode, conn_mode, BTA_DM_IGNORE, BTA_DM_IGNORE);
 
                 storage_req_id = BTIF_CORE_STORAGE_ADAPTER_WRITE;
@@ -1459,4 +1482,26 @@ bt_status_t btif_disable_service(tBTA_SERVICE_ID service_id)
     }
 
     return BT_STATUS_SUCCESS;
+}
+
+void btif_data_profile_register(int value)
+{
+    bt_property_t property;
+    int val;
+
+    if (value == btif_data_profile_registered || btif_pending_mode == BT_SCAN_MODE_NONE)
+        return;
+
+    BTIF_TRACE_EVENT2("%s: Data profile registration = %d", __FUNCTION__, value);
+    btif_data_profile_registered = value;
+    if (btif_data_profile_registered)
+    {
+        property.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
+        val = btif_pending_mode;
+        property.val = &val;;
+        property.len = (sizeof(int));
+        /* Reset pending mode to None */
+        btif_pending_mode == BT_SCAN_MODE_NONE;
+        btif_set_adapter_property(&property);
+    }
 }

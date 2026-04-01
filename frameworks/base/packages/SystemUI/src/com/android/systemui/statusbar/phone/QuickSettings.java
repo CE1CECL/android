@@ -444,7 +444,7 @@ class QuickSettings {
                     RSSIState rssiState = (RSSIState) state;
                     ImageView iv = (ImageView) view.findViewById(R.id.rssi_image);
                     ImageView iov = (ImageView) view.findViewById(R.id.rssi_overlay_image);
-                    TextView tv = (TextView) view.findViewById(R.id.rssi_textview);
+                    TextView tv = (TextView) view.findViewById(R.id.text);
                     // Force refresh
                     iv.setImageDrawable(null);
                     iv.setImageResource(rssiState.signalIconId);
@@ -600,7 +600,7 @@ class QuickSettings {
                 // TODO: Jump into the alarm application
                 Intent intent = new Intent();
                 intent.setComponent(new ComponentName(
-                        "com.google.android.deskclock",
+                        "com.android.deskclock",
                         "com.android.deskclock.AlarmClock"));
                 startSettingsActivity(intent);
             }
@@ -720,7 +720,6 @@ class QuickSettings {
         ((QuickSettingsContainerView)mContainerView).updateResources();
         mContainerView.requestLayout();
     }
-
 
     private void showBrightnessDialog() {
         Intent intent = new Intent(Intent.ACTION_SHOW_BRIGHTNESS_DIALOG);

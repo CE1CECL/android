@@ -1681,8 +1681,18 @@ public class JDBCDatabaseMetaData implements DatabaseMetaData {
 	throw new SQLException("unsupported");
     }
 
-    public boolean isWrapperFor(java.lang.Class iface) throws SQLException {
-	return false;
-    }
+	public boolean isWrapperFor(Class<?> iface) throws SQLException {
+		return false;
+	}
+
+	public ResultSet getPseudoColumns(String catalog, String schemaPattern,
+			String tableNamePattern, String columnNamePattern)
+			throws SQLException {
+		throw new UnsupportedOperationException();
+	}
+
+	public boolean generatedKeyAlwaysReturned() throws SQLException {
+		throw new UnsupportedOperationException();
+	}
 
 }

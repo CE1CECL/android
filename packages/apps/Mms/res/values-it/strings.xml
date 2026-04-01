@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
+<!--
 /*
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
@@ -322,7 +322,7 @@
     <string name="pick_too_many_recipients" msgid="650087588867628044">"Troppi destinatari"</string>
     <string name="adding_recipients" msgid="2962810172527532357">"Aggiunta destinatari..."</string>
     <string name="draft_separator" msgid="5402575086540243019">", "</string>
-    <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
+    <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="message_count_notification" msgid="3629968600032690007">"<xliff:g id="NUMBER">%1$s</xliff:g> nuovi messaggi"</string>
   <plurals name="message_count_notification_overflow">
     <item quantity="one" msgid="3340591167508150806">"+ <xliff:g id="NUMBER">%1$s</xliff:g> altro messaggio"</item>

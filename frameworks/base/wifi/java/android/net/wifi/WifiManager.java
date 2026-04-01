@@ -836,6 +836,18 @@ public class WifiManager {
     }
 
     /**
+     * Get the operational country code.
+     * @hide
+     */
+    public String getCountryCode() {
+        try {
+            return mService.getCountryCode();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
      * Set the operational frequency band.
      * @param band  One of
      *     {@link #WIFI_FREQUENCY_BAND_AUTO},
@@ -881,6 +893,32 @@ public class WifiManager {
     }
 
     /**
+     * Check if the chipset supports IBSS (Adhoc) mode
+     * @return {@code true} if supported, {@code false} otherwise.
+     * @hide
+     */
+    public boolean isIbssSupported() {
+        try {
+            return mService.isIbssSupported();
+        } catch (RemoteException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get a list of supported channels / frequencies
+     * @return a List of WifiChannels
+     * @hide
+     */
+    public List<WifiChannel> getSupportedChannels() {
+        try {
+            return mService.getSupportedChannels();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
      * Return the DHCP-assigned addresses from the last successful DHCP request,
      * if any.
      * @return the DHCP information
@@ -902,7 +940,7 @@ public class WifiManager {
      */
     public boolean setWifiEnabled(boolean enabled) {
         try {
-            return mService.setWifiEnabled(enabled);
+            return mService.setWifiEnabled(mContext.getBasePackageName(), enabled);
         } catch (RemoteException e) {
             return false;
         }

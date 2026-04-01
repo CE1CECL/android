@@ -147,7 +147,13 @@ public class ListPreference extends CameraPreference {
     }
 
     public String getEntry() {
-        return mEntries[findIndexOfValue(getValue())].toString();
+        int index = findIndexOfValue(getValue());
+        // Avoid the crash if fail to find value.
+        if (index == -1) {
+            Log.e(TAG, "Fail to find value = " + getValue());
+            index = 0;
+        }
+        return mEntries[index].toString();
     }
 
     public String getLabel() {
@@ -168,15 +174,20 @@ public class ListPreference extends CameraPreference {
     public void filterUnsupported(List<String> supported) {
         ArrayList<CharSequence> entries = new ArrayList<CharSequence>();
         ArrayList<CharSequence> entryValues = new ArrayList<CharSequence>();
+        ArrayList<CharSequence> labels = new ArrayList<CharSequence>();
         for (int i = 0, len = mEntryValues.length; i < len; i++) {
             if (supported.indexOf(mEntryValues[i].toString()) >= 0) {
                 entries.add(mEntries[i]);
                 entryValues.add(mEntryValues[i]);
+                if (mLabels != null && mLabels.length > 0) {
+                    labels.add(mLabels[i]);
+                }
             }
         }
         int size = entries.size();
         mEntries = entries.toArray(new CharSequence[size]);
         mEntryValues = entryValues.toArray(new CharSequence[size]);
+        mLabels = labels.toArray(new CharSequence[size]);
     }
 
     public void filterDuplicated() {

@@ -20,10 +20,12 @@ import static com.android.camera.Util.Assert;
 
 import android.annotation.TargetApi;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.AutoFocusMoveCallback;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.FaceDetectionListener;
+import android.hardware.Camera.OnZoomChangeListener;
 import android.hardware.Camera.OnZoomChangeListener;
 import android.hardware.Camera.Parameters;
 import android.hardware.Camera.PictureCallback;
@@ -35,6 +37,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import android.os.ConditionVariable;
 
 import com.android.gallery3d.common.ApiHelper;
 
@@ -43,6 +46,9 @@ import java.io.IOException;
 public class CameraManager {
     private static final String TAG = "CameraManager";
     private static CameraManager sCameraManager = new CameraManager();
+
+    // Thread progress signals
+    private ConditionVariable mSig = new ConditionVariable();
 
     private Parameters mParameters;
     private boolean mParametersIsDirty;
@@ -72,6 +78,8 @@ public class CameraManager {
     private static final int SET_PREVIEW_CALLBACK = 22;
     private static final int ENABLE_SHUTTER_SOUND = 23;
     private static final int REFRESH_PARAMETERS = 24;
+
+    private static final int ENABLE_SAMSUNG_ZSL_MODE = 30;
 
     private Handler mCameraHandler;
     private android.hardware.Camera mCamera;
@@ -137,6 +145,9 @@ public class CameraManager {
          */
         @Override
         public void handleMessage(final Message msg) {
+            if (mCamera == null) {
+                return;
+            }
             try {
                 switch (msg.what) {
                     case RELEASE:
@@ -229,9 +240,9 @@ public class CameraManager {
 
                     case SET_PARAMETERS:
                         mParametersIsDirty = true;
-                        mParamsToSet.unflatten((String) msg.obj);
-                        mCamera.setParameters(mParamsToSet);
-                        return;
+                        mCamera.setParameters((Parameters) msg.obj);
+                        mSig.open();
+                        break;
 
                     case GET_PARAMETERS:
                         if (mParametersIsDirty) {
@@ -251,6 +262,12 @@ public class CameraManager {
                     case REFRESH_PARAMETERS:
                         mParametersIsDirty = true;
                         return;
+
+                    case ENABLE_SAMSUNG_ZSL_MODE:
+                        // I don't know the significance of 1508, it was discovered
+                        // by reading logs and reverse engineering.
+                        mCamera.sendRawCommand(1508, 0, 0);
+                        break;
 
                     default:
                         throw new RuntimeException("Invalid CameraProxy message=" + msg.what);
@@ -435,8 +452,10 @@ public class CameraManager {
                 Log.v(TAG, "null parameters in setParameters()");
                 return;
             }
-            mCameraHandler.obtainMessage(SET_PARAMETERS, params.flatten())
+            mSig.close();
+            mCameraHandler.obtainMessage(SET_PARAMETERS, params)
                     .sendToTarget();
+            mSig.block();
         }
 
         public Parameters getParameters() {
@@ -476,6 +495,10 @@ public class CameraManager {
                 }
             }
             return true;
+        }
+
+        public void sendMagicSamsungZSLCommand() {
+            mCameraHandler.sendEmptyMessage(ENABLE_SAMSUNG_ZSL_MODE);
         }
     }
 }

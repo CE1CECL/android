@@ -100,10 +100,11 @@ public abstract class ServiceStateTracker extends Handler {
     protected RegistrantList mNetworkAttachedRegistrants = new RegistrantList();
     protected RegistrantList mPsRestrictEnabledRegistrants = new RegistrantList();
     protected RegistrantList mPsRestrictDisabledRegistrants = new RegistrantList();
+    protected RegistrantList mDataRatChangedRegistrants = new RegistrantList();
 
     /* Radio power off pending flag and tag counter */
-    private boolean mPendingRadioPowerOffAfterDataOff = false;
-    private int mPendingRadioPowerOffAfterDataOffTag = 0;
+    protected boolean mPendingRadioPowerOffAfterDataOff = false;
+    protected int mPendingRadioPowerOffAfterDataOffTag = 0;
 
     /** Signal strength poll rate. */
     protected static final int POLL_PERIOD_MILLIS = 20 * 1000;
@@ -152,7 +153,7 @@ public abstract class ServiceStateTracker extends Handler {
     protected static final int EVENT_CDMA_SUBSCRIPTION_SOURCE_CHANGED  = 39;
     protected static final int EVENT_CDMA_PRL_VERSION_CHANGED          = 40;
     protected static final int EVENT_RADIO_ON                          = 41;
-    protected static final int EVENT_ICC_CHANGED                       = 42;
+    public static final int EVENT_ICC_CHANGED                          = 42;
     protected static final int EVENT_GET_CELL_INFO_LIST                = 43;
     protected static final int EVENT_UNSOL_CELL_INFO_LIST              = 44;
 
@@ -206,6 +207,9 @@ public abstract class ServiceStateTracker extends Handler {
         mUiccController.registerForIccChanged(this, EVENT_ICC_CHANGED, null);
         mCi.setOnSignalStrengthUpdate(this, EVENT_SIGNAL_STRENGTH_UPDATE, null);
         mCi.registerForCellInfoList(this, EVENT_UNSOL_CELL_INFO_LIST, null);
+
+        mPhoneBase.setSystemProperty(TelephonyProperties.PROPERTY_DATA_NETWORK_TYPE,
+            ServiceState.rilRadioTechnologyToString(ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN));
     }
 
     public void dispose() {
@@ -521,6 +525,21 @@ public abstract class ServiceStateTracker extends Handler {
 
     public void unregisterForPsRestrictedDisabled(Handler h) {
         mPsRestrictDisabledRegistrants.remove(h);
+    }
+
+    /**
+     * Registration point for data transition to different radio access technology.
+     * @param h handler to notify
+     * @param what what code of message when delivered
+     * @param obj placed in Message.obj
+     */
+    public void registerForDataRatChanged(Handler h, int what, Object obj) {
+        Registrant r = new Registrant(h, what, obj);
+        mDataRatChangedRegistrants.add(r);
+    }
+
+    public void unregisterForDataRatChanged(Handler h) {
+        mDataRatChangedRegistrants.remove(h);
     }
 
     /**

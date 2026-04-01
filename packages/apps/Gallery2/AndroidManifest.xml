@@ -30,6 +30,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.PREVENT_POWER_KEY" />
     <uses-permission android:name="com.android.gallery3d.permission.GALLERY_PROVIDER" />
 
     <supports-screens android:smallScreens="false"
@@ -72,9 +73,11 @@
                 <data android:mimeType="video/webm" />
                 <data android:mimeType="video/avi" />
                 <data android:mimeType="application/sdp" />
+                <data android:mimeType="video/x-msvideo"/>
+                <data android:mimeType="video/divx" />
              </intent-filter>
              <intent-filter>
-                !-- HTTP live support -->
+                <!-- HTTP live support -->
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />

@@ -95,6 +95,15 @@
 #define UINT16_TO_STREAM(p, u16) {*(p)++ = (uint8_t)(u16); *(p)++ = (uint8_t)((u16) >> 8);}
 #define UINT32_TO_STREAM(p, u32) {*(p)++ = (uint8_t)(u32); *(p)++ = (uint8_t)((u32) >> 8); *(p)++ = (uint8_t)((u32) >> 16); *(p)++ = (uint8_t)((u32) >> 24);}
 
+#if (USE_AXI_BRIDGE_LOCK == TRUE)
+#define BTLOCK_DEV "/dev/btlock"
+static int btlock_cookie = 'B' | 'T'<<8 | '3'<<16 | '5'<<24;
+struct btlock {
+    int lock;
+    int cookie;
+};
+#endif
+
 /******************************************************************************
 **  Local type definitions
 ******************************************************************************/
@@ -108,7 +117,8 @@ enum {
     HW_CFG_DL_MINIDRIVER,
     HW_CFG_DL_FW_PATCH,
     HW_CFG_SET_UART_BAUD_2,
-    HW_CFG_SET_BD_ADDR
+    HW_CFG_SET_BD_ADDR,
+    HW_CFG_DL_FW_PRE_PATCH
 #if (USE_CONTROLLER_BDADDR == TRUE)
     , HW_CFG_READ_BD_ADDR
 #endif
@@ -161,6 +171,7 @@ extern uint8_t vnd_local_bd_addr[BD_ADDR_LEN];
 
 static char fw_patchfile_path[256] = FW_PATCHFILE_LOCATION;
 static char fw_patchfile_name[128] = { 0 };
+static char fw_prepatch_name[384] = FW_PRE_PATCH;
 #if (VENDOR_LIB_RUNTIME_TUNING_ENABLED == TRUE)
 static int fw_patch_settlement_delay = -1;
 #endif
@@ -568,6 +579,53 @@ static uint8_t hw_config_read_bdaddr(HC_BT_HDR *p_buf)
 }
 #endif // (USE_CONTROLLER_BDADDR == TRUE)
 
+#if (USE_AXI_BRIDGE_LOCK == TRUE)
+/*******************************************************************************
+**
+** Function         axi_bridge_lock
+**
+** Description      Take semaphore to prevent concurrent BT/WiFi firmware loading
+**
+*******************************************************************************/
+void axi_bridge_lock(int locked)
+{
+    int fd = -1;
+    struct btlock lock;
+    int ret = 0;
+
+    ALOGI("axi_bridge_lock: locked=%d", locked);
+
+    fd = open(BTLOCK_DEV, O_WRONLY);
+    if (fd < 0)
+    {
+        ALOGE("axi_bridge_lock open failed: %s (%d)",
+                strerror(errno), errno);
+        return;
+    }
+
+    lock.lock = locked;
+    lock.cookie = btlock_cookie;
+
+    if (locked)
+    {
+        while ((ret = write(fd, &lock, sizeof(lock))) != 0) {
+            ALOGE("axi_bridge_lock acquire: %s (%d)",
+                    strerror(errno), errno);
+            usleep(10000);
+        }
+    } else {
+        if (write(fd, &lock, sizeof(lock)) < 0)
+        {
+            ALOGE("axi_bridge_lock write failed: %s (%d)",
+                    strerror(errno), errno);
+        }
+    }
+
+    if (fd >= 0)
+        close(fd);
+}
+#endif // USE_AXI_BRIDGE_LOCK
+
 /*******************************************************************************
 **
 ** Function         hw_config_cback
@@ -616,6 +674,44 @@ void hw_config_cback(void *p_mem)
                 userial_vendor_set_baud( \
                     line_speed_to_userial_baud(UART_TARGET_BAUD_RATE) \
                 );
+
+                hw_cfg_cb.fw_fd = -1;
+
+                // load the prepatch
+                if (strlen(fw_prepatch_name) &&
+                        (hw_cfg_cb.fw_fd = open(fw_prepatch_name, O_RDONLY)) > -1)
+                {
+                    ALOGI("bt vendor lib: loading prepatch %s", fw_prepatch_name);
+                }
+
+                hw_cfg_cb.state = HW_CFG_DL_FW_PRE_PATCH;
+                // intentional fallthru
+
+            case HW_CFG_DL_FW_PRE_PATCH:
+                if (hw_cfg_cb.fw_fd > -1) {
+                    p_buf->len = read(hw_cfg_cb.fw_fd, p, HCI_CMD_PREAMBLE_SIZE);
+                    if (p_buf->len > 0)
+                    {
+                        if ((p_buf->len < HCI_CMD_PREAMBLE_SIZE) || \
+                            (opcode == HCI_VSC_LAUNCH_RAM))
+                        {
+                            ALOGW("firmware patch file might be altered!");
+                        }
+                        else
+                        {
+                            p_buf->len += read(hw_cfg_cb.fw_fd, \
+                                               p+HCI_CMD_PREAMBLE_SIZE,\
+                                               *(p+HCD_REC_PAYLOAD_LEN_BYTE));
+                            STREAM_TO_UINT16(opcode,p);
+                            is_proceeding = bt_vendor_cbacks->xmit_cb(opcode, \
+                                                    p_buf, hw_config_cback);
+                            break;
+                        }
+                    }
+
+                    close(hw_cfg_cb.fw_fd);
+                    hw_cfg_cb.fw_fd = -1;
+                }
 
                 /* read local name */
                 UINT16_TO_STREAM(p, HCI_READ_LOCAL_NAME);
@@ -680,7 +776,11 @@ void hw_config_cback(void *p_mem)
 
                 if (is_proceeding == FALSE)
                 {
-                    is_proceeding = hw_config_set_bdaddr(p_buf);
+#if (BLUETOOTH_HCI_USE_USB == TRUE)
+                    is_proceeding = hw_config_read_bdaddr(p_buf);
+#else
+                     is_proceeding = hw_config_set_bdaddr(p_buf);
+#endif
                 }
                 break;
 
@@ -713,6 +813,10 @@ void hw_config_cback(void *p_mem)
                 close(hw_cfg_cb.fw_fd);
                 hw_cfg_cb.fw_fd = -1;
 
+#if (USE_AXI_BRIDGE_LOCK == TRUE)
+                axi_bridge_lock(0);
+#endif
+
                 /* Normally the firmware patch configuration file
                  * sets the new starting baud rate at 115200.
                  * So, we need update host's baud rate accordingly.
@@ -732,6 +836,18 @@ void hw_config_cback(void *p_mem)
 
                 /* fall through intentionally */
             case HW_CFG_START:
+#if (BLUETOOTH_HCI_USE_USB == TRUE)
+                /* read local name */
+                UINT16_TO_STREAM(p, HCI_READ_LOCAL_NAME);
+                *p = 0; /* parameter length */
+
+                p_buf->len = HCI_CMD_PREAMBLE_SIZE;
+                hw_cfg_cb.state = HW_CFG_READ_LOCAL_NAME;
+
+                is_proceeding = bt_vendor_cbacks->xmit_cb(HCI_READ_LOCAL_NAME, \
+                                                    p_buf, hw_config_cback);
+                break;
+#endif
                 if (UART_TARGET_BAUD_RATE > 3000000)
                 {
                     /* set UART clock to 48MHz */
@@ -1124,6 +1240,13 @@ void hw_sco_config(void)
     HC_BT_HDR  *p_buf = NULL;
     uint8_t     *p, ret;
 
+#if (BLUETOOTH_HCI_USE_USB == TRUE)
+    /* Nothing specific is required for SCO connection, return SUCCESS */
+    if (bt_vendor_cbacks)
+        bt_vendor_cbacks->scocfg_cb(BT_VND_OP_RESULT_SUCCESS);
+    return;
+#endif
+
 #if (!defined(SCO_USE_I2S_INTERFACE) || (SCO_USE_I2S_INTERFACE == FALSE))
     uint16_t cmd_u16 = HCI_CMD_PREAMBLE_SIZE + SCO_PCM_PARAM_SIZE;
 #else
@@ -1211,6 +1334,25 @@ int hw_set_patch_file_name(char *p_conf_name, char *p_conf_value, int param)
 
     return 0;
 }
+
+/*******************************************************************************
+**
+** Function        hw_set_pre_patch_file_name
+**
+** Description     Give the specific firmware pre-patch filename
+**
+** Returns         0 : Success
+**                 Otherwise : Fail
+**
+*******************************************************************************/
+int hw_set_pre_patch_file_name(char *p_conf_name, char *p_conf_value, int param)
+{
+
+    strcpy(fw_prepatch_name, p_conf_value);
+
+    return 0;
+}
+
 
 #if (VENDOR_LIB_RUNTIME_TUNING_ENABLED == TRUE)
 /*******************************************************************************

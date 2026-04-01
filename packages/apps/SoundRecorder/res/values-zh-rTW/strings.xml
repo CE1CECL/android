@@ -38,6 +38,7 @@
     <string name="audio_db_playlist_name" msgid="5592939050047058162">"我的錄音"</string>
     <string name="error_sdcard_access" product="nosdcard" msgid="86629081075681774">"無法存取 USB 儲存裝置。"</string>
     <string name="error_sdcard_access" product="default" msgid="5750308258096153274">"無法存取 SD 卡。"</string>
+    <string name="error_in_call_record">電話錄音正在進行中</string>
     <string name="error_app_internal" msgid="312884382388702022">"內部應用程式錯誤。"</string>
     <string name="error_mediadb_new_record" msgid="261714902333432462">"無法儲存錄製的音訊。"</string>
 </resources>

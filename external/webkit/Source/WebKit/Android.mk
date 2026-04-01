@@ -44,7 +44,8 @@ LOCAL_SRC_FILES := \
 	android/WebCoreSupport/WebRequestContext.cpp \
 	android/WebCoreSupport/WebResourceRequest.cpp \
 	android/WebCoreSupport/WebResponse.cpp \
-	android/WebCoreSupport/WebViewClientError.cpp
+	android/WebCoreSupport/WebViewClientError.cpp \
+	android/WebCoreSupport/WebSocketBridge.cpp
 
 LOCAL_SRC_FILES += \
 	android/RenderSkinAndroid.cpp \
@@ -120,3 +121,11 @@ LOCAL_SRC_FILES += \
 	android/WebCoreSupport/autofill/FormManagerAndroid.cpp \
 	android/WebCoreSupport/autofill/WebAutofill.cpp
 endif # ENABLE_AUTOFILL == true
+
+ifeq ($(ENABLE_WEBAUDIO),true)
+LOCAL_SRC_FILES := $(LOCAL_SRC_FILES) \
+	android/webaudio/InMemoryDataSource.cpp \
+	android/webaudio/WebAudioAssetsAndroid.cpp \
+	android/webaudio/WebAudioDestinationAndroid.cpp \
+	android/webaudio/WebAudioDecoderAndroid.cpp
+endif

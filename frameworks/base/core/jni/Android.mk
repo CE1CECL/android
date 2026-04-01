@@ -83,8 +83,8 @@ LOCAL_SRC_FILES:= \
 	android_util_Process.cpp \
 	android_util_StringBlock.cpp \
 	android_util_XmlBlock.cpp \
+	android_util_PackageRedirectionMap.cpp \
 	android/graphics/AutoDecodeCancel.cpp \
-	android/graphics/Bitmap.cpp \
 	android/graphics/BitmapFactory.cpp \
 	android/graphics/Camera.cpp \
 	android/graphics/Canvas.cpp \
@@ -149,6 +149,12 @@ LOCAL_SRC_FILES:= \
 	android_animation_PropertyValuesHolder.cpp \
 	com_android_internal_net_NetworkStatsFactory.cpp
 
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
+    LOCAL_CFLAGS += -DQCOM_HARDWARE
+    LOCAL_SRC_FILES += \
+	    com_android_internal_app_ActivityTrigger.cpp
+endif
+
 LOCAL_C_INCLUDES += \
 	$(JNI_H_INCLUDE) \
 	$(LOCAL_PATH)/android/graphics \
@@ -158,6 +164,7 @@ LOCAL_C_INCLUDES += \
 	$(call include-path-for, libhardware)/hardware \
 	$(call include-path-for, libhardware_legacy)/hardware_legacy \
 	$(TOP)/frameworks/av/include \
+ 	external/e2fsprogs/lib \
 	external/skia/include/core \
 	external/skia/include/effects \
 	external/skia/include/images \
@@ -181,6 +188,7 @@ LOCAL_C_INCLUDES += \
 LOCAL_SHARED_LIBRARIES := \
 	libandroidfw \
 	libexpat \
+	libext2_blkid \
 	libnativehelper \
 	liblog \
 	libcutils \
@@ -212,6 +220,20 @@ LOCAL_SHARED_LIBRARIES := \
 	libharfbuzz_ng \
 	libz
 
+ifeq ($(TARGET_ARCH), arm)
+  ifeq ($(ARCH_ARM_HAVE_NEON),true)
+    TARGET_arm_CFLAGS += -DUSE_NEON_BITMAP_OPTS -mvectorize-with-neon-quad
+    LOCAL_SRC_FILES+= \
+		android/graphics/Bitmap.cpp.arm
+  else
+    LOCAL_SRC_FILES+= \
+		android/graphics/Bitmap.cpp
+  endif
+else
+    LOCAL_SRC_FILES+= \
+		android/graphics/Bitmap.cpp
+endif
+
 ifeq ($(USE_OPENGL_RENDERER),true)
 	LOCAL_SHARED_LIBRARIES += libhwui
 endif
@@ -226,6 +248,10 @@ LOCAL_LDLIBS += -lpthread -ldl
 
 ifeq ($(WITH_MALLOC_LEAK_CHECK),true)
 	LOCAL_CFLAGS += -DMALLOC_LEAK_CHECK
+endif
+
+ifeq ($(BOARD_FIX_FACE_DETECTION_SCORE),true)
+    LOCAL_CFLAGS += -DFIX_FACE_DETECTION_SCORE
 endif
 
 LOCAL_MODULE:= libandroid_runtime

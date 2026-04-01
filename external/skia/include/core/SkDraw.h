@@ -35,6 +35,9 @@ public:
     void    drawPoints(SkCanvas::PointMode, size_t count, const SkPoint[],
                        const SkPaint&, bool forceUseDevice = false) const;
     void    drawRect(const SkRect&, const SkPaint&) const;
+#if defined(FIMG2D_ENABLED)
+    void    drawRect_withG2D(const SkRect&,  const SkPaint&) const;
+#endif
     /**
      *  To save on mallocs, we allow a flag that tells us that srcPath is
      *  mutable, so that we don't have to make copies of it as we transform it.
@@ -116,6 +119,8 @@ private:
     computeConservativeLocalClipBounds(SkRect* bounds) const;
 
 public:
+    //Be noted to update SkDraw::SkDraw() constructor code when struture is
+    //change!
     const SkBitmap* fBitmap;        // required
     const SkMatrix* fMatrix;        // required
     const SkRegion* fClip;          // DEPRECATED

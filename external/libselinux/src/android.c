@@ -32,7 +32,7 @@
 static char const * const seapp_contexts_file[] = {
 	"/data/security/current/seapp_contexts",
 	"/seapp_contexts",
-	0 };
+	NULL };
 
 static const struct selinux_opt seopts[] = {
 	{ SELABEL_OPT_PATH, "/data/security/current/file_contexts" },
@@ -47,7 +47,7 @@ static const struct selinux_opt seopt_backup[] = {
 static const char *const sepolicy_file[] = {
         "/data/security/current/sepolicy",
         "/sepolicy",
-        0 };
+        NULL };
 
 enum levelFrom {
 	LEVELFROM_NONE,
@@ -140,7 +140,7 @@ int selinux_android_seapp_context_reload(void)
 	struct seapp_context *cur;
 	char *p, *name = NULL, *value = NULL, *saveptr;
 	size_t len;
-	int i = 0, ret;
+	int i = 0, n, ret;
 
 	while ((fp==NULL) && seapp_contexts_file[i])
 		fp = fopen(seapp_contexts_file[i++], "r");
@@ -148,6 +148,20 @@ int selinux_android_seapp_context_reload(void)
 	if (!fp) {
 		selinux_log(SELINUX_ERROR, "%s:  could not open any seapp_contexts file", __FUNCTION__);
 		return -1;
+	}
+
+	if (seapp_contexts) {
+		for (n = 0; n < nspec; n++) {
+			cur = seapp_contexts[n];
+			free(cur->user);
+			free(cur->seinfo);
+			free(cur->name);
+			free(cur->domain);
+			free(cur->type);
+			free(cur->level);
+			free(cur->sebool);
+		}
+		free(seapp_contexts);
 	}
 
 	nspec = 0;
@@ -327,9 +341,7 @@ static int seapp_context_lookup(enum seapp_kind kind,
 				context_t ctx)
 {
 	const char *username = NULL;
-	char *end = NULL;
-	struct passwd *pw;
-	struct seapp_context *cur;
+	struct seapp_context *cur = NULL;
 	int i;
 	size_t n;
 	uid_t userid;
@@ -466,9 +478,10 @@ int selinux_android_setfilecon2(const char *pkgdir,
 				const char *seinfo,
 				uid_t uid)
 {
-	char *orig_ctx_str = NULL, *ctx_str;
+	char *orig_ctx_str = NULL;
+	char *ctx_str = NULL;
 	context_t ctx = NULL;
-	int rc;
+	int rc = -1;
 
 	if (is_selinux_enabled() <= 0)
 		return 0;
@@ -534,7 +547,7 @@ int selinux_android_setcontext(uid_t uid,
 {
 	char *orig_ctx_str = NULL, *ctx_str;
 	context_t ctx = NULL;
-	int rc;
+	int rc = -1;
 
 	if (is_selinux_enabled() <= 0)
 		return 0;
@@ -643,22 +656,21 @@ static pthread_once_t fc_once = PTHREAD_ONCE_INIT;
 int selinux_android_restorecon(const char *pathname)
 {
 
+	char* oldcontext = NULL;
+	char* newcontext = NULL;
+	struct stat sb;
+	int ret = -1;
+
 	if (is_selinux_enabled() <= 0)
 		return 0;
 
 	__selinux_once(fc_once, file_context_init);
 
-	int ret;
-
 	if (!sehandle)
 		goto bail;
 
-	struct stat sb;
-
 	if (lstat(pathname, &sb) < 0)
 		goto err;
-
-	char *oldcontext, *newcontext;
 
 	if (lgetfilecon(pathname, &oldcontext) < 0)
 		goto err;

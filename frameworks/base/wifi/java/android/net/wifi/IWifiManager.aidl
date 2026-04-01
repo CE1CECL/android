@@ -19,6 +19,7 @@ package android.net.wifi;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.ScanResult;
+import android.net.wifi.WifiChannel;
 import android.net.DhcpInfo;
 
 import android.os.Messenger;
@@ -55,17 +56,23 @@ interface IWifiManager
 
     WifiInfo getConnectionInfo();
 
-    boolean setWifiEnabled(boolean enable);
+    boolean setWifiEnabled(String callingPackage, boolean enable);
 
     int getWifiEnabledState();
 
     void setCountryCode(String country, boolean persist);
+
+    String getCountryCode();
 
     void setFrequencyBand(int band, boolean persist);
 
     int getFrequencyBand();
 
     boolean isDualBandSupported();
+
+    boolean isIbssSupported();
+
+    List<WifiChannel> getSupportedChannels();
 
     boolean saveConfiguration();
 

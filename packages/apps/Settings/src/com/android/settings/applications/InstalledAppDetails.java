@@ -25,6 +25,7 @@ import com.android.settings.applications.ApplicationsState.AppEntry;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
@@ -67,6 +68,7 @@ import android.util.Log;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -140,8 +142,10 @@ public class InstalledAppDetails extends Fragment
     private Button mClearDataButton;
     private Button mMoveAppButton;
     private CompoundButton mNotificationSwitch;
+    private CompoundButton mPrivacyGuardSwitch;
 
     private PackageMoveObserver mPackageMoveObserver;
+    private AppOpsManager mAppOps;
 
     private boolean mDisableAfterUninstall;
 
@@ -179,6 +183,7 @@ public class InstalledAppDetails extends Fragment
     private static final int DLG_DISABLE = DLG_BASE + 7;
     private static final int DLG_DISABLE_NOTIFICATIONS = DLG_BASE + 8;
     private static final int DLG_SPECIAL_DISABLE = DLG_BASE + 9;
+    private static final int DLG_PRIVACY_GUARD = DLG_BASE + 10;
 
     // Menu identifiers
     public static final int UNINSTALL_ALL_USERS_MENU = 1;
@@ -399,6 +404,17 @@ public class InstalledAppDetails extends Fragment
         }
     }
 
+    private void initPrivacyGuardButton() {
+        if (mPrivacyGuardSwitch == null) {
+            return;
+        }
+        mAppOps = (AppOpsManager)getActivity().getSystemService(Context.APP_OPS_SERVICE);
+        boolean isEnabled = mAppOps.getPrivacyGuardSettingForPackage(
+            mAppEntry.info.uid, mAppEntry.info.packageName);
+        mPrivacyGuardSwitch.setChecked(isEnabled);
+        mPrivacyGuardSwitch.setOnCheckedChangeListener(this);
+    }
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle icicle) {
@@ -476,6 +492,8 @@ public class InstalledAppDetails extends Fragment
         
         mNotificationSwitch = (CompoundButton) view.findViewById(R.id.notification_switch);
 
+        mPrivacyGuardSwitch = (CompoundButton) view.findViewById(R.id.privacy_guard_switch);
+
         return view;
     }
 
@@ -549,6 +567,10 @@ public class InstalledAppDetails extends Fragment
         // Set application name.
         TextView label = (TextView) appSnippet.findViewById(R.id.app_name);
         label.setText(mAppEntry.label);
+        // Set application package name.
+        TextView packageName = (TextView) appSnippet.findViewById(R.id.app_pkgname);
+        packageName.setText(mAppEntry.info.packageName);
+        packageName.setVisibility(View.VISIBLE);
         // Version number of application
         mAppVersion = (TextView) appSnippet.findViewById(R.id.app_size);
 
@@ -836,6 +858,12 @@ public class InstalledAppDetails extends Fragment
             } catch (NameNotFoundException e) {
                 return false;
             }
+        }
+
+
+        // only setup the privacy guard setting if we didn't get uninstalled
+        if (!mMoveInProgress) {
+            initPrivacyGuardButton();
         }
 
         return true;
@@ -1161,8 +1189,7 @@ public class InstalledAppDetails extends Fragment
                     .setNegativeButton(R.string.dlg_cancel,
                         new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
-                            // Re-enable the checkbox
-                            getOwner().mNotificationSwitch.setChecked(true);
+                            dialog.cancel();
                         }
                     })
                     .create();
@@ -1181,8 +1208,48 @@ public class InstalledAppDetails extends Fragment
                     })
                     .setNegativeButton(R.string.dlg_cancel, null)
                     .create();
+                case DLG_PRIVACY_GUARD:
+                    final int messageResId;
+                    if ((getOwner().mAppEntry.info.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                        messageResId = R.string.privacy_guard_dlg_system_app_text;
+                    } else {
+                        messageResId = R.string.privacy_guard_dlg_text;
+                    }
+
+                    return new AlertDialog.Builder(getActivity())
+                    .setTitle(R.string.privacy_guard_dlg_title)
+                    .setIconAttribute(android.R.attr.alertDialogIcon)
+                    .setMessage(messageResId)
+                    .setPositiveButton(R.string.dlg_ok,
+                        new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            getOwner().setPrivacyGuard(true);
+                        }
+                    })
+                    .setNegativeButton(R.string.dlg_cancel,
+                        new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.cancel();
+                        }
+                    })
+                    .create();
             }
             throw new IllegalArgumentException("unknown id " + id);
+        }
+
+        @Override
+        public void onCancel(DialogInterface dialog) {
+            int id = getArguments().getInt("id");
+            switch (id) {
+                case DLG_DISABLE_NOTIFICATIONS:
+                    // Re-enable the checkbox
+                    getOwner().mNotificationSwitch.setChecked(true);
+                    break;
+                case DLG_PRIVACY_GUARD:
+                    // Re-enable the checkbox
+                    getOwner().mPrivacyGuardSwitch.setChecked(false);
+                    break;
+            }
         }
     }
 
@@ -1268,6 +1335,11 @@ public class InstalledAppDetails extends Fragment
         } catch (android.os.RemoteException ex) {
             mNotificationSwitch.setChecked(!enabled); // revert
         }
+    }
+
+    private void setPrivacyGuard(boolean enabled) {
+        mAppOps.setPrivacyGuardSettingForPackage(
+            mAppEntry.info.uid, mAppEntry.info.packageName, enabled);
     }
 
     private int getPremiumSmsPermission(String packageName) {
@@ -1366,6 +1438,12 @@ public class InstalledAppDetails extends Fragment
                 showDialogInner(DLG_DISABLE_NOTIFICATIONS, 0);
             } else {
                 setNotificationsEnabled(true);
+            }
+        } else if (buttonView == mPrivacyGuardSwitch) {
+            if (isChecked) {
+                showDialogInner(DLG_PRIVACY_GUARD, 0);
+            } else {
+                setPrivacyGuard(false);
             }
         }
     }

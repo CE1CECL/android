@@ -16,8 +16,7 @@
  * limitations under the License.
   -->
 
-<resources xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string-array name="default_smiley_names">
     <item msgid="1831934949361041701">"Радость"</item>
     <item msgid="1601611480575517120">"Грустный"</item>

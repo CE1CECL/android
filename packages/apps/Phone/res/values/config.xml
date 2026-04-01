@@ -18,9 +18,12 @@
      for different hardware or product builds. -->
 <resources>
     <!-- Flag indicating whether the Phone app should ignore
-         EVENT_SIM_NETWORK_LOCKED events from the Sim.  If true, this will
-         prevent the IccNetworkDepersonalizationPanel from being shown,
-         and effectively disable the "Sim network lock" feature. -->
+         EVENT_SIM_PERSO_LOCKED events from the Sim.  If true, this will
+         prevent the IccDepersonalizationPanel from being shown,
+         and effectively disable the "Sim perso unlock" feature. -->
+    <bool name="ignore_sim_perso_locked_events">false</bool>
+    <!-- For compatibility with Google's configuration files, it
+         is used in exactly the same way as the above -->
     <bool name="ignore_sim_network_locked_events">false</bool>
 
     <!-- Flag indicating whether the Phone app should provide
@@ -31,7 +34,7 @@
          (One important consequence: there will be no way to make an
          Emergency Call if your SIM is network-locked and you don't know
          the PIN.) -->
-    <bool name="sim_network_unlock_allow_dismiss">true</bool>
+    <bool name="icc_perso_unlock_allow_dismiss">true</bool>
 
     <!-- OTA configuration values, used when provisioning CDMA devices.
          Following defaults values of zero means OTA UI is completely disabled.
@@ -91,6 +94,9 @@
     <!-- Determines if device implements a noise suppression device for in call audio-->
     <bool name="has_in_call_noise_suppression">false</bool>
 
+    <!-- Audio parameter for setting noise suppression-->
+    <string name="in_call_noise_suppression_audioparameter">noise_suppression=on=off</string>
+
     <!-- Determines if the current device should allow emergency numbers
          to be logged in the Call Log.
          (Some carriers require that emergency calls *not* be logged,
@@ -119,4 +125,25 @@
     <bool name="config_apn_expand" translatable="false">true</bool>
     <bool name="config_operator_selection_expand" translatable="false">true</bool>
     <bool name="config_prefer_2g" translatable="false">true</bool>
+
+    <!-- Voice quality filter parameter
+         Set this if your device's libaudio has a parameter to adjust voice quality
+         (don't forget to also overlay to value array in that case).
+         Leave empty to disable the feature. -->
+    <string name="voice_quality_param"></string>
+
+    <!-- LTE/CDMA network mode to use for toggleLTE(true). -->
+    <integer name="toggleLTE_lte_cdma_nt_mode">-1</integer>
+
+    <!-- Sprint Message Wait Indicator Quirk
+         If true, message wait indicators are hidden by default on this device
+         unless the user enables it in Call Settings.  This quirk is necessary
+         for the "Phantom Voicemail" issue where notifications that are
+         impossible to dismiss on the Sprint network. -->
+    <bool name="sprint_mwi_quirk">false</bool>
+
+    <!-- Send phone app status to proximity sensor
+         Writes the phone apps status on "answer call" and on "hangup" to the specified proximity sysfs node. -->
+    <string name="phone_app_status_file"></string>
+
 </resources>

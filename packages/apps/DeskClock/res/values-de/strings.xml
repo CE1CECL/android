@@ -102,7 +102,7 @@
     <string name="volume_button_dialog_title" msgid="8768042543750036853">"Tasteneffekt"</string>
   <string-array name="volume_button_setting_entries">
     <item msgid="7972756698723318690">"Schlummern"</item>
-    <item msgid="3450979320164769576">"Beenden"</item>
+    <item msgid="3450979320164769576">"Alarm beenden"</item>
     <item msgid="6302517608411378024">"Keine Aktion"</item>
   </string-array>
     <string name="default_ringtone_setting_title" msgid="4549726190682964245">"Standard-Klingelton einstellen"</string>

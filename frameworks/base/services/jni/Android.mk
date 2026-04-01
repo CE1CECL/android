@@ -16,6 +16,7 @@ LOCAL_SRC_FILES:= \
     com_android_server_VibratorService.cpp \
     com_android_server_location_GpsLocationProvider.cpp \
     com_android_server_connectivity_Vpn.cpp \
+    com_android_server_IrdaManagerService.cpp \
     onload.cpp
 
 LOCAL_C_INCLUDES += \
@@ -45,8 +46,20 @@ LOCAL_SHARED_LIBRARIES := \
     libusbhost \
     libsuspend
 
+ifeq ($(BOARD_HAVE_NEW_QC_GPS),true)
+    LOCAL_CFLAGS += -DNEW_QC_GPS
+endif
+
+ifeq ($(BOARD_HAVE_SAMSUNG_GPS),true)
+	LOCAL_CFLAGS += -DSAMSUNG_GPS
+endif
+
 ifeq ($(WITH_MALLOC_LEAK_CHECK),true)
     LOCAL_CFLAGS += -DMALLOC_LEAK_CHECK
+endif
+
+ifeq ($(TARGET_HAS_DOCK_BATTERY),true)
+    LOCAL_CFLAGS += -DHAS_DOCK_BATTERY
 endif
 
 LOCAL_MODULE:= libandroid_servers

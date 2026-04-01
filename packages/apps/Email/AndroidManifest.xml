@@ -233,7 +233,7 @@
         <activity
             android:name=".activity.MessageCompose"
             android:label="@string/compose_title"
-            android:enabled="false"
+            android:configChanges="screenSize|orientation|keyboardHidden"
             android:theme="@android:style/Theme.Holo.Light"
             >
             <intent-filter>
@@ -335,7 +335,16 @@
         <service
             android:name=".service.MailService"
             android:enabled="false"
+            android:exported="true"
             >
+            <intent-filter>
+                <action
+                    android:name="com.android.email.intent.action.MAIL_SERVICE_WAKEUP" />
+            </intent-filter>
+            <intent-filter>
+                <action
+                    android:name="com.android.email.intent.action.MAIL_SERVICE_SEND_PENDING" />
+            </intent-filter>
         </service>
 
         <service

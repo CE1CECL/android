@@ -33,7 +33,11 @@
 #include <camera/ICameraServiceListener.h>
 
 /* This needs to be increased if we can have more cameras */
+#ifdef OMAP_ENHANCEMENT
+#define MAX_CAMERAS 3
+#else
 #define MAX_CAMERAS 2
+#endif
 
 namespace android {
 
@@ -145,6 +149,9 @@ public:
         pid_t                           mClientPid;
         uid_t                           mClientUid;      // immutable after constructor
         pid_t                           mServicePid;     // immutable after constructor
+#ifdef QCOM_HARDWARE
+        int                             mBurstCnt;
+#endif
 
         // - The app-side Binder interface to receive callbacks from us
         wp<IBinder>                     mRemoteBinder;   // immutable after constructor
@@ -228,11 +235,11 @@ public:
 
         virtual void         notifyError();
 
-        // Initialized in constructor
 
         // - The app-side Binder interface to receive callbacks from us
         sp<ICameraClient>               mRemoteCallback;
 
+        bool                 mLongshotEnabled;
     }; // class Client
 
     class ProClient : public BnProCameraUser, public BasicClient {

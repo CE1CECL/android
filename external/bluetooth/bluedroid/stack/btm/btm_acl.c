@@ -250,11 +250,6 @@ void btm_acl_created (BD_ADDR bda, DEV_CLASS dc, BD_NAME bdn,
             if (p_dev_rec && is_le_link)
             {
                 btm_establish_continue(p);
-
-                if (link_role == HCI_ROLE_MASTER)
-                {
-                    btsnd_hcic_ble_read_remote_feat(p->hci_handle);
-                }
             }
             else
 #endif
@@ -3092,7 +3087,7 @@ tBTM_STATUS btm_remove_acl (BD_ADDR bd_addr)
     else    /* otherwise can disconnect right away */
 #endif
     {
-        if (hci_handle != 0xFFFF)
+        if (hci_handle != 0xFFFF && p_dev_rec->sec_state!= BTM_SEC_STATE_DISCONNECTING)
         {
             if (!btsnd_hcic_disconnect (hci_handle, HCI_ERR_PEER_USER))
                 status = BTM_NO_RESOURCES;

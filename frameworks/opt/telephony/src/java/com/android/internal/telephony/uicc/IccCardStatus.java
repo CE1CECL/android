@@ -32,7 +32,11 @@ public class IccCardStatus {
         boolean isCardPresent() {
             return this == CARDSTATE_PRESENT;
         }
-    }
+
+        boolean isCardFaulty() {
+            return this == CARDSTATE_ERROR;
+        }
+    };
 
     public enum PinState {
         PINSTATE_UNKNOWN,
@@ -119,7 +123,7 @@ public class IccCardStatus {
             sb.append(app == null ? "null" : app);
         }
 
-        sb.append(",cmda_id=").append(mCdmaSubscriptionAppIndex);
+        sb.append(",cdma_id=").append(mCdmaSubscriptionAppIndex);
         if (mCdmaSubscriptionAppIndex >=0
                 && mCdmaSubscriptionAppIndex <CARD_MAX_APPS) {
             app = mApplications[mCdmaSubscriptionAppIndex];

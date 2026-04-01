@@ -1,6 +1,9 @@
 /*
+** Copyright (c) 2013, The Linux Foundation. All rights reserved.
+** Not a Contribution.
 **
 ** Copyright 2008, The Android Open Source Project
+** Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,6 +33,8 @@
 #include <utils/Log.h>
 
 #include <private/media/AudioTrackShared.h>
+
+#include "TrackUtils.h"
 
 namespace android {
 // ---------------------------------------------------------------------------
@@ -62,7 +67,11 @@ status_t AudioRecord::getMinFrameCount(
     // We double the size of input buffer for ping pong use of record buffer.
     size <<= 1;
 
+#ifdef QCOM_HARDWARE
+    if (audio_is_linear_pcm(format) || format == AUDIO_FORMAT_AMR_WB) {
+#else
     if (audio_is_linear_pcm(format)) {
+#endif
         uint32_t channelCount = popcount(channelMask);
         size /= channelCount * audio_bytes_per_sample(format);
     }
@@ -101,6 +110,11 @@ AudioRecord::AudioRecord(
 
 AudioRecord::~AudioRecord()
 {
+
+    if(TrackUtils::SetConcurrencyParameterForRemoteRecordSession(
+            mInputSource, mFormat, mSampleRate, mChannelCount, false)) {
+        ALOGE("SetConcurrencyParameterforRemoteRecordSession -  false returned error");
+    }
     if (mStatus == NO_ERROR) {
         // Make sure that callback function exits in the case where
         // it is looping on buffer empty condition in obtainBuffer().
@@ -130,6 +144,8 @@ status_t AudioRecord::set(
         bool threadCanCallJava,
         int sessionId)
 {
+    status_t status;
+
     // FIXME "int" here is legacy and will be replaced by size_t later
     if (frameCountInt < 0) {
         ALOGE("Invalid frame count %d", frameCountInt);
@@ -137,7 +153,7 @@ status_t AudioRecord::set(
     }
     size_t frameCount = frameCountInt;
 
-    ALOGV("set(): sampleRate %u, channelMask %#x, frameCount %u", sampleRate, channelMask,
+    ALOGV("set(): inputSource = %d, sampleRate %u, channelMask %#x, frameCount %u", inputSource, sampleRate, channelMask,
             frameCount);
 
     AutoMutex lock(mLock);
@@ -149,6 +165,11 @@ status_t AudioRecord::set(
     if (inputSource == AUDIO_SOURCE_DEFAULT) {
         inputSource = AUDIO_SOURCE_MIC;
     }
+
+#ifdef QCOM_HARDWARE
+    //update mInputSource before openRecord_l
+    mInputSource = inputSource;
+#endif
 
     if (sampleRate == 0) {
         sampleRate = DEFAULT_SAMPLE_RATE;
@@ -170,14 +191,23 @@ status_t AudioRecord::set(
         return BAD_VALUE;
     }
     mChannelMask = channelMask;
+#ifdef QCOM_HARDWARE
+    uint32_t channelCount = popcount(channelMask
+        &(AUDIO_CHANNEL_IN_STEREO|AUDIO_CHANNEL_IN_MONO|AUDIO_CHANNEL_IN_5POINT1));
+#else
     uint32_t channelCount = popcount(channelMask);
+#endif
     mChannelCount = channelCount;
 
+#ifdef QCOM_HARDWARE
+    mFrameSize = frameSize();
+#else
     if (audio_is_linear_pcm(format)) {
         mFrameSize = channelCount * audio_bytes_per_sample(format);
     } else {
         mFrameSize = sizeof(uint8_t);
     }
+#endif
 
     if (sessionId == 0 ) {
         mSessionId = AudioSystem::newAudioSessionId();
@@ -196,12 +226,60 @@ status_t AudioRecord::set(
         return BAD_VALUE;
     }
 
+#ifdef QCOM_HARDWARE
+    size_t inputBuffSizeInBytes = -1;
+    if (AudioSystem::getInputBufferSize(sampleRate, format, channelCount, &inputBuffSizeInBytes)
+            != NO_ERROR) {
+        ALOGE("AudioSystem could not query the input buffer size.");
+        return NO_INIT;
+    }
+    ALOGV("AudioRecord::set() inputBuffSizeInBytes = %d", inputBuffSizeInBytes );
+
+    if (inputBuffSizeInBytes == 0) {
+        ALOGE("Recording parameters are not supported: sampleRate %d, channelCount %d, format %d",
+            sampleRate, channelCount, format);
+        return BAD_VALUE;
+    }
+
+    // Change for Codec type
+    int frameSizeInBytes = 0;
+    if(inputSource == AUDIO_SOURCE_VOICE_COMMUNICATION) {
+        if (audio_is_linear_pcm(format)) {
+             frameSizeInBytes = channelCount * (format == AUDIO_FORMAT_PCM_16_BIT ? sizeof(int16_t)
+: sizeof(int8_t));
+        } else {
+             frameSizeInBytes = channelCount *sizeof(int16_t);
+        }
+    } else {
+        if (format ==AUDIO_FORMAT_AMR_NB) {
+             frameSizeInBytes = channelCount * AMR_FRAMESIZE; // Full rate framesize
+        } else if (format ==AUDIO_FORMAT_EVRC) {
+             frameSizeInBytes = channelCount * EVRC_FRAMESIZE; // Full rate framesize
+        } else if (format ==AUDIO_FORMAT_QCELP) {
+             frameSizeInBytes = channelCount * QCELP_FRAMESIZE; // Full rate framesize
+        } else if (format ==AUDIO_FORMAT_AAC) {
+             frameSizeInBytes = AAC_FRAMESIZE;
+        } else if ((format ==AUDIO_FORMAT_PCM_16_BIT) || (format ==AUDIO_FORMAT_PCM_8_BIT)) {
+             if (audio_is_linear_pcm(format)) {
+                  frameSizeInBytes = channelCount * (format == AUDIO_FORMAT_PCM_16_BIT ? sizeof(int16_t) : sizeof(int8_t));
+             } else {
+                  frameSizeInBytes = sizeof(int8_t);
+             }
+        } else if(format == AUDIO_FORMAT_AMR_WB) {
+            frameSizeInBytes = channelCount * AMR_WB_FRAMESIZE;
+
+        }
+    }
+    // We use 2* size of input buffer for ping pong use of record buffer.
+    int minFrameCount = 2 * inputBuffSizeInBytes / frameSizeInBytes;
+#else
     // validate framecount
     size_t minFrameCount = 0;
-    status_t status = getMinFrameCount(&minFrameCount, sampleRate, format, channelMask);
+    status = getMinFrameCount(&minFrameCount, sampleRate, format, channelMask);
     if (status != NO_ERROR) {
         return status;
     }
+#endif
     ALOGV("AudioRecord::set() minFrameCount = %d", minFrameCount);
 
     if (frameCount == 0) {
@@ -213,7 +291,6 @@ status_t AudioRecord::set(
     if (notificationFrames == 0) {
         notificationFrames = frameCount/2;
     }
-
     // create the IAudioRecord
     status = openRecord_l(sampleRate, format, frameCount, input);
     if (status != NO_ERROR) {
@@ -241,7 +318,9 @@ status_t AudioRecord::set(
     mMarkerReached = false;
     mNewPosition = 0;
     mUpdatePeriod = 0;
+#ifndef QCOM_HARDWARE
     mInputSource = inputSource;
+#endif
     mInput = input;
     AudioSystem::acquireAudioSessionId(mSessionId);
 
@@ -275,6 +354,38 @@ size_t AudioRecord::frameCount() const
     return mFrameCount;
 }
 
+#ifdef QCOM_HARDWARE
+size_t AudioRecord::frameSize() const
+{
+    if(inputSource() == AUDIO_SOURCE_VOICE_COMMUNICATION) {
+        if (audio_is_linear_pcm(mFormat)) {
+             return channelCount()*audio_bytes_per_sample(mFormat);
+        } else {
+            return channelCount()*sizeof(int16_t);
+        }
+    } else {
+        if (format() ==AUDIO_FORMAT_AMR_NB) {
+             return channelCount() * AMR_FRAMESIZE; // Full rate framesize
+        } else if (format() == AUDIO_FORMAT_EVRC) {
+             return channelCount() * EVRC_FRAMESIZE; // Full rate framesize
+        } else if (format() == AUDIO_FORMAT_QCELP) {
+             return channelCount() * QCELP_FRAMESIZE; // Full rate framesize
+        } else if (format() == AUDIO_FORMAT_AAC) {
+            // Not actual framsize but for variable frame rate AAC encoding,
+           // buffer size is treated as a frame size
+             return AAC_FRAMESIZE;
+        } else if(format() == AUDIO_FORMAT_AMR_WB) {
+            return channelCount() * AMR_WB_FRAMESIZE;
+        }
+        if (audio_is_linear_pcm(mFormat)) {
+            return channelCount()*audio_bytes_per_sample(mFormat);
+        } else {
+            return sizeof(uint8_t);
+        }
+    }
+}
+#endif
+
 audio_source_t AudioRecord::inputSource() const
 {
     return mInputSource;
@@ -286,6 +397,12 @@ status_t AudioRecord::start(AudioSystem::sync_event_t event, int triggerSession)
 {
     status_t ret = NO_ERROR;
     sp<AudioRecordThread> t = mAudioRecordThread;
+
+    if(TrackUtils::SetConcurrencyParameterForRemoteRecordSession(
+            mInputSource, mFormat, mSampleRate, mChannelCount, true)) {
+        ALOGE("SetConcurrencyParameterforRemoteRecordSession true - returned error");
+        return INVALID_OPERATION;
+    }
 
     ALOGV("start, sync event %d trigger session %d", event, triggerSession);
 
@@ -454,7 +571,11 @@ status_t AudioRecord::openRecord_l(
                                                        sampleRate, format,
                                                        mChannelMask,
                                                        frameCount,
+#ifdef QCOM_HARDWARE
+                                                       (int16_t)inputSource(),
+#else
                                                        IAudioFlinger::TRACK_DEFAULT,
+#endif
                                                        tid,
                                                        &mSessionId,
                                                        &status);
@@ -482,7 +603,7 @@ status_t AudioRecord::openRecord_l(
 
     // update proxy
     delete mProxy;
-    mProxy = new AudioRecordClientProxy(cblk, mBuffers, frameCount, mFrameSize);
+    mProxy = new AudioRecordClientProxy(cblk, mBuffers, mCblk->frameCount_, mFrameSize);
 
     return NO_ERROR;
 }

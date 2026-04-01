@@ -71,7 +71,7 @@ void SoftAMRNBEncoder::initPorts() {
     def.eDir = OMX_DirInput;
     def.nBufferCountMin = kNumBuffers;
     def.nBufferCountActual = def.nBufferCountMin;
-    def.nBufferSize = kNumSamplesPerFrame * sizeof(int16_t);
+    def.nBufferSize = kNumSamplesPerFrame * sizeof(int16_t) * 4;
     def.bEnabled = OMX_TRUE;
     def.bPopulated = OMX_FALSE;
     def.eDomain = OMX_PortDomainAudio;
@@ -395,6 +395,11 @@ void SoftAMRNBEncoder::onQueueFilled(OMX_U32 portIndex) {
     }
 }
 
+void SoftAMRNBEncoder::onPortFlush(OMX_U32 portIndex, bool sendFlushComplete){
+    ALOGV("in SoftAMRNBEncoder::onPortFlush()");
+    mInputSize = 0;
+    SimpleSoftOMXComponent::onPortFlush2(portIndex,sendFlushComplete);
+}
 }  // namespace android
 
 android::SoftOMXComponent *createSoftOMXComponent(

@@ -2,6 +2,9 @@
  * Copyright (C) 2004, 2006, 2007 Apple Inc. All rights reserved.
  * Copyright (C) 2007 Alp Toker <alp@atoker.com>
  * Copyright (C) 2010 Torch Mobile (Beijing) Co. Ltd. All rights reserved.
+ * Copyright (c) 2012, The Linux Foundation All rights reserved.
+ * Copyright (C) 2011, 2012 Sony Ericsson Mobile Communications AB
+ * Copyright (C) 2012 Sony Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -22,7 +25,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "config.h"
@@ -47,14 +50,23 @@
 #include "RenderHTMLCanvas.h"
 #include "RenderLayer.h"
 #include "Settings.h"
+#include "CanvasLayerAndroid.h"
+#include "PlatformGraphicsContext.h"
+#include "RenderLayer.h"
 #include <math.h>
 #include <stdio.h>
+
+#if PLATFORM(ANDROID)
+#include <cutils/log.h>
+#include <cutils/properties.h>
+#include "CanvasLayer.h"
+#endif
 
 #if USE(JSC)
 #include <runtime/JSLock.h>
 #endif
 
-#if ENABLE(WEBGL)    
+#if ENABLE(WEBGL)
 #include "WebGLContextAttributes.h"
 #include "WebGLRenderingContext.h"
 #endif
@@ -66,6 +78,11 @@ using namespace HTMLNames;
 // These values come from the WhatWG spec.
 static const int DefaultWidth = 300;
 static const int DefaultHeight = 150;
+
+#if PLATFORM(ANDROID)
+//TODO::VA::Make this robust later (prototyping)... needs to be protected by ifdefs for android
+int HTMLCanvasElement::s_recordingCanvasThreshold = 5;
+#endif
 
 // Firefox limits width/height to 32767 pixels, but slows down dramatically before it
 // reaches that limit. We limit by area instead, giving us larger maximum dimensions,
@@ -95,8 +112,33 @@ HTMLCanvasElement::HTMLCanvasElement(const QualifiedName& tagName, Document* doc
 #endif
     , m_originClean(true)
     , m_hasCreatedImageBuffer(false)
+#if PLATFORM(ANDROID)
+    , m_recordingCanvasEnabled(true)
+    , m_gpuCanvasEnabled(true)
+    , m_gpuRendering(false)
+    , m_supportedCompositing(true)
+    , m_canUseGpuRendering(false)
+#endif
 {
     ASSERT(hasTagName(canvasTag));
+
+# if PLATFORM(ANDROID)
+    char pval[PROPERTY_VALUE_MAX];
+    property_get("debug.recordingcanvas", pval, "1");
+
+    m_recordingCanvasEnabled = atoi(pval) ? true : false;
+
+    char pval2[PROPERTY_VALUE_MAX];
+    property_get("debug.gpucanvas", pval2, "1");
+
+    m_gpuCanvasEnabled = atoi(pval2) ? true : false;
+
+    //Allow threshold value to be set per device
+    char pval3[PROPERTY_VALUE_MAX];
+    property_get("debug.recordingcanvas.threshold", pval3, "5");
+
+    s_recordingCanvasThreshold = atoi(pval3);
+#endif
 }
 
 PassRefPtr<HTMLCanvasElement> HTMLCanvasElement::create(Document* document)
@@ -114,6 +156,13 @@ HTMLCanvasElement::~HTMLCanvasElement()
     HashSet<CanvasObserver*>::iterator end = m_observers.end();
     for (HashSet<CanvasObserver*>::iterator it = m_observers.begin(); it != end; ++it)
         (*it)->canvasDestroyed(this);
+
+#if ENABLE(WEBGL)
+#if PLATFORM(ANDROID)
+    document()->unregisterForDocumentActivationCallbacks(this);
+    document()->unregisterForDocumentSuspendCallbacks(this);
+#endif
+#endif
 }
 
 void HTMLCanvasElement::parseMappedAttribute(Attribute* attr)
@@ -162,7 +211,7 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
     // context is already 2D, just return that. If the existing context is WebGL, then destroy it
     // before creating a new 2D context. Vice versa when requesting a WebGL canvas. Requesting a
     // context with any other type string will destroy any existing context.
-    
+
     // FIXME - The code depends on the context not going away once created, to prevent JS from
     // seeing a dangling pointer. So for now we will disallow the context from being changed
     // once it is created.
@@ -176,7 +225,7 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
                 usesDashbardCompatibilityMode = settings->usesDashboardBackwardCompatibilityMode();
 #endif
             m_context = adoptPtr(new CanvasRenderingContext2D(this, document()->inQuirksMode(), usesDashbardCompatibilityMode));
-#if USE(IOSURFACE_CANVAS_BACKING_STORE) || (ENABLE(ACCELERATED_2D_CANVAS) && USE(ACCELERATED_COMPOSITING))
+#if USE(IOSURFACE_CANVAS_BACKING_STORE) || (ENABLE(ACCELERATED_2D_CANVAS) && USE(ACCELERATED_COMPOSITING)) || PLATFORM(ANDROID)
             if (m_context) {
                 // Need to make sure a RenderLayer and compositing layer get created for the Canvas
                 setNeedsStyleRecalc(SyntheticStyleChange);
@@ -185,7 +234,7 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
         }
         return m_context.get();
     }
-#if ENABLE(WEBGL)    
+#if ENABLE(WEBGL)
     Settings* settings = document()->settings();
     if (settings && settings->webGLEnabled()
 #if !PLATFORM(CHROMIUM) && !PLATFORM(GTK)
@@ -203,6 +252,11 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
                 if (m_context) {
                     // Need to make sure a RenderLayer and compositing layer get created for the Canvas
                     setNeedsStyleRecalc(SyntheticStyleChange);
+#if PLATFORM(ANDROID)
+                    document()->registerForDocumentActivationCallbacks(this);
+                    document()->registerForDocumentSuspendCallbacks(this);
+                    document()->setContainsWebGLContent(true);
+#endif
                 }
             }
             return m_context.get();
@@ -285,7 +339,7 @@ void HTMLCanvasElement::paint(GraphicsContext* context, const IntRect& r)
 
     if (context->paintingDisabled())
         return;
-    
+
     if (m_context) {
         if (!m_context->paintsIntoCanvasBuffer())
             return;
@@ -295,6 +349,10 @@ void HTMLCanvasElement::paint(GraphicsContext* context, const IntRect& r)
     if (hasCreatedImageBuffer()) {
         ImageBuffer* imageBuffer = buffer();
         if (imageBuffer) {
+
+            if(imageBuffer->drawsUsingRecording())
+                return;
+
             if (m_presentedImage)
                 context->drawImage(m_presentedImage.get(), ColorSpaceDeviceRGB, r);
             else if (imageBuffer->drawsUsingCopy())
@@ -304,17 +362,63 @@ void HTMLCanvasElement::paint(GraphicsContext* context, const IntRect& r)
         }
     }
 
-#if ENABLE(WEBGL)    
+#if ENABLE(WEBGL)
     if (is3D())
         static_cast<WebGLRenderingContext*>(m_context.get())->markLayerComposited();
 #endif
+#if ENABLE(DASHBOARD_SUPPORT)
+    Settings* settings = document()->settings();
+    if (settings && settings->usesDashboardBackwardCompatibilityMode())
+        setIeForbidsInsertHTML();
+#endif
 }
+
+#if PLATFORM(ANDROID)
+bool HTMLCanvasElement::canUseGpuRendering()
+{
+    return (m_supportedCompositing && m_gpuCanvasEnabled);
+}
+#endif
 
 #if ENABLE(WEBGL)
 bool HTMLCanvasElement::is3D() const
 {
     return m_context && m_context->is3d();
 }
+
+#if PLATFORM(ANDROID)
+void HTMLCanvasElement::documentDidBecomeActive()
+{
+    if (m_context && m_context->is3d()) {
+        WebGLRenderingContext* context3D = static_cast<WebGLRenderingContext*>(m_context.get());
+        context3D->recreateSurface();
+    }
+}
+
+void HTMLCanvasElement::documentWillBecomeInactive()
+{
+    if (m_context && m_context->is3d()) {
+        WebGLRenderingContext* context3D = static_cast<WebGLRenderingContext*>(m_context.get());
+        context3D->releaseSurface();
+    }
+}
+
+void HTMLCanvasElement::documentWasSuspended()
+{
+    if (m_context && m_context->is3d()) {
+        WebGLRenderingContext* context3D = static_cast<WebGLRenderingContext*>(m_context.get());
+        context3D->releaseSurface();
+    }
+}
+
+void HTMLCanvasElement::documentWillResume()
+{
+    if (m_context && m_context->is3d()) {
+        WebGLRenderingContext* context3D = static_cast<WebGLRenderingContext*>(m_context.get());
+        context3D->recreateSurface();
+    }
+}
+#endif
 #endif
 
 void HTMLCanvasElement::makeRenderingResultsAvailable()
@@ -360,9 +464,7 @@ String HTMLCanvasElement::toDataURL(const String& mimeType, const double* qualit
     if (mimeType.isNull() || !MIMETypeRegistry::isSupportedImageMIMETypeForEncoding(lowercaseMimeType))
         lowercaseMimeType = "image/png";
 
-#if USE(CG) || (USE(SKIA) && !PLATFORM(ANDROID))
-    // FIXME: Consider using this code path on Android. http://b/4572024
-    // Try to get ImageData first, as that may avoid lossy conversions.
+#if USE(CG) || (USE(SKIA) || PLATFORM(ANDROID))
     RefPtr<ImageData> imageData = getImageData();
 
     if (imageData)
@@ -370,7 +472,7 @@ String HTMLCanvasElement::toDataURL(const String& mimeType, const double* qualit
 #endif
 
     makeRenderingResultsAvailable();
-      
+
     return buffer()->toDataURL(lowercaseMimeType, quality);
 }
 
@@ -379,7 +481,7 @@ PassRefPtr<ImageData> HTMLCanvasElement::getImageData()
     if (!m_context || !m_context->is3d())
        return 0;
 
-#if ENABLE(WEBGL)    
+#if ENABLE(WEBGL)
     WebGLRenderingContext* ctx = static_cast<WebGLRenderingContext*>(m_context.get());
 
     return ctx->paintRenderingResultsToImageData();
@@ -411,7 +513,7 @@ IntSize HTMLCanvasElement::convertToValidDeviceSize(float width, float height) c
 {
     width = ceilf(width);
     height = ceilf(height);
-    
+
     if (width < 1 || height < 1 || width * height > MaxCanvasArea)
         return IntSize();
 
@@ -423,9 +525,9 @@ IntSize HTMLCanvasElement::convertToValidDeviceSize(float width, float height) c
     return IntSize(width, height);
 }
 
-const SecurityOrigin& HTMLCanvasElement::securityOrigin() const
+SecurityOrigin* HTMLCanvasElement::securityOrigin() const
 {
-    return *document()->securityOrigin();
+    return document()->securityOrigin();
 }
 
 CSSStyleSelector* HTMLCanvasElement::styleSelector()
@@ -465,6 +567,61 @@ void HTMLCanvasElement::createImageBuffer() const
     scriptExecutionContext()->globalData()->heap.reportExtraMemoryCost(m_imageBuffer->dataSize());
 #endif
 }
+
+#if PLATFORM(ANDROID)
+void HTMLCanvasElement::enableGpuRendering()
+{
+    if(m_gpuRendering)
+        return;
+
+    m_gpuRendering = true;
+}
+
+void HTMLCanvasElement::disableGpuRendering()
+{
+    if(!m_gpuRendering)
+        return;
+
+    m_gpuRendering = false;
+}
+
+void HTMLCanvasElement::clearRecording(const FloatRect& rect)
+{
+    FloatRect recordingRect(0, 0, width(), height());
+    if(m_imageBuffer && (rect == recordingRect))
+    {
+        m_canUseGpuRendering = m_imageBuffer->canUseGpuRendering();
+        if(m_gpuRendering)
+        {
+            if(m_canUseGpuRendering)
+            {
+                //gpu canvas path
+                IntRect r(rect.x(), rect.y(), rect.width(), rect.height());
+                GraphicsContext* ctx = drawingContext();
+                if(ctx)
+                {
+                    CanvasLayer::copyRecordingToLayer(ctx, r, m_canvasId);
+                }
+            }
+            else
+            {
+                disableGpuRendering();
+                CanvasLayer::setGpuCanvasStatus(m_canvasId, false);
+            }
+        }
+        else if(m_imageBuffer->drawsUsingRecording())
+        {
+            IntRect r(rect.x(), rect.y(), rect.width(), rect.height());
+            GraphicsContext* ctx = drawingContext();
+            if(ctx)
+            {
+                CanvasLayer::copyRecording(ctx, r, m_canvasId);
+            }
+        }
+        m_imageBuffer->clearRecording();
+    }
+}
+#endif
 
 GraphicsContext* HTMLCanvasElement::drawingContext() const
 {

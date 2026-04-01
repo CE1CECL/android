@@ -38,13 +38,15 @@
 #endif
 
 #ifdef DEBUG
-#define D PRINT
+#define D(x...) PRINT(x...)
+#define LIBRPC_DEBUG(x...) do { SLOGD(x); } while(0)
 #else
 #define D(x...) do { } while(0)
+#define LIBRPC_DEBUG(x...) do { } while(0)
 #endif
 
 #ifdef VERBOSE
-#define V PRINT
+#define V(x...) PRINT(x...)
 #else
 #define V(x...) do { } while(0)
 #endif
@@ -59,7 +61,7 @@
         if (__builtin_expect (cond, 0)) {                                      \
             fprintf(stderr, "%s:%s:(%d): ", __FILE__, __FUNCTION__, __LINE__); \
             fprintf(stderr, ##msg);                                            \
-            ALOGE(msg);                                                         \
+        	ALOGE(msg);                                            \
         }                                                                      \
     } while(0)
 

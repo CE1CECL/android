@@ -109,6 +109,29 @@ tmpfs_domain($1)
 ')
 
 #####################################
+# untrustedapp_domain(domain, file_type)
+# Allow a base set of permissions required for all untrusted apps.
+define(`untrustedapp_domain', `
+# The new domain is part of untrustedappdomain
+typeattribute $1 untrustedappdomain;
+
+# The new untrusted appdomain is a part of appdomain
+app_domain($1)
+
+# Each domain gets a unique devpts type
+type $1_devpts, fs_type;
+
+# pty access.
+type_transition $1 devpts:chr_file $1_devpts;
+allow $1 $1_devpts:chr_file { open getattr read write ioctl };
+
+# App sandbox file accesses.
+# Possibly create a new sandbox for this app
+allow $1 $2:dir create_dir_perms;
+allow $1 $2:notdevfile_class_set create_file_perms;
+')
+
+#####################################
 # platform_app_domain(domain)
 # Allow permissions specific to platform apps.
 define(`platform_app_domain', `
@@ -232,7 +255,6 @@ allow $1 kernel:security setbool;
 define(`security_access_policy', `
 allow $1 security_file:dir r_dir_perms;
 allow $1 security_file:file r_file_perms;
-allow $1 security_file:lnk_file read;
 allow $1 selinuxfs:dir r_dir_perms;
 allow $1 selinuxfs:file r_file_perms;
 allow $1 rootfs:dir r_dir_perms;
@@ -287,12 +309,14 @@ allow $1 kernel:system syslog_read;
 ')
 
 #####################################
-# write_klog(domain)
-# Ability to write to kernel log via
-# klog_write()
-# See system/core/libcutil/klog.c
-define(`write_klog', `
-type_transition $1 device:chr_file klog_device "__kmsg__";
-allow $1 klog_device:chr_file { create open write unlink };
-allow $1 device:dir { add_name remove_name };
+# access_audit_logs(domain)
+# Ability to read audit logs
+define(`access_audit_logs', `
+allow $1 audit_log:file r_file_perms;
 ')
+
+#####################################
+# Non system_app application set
+#
+define(`non_system_app_set', `{ appdomain -system_app }')
+

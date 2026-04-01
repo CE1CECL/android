@@ -121,10 +121,11 @@ public final class DBHelper {
     // Version 36: mblank intentionally left this space
     // Version 37: Add flag for settings support in folders
     // Version 38&39: Add threadTopic to message (for future support)
+    // Version 40: add sync size field
 
     // Versions 100+ are in Email2
 
-    public static final int DATABASE_VERSION = 39;
+    public static final int DATABASE_VERSION = 40;
 
     // Any changes to the database format *must* include update-in-place code.
     // Original version: 2
@@ -319,7 +320,8 @@ public final class DBHelper {
             + AccountColumns.SIGNATURE + " text, "
             + AccountColumns.POLICY_KEY + " integer, "
             + AccountColumns.NOTIFIED_MESSAGE_ID + " integer, "
-            + AccountColumns.NOTIFIED_MESSAGE_COUNT + " integer"
+            + AccountColumns.NOTIFIED_MESSAGE_COUNT + " integer, "
+            + AccountColumns.SYNC_SIZE + " integer"
             + ");";
         db.execSQL("create table " + Account.TABLE_NAME + s);
         // Deleting an account deletes associated Mailboxes and HostAuth's
@@ -939,6 +941,18 @@ public final class DBHelper {
                 }
                 oldVersion = 39;
             }
+            if (oldVersion == 39) {
+                try {
+                    db.execSQL("alter table " + Account.TABLE_NAME
+                            + " add column " + Account.SYNC_SIZE + " integer;");
+                    db.execSQL("update " + Account.TABLE_NAME + " set "
+                            + Account.SYNC_SIZE + " = -1");
+                } catch (SQLException e) {
+                    // Shouldn't be needed unless we're debugging and interrupt the process
+                    Log.w(TAG, "Exception upgrading EmailProvider.db from 39 to 40 " + e);
+                }
+                oldVersion = 40;
+            }
         }
 
         @Override
@@ -952,16 +966,20 @@ public final class DBHelper {
         Cursor c = db.query(Account.TABLE_NAME,
                 new String[] {EmailContent.RECORD_ID /*0*/, AccountColumns.SECURITY_FLAGS /*1*/},
                 AccountColumns.SECURITY_FLAGS + ">0", null, null, null, null);
-        ContentValues cv = new ContentValues();
-        String[] args = new String[1];
-        while (c.moveToNext()) {
-            long securityFlags = c.getLong(1 /*SECURITY_FLAGS*/);
-            Policy policy = LegacyPolicySet.flagsToPolicy(securityFlags);
-            long policyId = db.insert(Policy.TABLE_NAME, null, policy.toContentValues());
-            cv.put(AccountColumns.POLICY_KEY, policyId);
-            cv.putNull(AccountColumns.SECURITY_FLAGS);
-            args[0] = Long.toString(c.getLong(0 /*RECORD_ID*/));
-            db.update(Account.TABLE_NAME, cv, EmailContent.RECORD_ID + "=?", args);
+        try {
+            ContentValues cv = new ContentValues();
+            String[] args = new String[1];
+            while (c.moveToNext()) {
+                long securityFlags = c.getLong(1 /*SECURITY_FLAGS*/);
+                Policy policy = LegacyPolicySet.flagsToPolicy(securityFlags);
+                long policyId = db.insert(Policy.TABLE_NAME, null, policy.toContentValues());
+                cv.put(AccountColumns.POLICY_KEY, policyId);
+                cv.putNull(AccountColumns.SECURITY_FLAGS);
+                args[0] = Long.toString(c.getLong(0 /*RECORD_ID*/));
+                db.update(Account.TABLE_NAME, cv, EmailContent.RECORD_ID + "=?", args);
+            }
+        } finally {
+            c.close();
         }
     }
 

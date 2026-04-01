@@ -22,9 +22,6 @@ LOCAL_SRC_FILES:= \
 LOCAL_CFLAGS:= -DLOG_TAG=\"SurfaceFlinger\"
 LOCAL_CFLAGS += -DGL_GLEXT_PROTOTYPES -DEGL_EGLEXT_PROTOTYPES
 
-ifeq ($(TARGET_BOARD_PLATFORM),omap3)
-	LOCAL_CFLAGS += -DNO_RGBX_8888
-endif
 ifeq ($(TARGET_BOARD_PLATFORM),omap4)
 	LOCAL_CFLAGS += -DHAS_CONTEXT_PRIORITY
 endif
@@ -35,6 +32,16 @@ endif
 
 ifeq ($(TARGET_DISABLE_TRIPLE_BUFFERING),true)
 	LOCAL_CFLAGS += -DTARGET_DISABLE_TRIPLE_BUFFERING
+endif
+
+ifeq ($(BOARD_EGL_NEEDS_LEGACY_FB),true)
+	LOCAL_CFLAGS += -DBOARD_EGL_NEEDS_LEGACY_FB
+        ifeq ($(TARGET_BOARD_PLATFORM),exynos4)
+	    LOCAL_CFLAGS += -DEGL_NEEDS_FNW
+        endif
+        ifeq ($(TARGET_QCOM_DISPLAY_VARIANT), legacy)
+	    LOCAL_CFLAGS += -DEGL_NEEDS_FNW
+        endif
 endif
 
 ifneq ($(NUM_FRAMEBUFFER_SURFACE_BUFFERS),)
@@ -52,6 +59,22 @@ LOCAL_SHARED_LIBRARIES := \
 	libbinder \
 	libui \
 	libgui
+
+ifeq ($(TARGET_USES_QCOM_BSP), true)
+ifneq ($(TARGET_QCOM_DISPLAY_VARIANT),)
+    LOCAL_C_INCLUDES += hardware/qcom/display-$(TARGET_QCOM_DISPLAY_VARIANT)/libgralloc
+else
+    LOCAL_C_INCLUDES += hardware/qcom/display/libgralloc
+endif
+    LOCAL_CFLAGS += -DQCOM_BSP
+endif
+
+ifeq ($(BOARD_USES_SAMSUNG_HDMI),true)
+        LOCAL_CFLAGS += -DSAMSUNG_HDMI_SUPPORT
+        LOCAL_SHARED_LIBRARIES += libTVOut libhdmiclient
+        LOCAL_C_INCLUDES += hardware/samsung/$(TARGET_BOARD_PLATFORM)/libhdmi/libhdmiservice
+        LOCAL_C_INCLUDES += hardware/samsung/$(TARGET_BOARD_PLATFORM)/include
+endif
 
 LOCAL_MODULE:= libsurfaceflinger
 

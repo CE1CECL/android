@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006, 2007, 2008, 2009 Apple Inc. All rights reserved.
+ * Copyright (C) 2012 Sony Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -234,9 +235,10 @@ module window {
         void clearInterval(in long handle);
 
 #if defined(ENABLE_REQUEST_ANIMATION_FRAME)
-        // WebKit animation extensions
-        long webkitRequestAnimationFrame(in [Callback] RequestAnimationFrameCallback callback, in Element element);
-        void webkitCancelRequestAnimationFrame(in long id);
+        // WebKit animation extensions, being standardized in the WebPerf WG
+        long webkitRequestAnimationFrame(in [Callback] RequestAnimationFrameCallback callback);
+        void webkitCancelAnimationFrame(in long id);
+        void webkitCancelRequestAnimationFrame(in long id); // This is a deprecated alias for webkitCancelAnimationFrame(). Remove this when removing vendor prefix.
 #endif
 
         // Base64
@@ -505,6 +507,7 @@ module window {
         attribute [JSCCustomGetter] ArrayBufferConstructor ArrayBuffer; // Usable with new operator
         attribute [JSCCustomGetter] Int8ArrayConstructor Int8Array; // Usable with new operator
         attribute [JSCCustomGetter] Uint8ArrayConstructor Uint8Array; // Usable with new operator
+        attribute [JSCCustomGetter] Uint8ClampedArrayConstructor Uint8ClampedArray; // Usable with new operator
         attribute [JSCCustomGetter] Int16ArrayConstructor Int16Array; // Usable with new operator
         attribute [JSCCustomGetter] Uint16ArrayConstructor Uint16Array; // Usable with new operator
         attribute [JSCCustomGetter] Int32ArrayConstructor Int32Array; // Usable with new operator
@@ -515,6 +518,8 @@ module window {
 
         attribute [JSCCustomGetter,Conditional=WEB_AUDIO,EnabledAtRuntime] AudioContextConstructor webkitAudioContext; // Usable with new operator
         attribute [Conditional=WEB_AUDIO] AudioPannerNodeConstructor webkitAudioPannerNode; // Needed for panning model constants
+        attribute [Conditional=WEB_AUDIO] AudioProcessingEventConstructor AudioProcessingEvent;
+        attribute [Conditional=WEB_AUDIO] OfflineAudioCompletionEventConstructor OfflineAudioCompletionEvent;
 
         attribute EventConstructor Event;
         attribute BeforeLoadEventConstructor BeforeLoadEvent;

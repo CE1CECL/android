@@ -296,6 +296,15 @@ class WifiConfigStore {
      */
     boolean forgetNetwork(int netId) {
         if (mWifiNative.removeNetwork(netId)) {
+            for(WifiConfiguration config : mConfiguredNetworks.values()) {
+                if(config != null && config.status == Status.DISABLED) {
+                    if(mWifiNative.enableNetwork(config.networkId, false)) {
+                        config.status = Status.ENABLED;
+                    } else {
+                        loge("Enable network failed on " + config.networkId);
+                    }
+                }
+            }
             mWifiNative.saveConfig();
             removeConfigAndSendBroadcastIfNeeded(netId);
             return true;
@@ -993,6 +1002,23 @@ class WifiConfigStore {
                 break setVariables;
             }
 
+            if (config.isIBSS) {
+                if(!mWifiNative.setNetworkVariable(
+                        netId,
+                        WifiConfiguration.modeVarName,
+                        "1")) {
+                    loge("failed to set adhoc mode");
+                    break setVariables;
+                }
+                if(!mWifiNative.setNetworkVariable(
+                        netId,
+                        WifiConfiguration.frequencyVarName,
+                        Integer.toString(config.frequency))) {
+                    loge("failed to set frequency");
+                    break setVariables;
+                }
+            }
+
             String allowedKeyManagementString =
                 makeString(config.allowedKeyManagement, WifiConfiguration.KeyMgmt.strings);
             if (config.allowedKeyManagement.cardinality() != 0 &&
@@ -1367,6 +1393,24 @@ class WifiConfigStore {
         if (!TextUtils.isEmpty(value)) {
             try {
                 config.hiddenSSID = Integer.parseInt(value) != 0;
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
+        value = mWifiNative.getNetworkVariable(netId, WifiConfiguration.modeVarName);
+        config.isIBSS = false;
+        if (!TextUtils.isEmpty(value)) {
+            try {
+                config.isIBSS = Integer.parseInt(value) != 0;
+            } catch (NumberFormatException ignore) {
+            }
+        }
+
+        value = mWifiNative.getNetworkVariable(netId, WifiConfiguration.frequencyVarName);
+        config.frequency = 0;
+        if (!TextUtils.isEmpty(value)) {
+            try {
+                config.frequency = Integer.parseInt(value);
             } catch (NumberFormatException ignore) {
             }
         }

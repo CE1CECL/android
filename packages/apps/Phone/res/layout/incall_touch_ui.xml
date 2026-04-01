@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2009 The Android Open Source Project
+<!-- Copyright (c) 2012, The Linux Foundation. All rights reserved.
+     Not a Contribution, Apache license notifications and license are retained
+     for attribution purposes only.
 
+     Copyright (C) 2009 The Android Open Source Project
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
@@ -181,7 +184,37 @@
                     android:contentDescription="@string/onscreenMergeCallsText"
                     />
 
+                <!-- Separator between 3rd (or 4th) and 4th (or 6th) button -->
+                <View android:id="@+id/blacklistSpacer"
+                    style="@style/VerticalSeparator" />
+
+                <!-- "Blacklist" -->
+                <!-- The button used for toggling blackist. -->
+                <ImageButton android:id="@+id/addBlacklistButton"
+                    style="@style/InCallButton"
+                    android:src="@drawable/ic_block_contact_holo_dark"
+                    android:contentDescription="@string/onscreenBlacklistText"
+                    />
+
+                <!-- Separator between 5th (or 6th) button and right padding -->
+                <View style="@style/VerticalSeparator" />
+
+                <Button android:id="@+id/modifyCallButton"
+                    style="@style/InCallButton"
+                    android:background="@drawable/btn_compound_vt"
+                    android:contentDescription="@string/onscreenModifyCallText"
+                    />
+
                 <!-- Separator between 4th (or 5th) button and right padding -->
+                <View style="@style/VerticalSeparator" />
+
+                <Button android:id="@+id/addParticipant"
+                    style="@style/InCallButton"
+                    android:background="@drawable/btn_compound_addparticipant"
+                    android:contentDescription="@string/onscreenAddParticipant"
+                    />
+
+                <!-- Separator between 5th (or 6th) button and right padding -->
                 <View style="@style/VerticalSeparator" />
 
             </LinearLayout>
@@ -211,7 +244,7 @@
         android:layout_gravity="center|bottom"
         android:layout_marginTop="20dip"
         android:layout_marginBottom="-46dp"
-        android:background="@android:color/black"
+        android:background="@color/incall_call_banner_background"
         android:visibility="gone"
         android:gravity="top"
 

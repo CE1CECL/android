@@ -22,6 +22,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
 import android.util.EventLog;
@@ -89,6 +90,7 @@ public class WebSettingsClassic extends WebSettings {
     // HTML5 API flags
     private boolean         mAppCacheEnabled = false;
     private boolean         mDatabaseEnabled = false;
+    private boolean         mWebSocketsEnabled = false;
     private boolean         mDomStorageEnabled = false;
     private boolean         mWorkersEnabled = false;  // only affects V8.
     private boolean         mGeolocationEnabled = true;
@@ -436,7 +438,17 @@ public class WebSettingsClassic extends WebSettings {
             com.android.internal.R.string.web_user_agent_target_content).toString();
         final String base = context.getResources().getText(
                 com.android.internal.R.string.web_user_agent).toString();
-        return String.format(base, buffer, mobile);
+
+        String cmtag = "";
+        final String cmversion = SystemProperties.get("ro.cm.version");
+        if (cmversion != null && cmversion.length() > 0) {
+            cmtag = " CyanogenMod/" + cmversion.replaceAll("([0-9\\.]+?)-.*","$1");
+            final String cmdevice = SystemProperties.get("ro.cm.device");
+            if (cmdevice != null && cmdevice.length() > 0)
+                cmtag = cmtag.concat("/" + cmdevice);
+        }
+
+        return String.format(base, buffer, mobile).concat(cmtag);
     }
 
     /**
@@ -1283,6 +1295,17 @@ public class WebSettingsClassic extends WebSettings {
     }
 
     /**
+     * @see android.webkit.WebSettings#setWebSocketsEnabled(boolean)
+     */
+    @Override
+    public synchronized void setWebSocketsEnabled(boolean flag) {
+       if (mWebSocketsEnabled != flag) {
+           mWebSocketsEnabled = flag;
+           postSync();
+       }
+    }
+
+    /**
      * @see android.webkit.WebSettings#setDomStorageEnabled(boolean)
      */
     @Override
@@ -1315,6 +1338,14 @@ public class WebSettingsClassic extends WebSettings {
     @Override
     public synchronized boolean getDatabaseEnabled() {
         return mDatabaseEnabled;
+    }
+
+    /**
+     * @see android.webkit.WebSettings#getWebSocketsEnabled()
+     */
+    @Override
+    public synchronized boolean getWebSocketsEnabled() {
+        return mWebSocketsEnabled;
     }
 
     /**

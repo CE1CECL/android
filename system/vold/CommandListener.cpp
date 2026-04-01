@@ -34,11 +34,14 @@
 #include "VolumeManager.h"
 #include "ResponseCode.h"
 #include "Process.h"
-#include "Xwarp.h"
 #include "Loop.h"
 #include "Devmapper.h"
 #include "cryptfs.h"
+
+#ifndef MINIVOLD
 #include "fstrim.h"
+#include "Xwarp.h"
+#endif
 
 #define DUMP_ARGS 0
 
@@ -46,12 +49,15 @@ CommandListener::CommandListener() :
                  FrameworkListener("vold", true) {
     registerCmd(new DumpCmd());
     registerCmd(new VolumeCmd());
+    registerCmd(new StorageCmd());
+    registerCmd(new CryptfsCmd());
+
+#ifndef MINIVOLD
     registerCmd(new AsecCmd());
     registerCmd(new ObbCmd());
-    registerCmd(new StorageCmd());
     registerCmd(new XwarpCmd());
-    registerCmd(new CryptfsCmd());
     registerCmd(new FstrimCmd());
+#endif
 }
 
 void CommandListener::dumpArgs(int argc, char **argv, int argObscure) {
@@ -162,11 +168,16 @@ int CommandListener::VolumeCmd::runCommand(SocketClient *cli,
         }
         rc = vm->unmountVolume(argv[2], force, revert);
     } else if (!strcmp(argv[1], "format")) {
-        if (argc != 3) {
-            cli->sendMsg(ResponseCode::CommandSyntaxError, "Usage: volume format <path>", false);
+        if (argc < 3 || argc > 4) {
+            cli->sendMsg(ResponseCode::CommandSyntaxError, "Usage: volume format <path>, <fstype>", false);
             return 0;
         }
-        rc = vm->formatVolume(argv[2]);
+        if (argc == 3) {
+            rc = vm->formatVolume(argv[2]);
+        } else {
+            rc = vm->formatVolume(argv[2], argv[3]);
+        }
+
     } else if (!strcmp(argv[1], "share")) {
         if (argc != 4) {
             cli->sendMsg(ResponseCode::CommandSyntaxError,
@@ -263,6 +274,7 @@ int CommandListener::StorageCmd::runCommand(SocketClient *cli,
     return 0;
 }
 
+#ifndef MINIVOLD
 CommandListener::AsecCmd::AsecCmd() :
                  VoldCommand("asec") {
 }
@@ -537,6 +549,7 @@ int CommandListener::XwarpCmd::runCommand(SocketClient *cli,
 
     return 0;
 }
+#endif
 
 CommandListener::CryptfsCmd::CryptfsCmd() :
                  VoldCommand("cryptfs") {
@@ -612,6 +625,7 @@ int CommandListener::CryptfsCmd::runCommand(SocketClient *cli,
     return 0;
 }
 
+#ifndef MINIVOLD
 CommandListener::FstrimCmd::FstrimCmd() :
                  VoldCommand("fstrim") {
 }
@@ -649,3 +663,4 @@ int CommandListener::FstrimCmd::runCommand(SocketClient *cli,
 
     return 0;
 }
+#endif

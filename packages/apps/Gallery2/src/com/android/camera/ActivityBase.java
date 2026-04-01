@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (C) 2013 The CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +21,14 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.hardware.Camera.Parameters;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.view.KeyEvent;
@@ -80,6 +83,9 @@ public abstract class ActivityBase extends AbstractGalleryActivity
     protected boolean mPaused;
     protected GalleryActionBar mActionBar;
 
+    // Keep track of powershutter state
+    public static boolean mPowerShutter = false;
+
     // multiple cameras support
     protected int mNumberOfCameras;
     protected int mCameraId;
@@ -104,6 +110,7 @@ public abstract class ActivityBase extends AbstractGalleryActivity
     protected boolean mSecureCamera;
     private static boolean sFirstStartAfterScreenOn = true;
 
+    private String mStoragePath;
     private long mStorageSpace = Storage.LOW_STORAGE_THRESHOLD;
     private static final int UPDATE_STORAGE_HINT = 0;
     private final Handler mHandler = new Handler() {
@@ -212,6 +219,30 @@ public abstract class ActivityBase extends AbstractGalleryActivity
         return false;
     }
 
+    protected boolean setStoragePath(SharedPreferences prefs) {
+        String storagePath = prefs.getString(CameraSettings.KEY_STORAGE,
+                Environment.getExternalStorageDirectory().toString());
+        Storage.getInstance().setRoot(storagePath);
+        if (storagePath.equals(mStoragePath)) {
+            return false;
+        }
+        mStoragePath = storagePath;
+        return true;
+    }
+
+    protected void initPowerShutter(ComboPreferences prefs) {
+        String val = prefs.getString(CameraSettings.KEY_POWER_SHUTTER,
+                getResources().getString(R.string.pref_camera_power_shutter_default));
+        if (!Util.hasCameraKey()) {
+            mPowerShutter = val.equals(CameraSettings.VALUE_ON);
+        }
+        if (mPowerShutter && mShowCameraAppView) {
+            getWindow().addFlags(WindowManager.LayoutParams.PREVENT_POWER_KEY);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.PREVENT_POWER_KEY);
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -308,7 +339,7 @@ public abstract class ActivityBase extends AbstractGalleryActivity
     }
 
     protected void updateStorageSpace() {
-        mStorageSpace = Storage.getAvailableSpace();
+        mStorageSpace = Storage.getInstance().getAvailableSpace();
     }
 
     protected long getStorageSpace() {
@@ -367,7 +398,7 @@ public abstract class ActivityBase extends AbstractGalleryActivity
             if (mSecureCamera) {
                 path = "/secure/all/" + sSecureAlbumId;
             } else {
-                path = "/local/all/" + MediaSetUtils.CAMERA_BUCKET_ID;
+                path = "/local/all/" + Storage.getInstance().generateBucketId();
             }
         } else {
             path = "/local/all/0"; // Use 0 so gallery does not show anything.
@@ -401,7 +432,7 @@ public abstract class ActivityBase extends AbstractGalleryActivity
             if (mSecureCamera) {
                 path = "/secure/all/" + sSecureAlbumId;
             } else {
-                path = "/local/all/" + MediaSetUtils.CAMERA_BUCKET_ID;
+                path = "/local/all/" + Storage.getInstance().generateBucketId();
             }
         } else {
             path = "/local/all/0"; // Use 0 so gallery does not show anything.
@@ -469,6 +500,7 @@ public abstract class ActivityBase extends AbstractGalleryActivity
         mShowCameraAppView = full;
         if (mPaused || isFinishing()) return;
         updateCameraAppView();
+        updateStorageSpaceAndHint();
     }
 
     @Override

@@ -1,5 +1,8 @@
 /*
  * Copyright 2006, The Android Open Source Project
+ * Copyright (C) 2012 Sony Ericsson Mobile Communications AB.
+ * Copyright (C) 2012 Sony Mobile Communications AB
+ * Copyright (c) 2011,2012 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +36,9 @@
 #include "ApplicationCacheStorage.h"
 #include "Attribute.h"
 #include "content/address_detector.h"
+#if ENABLE(WEB_AUDIO)
+#include "AudioDestination.h"
+#endif
 #include "Chrome.h"
 #include "ChromeClientAndroid.h"
 #include "ChromiumIncludes.h"
@@ -2015,6 +2021,44 @@ AndroidHitTestResult WebViewCore::hitTestAtPoint(int x, int y, int slop, bool do
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#if ENABLE(WEB_AUDIO)
+void WebViewCore::addAudioDestination(WebCore::AudioDestination* t)
+{
+//    SkDebugf("----------- addAudioDestination %p", t);
+    *m_audioDestinations.append() = t;
+}
+
+void WebViewCore::removeAudioDestination(WebCore::AudioDestination* t)
+{
+//    SkDebugf("----------- removeAudioDestination %p", t);
+    int index = m_audioDestinations.find(t);
+    if (index < 0) {
+        SkDebugf("--------------- removeAudioDestination not found! %p\n", t);
+    } else {
+        m_audioDestinations.removeShuffle(index);
+    }
+}
+
+void WebViewCore::pauseAudioDestinations()
+{
+    WebCore::AudioDestination** iter = m_audioDestinations.begin();
+    WebCore::AudioDestination** stop = m_audioDestinations.end();
+
+    for (; iter < stop; ++iter)
+        (*iter)->pause();
+}
+
+void WebViewCore::resumeAudioDestinations()
+{
+    WebCore::AudioDestination** iter = m_audioDestinations.begin();
+    WebCore::AudioDestination** stop = m_audioDestinations.end();
+
+    for (; iter < stop; ++iter)
+        (*iter)->start();
+}
+#endif
+///////////////////////////////////////////////////////////////////////////////
+
 void WebViewCore::addPlugin(PluginWidgetAndroid* w)
 {
 //    SkDebugf("----------- addPlugin %p", w);
@@ -2575,7 +2619,7 @@ Node* WebViewCore::getNextAnchorNode(Node* anchorNode, bool ignoreFirstNode, int
                 || isContentInputElement(currentNode))
             return currentNode;
         if (direction == DIRECTION_FORWARD)
-            currentNode = currentNode->traverseNextNode();
+            currentNode = currentNode->traverseNextNodeFastPath();
         else
             currentNode = currentNode->traversePreviousNodePostOrder(body);
     }
@@ -2697,7 +2741,7 @@ Node* WebViewCore::getIntermediaryInputElement(Node* fromNode, Node* toNode, int
         while (currentNode && currentNode != toNode) {
             if (isContentInputElement(currentNode))
                 return currentNode;
-            currentNode = currentNode->traverseNextNode();
+            currentNode = currentNode->traverseNextNodeFastPath();
         }
     } else {
         Node* currentNode = fromNode->traversePreviousNode();
@@ -2829,7 +2873,7 @@ bool WebViewCore::isVisible(Node* node)
     else
         element = node->parentElement();
     // check renderer
-    if (!element->renderer()) {
+    if (!element || !element->renderer()) {
         return false;
     }
     // check size
@@ -4869,6 +4913,15 @@ static void Pause(JNIEnv* env, jobject obj, jint nativeClass)
 
     WebViewCore* viewImpl = reinterpret_cast<WebViewCore*>(nativeClass);
     Frame* mainFrame = viewImpl->mainFrame();
+
+    for (Frame* frame = mainFrame; frame; frame = frame->tree()->traverseNext()) {
+#if ENABLE(WEBGL)
+        Document* document = frame->document();
+        if (document)
+            document->suspendDocument();
+#endif
+    }
+
     if (mainFrame)
         mainFrame->settings()->setMinDOMTimerInterval(BACKGROUND_TIMER_INTERVAL);
 
@@ -4879,12 +4932,26 @@ static void Pause(JNIEnv* env, jobject obj, jint nativeClass)
     SkANP::InitEvent(&event, kLifecycle_ANPEventType);
     event.data.lifecycle.action = kPause_ANPLifecycleAction;
     viewImpl->sendPluginEvent(event);
+#if ENABLE(WEB_AUDIO)
+    viewImpl->pauseAudioDestinations();
+#endif
+
+    viewImpl->setIsPaused(true);
 }
 
 static void Resume(JNIEnv* env, jobject obj, jint nativeClass)
 {
     WebViewCore* viewImpl = reinterpret_cast<WebViewCore*>(nativeClass);
     Frame* mainFrame = viewImpl->mainFrame();
+
+    for (Frame* frame = mainFrame; frame; frame = frame->tree()->traverseNext()) {
+#if ENABLE(WEBGL)
+        Document* document = frame->document();
+        if (document)
+            document->resumeDocument();
+#endif
+    }
+
     if (mainFrame)
         mainFrame->settings()->setMinDOMTimerInterval(FOREGROUND_TIMER_INTERVAL);
 
@@ -4895,6 +4962,11 @@ static void Resume(JNIEnv* env, jobject obj, jint nativeClass)
     SkANP::InitEvent(&event, kLifecycle_ANPEventType);
     event.data.lifecycle.action = kResume_ANPLifecycleAction;
     viewImpl->sendPluginEvent(event);
+#if ENABLE(WEB_AUDIO)
+    viewImpl->resumeAudioDestinations();
+#endif
+
+    viewImpl->setIsPaused(false);
 }
 
 static void FreeMemory(JNIEnv* env, jobject obj, jint nativeClass)

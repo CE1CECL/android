@@ -758,6 +758,8 @@ public class ContactsProvider2 extends AbstractContactsProvider
     /** Contains just the contacts vCard columns */
     private static final ProjectionMap sContactsVCardProjectionMap = ProjectionMap.builder()
             .add(Contacts._ID)
+            .add(Contacts.DISPLAY_NAME_PRIMARY)
+            .add(Contacts.DISPLAY_NAME_ALTERNATIVE)
             .add(OpenableColumns.DISPLAY_NAME, Contacts.DISPLAY_NAME + " || '.vcf'")
             .add(OpenableColumns.SIZE, "NULL")
             .build();
@@ -871,6 +873,7 @@ public class ContactsProvider2 extends AbstractContactsProvider
             .add(PhoneLookup._ID, "contacts_view." + Contacts._ID)
             .add(PhoneLookup.LOOKUP_KEY, "contacts_view." + Contacts.LOOKUP_KEY)
             .add(PhoneLookup.DISPLAY_NAME, "contacts_view." + Contacts.DISPLAY_NAME)
+            .add(Contacts.DISPLAY_NAME_ALTERNATIVE, "contacts_view." + Contacts.DISPLAY_NAME_ALTERNATIVE)
             .add(PhoneLookup.LAST_TIME_CONTACTED, "contacts_view." + Contacts.LAST_TIME_CONTACTED)
             .add(PhoneLookup.TIMES_CONTACTED, "contacts_view." + Contacts.TIMES_CONTACTED)
             .add(PhoneLookup.STARRED, "contacts_view." + Contacts.STARRED)

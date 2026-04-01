@@ -359,6 +359,9 @@ static bool createPrimitiveType(PrimitiveType primitiveType, ClassObject** pClas
     *pClass = newClass;
     dvmReleaseTrackedAlloc((Object*) newClass, NULL);
 
+    // Add barrier to force all metadata writes to main memory to complete
+    ANDROID_MEMBAR_FULL();
+
     return true;
 }
 
@@ -397,6 +400,9 @@ static bool createInitialClasses() {
     ok &= createPrimitiveType(PRIM_LONG,    &gDvm.typeLong);
     ok &= createPrimitiveType(PRIM_FLOAT,   &gDvm.typeFloat);
     ok &= createPrimitiveType(PRIM_DOUBLE,  &gDvm.typeDouble);
+
+    // Add barrier to force all metadata writes to main memory to complete
+    ANDROID_MEMBAR_FULL();
 
     return ok;
 }
@@ -1836,16 +1842,23 @@ static ClassObject* loadClassFromDex0(DvmDex* pDvmDex,
     }
 
     if (pHeader->instanceFieldsSize != 0) {
-        int count = (int) pHeader->instanceFieldsSize;
-        u4 lastIndex = 0;
-        DexField field;
+        OptClassMap* optClass = getOptClassHandler(newClass);
 
-        newClass->ifieldCount = count;
-        newClass->ifields = (InstField*) dvmLinearAlloc(classLoader,
-                count * sizeof(InstField));
-        for (i = 0; i < count; i++) {
-            dexReadClassDataField(&pEncodedData, &field, &lastIndex);
-            loadIFieldFromDex(newClass, &field, &newClass->ifields[i]);
+        if(optClass != NULL){
+            optClass->handleIfield(newClass, classLoader, pHeader, &pEncodedData);
+        }else{
+            int count = (int) pHeader->instanceFieldsSize;
+            u4 lastIndex = 0;
+            DexField field;
+
+            newClass->ifieldCount = count;
+            newClass->ifields = (InstField*) dvmLinearAlloc(classLoader,
+                                                    count * sizeof(InstField));
+
+            for (i = 0; i < count; i++) {
+                dexReadClassDataField(&pEncodedData, &field, &lastIndex);
+                loadIFieldFromDex(newClass, &field, &newClass->ifields[i]);
+            }
         }
         dvmLinearReadOnly(classLoader, newClass->ifields);
     }
@@ -1933,6 +1946,9 @@ static ClassObject* loadClassFromDex0(DvmDex* pDvmDex,
     }
 
     newClass->sourceFile = dexGetSourceFile(pDexFile, pClassDef);
+
+    // Add barrier to force all metadata writes to main memory to complete
+    ANDROID_MEMBAR_FULL();
 
     /* caller must call dvmReleaseTrackedAlloc */
     return newClass;
@@ -3902,6 +3918,9 @@ static void initSFields(ClassObject* clazz)
     }
 }
 
+void dvmInitSFields(ClassObject* clazz){
+    return initSFields(clazz);
+}
 
 /*
  * Determine whether "descriptor" yields the same class object in the
@@ -4908,3 +4927,8 @@ int dvmCompareNameDescriptorAndMethod(const char* name,
 
     return dvmCompareDescriptorAndMethodProto(descriptor, method);
 }
+
+__attribute__((weak)) OptClassMap* getOptClassHandler(ClassObject*  newClass){
+    return NULL;
+}
+

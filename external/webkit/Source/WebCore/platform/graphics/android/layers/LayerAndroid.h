@@ -243,12 +243,14 @@ public:
     virtual bool isIFrame() const { return false; }
     virtual bool isIFrameContent() const { return false; }
     virtual bool isFixedBackground() const { return false; }
+    virtual bool isWebGL() const { return false; }
 
     bool isPositionFixed() const { return m_fixedPosition; }
     void setAbsolutePosition(bool isAbsolute) { m_isPositionAbsolute = isAbsolute; }
     bool isPositionAbsolute() { return m_isPositionAbsolute; }
     void setFixedPosition(FixedPositioning* position);
     FixedPositioning* fixedPosition() { return m_fixedPosition; }
+    virtual bool isCanvas() const { return false; }
 
     RenderLayer* owningLayer() const { return m_owningLayer; }
 

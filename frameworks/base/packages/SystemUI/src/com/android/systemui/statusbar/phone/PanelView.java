@@ -73,7 +73,7 @@ public class PanelView extends FrameLayout {
     private float mTouchOffset;
     private float mExpandedFraction = 0;
     private float mExpandedHeight = 0;
-    private boolean mJustPeeked;
+    protected boolean mJustPeeked;
     private boolean mClosing;
     private boolean mRubberbanding;
     private boolean mTracking;
@@ -117,6 +117,7 @@ public class PanelView extends FrameLayout {
             mVX = mVY = 0;
             MotionEventCopy last = null;
             int i = 0;
+            int j = 0;
             float totalweight = 0f;
             float weight = 10f;
             for (final Iterator<MotionEventCopy> iter = mEventBuf.descendingIterator();
@@ -124,6 +125,10 @@ public class PanelView extends FrameLayout {
                 final MotionEventCopy event = iter.next();
                 if (last != null) {
                     final float dt = (float) (event.t - last.t) / timebase;
+                    if (dt == 0) {
+                        last = event;
+                        continue;
+                    }
                     final float dx = (event.x - last.x);
                     final float dy = (event.y - last.y);
                     if (FlingTracker.DEBUG) {
@@ -138,10 +143,12 @@ public class PanelView extends FrameLayout {
                     mVY += weight * dy / dt;
                     totalweight += weight;
                     weight *= DECAY;
+                    j++;
                 }
                 last = event;
                 i++;
             }
+            if (j != 0) {
             if (totalweight > 0) {
                 mVX /= totalweight;
                 mVY /= totalweight;
@@ -152,6 +159,7 @@ public class PanelView extends FrameLayout {
                 }
                 // so as not to contaminate the velocities with NaN
                 mVX = mVY = 0;
+            }
             }
 
             if (FlingTracker.DEBUG) {

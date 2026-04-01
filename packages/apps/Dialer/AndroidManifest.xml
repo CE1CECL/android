@@ -46,6 +46,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
+        android:name="com.android.dialer.DialerApplication"
         android:label="@string/applicationLabel"
         android:icon="@mipmap/ic_launcher_phone"
         android:hardwareAccelerated="false"
@@ -220,6 +221,29 @@
                  <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
+
+        <!-- "Call Statistics" UI, used only on voice-capable phone devices. -->
+        <activity android:name=".callstats.CallStatsActivity"
+                android:icon="@mipmap/ic_launcher_phone"
+                android:label="@string/activity_title_call_stats"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:theme="@style/CallStatsActivityTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".callstats.CallStatsDetailActivity"
+            android:label="@string/callStatsDetailTitle"
+            android:theme="@style/CallDetailActivityTheme"
+            android:screenOrientation="portrait"
+            android:icon="@mipmap/ic_launcher_phone" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
 
         <service
             android:name=".calllog.CallLogNotificationsService"

@@ -10,6 +10,10 @@ endif
 
 include $(CLEAR_VARS)
 
+ifeq ($(QCOM_LISTEN_FEATURE),true)
+  LOCAL_CFLAGS += -DQCOM_LISTEN_FEATURE_ENABLE
+endif
+
 LOCAL_SRC_FILES:= \
 	main_mediaserver.cpp 
 
@@ -28,6 +32,11 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_STATIC_LIBRARIES := \
 	libregistermsext
 
+ifeq ($(BOARD_USE_SECTVOUT),true)
+	LOCAL_CFLAGS += -DSECTVOUT
+	LOCAL_SHARED_LIBRARIES += libTVOut
+endif
+
 LOCAL_C_INCLUDES := \
     frameworks/av/media/libmediaplayerservice \
     frameworks/av/services/medialog \
@@ -35,5 +44,10 @@ LOCAL_C_INCLUDES := \
     frameworks/av/services/camera/libcameraservice
 
 LOCAL_MODULE:= mediaserver
+
+ifeq ($(QCOM_LISTEN_FEATURE),true)
+  LOCAL_SHARED_LIBRARIES += liblisten
+  LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/mm-audio/audio-listen
+endif
 
 include $(BUILD_EXECUTABLE)

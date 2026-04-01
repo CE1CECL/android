@@ -101,9 +101,9 @@
     <string name="volume_button_setting_title" msgid="6937131248843413357">"音量按钮"</string>
     <string name="volume_button_dialog_title" msgid="8768042543750036853">"按钮的作用"</string>
   <string-array name="volume_button_setting_entries">
-    <item msgid="7972756698723318690">"暂停"</item>
-    <item msgid="3450979320164769576">"关闭"</item>
-    <item msgid="6302517608411378024">"不进行任何操作"</item>
+    <item msgid="7972756698723318690">"暂停闹钟"</item>
+    <item msgid="3450979320164769576">"关闭闹钟"</item>
+    <item msgid="6302517608411378024">"不产生任何作用"</item>
   </string-array>
     <string name="default_ringtone_setting_title" msgid="4549726190682964245">"设置默认铃声"</string>
     <string name="alarm_button_description" msgid="740283647046258651">"闹钟"</string>

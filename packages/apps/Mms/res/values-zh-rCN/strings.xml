@@ -322,7 +322,7 @@
     <string name="pick_too_many_recipients" msgid="650087588867628044">"收件人过多"</string>
     <string name="adding_recipients" msgid="2962810172527532357">"正在添加收件人..."</string>
     <string name="draft_separator" msgid="5402575086540243019">"， "</string>
-    <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
+    <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="message_count_notification" msgid="3629968600032690007">"<xliff:g id="NUMBER">%1$s</xliff:g> 条新短信"</string>
   <plurals name="message_count_notification_overflow">
     <item quantity="one" msgid="3340591167508150806">"+<xliff:g id="NUMBER">%1$s</xliff:g> 条其他短信"</item>
@@ -343,3 +343,4 @@
     <string name="enumeration_comma" msgid="213598026698964628">"、 "</string>
     <string name="message_timestamp_format" msgid="4188999027493614617">"<xliff:g id="STRING_0">%1$s</xliff:g> - <xliff:g id="STRING_1">%2$s</xliff:g>"</string>
 </resources>
+

@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +52,7 @@ enum player_type {
     // The shared library with the test player is passed passed as an
     // argument to the 'test:' url in the setDataSource call.
     TEST_PLAYER = 5,
+    DASH_PLAYER = 6,
 };
 
 
@@ -86,6 +89,9 @@ public:
         virtual ssize_t     channelCount() const = 0;
         virtual ssize_t     frameSize() const = 0;
         virtual uint32_t    latency() const = 0;
+#ifdef QCOM_HARDWARE
+        virtual audio_stream_type_t    streamType() const {return AUDIO_STREAM_DEFAULT;}
+#endif
         virtual float       msecsPerFrame() const = 0;
         virtual status_t    getPosition(uint32_t *position) const = 0;
         virtual status_t    getFramesWritten(uint32_t *frameswritten) const = 0;
@@ -110,6 +116,10 @@ public:
 
         virtual status_t    setPlaybackRatePermille(int32_t rate) { return INVALID_OPERATION; }
         virtual bool        needsTrailingPadding() { return true; }
+#ifdef QCOM_HARDWARE
+        virtual ssize_t     sampleRate() const {return 0;};
+        virtual status_t    getTimeStamp(uint64_t *tstamp) {return 0;};
+#endif
     };
 
                         MediaPlayerBase() : mCookie(0), mNotify(0) {}
@@ -202,6 +212,9 @@ public:
             const char *host, int32_t port, const char *exclusionList) {
         return INVALID_OPERATION;
     }
+
+    virtual status_t suspend() { return INVALID_OPERATION; }
+    virtual status_t resume() { return INVALID_OPERATION; }
 
 private:
     friend class MediaPlayerService;

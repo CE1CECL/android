@@ -54,6 +54,8 @@ extern BOOLEAN BTA_PRM_CHECK_FW_VER(UINT8 *p);
 #define TT_DEV_RESET_MASK 0xff
 #endif
 
+extern BOOLEAN hci_ssp_debug_enabled;
+
 /********************************************************************************/
 /*                 L O C A L    D A T A    D E F I N I T I O N S                */
 /********************************************************************************/
@@ -1195,6 +1197,8 @@ static void btm_issue_host_support_for_lmp_features (void)
     if (btm_cb.devcb.lmp_features_host_may_support & BTM_HOST_MAY_SUPP_SSP)
     {
         btsnd_hcic_write_simple_pairing_mode(HCI_SP_MODE_ENABLED);
+        if (hci_ssp_debug_enabled == TRUE)
+            btsnd_hcic_write_simp_pair_debug_mode(HCI_SPD_MODE_ENABLED);
         return;
     }
 
@@ -1856,6 +1860,46 @@ tBTM_DEV_STATUS_CB *BTM_RegisterForDeviceStatusNotif (tBTM_DEV_STATUS_CB *p_cb)
 
     btm_cb.devcb.p_dev_status_cb = p_cb;
     return (p_prev);
+}
+
+
+/*******************************************************************************
+**
+** Function         BTM_Hci_Raw_Command
+**
+** Description      Send  HCI raw command to the controller.
+**
+** Returns
+**      BTM_SUCCESS         Command sent. Does not expect command complete
+**                              event. (command cmpl callback param is NULL)
+**      BTM_CMD_STARTED     Command sent. Waiting for command cmpl event.
+**
+**
+*******************************************************************************/
+tBTM_STATUS BTM_Hci_Raw_Command(UINT16 opcode, UINT8 param_len,
+                              UINT8 *p_param_buf, tBTM_RAW_CMPL_CB *p_cb)
+{
+    void *p_buf;
+
+    BTM_TRACE_EVENT2 ("BTM: BTM_Hci_Raw_Command: Opcode: 0x%04X, ParamLen: %i.",
+                      opcode, param_len);
+
+    /* Allocate a buffer to hold HCI command plus the callback function */
+    p_buf = GKI_getbuf((UINT16)(sizeof(BT_HDR) + sizeof (tBTM_CMPL_CB *) +
+                            param_len + HCIC_PREAMBLE_SIZE));
+    if (p_buf != NULL)
+    {
+        btsnd_hcic_raw_cmd (p_buf, opcode, param_len, p_param_buf, (void *)p_cb);
+
+        /* Return value */
+        if (p_cb != NULL)
+            return BTM_CMD_STARTED;
+        else
+            return BTM_SUCCESS;
+    }
+    else
+        return BTM_NO_RESOURCES;
+
 }
 
 /*******************************************************************************

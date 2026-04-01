@@ -626,6 +626,7 @@ public class ImageWallpaper extends WallpaperService {
             }
             
             mEglContext = createContext(mEgl, mEglDisplay, mEglConfig);
+
             if (mEglContext == EGL_NO_CONTEXT) {
                 throw new RuntimeException("createContext failed " +
                         GLUtils.getEGLErrorString(mEgl.eglGetError()));

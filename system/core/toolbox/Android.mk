@@ -16,7 +16,6 @@ TOOLS := \
 	rm \
 	mkdir \
 	rmdir \
-	reboot \
 	getevent \
 	sendevent \
 	date \
@@ -59,6 +58,7 @@ TOOLS := \
 	du \
 	md5 \
 	clear \
+	restart \
 	getenforce \
 	setenforce \
 	chcon \
@@ -72,6 +72,8 @@ ifneq (,$(filter userdebug eng,$(TARGET_BUILD_VARIANT)))
 TOOLS += r
 endif
 
+TOOLS += setfattr
+
 ALL_TOOLS = $(TOOLS)
 ALL_TOOLS += \
 	cp \
@@ -83,6 +85,14 @@ LOCAL_SRC_FILES := \
 	$(patsubst %,%.c,$(TOOLS)) \
 	cp/cp.c cp/utils.c \
 	grep/grep.c grep/fastgrep.c grep/file.c grep/queue.c grep/util.c
+
+TOOLS += reboot
+
+ifeq ($(BOARD_USES_BOOTMENU),true)
+	LOCAL_SRC_FILES += ../../../external/bootmenu/libreboot/reboot.c
+else
+	LOCAL_SRC_FILES += reboot.c
+endif
 
 LOCAL_C_INCLUDES := bionic/libc/bionic
 

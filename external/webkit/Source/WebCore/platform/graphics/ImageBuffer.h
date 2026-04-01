@@ -22,7 +22,7 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef ImageBuffer_h
@@ -33,6 +33,7 @@
 #include "FloatRect.h"
 #include "GraphicsTypes.h"
 #include "IntSize.h"
+#include "ImageBuffer.h"
 #include "ImageBufferData.h"
 #include <wtf/ByteArray.h>
 #include <wtf/Forward.h>
@@ -41,6 +42,10 @@
 #include <wtf/PassRefPtr.h>
 #include <wtf/Vector.h>
 
+#if PLATFORM(ANDROID)
+#include "SkPicture.h"
+#endif
+
 namespace WebCore {
 
     class GraphicsContext;
@@ -48,6 +53,7 @@ namespace WebCore {
     class ImageData;
     class IntPoint;
     class IntRect;
+    class CanvasLayerAndroid;
 
     enum Multiply {
         Premultiplied,
@@ -77,11 +83,19 @@ namespace WebCore {
         const IntSize& size() const { return m_size; }
         int width() const { return m_size.width(); }
         int height() const { return m_size.height(); }
-        
+
         size_t dataSize() const;
-        
+
         GraphicsContext* context() const;
 
+#if PLATFORM(ANDROID)
+        void convertToRecording();
+        bool drawsUsingRecording() const;
+        bool isAnimating() const;
+        void setIsAnimating() const;
+        void clearRecording() const;
+        bool canUseGpuRendering();
+#endif
         bool isAccelerated() const { return m_accelerateRendering; }
         bool drawsUsingCopy() const; // If the image buffer has to render using a copied image, it will return true.
         PassRefPtr<Image> copyImage() const; // Return a new image that is a copy of the buffer.
@@ -91,7 +105,7 @@ namespace WebCore {
 
         void putUnmultipliedImageData(ByteArray*, const IntSize& sourceSize, const IntRect& sourceRect, const IntPoint& destPoint);
         void putPremultipliedImageData(ByteArray*, const IntSize& sourceSize, const IntRect& sourceRect, const IntPoint& destPoint);
-        
+
         String toDataURL(const String& mimeType, const double* quality = 0) const;
 #if !USE(CG)
         AffineTransform baseTransform() const { return AffineTransform(); }
@@ -129,7 +143,7 @@ namespace WebCore {
         ImageBuffer(const IntSize&, ColorSpace colorSpace, RenderingMode renderingMode, bool& success);
     };
 
-#if USE(CG) || USE(SKIA)
+#if USE(CG) || USE(SKIA) || PLATFORM(ANDROID)
     String ImageDataToDataURL(const ImageData& input, const String& mimeType, const double* quality);
 #endif
 

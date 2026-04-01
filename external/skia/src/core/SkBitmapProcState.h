@@ -97,6 +97,11 @@ struct SkBitmapProcState {
      */
     void platformProcs();
 
+    /* Perform rectaingle geometry specific setup/cleanup */
+    void beginRect(int x, int y, int width, int height)  __attribute__((weak));
+    void endRect()__attribute__((weak));
+    void *              fOptPtr;
+
     /** Given the byte size of the index buffer to be passed to the matrix proc,
         return the maximum number of resulting pixels that can be computed
         (i.e. the number of SkPMColor values to be written by the sample proc).
@@ -192,5 +197,9 @@ void ClampX_ClampY_nofilter_affine(const SkBitmapProcState& s,
                                    uint32_t xy[], int count, int x, int y);
 void S32_D16_filter_DX(const SkBitmapProcState& s,
                                    const uint32_t* xy, int count, uint16_t* colors);
+void SI8_opaque_D32_filter_DX(const SkBitmapProcState& s, const uint32_t xy[],
+                              int count, SkPMColor colors[]);
+void S32_opaque_D32_nofilter_DX(const SkBitmapProcState& s, const uint32_t xy[],
+                                int count, SkPMColor colors[]);
 
 #endif

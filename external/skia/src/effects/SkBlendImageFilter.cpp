@@ -19,34 +19,21 @@
 
 namespace {
 
-SkXfermode::Mode modeToXfermode(SkBlendImageFilter::Mode mode)
-{
+SkXfermode::Mode modeToXfermode(SkBlendImageFilter::Mode mode) {
     switch (mode) {
-      case SkBlendImageFilter::kNormal_Mode:
-        return SkXfermode::kSrcOver_Mode;
-      case SkBlendImageFilter::kMultiply_Mode:
-        return SkXfermode::kModulate_Mode;
-      case SkBlendImageFilter::kScreen_Mode:
-        return SkXfermode::kScreen_Mode;
-      case SkBlendImageFilter::kDarken_Mode:
-        return SkXfermode::kDarken_Mode;
-      case SkBlendImageFilter::kLighten_Mode:
-        return SkXfermode::kLighten_Mode;
+        case SkBlendImageFilter::kNormal_Mode:
+            return SkXfermode::kSrcOver_Mode;
+        case SkBlendImageFilter::kMultiply_Mode:
+            return SkXfermode::kMultiply_Mode;
+        case SkBlendImageFilter::kScreen_Mode:
+            return SkXfermode::kScreen_Mode;
+        case SkBlendImageFilter::kDarken_Mode:
+            return SkXfermode::kDarken_Mode;
+        case SkBlendImageFilter::kLighten_Mode:
+            return SkXfermode::kLighten_Mode;
     }
     SkASSERT(0);
     return SkXfermode::kSrcOver_Mode;
-}
-
-SkPMColor multiply_proc(SkPMColor src, SkPMColor dst) {
-    int omsa = 255 - SkGetPackedA32(src);
-    int sr = SkGetPackedR32(src), sg = SkGetPackedG32(src), sb = SkGetPackedB32(src);
-    int omda = 255 - SkGetPackedA32(dst);
-    int dr = SkGetPackedR32(dst), dg = SkGetPackedG32(dst), db = SkGetPackedB32(dst);
-    int a = 255 - SkMulDiv255Round(omsa, omda);
-    int r = SkMulDiv255Round(omsa, dr) + SkMulDiv255Round(omda, sr) + SkMulDiv255Round(sr, dr);
-    int g = SkMulDiv255Round(omsa, dg) + SkMulDiv255Round(omda, sg) + SkMulDiv255Round(sg, dg);
-    int b = SkMulDiv255Round(omsa, db) + SkMulDiv255Round(omda, sb) + SkMulDiv255Round(sb, db);
-    return SkPackARGB32(a, r, g, b);
 }
 
 };
@@ -97,14 +84,7 @@ bool SkBlendImageFilter::onFilterImage(Proxy* proxy,
     SkPaint paint;
     paint.setXfermodeMode(SkXfermode::kSrc_Mode);
     canvas.drawBitmap(background, 0, 0, &paint);
-    // FEBlend's multiply mode is (1 - Sa) * Da + (1 - Da) * Sc + Sc * Dc
-    // Skia's is just Sc * Dc.  So we use a custom proc to implement FEBlend's
-    // version.
-    if (fMode == SkBlendImageFilter::kMultiply_Mode) {
-        paint.setXfermode(new SkProcXfermode(multiply_proc))->unref();
-    } else {
-        paint.setXfermodeMode(modeToXfermode(fMode));
-    }
+    paint.setXfermodeMode(modeToXfermode(fMode));
     canvas.drawBitmap(foreground, 0, 0, &paint);
     return true;
 }

@@ -230,6 +230,9 @@ status_t SampleTable::setSampleToChunkParams(
         return ERROR_MALFORMED;
     }
 
+    if (SIZE_MAX / sizeof(SampleToChunkEntry) <= mNumSampleToChunkOffsets)
+        return ERROR_OUT_OF_RANGE;
+
     mSampleToChunkEntries =
         new SampleToChunkEntry[mNumSampleToChunkOffsets];
 
@@ -330,6 +333,10 @@ status_t SampleTable::setTimeToSampleParams(
     }
 
     mTimeToSampleCount = U32_AT(&header[4]);
+    uint64_t allocSize = mTimeToSampleCount * 2 * (uint64_t)sizeof(uint32_t);
+    if (allocSize > SIZE_MAX) {
+        return ERROR_OUT_OF_RANGE;
+    }
     mTimeToSample = new uint32_t[mTimeToSampleCount * 2];
 
     size_t size = sizeof(uint32_t) * mTimeToSampleCount * 2;
@@ -360,8 +367,9 @@ status_t SampleTable::setCompositionTimeToSampleParams(
         return ERROR_IO;
     }
 
-    if (U32_AT(header) != 0) {
-        // Expected version = 0, flags = 0.
+    if (U32_AT(header) != 0 &&
+        U32_AT(header) != 0x01000000) {
+        // Expected version = 0/1, flags = 0.
         return ERROR_MALFORMED;
     }
 
@@ -372,6 +380,11 @@ status_t SampleTable::setCompositionTimeToSampleParams(
     }
 
     mNumCompositionTimeDeltaEntries = numEntries;
+    uint64_t allocSize = numEntries * 2 * (uint64_t)sizeof(uint32_t);
+    if (allocSize > SIZE_MAX) {
+        return ERROR_OUT_OF_RANGE;
+    }
+
     mCompositionTimeDeltaEntries = new uint32_t[2 * numEntries];
 
     if (mDataSource->readAt(
@@ -417,6 +430,11 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
         ALOGV("Table of sync samples is empty or has only a single entry!");
     }
 
+    uint64_t allocSize = mNumSyncSamples * (uint64_t)sizeof(uint32_t);
+    if (allocSize > SIZE_MAX) {
+        return ERROR_OUT_OF_RANGE;
+    }
+
     mSyncSamples = new uint32_t[mNumSyncSamples];
     size_t size = mNumSyncSamples * sizeof(uint32_t);
     if (mDataSource->readAt(mSyncSampleOffset + 8, mSyncSamples, size)
@@ -460,7 +478,7 @@ status_t SampleTable::getMaxSampleSize(size_t *max_size) {
     return OK;
 }
 
-uint32_t abs_difference(uint32_t time1, uint32_t time2) {
+uint64_t abs_difference(uint64_t time1, uint64_t time2) {
     return time1 > time2 ? time1 - time2 : time2 - time1;
 }
 
@@ -488,7 +506,7 @@ void SampleTable::buildSampleEntriesTable() {
     mSampleTimeEntries = new SampleTimeEntry[mNumSampleSizes];
 
     uint32_t sampleIndex = 0;
-    uint32_t sampleTime = 0;
+    uint64_t sampleTime = 0;
 
     for (uint32_t i = 0; i < mTimeToSampleCount; ++i) {
         uint32_t n = mTimeToSample[2 * i];
@@ -520,14 +538,14 @@ void SampleTable::buildSampleEntriesTable() {
 }
 
 status_t SampleTable::findSampleAtTime(
-        uint32_t req_time, uint32_t *sample_index, uint32_t flags) {
+        uint64_t req_time, uint32_t *sample_index, uint32_t flags) {
     buildSampleEntriesTable();
 
     uint32_t left = 0;
     uint32_t right = mNumSampleSizes;
     while (left < right) {
         uint32_t center = (left + right) / 2;
-        uint32_t centerTime = mSampleTimeEntries[center].mCompositionTime;
+        uint64_t centerTime = mSampleTimeEntries[center].mCompositionTime;
 
         if (req_time < centerTime) {
             right = center;
@@ -576,12 +594,12 @@ status_t SampleTable::findSampleAtTime(
 
             if (closestIndex > 0) {
                 // Check left neighbour and pick closest.
-                uint32_t absdiff1 =
+                uint64_t absdiff1 =
                     abs_difference(
                             mSampleTimeEntries[closestIndex].mCompositionTime,
                             req_time);
 
-                uint32_t absdiff2 =
+                uint64_t absdiff2 =
                     abs_difference(
                             mSampleTimeEntries[closestIndex - 1].mCompositionTime,
                             req_time);
@@ -656,20 +674,20 @@ status_t SampleTable::findSyncSampleNear(
             return err;
         }
 
-        uint32_t sample_time = mSampleIterator->getSampleTime();
+        uint64_t sample_time = mSampleIterator->getSampleTime();
 
         err = mSampleIterator->seekTo(x);
         if (err != OK) {
             return err;
         }
-        uint32_t x_time = mSampleIterator->getSampleTime();
+        uint64_t x_time = mSampleIterator->getSampleTime();
 
         err = mSampleIterator->seekTo(y);
         if (err != OK) {
             return err;
         }
 
-        uint32_t y_time = mSampleIterator->getSampleTime();
+        uint64_t y_time = mSampleIterator->getSampleTime();
 
         if (abs_difference(x_time, sample_time)
                 > abs_difference(y_time, sample_time)) {
@@ -777,7 +795,7 @@ status_t SampleTable::getMetaDataForSample(
         uint32_t sampleIndex,
         off64_t *offset,
         size_t *size,
-        uint32_t *compositionTime,
+        uint64_t *compositionTime,
         bool *isSyncSample) {
     Mutex::Autolock autoLock(mLock);
 

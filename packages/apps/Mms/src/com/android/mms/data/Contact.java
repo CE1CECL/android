@@ -21,10 +21,12 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Parcelable;
+import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
+import android.provider.ContactsContract.PhoneLookup;
 import android.provider.ContactsContract.Presence;
 import android.provider.ContactsContract.Profile;
 import android.provider.Telephony.Mms;
@@ -333,8 +335,8 @@ public class Contact {
         return mContactMethodId;
     }
 
-    public synchronized Uri getPhoneUri() {
-        if (existsInDatabase()) {
+    public synchronized Uri getPhoneUri(boolean forceTelUri) {
+        if (existsInDatabase() && !forceTelUri) {
             return ContentUris.withAppendedId(Phone.CONTENT_URI, mContactMethodId);
         } else {
             Uri.Builder ub = new Uri.Builder();
@@ -780,10 +782,20 @@ public class Contact {
         private Contact getContactInfo(Contact c) {
             if (c.mIsMe) {
                 return getContactInfoForSelf();
-            } else if (Mms.isEmailAddress(c.mNumber) || isAlphaNumber(c.mNumber)) {
+            } else if (Mms.isEmailAddress(c.mNumber)) {
                 return getContactInfoForEmailAddress(c.mNumber);
-            } else {
+            } else if (isAlphaNumber(c.mNumber)) {
+                // first try to look it up in the email field
+                Contact contact = getContactInfoForEmailAddress(c.mNumber);
+                if (contact.existsInDatabase()) {
+                    return contact;
+                }
+                // then look it up in the phone field
                 return getContactInfoForPhoneNumber(c.mNumber);
+            } else {
+                // it's a real phone number, so strip out non-digits and look it up
+                final String strippedNumber = PhoneNumberUtils.stripSeparators(c.mNumber);
+                return getContactInfoForPhoneNumber(strippedNumber);
             }
         }
 
@@ -827,12 +839,51 @@ public class Contact {
          * @return a Contact containing the caller id info corresponding to the number.
          */
         private Contact getContactInfoForPhoneNumber(String number) {
-            number = PhoneNumberUtils.stripSeparators(number);
             Contact entry = new Contact(number);
             entry.mContactMethodType = CONTACT_METHOD_TYPE_PHONE;
 
             if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
                 log("queryContactInfoByNumber: number=" + number);
+            }
+
+            String cid = null;
+            Cursor cur = mContext.getContentResolver().query(
+                    Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI,
+                            Uri.encode(number)), null, null, null, null);
+            try {
+                if (cur.moveToFirst()) {
+                    cid = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
+                }
+            } finally {
+                cur.close();
+            }
+
+            if (cid != null && !cid.isEmpty()) {
+                cur = mContext.getContentResolver().query(
+                        PHONES_WITH_PRESENCE_URI, CALLER_ID_PROJECTION,
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                        new String[] {
+                            cid
+                        }, null);
+                if (cur == null) {
+                    Log.w(TAG, "queryContactInfoByNumber(" + number + ") returned NULL cursor!"
+                            + " contact uri used " + PHONES_WITH_PRESENCE_URI);
+                    return entry;
+                }
+
+                try {
+                    if (cur.moveToFirst()) {
+                        fillPhoneTypeContact(entry, cur);
+                    }
+                    return entry;
+                } finally {
+                    cur.close();
+                }
+            }
+
+            if (Log.isLoggable(LogTag.CONTACT, Log.DEBUG)) {
+                log("queryContactInfoByNumber: no contact ID from PhoneLookup, falling back for number="
+                        + number);
             }
 
             String normalizedNumber = PhoneNumberUtils.normalizeNumber(number);

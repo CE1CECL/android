@@ -67,7 +67,6 @@ public class GsmConnection extends Connection {
      * i.e., time since boot.  They are appropriate for comparison and
      * calculating deltas.
      */
-    long mConnectTimeReal;
     long mDuration;
     long mHoldingStartTime;  // The time when the Connection last transitioned
                             // into HOLDING
@@ -363,14 +362,21 @@ public class GsmConnection extends Connection {
             case CallFailCause.UNOBTAINABLE_NUMBER:
                 return DisconnectCause.UNOBTAINABLE_NUMBER;
 
+            case CallFailCause.DIAL_MODIFIED_TO_USSD:
+                return DisconnectCause.DIAL_MODIFIED_TO_USSD;
+
+            case CallFailCause.DIAL_MODIFIED_TO_SS:
+                return DisconnectCause.DIAL_MODIFIED_TO_SS;
+
+            case CallFailCause.DIAL_MODIFIED_TO_DIAL:
+                return DisconnectCause.DIAL_MODIFIED_TO_DIAL;
+
             case CallFailCause.ERROR_UNSPECIFIED:
             case CallFailCause.NORMAL_CLEARING:
             default:
                 GSMPhone phone = mOwner.mPhone;
                 int serviceState = phone.getServiceState().getState();
-                UiccCardApplication cardApp = UiccController
-                        .getInstance()
-                        .getUiccCardApplication(UiccController.APP_FAM_3GPP);
+                UiccCardApplication cardApp = phone.getUiccCardApplication();
                 AppState uiccAppState = (cardApp != null) ? cardApp.getState() :
                                                             AppState.APPSTATE_UNKNOWN;
                 if (serviceState == ServiceState.STATE_POWER_OFF) {
@@ -406,8 +412,10 @@ public class GsmConnection extends Connection {
     }
 
     /** Called when the radio indicates the connection has been disconnected */
-    /*package*/ void
+    /*package*/ boolean
     onDisconnect(DisconnectCause cause) {
+        boolean changed = false;
+
         mCause = cause;
 
         if (!mDisconnected) {
@@ -422,10 +430,11 @@ public class GsmConnection extends Connection {
             mOwner.mPhone.notifyDisconnect(this);
 
             if (mParent != null) {
-                mParent.connectionDisconnected(this);
+                changed = mParent.connectionDisconnected(this);
             }
         }
         releaseWakeLock();
+        return changed;
     }
 
     // Returns true if state has changed, false if nothing changed

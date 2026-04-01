@@ -39,7 +39,7 @@
         android:layout_above="@id/contact_quick_fix"
         android:layout_height="match_parent"
         android:baselineAligned="false"
-        android:background="@android:color/white">
+        android:background="@color/background_primary">
 
         <include android:id="@+id/static_photo_container"
             layout="@layout/photo_selector_view"
@@ -60,7 +60,7 @@
 
     <ScrollView android:id="@android:id/empty"
         android:layout_width="match_parent"
-        android:layout_height="0px"
+        android:layout_height="wrap_content"
         android:fadingEdge="none"
         android:visibility="gone">
         <TextView android:id="@+id/emptyText"

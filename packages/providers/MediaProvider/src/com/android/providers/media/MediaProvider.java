@@ -67,6 +67,7 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
 import android.preference.PreferenceManager;
@@ -99,6 +100,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.PriorityQueue;
+import java.util.regex.Pattern;
 import java.util.Stack;
 
 import libcore.io.ErrnoException;
@@ -243,6 +245,12 @@ public class MediaProvider extends ContentProvider {
                     // If secondary external storage is ejected, then we delete all database
                     // entries for that storage from the files table.
                     synchronized (mDatabases) {
+                        // Don't delete entries if the eject is due to a shutdown
+                        if (!"".equals(SystemProperties.get("sys.shutdown.requested"))) {
+                            Log.d(TAG, "not deleting entries on eject due to shtudown");
+                            return;
+                        }
+
                         DatabaseHelper database = mDatabases.get(EXTERNAL_VOLUME);
                         Uri uri = Uri.parse("file://" + storage.getPath());
                         if (database != null) {
@@ -326,6 +334,9 @@ public class MediaProvider extends ContentProvider {
      * on demand, create and upgrade the schema, etc.
      */
     static final class DatabaseHelper extends SQLiteOpenHelper {
+        // Matches SQLite database temporary files.
+        private static final Pattern DB_TMPFILE_PAT = Pattern.compile("\\.db-\\w+\\z");
+
         final Context mContext;
         final String mName;
         final boolean mInternal;  // True if this is the internal database
@@ -430,6 +441,13 @@ public class MediaProvider extends ContentProvider {
             // delete external databases that have not been used in the past two months
             long twoMonthsAgo = now - OBSOLETE_DATABASE_DB;
             for (int i = 0; i < databases.length; i++) {
+                // Remove SQLite temporary files as they don't count as distinct databases.
+                if (DB_TMPFILE_PAT.matcher(databases[i]).find()) {
+                    databases[i] = null;
+                    count--;
+                    continue;
+                }
+
                 File other = mContext.getDatabasePath(databases[i]);
                 if (INTERNAL_DATABASE_NAME.equals(databases[i]) || file.equals(other)) {
                     databases[i] = null;
@@ -5014,7 +5032,15 @@ public class MediaProvider extends ContentProvider {
                 if (Environment.isExternalStorageRemovable()) {
                     String path = mExternalStoragePaths[0];
                     int volumeID = FileUtils.getFatVolumeId(path);
-                    if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
+                    //if (LOCAL_LOGV) Log.v(TAG, path + " volume ID: " + volumeID);
+                    Log.e(TAG, path + " volume ID: " + volumeID);
+
+                    // In case of a non-FAT filesystem, try to get the UUID
+                    if (volumeID == -1) {
+                        volumeID = FileUtils.getVolumeUUID(path);
+                        // if (LOCAL_LOGV) Log.v(TAG, path + " UUID: " + volumeID);
+                        Log.e(TAG, path + " UUID: " + volumeID);
+                    }
 
                     // Must check for failure!
                     // If the volume is not (yet) mounted, this will create a new

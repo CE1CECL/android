@@ -12,6 +12,21 @@
 #include "SkXfermode.h"
 #include "SkBlitMask.h"
 
+#define LOG_TAG "SKIA"
+#include <utils/Log.h>
+
+#if defined(FIMG2D_ENABLED)
+#include "SkBitmap.h"
+#include "SkBitmapProcShader.h"
+#if defined(FIMG2D3X)
+#include "SkFimgApi3x.h"
+#elif defined(FIMG2D4X)
+#include "SkFimgApi4x.h"
+#endif
+extern Fimg fimg;
+extern SkMutex gG2DMutex;
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 
 static void SkARGB32_Blit32(const SkBitmap& device, const SkMask& mask,
@@ -217,10 +232,24 @@ void SkARGB32_Blitter::blitRect(int x, int y, int width, int height) {
     if (255 == SkGetPackedA32(color)) {
         fColorRect32Proc(device, width, height, rowBytes, color);
     } else {
+#if defined(FIMG2D_ENABLED) && defined (FIMG2D4X)
+        gG2DMutex.acquire();
+        int retFimg = FimgARGB32_Rect(fimg, fDevice.getAddr32(0, 0),
+                                        x, y, width, height, rowBytes, color);
+        if (retFimg != FIMGAPI_FINISHED) {
+            while (--height >= 0) {
+                fColor32Proc(device, device, width, color);
+                device = (uint32_t*)((char*)device + rowBytes);
+            }
+        }
+
+        gG2DMutex.release();
+#else
         while (--height >= 0) {
             fColor32Proc(device, device, width, color);
             device = (uint32_t*)((char*)device + rowBytes);
         }
+#endif
     }
 }
 
@@ -331,6 +360,10 @@ void SkARGB32_Shader_Blitter::blitH(int x, int y, int width) {
     }
 }
 
+extern int skia_androidopt_blitRect(int x, int y, int width, int height,
+        SkARGB32_Shader_Blitter *sk, const SkBitmap& fDevice, SkXfermode *fXfermode,
+        SkShader* fShader) __attribute__((weak));
+
 void SkARGB32_Shader_Blitter::blitRect(int x, int y, int width, int height) {
     SkASSERT(x >= 0 && y >= 0 &&
              x + width <= fDevice.width() && y + height <= fDevice.height());
@@ -338,7 +371,14 @@ void SkARGB32_Shader_Blitter::blitRect(int x, int y, int width, int height) {
     uint32_t*   device = fDevice.getAddr32(x, y);
     size_t      deviceRB = fDevice.rowBytes();
     SkShader*   shader = fShader;
+    SkXfermode* xfer = fXfermode;
     SkPMColor*  span = fBuffer;
+
+    if (skia_androidopt_blitRect) {
+        if (skia_androidopt_blitRect(x, y, width, height, this, fDevice, xfer, shader)) {
+            return;
+        }
+    }
 
     if (fConstInY) {
         if (fShadeDirectlyIntoDevice) {

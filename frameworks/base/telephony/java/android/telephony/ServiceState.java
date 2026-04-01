@@ -141,11 +141,18 @@ public class ServiceState implements Parcelable {
     public static final int RIL_RADIO_TECHNOLOGY_LTE = 14;
     /** @hide */
     public static final int RIL_RADIO_TECHNOLOGY_HSPAP = 15;
+    /** @hide */
+    public static final int RIL_RADIO_TECHNOLOGY_DCHSPAP = 30;
     /**
      * GSM radio technology only supports voice. It does not support data.
      * @hide
      */
     public static final int RIL_RADIO_TECHNOLOGY_GSM = 16;
+    /**
+     * TD-SCDMA
+     * @hide
+     */
+    public static final int RIL_RADIO_TECHNOLOGY_TD_SCDMA = 17;
 
     /**
      * Available registration states for GSM, UMTS and CDMA.
@@ -181,7 +188,7 @@ public class ServiceState implements Parcelable {
     private int mSystemId;
     private int mCdmaRoamingIndicator;
     private int mCdmaDefaultRoamingIndicator;
-    private int mCdmaEriIconIndex;
+    private int mCdmaEriIconIndex = 1; //EriInfo.ROAMING_INDICATOR_OFF;
     private int mCdmaEriIconMode;
 
     /**
@@ -530,8 +537,14 @@ public class ServiceState implements Parcelable {
             case RIL_RADIO_TECHNOLOGY_HSPAP:
                 rtString = "HSPAP";
                 break;
+            case RIL_RADIO_TECHNOLOGY_DCHSPAP:
+                rtString = "DCHSPAP";
+                break;
             case RIL_RADIO_TECHNOLOGY_GSM:
                 rtString = "GSM";
+                break;
+            case RIL_RADIO_TECHNOLOGY_TD_SCDMA:
+                rtString = "TD-SCDMA";
                 break;
             default:
                 rtString = "Unexpected";
@@ -693,7 +706,7 @@ public class ServiceState implements Parcelable {
         mOperatorNumeric = m.getString("operator-numeric");
         mIsManualNetworkSelection = m.getBoolean("manual");
         mRilVoiceRadioTechnology = m.getInt("radioTechnology");
-        mRilVoiceRadioTechnology = m.getInt("dataRadioTechnology");
+        mRilDataRadioTechnology = m.getInt("dataRadioTechnology");
         mCssIndicator = m.getBoolean("cssIndicator");
         mNetworkId = m.getInt("networkId");
         mSystemId = m.getInt("systemId");
@@ -797,6 +810,12 @@ public class ServiceState implements Parcelable {
             return TelephonyManager.NETWORK_TYPE_LTE;
         case ServiceState.RIL_RADIO_TECHNOLOGY_HSPAP:
             return TelephonyManager.NETWORK_TYPE_HSPAP;
+        case ServiceState.RIL_RADIO_TECHNOLOGY_DCHSPAP:
+            return TelephonyManager.NETWORK_TYPE_DCHSPAP;
+        case ServiceState.RIL_RADIO_TECHNOLOGY_TD_SCDMA:
+            return TelephonyManager.NETWORK_TYPE_TD_SCDMA;
+        case ServiceState.RIL_RADIO_TECHNOLOGY_GSM:
+            return TelephonyManager.NETWORK_TYPE_GSM;
         default:
             return TelephonyManager.NETWORK_TYPE_UNKNOWN;
         }
@@ -846,7 +865,9 @@ public class ServiceState implements Parcelable {
                 || radioTechnology == RIL_RADIO_TECHNOLOGY_HSPA
                 || radioTechnology == RIL_RADIO_TECHNOLOGY_LTE
                 || radioTechnology == RIL_RADIO_TECHNOLOGY_HSPAP
-                || radioTechnology == RIL_RADIO_TECHNOLOGY_GSM;
+                || radioTechnology == RIL_RADIO_TECHNOLOGY_DCHSPAP
+                || radioTechnology == RIL_RADIO_TECHNOLOGY_GSM
+                || radioTechnology == RIL_RADIO_TECHNOLOGY_TD_SCDMA;
     }
 
     /** @hide */

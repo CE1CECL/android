@@ -25,6 +25,13 @@
 #ifndef SQLITE_API
 # define SQLITE_API
 #endif
+#ifdef QC_PERF
+extern void sqlite3_androidopt_init(void*, const char*) __attribute__((weak));
+extern void sqlite3_androidopt_open(void*, const char*, unsigned, int*) __attribute__((weak));
+extern void sqlite3_androidopt_close(void*) __attribute__((weak));
+extern int  sqlite3_androidopt_handle_pragma(void*, char*, char*) __attribute__((weak));
+#endif
+
 /************** Begin file sqliteInt.h ***************************************/
 /*
 ** 2001 September 15
@@ -9816,6 +9823,7 @@ struct sqlite3 {
   void (*xUnlockNotify)(void **, int);  /* Unlock notify callback */
   sqlite3 *pNextBlocked;        /* Next in list of all blocked connections */
 #endif
+  u8 isSettingOverride;         /* True if db settings have been overridden */
 };
 
 /*
@@ -92448,6 +92456,14 @@ SQLITE_PRIVATE void sqlite3Pragma(
     goto pragma_out;
   }
 
+#ifdef QC_PERF
+  if( sqlite3_androidopt_handle_pragma ) {
+    if( sqlite3_androidopt_handle_pragma(db, zLeft, zRight) == 1 ) {
+      goto pragma_out;
+    }
+  }
+#endif
+
   /* Send an SQLITE_FCNTL_PRAGMA file-control to the underlying VFS
   ** connection.  If it returns SQLITE_OK, then assume that the VFS
   ** handled the pragma and generate a no-op prepared statement.
@@ -92695,6 +92711,11 @@ SQLITE_PRIVATE void sqlite3Pragma(
         /* If the "=MODE" part does not match any known journal mode,
         ** then do a query */
         eMode = PAGER_JOURNALMODE_QUERY;
+      }else if( db->isSettingOverride==1 ){
+        /* Skip journal mode changes if override in effect */
+        sqlite3VdbeAddOp4(v, OP_String, strlen(zMode), 1, 1, zMode, P4_STATIC);
+        sqlite3VdbeAddOp2(v, OP_ResultRow, 1, 1);
+        goto pragma_out;
       }
     }
     if( eMode==PAGER_JOURNALMODE_QUERY && pId2->n==0 ){
@@ -113205,6 +113226,11 @@ SQLITE_API int sqlite3_close(sqlite3 *db){
   if( !sqlite3SafetyCheckSickOrOk(db) ){
     return SQLITE_MISUSE_BKPT;
   }
+#ifdef QC_PERF
+  if (sqlite3_androidopt_close) {
+    sqlite3_androidopt_close(db);
+  }
+#endif
   sqlite3_mutex_enter(db->mutex);
 
   /* Force xDestroy calls on all virtual tables */
@@ -114636,6 +114662,11 @@ static int openDatabase(
     }
   }
   sqlite3_mutex_enter(db->mutex);
+#ifdef QC_PERF
+  if( sqlite3_androidopt_init ) {
+    sqlite3_androidopt_init(db, zFilename);
+  }
+#endif
   db->errMask = 0xff;
   db->nDb = 2;
   db->magic = SQLITE_MAGIC_BUSY;
@@ -114801,6 +114832,14 @@ opendb_out:
     db = 0;
   }else if( rc!=SQLITE_OK ){
     db->magic = SQLITE_MAGIC_SICK;
+  }else {
+#ifdef QC_PERF
+    if (sqlite3_androidopt_open) {
+      int override = 0;
+      sqlite3_androidopt_open(db, zFilename, flags, &override);
+      db->isSettingOverride = override;
+    }
+#endif
   }
   *ppDb = db;
   return sqlite3ApiExit(0, rc);

@@ -47,6 +47,7 @@ public class PieController {
     protected PieRenderer mRenderer;
     private List<IconListPreference> mPreferences;
     private Map<IconListPreference, PieItem> mPreferenceMap;
+    private Map<Integer, PieItem> mClickItemMap;
     private Map<IconListPreference, String> mOverrides;
 
     public void setListener(OnPreferenceChangedListener listener) {
@@ -58,13 +59,17 @@ public class PieController {
         mRenderer = pie;
         mPreferences = new ArrayList<IconListPreference>();
         mPreferenceMap = new HashMap<IconListPreference, PieItem>();
+        mClickItemMap = new HashMap<Integer, PieItem>();
         mOverrides = new HashMap<IconListPreference, String>();
     }
 
     public void initialize(PreferenceGroup group) {
         mRenderer.clearItems();
         mPreferenceMap.clear();
+        mClickItemMap.clear();
         setPreferenceGroup(group);
+        mPreferences.clear();
+        mOverrides.clear();
     }
 
     public void onSettingChanged(ListPreference pref) {
@@ -81,7 +86,9 @@ public class PieController {
     protected PieItem makeItem(int resId) {
         // We need a mutable version as we change the alpha
         Drawable d = mActivity.getResources().getDrawable(resId).mutate();
-        return new PieItem(d, 0);
+        PieItem item = new PieItem(d, 0);
+        mClickItemMap.put(new Integer(resId), item);
+        return item;
     }
 
     protected PieItem makeItem(CharSequence value) {
@@ -255,5 +262,12 @@ public class PieController {
             }
         }
         reloadPreference(pref);
+    }
+
+    public void enableItem(int resId, boolean enable) {
+        PieItem item = mClickItemMap.get(new Integer(resId));
+        if (item != null) {
+            item.setEnabled(enable);
+        }
     }
 }

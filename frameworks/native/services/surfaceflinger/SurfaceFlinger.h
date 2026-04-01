@@ -51,6 +51,10 @@
 
 #include "DisplayHardware/HWComposer.h"
 
+#ifdef SAMSUNG_HDMI_SUPPORT
+#include "SecHdmiClient.h"
+#endif
+
 namespace android {
 
 // ---------------------------------------------------------------------------
@@ -86,7 +90,8 @@ public:
     SurfaceFlinger();
 
     enum {
-        EVENT_VSYNC = HWC_EVENT_VSYNC
+        EVENT_VSYNC = HWC_EVENT_VSYNC,
+        EVENT_ORIENTATION = HWC_EVENT_ORIENTATION
     };
 
     // post an asynchronous message to the main thread
@@ -186,6 +191,11 @@ private:
             const sp<IGraphicBufferProducer>& producer,
             uint32_t reqWidth, uint32_t reqHeight,
             uint32_t minLayerZ, uint32_t maxLayerZ, bool isCpuConsumer);
+#ifdef BOARD_EGL_NEEDS_LEGACY_FB
+    virtual status_t captureScreen(const sp<IBinder>& display, sp<IMemoryHeap>* heap,
+        uint32_t* width, uint32_t* height, uint32_t reqWidth,
+        uint32_t reqHeight, uint32_t minLayerZ, uint32_t maxLayerZ);
+#endif
     // called when screen needs to turn off
     virtual void blank(const sp<IBinder>& display);
     // called when screen is turning back on
@@ -232,6 +242,11 @@ private:
     void handleTransaction(uint32_t transactionFlags);
     void handleTransactionLocked(uint32_t transactionFlags);
 
+#ifdef QCOM_HARDWARE
+    // Read virtual display properties
+    void setVirtualDisplayData( int32_t hwcDisplayId,
+                                const sp<IGraphicBufferProducer>& sink);
+#endif
     /* handlePageFilp: this is were we latch a new buffer
      * if available and compute the dirty region.
      */
@@ -302,7 +317,11 @@ private:
 
     status_t captureScreenImplCpuConsumerLocked(
             const sp<const DisplayDevice>& hw,
+#ifdef BOARD_EGL_NEEDS_LEGACY_FB
+            sp<IMemoryHeap>* heap, uint32_t* width, uint32_t* height,
+#else
             const sp<IGraphicBufferProducer>& producer,
+#endif
             uint32_t reqWidth, uint32_t reqHeight,
             uint32_t minLayerZ, uint32_t maxLayerZ);
 
@@ -316,7 +335,11 @@ private:
     static EGLContext createGLContext(EGLDisplay disp, EGLConfig config);
     void initializeGL(EGLDisplay display);
     uint32_t getMaxTextureSize() const;
+    uint32_t getMinColorDepth() const;
     uint32_t getMaxViewportDims() const;
+
+    // 0: surface doesn't need dithering, 1: use if necessary
+    inline int getUseDithering() const { return mUseDithering; }
 
     /* ------------------------------------------------------------------------
      * Display and layer stack management
@@ -354,7 +377,7 @@ private:
      * Compositing
      */
     void invalidateHwcGeometry();
-    static void computeVisibleRegions(
+    static void computeVisibleRegions(size_t dpy,
             const LayerVector& currentLayers, uint32_t layerStack,
             Region& dirtyRegion, Region& opaqueRegion);
 
@@ -422,6 +445,7 @@ private:
     sp<EventThread> mEventThread;
     GLint mMaxViewportDims[2];
     GLint mMaxTextureSize;
+    GLint mMinColorDepth;
     EGLContext mEGLContext;
     EGLConfig mEGLConfig;
     EGLDisplay mEGLDisplay;
@@ -449,6 +473,7 @@ private:
     volatile nsecs_t mDebugInTransaction;
     nsecs_t mLastTransactionTime;
     bool mBootFinished;
+    int mUseDithering;
 
     // these are thread safe
     mutable MessageQueue mEventQueue;
@@ -464,6 +489,9 @@ private:
      */
 
     sp<IBinder> mExtDisplayToken;
+#if defined(SAMSUNG_HDMI_SUPPORT) && defined(SAMSUNG_EXYNOS5250)
+    SecHdmiClient *                         mHdmiClient;
+#endif
 };
 
 // ---------------------------------------------------------------------------

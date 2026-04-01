@@ -520,7 +520,7 @@
     <string name="permlab_modifyPhoneState" msgid="8423923777659292228">"telefoonstatus wijzigen"</string>
     <string name="permdesc_modifyPhoneState" msgid="1029877529007686732">"Hiermee kan de app de telefoonfuncties van het apparaat beheren. Een app met deze toestemming kan schakelen tussen netwerken, kan de radio van de telefoon in- en uitschakelen en dergelijke acties uitvoeren zonder dat u hiervan op de hoogte wordt gesteld."</string>
     <string name="permlab_readPhoneState" msgid="9178228524507610486">"telefoonstatus en -identiteit lezen"</string>
-    <string name="permdesc_readPhoneState" msgid="1639212771826125528">"Hiermee kan de app toegang krijgen tot de telefoonfuncties van het apparaat, Met deze toestemming kan de app het telefoonnummer en de apparaat-ID\'s bepalen, of een oproep actief is, en het andere telefoonnummer waarmee wordt gebeld."</string>
+    <string name="permdesc_readPhoneState" msgid="1639212771826125528">"Hiermee kan de app toegang krijgen tot de telefoonfuncties van het apparaat. Met deze toestemming kan de app het telefoonnummer en de apparaat-ID\'s bepalen, of een oproep actief is, en het andere telefoonnummer waarmee wordt gebeld."</string>
     <string name="permlab_wakeLock" product="tablet" msgid="1531731435011495015">"voorkomen dat tablet overschakelt naar slaapmodus"</string>
     <string name="permlab_wakeLock" product="default" msgid="573480187941496130">"voorkomen dat telefoon overschakelt naar slaapmodus"</string>
     <string name="permdesc_wakeLock" product="tablet" msgid="7311319824400447868">"Hiermee kan de app voorkomen dat de tablet overschakelt naar de slaapmodus."</string>
@@ -789,7 +789,7 @@
     <string name="lockscreen_plugged_in" msgid="8057762828355572315">"Opladen, <xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
     <string name="lockscreen_charged" msgid="321635745684060624">"Opgeladen"</string>
     <string name="lockscreen_battery_short" msgid="4477264849386850266">"<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
-    <string name="lockscreen_low_battery" msgid="1482873981919249740">"Sluit de oplader aan."</string>
+    <string name="lockscreen_low_battery" msgid="1482873981919249740">"Sluit de oplader aan, <xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>"</string>
     <string name="lockscreen_missing_sim_message_short" msgid="5099439277819215399">"Geen simkaart"</string>
     <string name="lockscreen_missing_sim_message" product="tablet" msgid="151659196095791474">"Geen SIM-kaart in tablet."</string>
     <string name="lockscreen_missing_sim_message" product="default" msgid="2186920585695169078">"Geen SIM-kaart in telefoon."</string>
@@ -1027,7 +1027,7 @@
     <item quantity="other" msgid="1886107766577166786">"<xliff:g id="COUNT">%d</xliff:g> seconden"</item>
   </plurals>
   <plurals name="duration_minutes">
-    <item quantity="one" msgid="4915414002546085617">"1 minuut"</item>
+    <item quantity="one" msgid="4915414002546085617">"1 minuut"</item>
     <item quantity="other" msgid="3165187169224908775">"<xliff:g id="COUNT">%d</xliff:g> minuten"</item>
   </plurals>
   <plurals name="duration_hours">
@@ -1168,7 +1168,7 @@
     <string name="sms_short_code_confirm_allow" msgid="4458878637111023413">"Verzenden"</string>
     <string name="sms_short_code_confirm_deny" msgid="2927389840209170706">"Annuleren"</string>
     <string name="sms_short_code_remember_choice" msgid="5289538592272218136">"Mijn keuze onthouden"</string>
-    <string name="sms_short_code_remember_undo_instruction" msgid="4960944133052287484">"U kunt dit later wijzigen in \'Instellingen\' &gt; \'Apps\'"</string>
+    <string name="sms_short_code_remember_undo_instruction" msgid="4960944133052287484">"U kunt dit later wijzigen in \'Instellingen\' &gt; \'Apps\'"</string>
     <string name="sms_short_code_confirm_always_allow" msgid="3241181154869493368">"Altijd toestaan"</string>
     <string name="sms_short_code_confirm_never_allow" msgid="446992765774269673">"Nooit toestaan"</string>
     <string name="sim_removed_title" msgid="6227712319223226185">"Simkaart verwijderd"</string>

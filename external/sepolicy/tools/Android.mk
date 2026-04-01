@@ -33,3 +33,5 @@ LOCAL_IS_HOST_MODULE := true
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_PREBUILT)
+
+include $(LOCAL_PATH)/setool/Android.mk

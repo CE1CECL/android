@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,12 +14,34 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * This file was modified by Dolby Laboratories, Inc. The portions of the
+ * code that are surrounded by "DOLBY..." are copyrighted and
+ * licensed separately, as follows:
+ *
+ *  (C) 2011-2012 Dolby Laboratories, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 #ifndef AUDIO_PLAYER_H_
 
 #define AUDIO_PLAYER_H_
 
+#ifdef DOLBY_UDC_MULTICHANNEL
+#include "include/TimedEventQueue.h"
+#endif // DOLBY_UDC_MULTICHANNEL
 #include <media/MediaPlayerInterface.h>
 #include <media/stagefright/MediaBuffer.h>
 #include <media/stagefright/TimeSource.h>
@@ -43,27 +67,27 @@ public:
     virtual ~AudioPlayer();
 
     // Caller retains ownership of "source".
-    void setSource(const sp<MediaSource> &source);
+    virtual void setSource(const sp<MediaSource> &source);
 
     // Return time in us.
     virtual int64_t getRealTimeUs();
 
-    status_t start(bool sourceAlreadyStarted = false);
+    virtual status_t start(bool sourceAlreadyStarted = false);
 
-    void pause(bool playPendingSamples = false);
-    void resume();
+    virtual void pause(bool playPendingSamples = false);
+    virtual void resume();
 
     // Returns the timestamp of the last buffer played (in us).
-    int64_t getMediaTimeUs();
+    virtual int64_t getMediaTimeUs();
 
     // Returns true iff a mapping is established, i.e. the AudioPlayer
     // has played at least one frame of audio.
-    bool getMediaTimeMapping(int64_t *realtime_us, int64_t *mediatime_us);
+    virtual bool getMediaTimeMapping(int64_t *realtime_us, int64_t *mediatime_us);
 
-    status_t seekTo(int64_t time_us);
+    virtual status_t seekTo(int64_t time_us);
 
-    bool isSeeking();
-    bool reachedEOS(status_t *finalStatus);
+    virtual bool isSeeking();
+    virtual bool reachedEOS(status_t *finalStatus);
 
     status_t setPlaybackRatePermille(int32_t ratePermille);
 
@@ -91,6 +115,9 @@ private:
     int64_t mSeekTimeUs;
 
     bool mStarted;
+#ifdef QCOM_HARDWARE
+    bool mSourcePaused;
+#endif
 
     bool mIsFirstBuffer;
     status_t mFirstBufferResult;
@@ -115,6 +142,14 @@ private:
 
     void reset();
 
+#ifdef DOLBY_UDC_MULTICHANNEL
+    void onPortSettingsChangedEvent();
+    TimedEventQueue mQueue;
+    bool mQueueStarted;
+    sp<TimedEventQueue::Event> mPortSettingsChangedEvent;
+    bool mPortSettingsChangedEventPending;
+    int reOpenSink(int numChannels, int channelMask);
+#endif // DOLBY_UDC_MULTICHANNEL
     uint32_t getNumFramesPendingPlayout() const;
 
     AudioPlayer(const AudioPlayer &);

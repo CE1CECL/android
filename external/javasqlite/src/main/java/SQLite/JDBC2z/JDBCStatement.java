@@ -318,8 +318,16 @@ public class JDBCStatement implements java.sql.Statement {
 	throw new SQLException("unsupported");
     }
 
-    public boolean isWrapperFor(java.lang.Class iface) throws SQLException {
-	return false;
-    }
+	public boolean isWrapperFor(Class<?> iface) throws SQLException {
+		return false;
+	}
+
+	public void closeOnCompletion() throws SQLException {
+		throw new UnsupportedOperationException();
+	}
+
+	public boolean isCloseOnCompletion() throws SQLException {
+		throw new UnsupportedOperationException();
+	}
 
 }

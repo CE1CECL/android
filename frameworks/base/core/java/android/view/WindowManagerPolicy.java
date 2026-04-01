@@ -420,6 +420,7 @@ public interface WindowManagerPolicy {
 
         public void shutdown(boolean confirm);
         public void rebootSafeMode(boolean confirm);
+        public void reboot();
     }
 
     /** Window has been added to the screen. */
@@ -1124,6 +1125,11 @@ public interface WindowManagerPolicy {
     public boolean hasNavigationBar();
 
     /**
+     * Specifies whether device can generate KEY_ACTION_MENU keypress
+     */
+    public boolean hasMenuKeyEnabled();
+
+    /**
      * Lock the device now.
      */
     public void lockNow(Bundle options);
@@ -1177,4 +1183,23 @@ public interface WindowManagerPolicy {
      * @return True if the window is a top level one.
      */
     public boolean isTopLevelWindow(int windowType);
+
+    /**
+     * Determine the animation to run for a transition after display
+     * metrics changed.
+     *
+     * @param anim The exiting animation resource id is stored in anim[0], the
+     * entering animation resource id is stored in anim[1].
+     */
+    public void selectDisplayMetricsUpdateAnimationLw(int anim[]);
+
+    /**
+     * A window animation has been scheduled
+     */
+    public void windowAnimationStarted();
+
+    /**
+     * Animating windows has finished
+     */
+    public void windowAnimationFinished();
 }

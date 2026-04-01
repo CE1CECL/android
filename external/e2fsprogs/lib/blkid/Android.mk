@@ -8,6 +8,7 @@ libext2_blkid_src_files := \
 	getsize.c \
 	llseek.c \
 	probe.c \
+	probe_exfat.c \
 	read.c \
 	resolve.c \
 	save.c \
@@ -61,6 +62,18 @@ LOCAL_MODULE := libext2_blkid
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := $(libext2_blkid_src_files)
+LOCAL_STATIC_LIBRARIES := $(libext2_blkid_system_shared_libraries) $(libext2_blkid_shared_libraries)
+LOCAL_C_INCLUDES := $(libext2_blkid_c_includes)
+LOCAL_CFLAGS := $(libext2_blkid_cflags) $(libext2_blkid_cflags_linux)
+LOCAL_PRELINK_MODULE := false
+LOCAL_MODULE := libext2_blkid
+LOCAL_MODULE_TAGS := optional
+
+include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 

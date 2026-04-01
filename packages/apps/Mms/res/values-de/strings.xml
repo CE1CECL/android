@@ -1,22 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-/*
- * Copyright (C) 2007-2008 Esmertec AG.
- * Copyright (C) 2007-2008 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
- -->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2007-2008 Esmertec AG
+     Copyright (C) 2007-2008 The Android Open Source Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
@@ -33,7 +30,7 @@
     <string name="menu_delete" msgid="1851666911396479006">"Konversation löschen"</string>
     <string name="menu_view" msgid="7448852683948080108">"Konversation anzeigen"</string>
     <string name="menu_debug_dump" msgid="6855869130206549643">"DEBUGSICHERUNG"</string>
-    <string name="refreshing" msgid="987335057871404222">"Wird aktualisiert..."</string>
+    <string name="refreshing" msgid="987335057871404222">"Wird aktualisiert\u2026"</string>
     <string name="menu_cell_broadcasts" msgid="5646161375983084660">"Cell Broadcasts"</string>
     <string name="has_draft" msgid="2487465595514636160">"Entwurf"</string>
     <string name="no_subject_view" msgid="7795086723069563537">"(Kein Betreff)"</string>
@@ -50,7 +47,7 @@
     <string name="delete_thread" msgid="757258847736632791">"Konversation löschen"</string>
     <string name="menu_forward" msgid="9026858380050046756">"Weiterleiten"</string>
     <string name="download" msgid="4488877642230207631">"Herunterladen"</string>
-    <string name="downloading" msgid="1779557575565350637">"Wird geladen..."</string>
+    <string name="downloading" msgid="1779557575565350637">"Wird geladen\u2026"</string>
     <string name="inline_subject" msgid="4057621785274119260">"&lt;Betreff: <xliff:g id="SUBJECT">%s</xliff:g>&gt;"</string>
     <string name="drm_protected_text" msgid="1396394157870730742">"* DRM-geschützter Text *"</string>
     <string name="insufficient_drm_rights" msgid="6989074725969164383">"Nicht ausreichende DRM-Rechte ermittelt."</string>
@@ -86,7 +83,7 @@
     <string name="all_threads" msgid="2663426830306307194">"Alle Threads"</string>
     <string name="type_to_compose_text_enter_to_send" msgid="3539985471008581265">"Nachricht schreiben"</string>
     <string name="open_keyboard_to_compose_message" msgid="7860109685511253191">"Tastatur öffnen, um Nachricht einzugeben"</string>
-    <string name="compressing" msgid="1961357529661045180">"Bild ist zu groß. Komprimierung wird durchgeführt..."</string>
+    <string name="compressing" msgid="1961357529661045180">"Bild ist zu groß. Komprimierung wird durchgeführt\u2026"</string>
     <string name="unsupported_media_format" msgid="1350489690977363764">"Format von <xliff:g id="NAME">%1$s</xliff:g> wird nicht unterstützt."</string>
     <string name="select_different_media" msgid="6241623357299382183">"Anderes <xliff:g id="NAME">%1$s</xliff:g> wählen"</string>
     <string name="exceed_message_size_limitation" msgid="6027753647094742437">"Maximale Nachrichtengröße erreicht"</string>
@@ -105,7 +102,7 @@
     <string name="cannot_send_message" msgid="3414307479833622644">"Nachricht kann nicht gesendet werden."</string>
     <string name="cannot_send_message_reason" msgid="8745080126044054343">"Für die Nachricht sind keine gültigen Empfänger vorhanden."</string>
     <string name="cannot_forward_drm_obj" msgid="5047623751430559077">"Das in der Nachricht enthaltene DRM-Objekt kann nicht weitergeleitet werden."</string>
-    <string name="converting_to_picture_message" msgid="2980023239017588627">"Konvertierung in Multimedia-Nachricht wird ausgeführt..."</string>
+    <string name="converting_to_picture_message" msgid="2980023239017588627">"Konvertierung in Multimedia-Nachricht wird ausgeführt\u2026"</string>
     <string name="cannot_add_slide_anymore" msgid="4631404749618820994">"Es können keine weiteren Dias hinzugefügt werden."</string>
     <string name="cannot_add_picture_and_video" msgid="4954353772391381447">"In eine Folie können nicht gleichzeitig ein Bild und ein Video eingefügt werden."</string>
     <string name="cannot_save_message" msgid="3375907366965264446">"Nachricht kann nicht gespeichert werden."</string>
@@ -114,7 +111,7 @@
     <string name="too_many_attachments" msgid="3774037894899750070">"Es sind maximal <xliff:g id="MAXLIMIT">%1$s</xliff:g> Anhänge zulässig. Nur die ersten <xliff:g id="CURRENTCOUNT">%2$s</xliff:g> werden hinzugefügt."</string>
     <string name="adding_attachments_title" msgid="2034535554212405529">"Anhänge werden hinzugefügt"</string>
     <string name="adding_attachments" msgid="5871373105122355632">"Bitte warten, während die Elemente zur Diashow hinzugefügt werden"</string>
-    <string name="building_slideshow_title" msgid="1232338692400726385">"Diashow wird erstellt..."</string>
+    <string name="building_slideshow_title" msgid="1232338692400726385">"Diashow wird erstellt\u2026"</string>
     <string name="cannot_play_audio" msgid="253920977253666735">"Audiowiedergabe nicht möglich"</string>
     <string name="preview" msgid="5438149136136446756">"Vorschau"</string>
     <string name="preview_slideshow" msgid="6824095909448728427">"Vorschau"</string>
@@ -128,19 +125,19 @@
     <string name="duration_not_a_number" msgid="2856636898040421237">"Die Dauer muss mit einer Zahl angegeben werden."</string>
     <string name="duration_zero" msgid="3549377790195185977">"Die Dauer muss mehr als 0 Sekunden betragen."</string>
     <string name="secs" msgid="6886003523109967972">"s"</string>
-  <string-array name="select_dialog_items">
-    <item msgid="4840183714016984112">"1 Sekunde"</item>
-    <item msgid="3734955613666864447">"2 Sekunden"</item>
-    <item msgid="6032232473048379828">"3 Sekunden"</item>
-    <item msgid="5978471781525927827">"4 Sekunden"</item>
-    <item msgid="4888440297621208402">"5 Sekunden"</item>
-    <item msgid="6047246213264166841">"6 Sekunden"</item>
-    <item msgid="2327501250056533797">"7 Sekunden"</item>
-    <item msgid="3400770414689795703">"8 Sekunden"</item>
-    <item msgid="4358760614161107970">"9 Sekunden"</item>
-    <item msgid="2618179407176906471">"10 Sekunden"</item>
-    <item msgid="7786079681602275449">"Andere"</item>
-  </string-array>
+    <string-array name="select_dialog_items">
+        <item msgid="4840183714016984112">"1 Sekunde"</item>
+        <item msgid="3734955613666864447">"2 Sekunden"</item>
+        <item msgid="6032232473048379828">"3 Sekunden"</item>
+        <item msgid="5978471781525927827">"4 Sekunden"</item>
+        <item msgid="4888440297621208402">"5 Sekunden"</item>
+        <item msgid="6047246213264166841">"6 Sekunden"</item>
+        <item msgid="2327501250056533797">"7 Sekunden"</item>
+        <item msgid="3400770414689795703">"8 Sekunden"</item>
+        <item msgid="4358760614161107970">"9 Sekunden"</item>
+        <item msgid="2618179407176906471">"10 Sekunden"</item>
+        <item msgid="7786079681602275449">"Andere"</item>
+    </string-array>
     <string name="menu_view_contact" msgid="1414670584423909451">"Kontakt anzeigen"</string>
     <string name="menu_add_to_contacts" msgid="1258127580972228970">"Zu Kontakten hinzufügen"</string>
     <string name="hidden_sender_address" msgid="2776075636669924968">"Ausgeblendete Senderadresse"</string>
@@ -182,10 +179,10 @@
     <string name="pref_summary_mms_retrieval_during_roaming" msgid="2427892806582531020">"Bei Roaming Nachrichten automatisch abrufen"</string>
     <string name="confirm_dialog_title" msgid="2187213750475782725">"Löschen?"</string>
     <string name="confirm_dialog_locked_title" msgid="8179085718150932242">"Gesperrte Nachricht entfernen?"</string>
-  <plurals name="confirm_delete_conversation">
-    <item quantity="one" msgid="7509396981963472833">"Eine Konversation wird gelöscht."</item>
-    <item quantity="other" msgid="4076915774012081811">"<xliff:g id="NUMBER">%1$s</xliff:g> Konversationen werden gelöscht."</item>
-  </plurals>
+    <plurals name="confirm_delete_conversation">
+        <item quantity="one" msgid="7509396981963472833">"Eine Konversation wird gelöscht."</item>
+        <item quantity="other" msgid="4076915774012081811">"<xliff:g id="NUMBER">%1$s</xliff:g> Konversationen werden gelöscht."</item>
+    </plurals>
     <string name="confirm_delete_conversation" msgid="6115966687389279855">"Der gesamte Thread wird gelöscht."</string>
     <string name="confirm_delete_all_conversations" msgid="9036166685235092757">"Alle Threads werden gelöscht."</string>
     <string name="confirm_delete_message" msgid="9121480656609809591">"Die Nachricht wird gelöscht."</string>
@@ -196,7 +193,7 @@
     <string name="delete" msgid="1409973060081564612">"Löschen"</string>
     <string name="select_conversations" msgid="7816517565640002844">"Konversationen auswählen"</string>
     <string name="no_conversations" msgid="6773767655149258445">"Keine Konversationen"</string>
-    <string name="loading_conversations" msgid="5510430408235967094">"Konversationen werden geladen..."</string>
+    <string name="loading_conversations" msgid="5510430408235967094">"Konversationen werden geladen\u2026"</string>
     <string name="cannot_get_details" msgid="850292987983026806">"Details nicht abrufbar"</string>
     <string name="message_details_title" msgid="9223295113731634528">"Nachrichtendetails"</string>
     <string name="message_type_label" msgid="7975373966795945566">"Typ: "</string>
@@ -237,7 +234,7 @@
     <string name="status_rejected" msgid="2613641949065942678">"Zurückgewiesen"</string>
     <string name="recipient_label" msgid="3922667485312634446">"Empfänger: "</string>
     <string name="status_label" msgid="7283375460919181660">"Status: "</string>
-    <string name="delivered_label" msgid="3514011729156932928">"Gesendet: "</string>
+    <string name="delivered_label" msgid="3514011729156932928">"Zugestellt: "</string>
     <string name="attach_image" msgid="6439985727687107742">"Bilder"</string>
     <string name="attach_take_photo" msgid="4280601313184373837">"Bild aufnehmen"</string>
     <string name="attach_video" msgid="4264272693501538294">"Videos"</string>
@@ -247,7 +244,7 @@
     <string name="attach_slideshow" msgid="3497422151091037063">"Diashow"</string>
     <string name="select_bottom_text" msgid="4201966447623311931">"Text unten"</string>
     <string name="select_top_text" msgid="6734183477539197815">"Text oben"</string>
-    <string name="delivery_toast_body" msgid="5960519861835727013">"Nachricht erhalten von %s"</string>
+    <string name="delivery_toast_body" msgid="5960519861835727013">"%s hat Ihre Nachricht erhalten."</string>
     <string name="notification_multiple" msgid="7684007285202109490">"<xliff:g id="COUNT">%s</xliff:g> ungelesene Nachrichten"</string>
     <string name="notification_multiple_title" msgid="332602028959557541">"Neue Nachrichten"</string>
     <string name="notification_failed_multiple" msgid="6192531993698497229">"<xliff:g id="COUNT">%s</xliff:g> Nachrichten wurden nicht gesendet."</string>
@@ -281,15 +278,15 @@
     <string name="save_ringtone" msgid="2310157075045201051">"Als Klingelton speichern"</string>
     <string name="saved_ringtone" msgid="3847363932276708626">"Klingelton gespeichert"</string>
     <string name="saved_ringtone_fail" msgid="4778500070919251116">"Klingelton konnte nicht gespeichert werden."</string>
-    <string name="menu_insert_smiley" msgid="4964504393061025071">"Smiley hinzufügen"</string>
+    <string name="menu_insert_smiley" msgid="4964504393061025071">"Smiley einfügen"</string>
     <string name="menu_group_participants" msgid="4288356090262299071">"Gruppenteilnehmer"</string>
     <string name="select_link_title" msgid="3371818607625768447">"Aktion wählen"</string>
     <string name="slide_number" msgid="1923958526266726635">"Dia <xliff:g id="NUMBER">%s</xliff:g>"</string>
-  <plurals name="slide_duration">
-    <item quantity="one" msgid="1654101988340583935">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
-    <item quantity="few" msgid="7887190171856293871">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
-    <item quantity="other" msgid="3736425355579939863">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
-  </plurals>
+    <plurals name="slide_duration">
+        <item quantity="one" msgid="1654101988340583935">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
+        <item quantity="few" msgid="7887190171856293871">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
+        <item quantity="other" msgid="3736425355579939863">"<xliff:g id="NUMBER">%s</xliff:g> Sek."</item>
+    </plurals>
     <string name="delivery_report_activity" msgid="2957463094232916364">"Zustellbericht"</string>
     <string name="storage_limits_activity" msgid="8810530813311077716">"Speichergrenzwerte"</string>
     <string name="change_duration_activity" msgid="7048606979485031693">"Dauer ändern"</string>
@@ -303,10 +300,10 @@
     <string name="search" msgid="7560238620274735199">"SMS/MMS"</string>
     <string name="search_setting_description" msgid="4104004595086437572">"Text in meinen Nachrichten"</string>
     <string name="search_empty" msgid="2109551478056039278">"Keine Übereinstimmungen"</string>
-  <plurals name="search_results_title">
-    <item quantity="one" msgid="4657073733087431350">"<xliff:g id="NUMBER">%1$s</xliff:g> Ergebnis für \"<xliff:g id="SEARCH">%2$s</xliff:g>\""</item>
-    <item quantity="other" msgid="6196382287749539209">"<xliff:g id="NUMBER">%1$s</xliff:g> Ergebnisse für \"<xliff:g id="SEARCH">%2$s</xliff:g>\""</item>
-  </plurals>
+    <plurals name="search_results_title">
+        <item quantity="one" msgid="4657073733087431350">"<xliff:g id="NUMBER">%1$s</xliff:g> Ergebnis für \"<xliff:g id="SEARCH">%2$s</xliff:g>\""</item>
+        <item quantity="other" msgid="6196382287749539209">"<xliff:g id="NUMBER">%1$s</xliff:g> Ergebnisse für \"<xliff:g id="SEARCH">%2$s</xliff:g>\""</item>
+    </plurals>
     <string name="search_history" msgid="4127805495662693154">"<xliff:g id="COUNT">%1$s</xliff:g> Ergebnisse für \"<xliff:g id="SEARCH">%2$s</xliff:g>\""</string>
     <string name="confirm_clear_search_title" msgid="8510295993632032904">"Löschen"</string>
     <string name="confirm_clear_search_text" msgid="8731877031837077478">"Der Suchverlauf wird gelöscht."</string>
@@ -318,21 +315,21 @@
     <string name="storage_limits_setting" msgid="4952781049308537373">"Grenzwerte festlegen"</string>
     <string name="storage_limits_setting_dismiss" msgid="1433841310158458034">"Keine Begrenzung"</string>
     <string name="too_many_unsent_mms" msgid="4436493698891224126">"Nachricht kann jetzt nicht gesendet werden. Zu viele ungesendete Multimedia-Nachrichten."</string>
-    <string name="sending_message" msgid="2054406576361149715">"Wird gesendet..."</string>
+    <string name="sending_message" msgid="2054406576361149715">"Wird gesendet\u2026"</string>
     <string name="pick_too_many_recipients" msgid="650087588867628044">"Zu viele Empfänger"</string>
-    <string name="adding_recipients" msgid="2962810172527532357">"Empfänger werden hinzugefügt..."</string>
+    <string name="adding_recipients" msgid="2962810172527532357">"Empfänger werden hinzugefügt\u2026"</string>
     <string name="draft_separator" msgid="5402575086540243019">", "</string>
     <string name="message_count_format" msgid="4434763220590778012">" <xliff:g id="NUMBER">%1$s</xliff:g>"</string>
     <string name="message_count_notification" msgid="3629968600032690007">"<xliff:g id="NUMBER">%1$s</xliff:g> neue Nachrichten"</string>
-  <plurals name="message_count_notification_overflow">
-    <item quantity="one" msgid="3340591167508150806">"+<xliff:g id="NUMBER">%1$s</xliff:g> weitere Nachricht"</item>
-    <item quantity="other" msgid="1393002799298501480">"+<xliff:g id="NUMBER">%1$s</xliff:g> weitere Nachrichten"</item>
-  </plurals>
+    <plurals name="message_count_notification_overflow">
+        <item quantity="one" msgid="3340591167508150806">"+<xliff:g id="NUMBER">%1$s</xliff:g> weitere Nachricht"</item>
+        <item quantity="other" msgid="1393002799298501480">"+<xliff:g id="NUMBER">%1$s</xliff:g> weitere Nachrichten"</item>
+    </plurals>
     <string name="error_state" msgid="5177386717626893507">"Uneinheitlicher Status"</string>
     <string name="error_state_text" msgid="7918866106335387710">"Der Status von Threads und Empfängern ist uneinheitlich. Bitte erstellen Sie einen Fehlerbericht und melden Sie die Fehler über http://go/droidanizer."</string>
-  <plurals name="recipient_count">
-    <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> Personen"</item>
-  </plurals>
+    <plurals name="recipient_count">
+        <item quantity="other" msgid="7338580381574463136">"<xliff:g id="NUMBER">%1$s</xliff:g> Personen"</item>
+    </plurals>
     <string name="disable_notifications_dialog_message" msgid="7644011234972074096">"Doppelte SMS-Benachrichtigungen der standardmäßigen SMS/MMS-App stoppen?"</string>
     <string name="view_more_conversations" msgid="7275920132410734671">"Weitere Konversationen ansehen"</string>
     <string name="attachment_audio" msgid="2867960243300539143">"Audio"</string>

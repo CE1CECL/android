@@ -964,4 +964,8 @@ public class JDBCPreparedStatement extends JDBCStatement
 	throw new SQLFeatureNotSupportedException();
     }
 
+		public void closeOnCompletion() throws SQLException {
+			throw new SQLFeatureNotSupportedException();
+		}
+
 }

@@ -20,30 +20,29 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
-class HistoryEntry {
+public class HistoryEntry {
     private static final int VERSION_1 = 1;
     private String mBase;
     private String mEdited;
 
-    HistoryEntry(String str) {
-        mBase = str;
-        clearEdited();
+    HistoryEntry(String base, String edited) {
+        mBase = base;
+        mEdited = edited;
     }
 
     HistoryEntry(int version, DataInput in) throws IOException {
-        if (version >= VERSION_1) {
-            mBase   = in.readUTF();
+        if(version >= VERSION_1) {
+            mBase = in.readUTF();
             mEdited = in.readUTF();
-            //Calculator.log("load " + mEdited);
-        } else {
+        }
+        else {
             throw new IOException("invalid version " + version);
         }
     }
-    
+
     void write(DataOutput out) throws IOException {
         out.writeUTF(mBase);
         out.writeUTF(mEdited);
-        //Calculator.log("save " + mEdited);
     }
 
     @Override
@@ -55,7 +54,7 @@ class HistoryEntry {
         mEdited = mBase;
     }
 
-    String getEdited() {
+    public String getEdited() {
         return mEdited;
     }
 
@@ -63,7 +62,7 @@ class HistoryEntry {
         mEdited = edited;
     }
 
-    String getBase() {
+    public String getBase() {
         return mBase;
     }
 }

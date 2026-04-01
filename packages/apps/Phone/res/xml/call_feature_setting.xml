@@ -34,6 +34,63 @@
             android:title="@string/vibrate_on_ring_title"
             android:persistent="false"
             android:defaultValue="false" />
+
+        <ListPreference
+            android:key="flip_action"
+            android:title="@string/flip_action_title"
+            android:dialogTitle="@string/flip_action_dialog_title"
+            android:entries="@array/flip_action_setting_entries"
+            android:entryValues="@array/flip_action_setting_values"
+            android:defaultValue="0" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_advanced_settings"
+        android:title="@string/advanced_setting">
+
+        <CheckBoxPreference
+            android:key="button_vibrate_outgoing"
+            android:title="@string/vibrate_outgoing"
+            android:persistent="true" />
+
+        <CheckBoxPreference
+            android:key="button_vibrate_call_waiting"
+            android:title="@string/vibrate_call_waiting"
+            android:persistent="true" />
+
+        <CheckBoxPreference
+            android:key="button_vibrate_hangup"
+            android:title="@string/vibrate_hangup"
+            android:persistent="true" />
+
+        <CheckBoxPreference
+            android:key="button_vibrate_45"
+            android:title="@string/vibrate_45"
+            android:persistent="true"
+            android:summary="@string/vibrate_45_sum" />
+
+        <CheckBoxPreference
+            android:key="button_calllog_after_call"
+            android:title="@string/calllog_after_call"
+            android:summary="@string/calllog_after_call_summary"
+            android:persistent="true"
+            android:defaultValue="false" />
+
+        <PreferenceScreen
+            android:key="button_blacklist"
+            android:title="@string/blacklist_title"
+            android:persistent="false">
+            <intent android:action="android.intent.action.MAIN"
+                android:targetPackage="com.android.settings"
+                android:targetClass="com.android.settings.Settings$BlacklistSettingsActivity" />
+        </PreferenceScreen>
+
+        <CheckBoxPreference
+            android:key="button_rejected_as_missed"
+            android:title="@string/rejected_as_missed"
+            android:persistent="true"
+            android:summary="@string/rejected_as_missed_sum" />
+
     </PreferenceCategory>
 
   <PreferenceCategory
@@ -45,6 +102,14 @@
       android:key="button_voicemail_category_key"
       android:title="@string/voicemail"
       android:persistent="false">
+
+      <CheckBoxPreference
+          android:defaultValue="false"
+          android:key="button_mwi_notification_key"
+          android:title="@string/mwi_notification_title"
+          android:persistent="false"
+          android:summary="@string/mwi_notification_summary" />
+
       <ListPreference
           android:key="button_voicemail_provider_key"
           android:title="@string/voicemail_provider"
@@ -147,6 +212,19 @@
         android:entries="@array/dtmf_tone_entries"
         android:entryValues="@array/dtmf_tone_values"/>
 
+    <ListPreference
+        android:key="button_voice_quality_key"
+        android:title="@string/voice_quality_preferences_title"
+        android:dialogTitle="@string/voice_quality_preferences_title"
+        android:entries="@array/voice_quality_entries"
+        android:entryValues="@array/voice_quality_values"/>
+
+    <CheckBoxPreference
+        android:key="button_noise_suppression_key"
+        android:title="@string/noise_suppression_title"
+        android:summary="@string/noise_suppression_summary"
+        android:defaultValue="1"/>
+
     <PreferenceScreen
         android:key="button_gsm_more_expand_key"
         android:title="@string/labelGSMMore"
@@ -168,4 +246,5 @@
             android:targetPackage="com.android.phone"
             android:targetClass="com.android.phone.CdmaCallOptions"/>
     </PreferenceScreen>
+
 </PreferenceScreen>

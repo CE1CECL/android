@@ -31,6 +31,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.os.SystemProperties;
 import android.provider.OpenableColumns;
 import android.text.InputFilter;
 import android.text.SpannableStringBuilder;
@@ -62,6 +63,7 @@ import com.android.email.EmailAddressValidator;
 import com.android.email.R;
 import com.android.email.RecipientAdapter;
 import com.android.email.activity.setup.AccountSettings;
+import com.android.email.activity.setup.AccountSetupBasics;
 import com.android.email.mail.internet.EmailHtmlUtil;
 import com.android.emailcommon.Logging;
 import com.android.emailcommon.internet.MimeUtility;
@@ -78,6 +80,7 @@ import com.android.emailcommon.provider.Mailbox;
 import com.android.emailcommon.provider.QuickResponse;
 import com.android.emailcommon.utility.AttachmentUtilities;
 import com.android.emailcommon.utility.EmailAsyncTask;
+import com.android.emailcommon.utility.TextUtilities;
 import com.android.emailcommon.utility.Utility;
 import com.android.ex.chips.AccountSpecifier;
 import com.android.ex.chips.ChipsUtil;
@@ -110,6 +113,8 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     private static final String ACTION_REPLY = "com.android.email.intent.action.REPLY";
     private static final String ACTION_REPLY_ALL = "com.android.email.intent.action.REPLY_ALL";
     private static final String ACTION_FORWARD = "com.android.email.intent.action.FORWARD";
+    private static final String ACTION_FORWARD_PARTLY
+            = "com.android.email.intent.action.FORWARD.PARTLY";
     private static final String ACTION_EDIT_DRAFT = "com.android.email.intent.action.EDIT_DRAFT";
 
     private static final String EXTRA_ACCOUNT_ID = "account_id";
@@ -200,7 +205,12 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     private boolean mMessageLoaded;
     private boolean mInitiallyEmpty;
     private boolean mPickingAttachment = false;
-    private Boolean mQuickResponsesAvailable = true;
+
+    /**
+     * Adding a flag to indicate whether current state is picking contact.
+     */
+    private boolean mQuickResponsesAvailable = true;
+    private boolean mFinishedForNoAccount = false;
     private final EmailAsyncTask.Tracker mTaskTracker = new EmailAsyncTask.Tracker();
 
     private AccountSpecifier mAddressAdapterTo;
@@ -314,6 +324,15 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     }
 
     /**
+     * Compose a new method to forward the given message. And remove the uncompleted attachment.
+     * @param context
+     * @param messageId
+     */
+    public static void actionForwardPartly(Context context, long messageId) {
+        startActivityWithMessage(context, ACTION_FORWARD_PARTLY, messageId);
+    }
+
+    /**
      * Continue composition of the given message. This action modifies the way this Activity
      * handles certain actions.
      * Save will attempt to replace the message in the given folder with the updated version.
@@ -362,7 +381,15 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         if (accountId == Account.NO_ACCOUNT || account == null) {
             // There are no accounts set up. This should not have happened. Prompt the
             // user to set up an account as an acceptable bailout.
-            Welcome.actionStart(this);
+            if (Intent.ACTION_VIEW.equals(mAction)
+                    || Intent.ACTION_SENDTO.equals(mAction)
+                    || Intent.ACTION_SEND.equals(mAction)
+                    || Intent.ACTION_SEND_MULTIPLE.equals(mAction)) {
+                AccountSetupBasics.actionSetupAccountThenCompose(this, getIntent());
+            } else {
+                Welcome.actionStart(this);
+            }
+            mFinishedForNoAccount = true;
             finish();
         } else {
             setAccount(account);
@@ -403,7 +430,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         if (savedInstanceState != null) {
             long draftId = savedInstanceState.getLong(STATE_KEY_DRAFT_ID, Message.NOT_SAVED);
             long existingSaveTaskId = savedInstanceState.getLong(STATE_KEY_LAST_SAVE_TASK_ID, -1);
-            setAction(savedInstanceState.getString(STATE_KEY_ACTION));
+            setAction(savedInstanceState.getString(STATE_KEY_ACTION), true /* restore views */);
             SendOrSaveMessageTask existingSaveTask = sActiveSaveTasks.get(existingSaveTaskId);
 
             if ((draftId != Message.NOT_SAVED) || (existingSaveTask != null)) {
@@ -417,7 +444,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
             }
         } else {
             Intent intent = getIntent();
-            setAction(intent.getAction());
+            setAction(intent.getAction(), true /* restore views */);
             resolveIntent(intent);
         }
     }
@@ -434,13 +461,17 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                 || ACTION_REPLY_ALL.equals(mAction)
                 || ACTION_FORWARD.equals(mAction)) {
             long sourceMessageId = getIntent().getLongExtra(EXTRA_MESSAGE_ID, Message.NOT_SAVED);
-            loadSourceMessage(sourceMessageId, true);
-
+            loadSourceMessage(sourceMessageId, true, true /* smart forward */);
+            setMessageChanged(true);
+        } else if (ACTION_FORWARD_PARTLY.equals(mAction)) {
+            long sourceMessageId = getIntent().getLongExtra(EXTRA_MESSAGE_ID, Message.NOT_SAVED);
+            loadSourceMessage(sourceMessageId, true, false /* forward partly */);
+            setMessageChanged(true);
         } else if (ACTION_EDIT_DRAFT.equals(mAction)) {
             // Assert getIntent.hasExtra(EXTRA_MESSAGE_ID)
             long draftId = getIntent().getLongExtra(EXTRA_MESSAGE_ID, Message.NOT_SAVED);
             resumeDraft(draftId, null, true /* restore views */);
-
+            setMessageChanged(true);
         } else {
             // Normal compose flow for a new message.
             setAccount(intent);
@@ -468,7 +499,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     @Override
     public void setIntent(Intent intent) {
         super.setIntent(intent);
-        setAction(intent.getAction());
+        setAction(intent.getAction(), true /* restore views */);
     }
 
     private void setQuickResponsesAvailable(boolean quickResponsesAvailable) {
@@ -517,12 +548,6 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         }
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        saveIfNeeded();
-    }
-
     /**
      * We override onDestroy to make sure that the WebView gets explicitly destroyed.
      * Otherwise it can leak native references.
@@ -530,6 +555,9 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     @Override
     public void onDestroy() {
         super.onDestroy();
+        // Save the draft if need.
+        saveIfNeeded();
+
         mQuotedText.destroy();
         mQuotedText = null;
 
@@ -734,6 +762,11 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         mCcView.setFilters(recipientFilters);
         mBccView.setFilters(recipientFilters);
 
+        // pop-up the list after a single char is typed
+        mToView.setThreshold(1);
+        mCcView.setThreshold(1);
+        mBccView.setThreshold(1);
+
         /*
          * We set this to invisible by default. Other methods will turn it back on if it's
          * needed.
@@ -865,13 +898,17 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                         for (Attachment attachment: attachments) {
                             addAttachment(attachment);
                         }
+                        if (!mAttachments.isEmpty()) {
+                            setMessageChanged(true);
+                        }
                     }
                 });
 
                 // If we're resuming an edit of a reply, reply-all, or forward, re-load the
                 // source message if available so that we get more information.
                 if (message.mSourceKey != Message.NOT_SAVED) {
-                    loadSourceMessage(message.mSourceKey, false /* restore views */);
+                    loadSourceMessage(message.mSourceKey, false /* restore views */,
+                            true /* smart forward */);
                 }
             }
 
@@ -902,7 +939,6 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
             showCcBccFieldsIfFilled();
             setNewMessageFocus();
         }
-        setMessageChanged(false);
 
         // The quoted text must always be restored.
         displayQuotedText(message.mTextReply, message.mHtmlReply);
@@ -914,7 +950,8 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
      * Asynchronously loads a source message (to be replied or forwarded in this current view),
      * populating text fields and quoted text fields when the load finishes, if requested.
      */
-    private void loadSourceMessage(long sourceMessageId, final boolean restoreViews) {
+    private void loadSourceMessage(long sourceMessageId, final boolean restoreViews,
+            final boolean smartForward) {
         new LoadMessageTask(sourceMessageId, null, new OnMessageLoadHandler() {
             @Override
             public void onMessageLoaded(Message message, Body body) {
@@ -942,6 +979,9 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                             if (supportsSmartForward) {
                                 attachment.mFlags |= Attachment.FLAG_SMART_FORWARD;
                             }
+                            if (!smartForward && TextUtils.isEmpty(attachment.mContentUri)) {
+                                continue;
+                            }
                             mSourceAttachments.add(attachment);
                         }
                         if (isForward() && restoreViews) {
@@ -959,7 +999,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                     // Use a best guess and infer the action here.
                     String inferredAction = inferAction();
                     if (inferredAction != null) {
-                        setAction(inferredAction);
+                        setAction(inferredAction, restoreViews);
                         // No need to update the action selector as switching actions should do it.
                         return;
                     }
@@ -1344,6 +1384,14 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                     values.put(BodyColumns.INTRO_TEXT, mDraft.mIntroText);
                     values.put(BodyColumns.SOURCE_MESSAGE_KEY, mDraft.mSourceKey);
                     Body.updateBodyWithMessageId(MessageCompose.this, mDraft.mId, values);
+                    // Update the snippet after edit the draft
+                    if (mDraft.mText != null) {
+                        ContentValues snippetValues = new ContentValues();
+                        snippetValues.put(MessageColumns.SNIPPET,
+                                TextUtilities.makeSnippetFromPlainText(mDraft.mText));
+                        getContentResolver().update(Message.CONTENT_URI, snippetValues,
+                                MessageColumns.ID + "=" + mDraft.mId, null);
+                    }
                 } else {
                     // mDraft.mId is set upon return of saveToMailbox()
                     mController.saveToMailbox(mDraft, Mailbox.TYPE_DRAFTS);
@@ -1442,7 +1490,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
    }
 
     private void saveIfNeeded() {
-        if (!mDraftNeedsSaving) {
+        if (!mDraftNeedsSaving || mFinishedForNoAccount) {
             return;
         }
         setMessageChanged(false);
@@ -1557,7 +1605,11 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         Intent i = new Intent(Intent.ACTION_GET_CONTENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        i.setType(AttachmentUtilities.ACCEPTABLE_ATTACHMENT_SEND_UI_TYPES[0]);
+        if (SystemProperties.getBoolean("persist.env.email.attachfile", true)) {
+            i.setType(AttachmentUtilities.ACCEPTABLE_ATTACHMENT_SEND_INTENT_TYPES[0]);
+        } else {
+            i.setType(AttachmentUtilities.ACCEPTABLE_ATTACHMENT_SEND_UI_TYPES[0]);
+        }
         mPickingAttachment = true;
         startActivityForResult(
                 Intent.createChooser(i, getString(R.string.choose_attachment_dialog_title)),
@@ -1597,8 +1649,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
             if (size <= 0) {
                 // The size was not measurable;  This attachment is not safe to use.
                 // Quick hack to force a relevant error into the UI
-                // TODO: A proper announcement of the problem
-                size = AttachmentUtilities.MAX_ATTACHMENT_UPLOAD_SIZE + 1;
+                size = AttachmentUtilities.ATTACHMENT_UPLOAD_NO_SIZE;
             }
         }
 
@@ -1614,6 +1665,10 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         // Before attaching the attachment, make sure it meets any other pre-attach criteria
         if (attachment.mSize > AttachmentUtilities.MAX_ATTACHMENT_UPLOAD_SIZE) {
             Toast.makeText(this, R.string.message_compose_attachment_size, Toast.LENGTH_LONG)
+                    .show();
+            return;
+        } else if (attachment.mSize == AttachmentUtilities.ATTACHMENT_UPLOAD_NO_SIZE) {
+            Toast.makeText(this, R.string.message_compose_attachment_no_size, Toast.LENGTH_LONG)
                     .show();
             return;
         }
@@ -1806,33 +1861,35 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
         }
     }
 
-    private void setAction(String action) {
+    private void setAction(String action, final boolean restoreViews) {
         if (Objects.equal(action, mAction)) {
             return;
         }
 
         mAction = action;
-        onActionChanged();
+        onActionChanged(restoreViews);
     }
 
     /**
      * Handles changing from reply/reply all/forward states. Note: this activity cannot transition
      * from a standard compose state to any of the other three states.
      */
-    private void onActionChanged() {
+    private void onActionChanged(final boolean restoreViews) {
         if (!hasSourceMessage()) {
             return;
         }
         // Temporarily remove listeners so that changing action does not invalidate and save message
         removeListeners();
 
-        processSourceMessage(mSource, mAccount);
+        if (restoreViews) {
+            processSourceMessage(mSource, mAccount);
 
-        // Note that the attachments might not be loaded yet, but this will safely noop
-        // if that's the case, and the attachments will be processed when they load.
-        if (processSourceMessageAttachments(mAttachments, mSourceAttachments, isForward())) {
-            updateAttachmentUi();
-            setMessageChanged(true);
+            // Note that the attachments might not be loaded yet, but this will safely noop
+            // if that's the case, and the attachments will be processed when they load.
+            if (processSourceMessageAttachments(mAttachments, mSourceAttachments, isForward())) {
+                updateAttachmentUi();
+                setMessageChanged(true);
+            }
         }
 
         updateActionSelector();
@@ -1857,7 +1914,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     private final OnNavigationListener ACTION_SPINNER_LISTENER = new OnNavigationListener() {
         @Override
         public boolean onNavigationItemSelected(int itemPosition, long itemId) {
-            setAction(ActionSpinnerAdapter.getAction(itemPosition));
+            setAction(ActionSpinnerAdapter.getAction(itemPosition), true /* restore views */);
             return true;
         }
     };
@@ -1915,7 +1972,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
                 return 0;
             } else if (ACTION_REPLY_ALL.equals(action)) {
                 return 1;
-            } else if (ACTION_FORWARD.equals(action)) {
+            } else if (ACTION_FORWARD.equals(action) || ACTION_FORWARD_PARTLY.equals(action)) {
                 return 2;
             }
             Log.w(Logging.LOG_TAG, "Invalid action type for spinner");
@@ -1984,6 +2041,11 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     void initFromIntent(Intent intent) {
 
         setAccount(intent);
+
+        if (mFinishedForNoAccount) {
+            // If there isn't any account, we needn't do anything.
+            return;
+        }
 
         // First, add values stored in top-level extras
         String[] extraStrings = intent.getStringArrayExtra(Intent.EXTRA_EMAIL);
@@ -2215,7 +2277,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
             }
             displayQuotedText(message.mText, message.mHtml);
             setIncludeQuotedText(true, false);
-        } else if (ACTION_FORWARD.equals(mAction)) {
+        } else if (ACTION_FORWARD.equals(mAction) || ACTION_FORWARD_PARTLY.equals(mAction)) {
             // If we had previously filled the recipients from a draft, don't erase them here!
             if (!ACTION_EDIT_DRAFT.equals(getIntent().getAction())) {
                 clearAddressViews();
@@ -2324,7 +2386,7 @@ public class MessageCompose extends Activity implements OnClickListener, OnFocus
     }
 
     private boolean isForward() {
-        return ACTION_FORWARD.equals(mAction);
+        return ACTION_FORWARD.equals(mAction) || ACTION_FORWARD_PARTLY.equals(mAction);
     }
 
     /**

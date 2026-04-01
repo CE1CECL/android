@@ -6,6 +6,9 @@
  * Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010 Apple Inc. All rights reserved.
  * Copyright (C) 2008, 2009 Torch Mobile Inc. All rights reserved. (http://www.torchmobile.com/)
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
+ * Copyright (c) 2011, 2012 The Linux Foundation All rights reserved
+ * Copyright (C) 2011, 2012 Sony Ericsson Mobile Communications AB
+ * Copyright (C) 2012 Sony Mobile Communcations AB
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -101,6 +104,7 @@ class MediaQueryMatcher;
 class MouseEventWithHitTestResults;
 class NodeFilter;
 class NodeIterator;
+class NodeRareData;
 class Page;
 class PlatformMouseEvent;
 class ProcessingInstruction;
@@ -1035,6 +1039,15 @@ public:
     void initializeWMLPageState();
 #endif
     
+#if ENABLE(WEBGL) && PLATFORM(ANDROID)
+    void setContainsWebGLContent(bool value) { m_containsWebGLContent = value; }
+    bool containsWebGLContent() const { return m_containsWebGLContent; }
+    void suspendDocument();
+    void resumeDocument();
+    void registerForDocumentSuspendCallbacks(Element*);
+    void unregisterForDocumentSuspendCallbacks(Element*);
+#endif
+
     bool containsValidityStyleRules() const { return m_containsValidityStyleRules; }
     void setContainsValidityStyleRules() { m_containsValidityStyleRules = true; }
 
@@ -1085,8 +1098,8 @@ public:
     const DocumentTiming* timing() const { return &m_documentTiming; }
 
 #if ENABLE(REQUEST_ANIMATION_FRAME)
-    int webkitRequestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback>, Element*);
-    void webkitCancelRequestAnimationFrame(int id);
+    int webkitRequestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback>);
+    void webkitCancelAnimationFrame(int id);
     void serviceScriptedAnimations(DOMTimeStamp);
 #endif
 
@@ -1097,11 +1110,13 @@ public:
 
     ContentSecurityPolicy* contentSecurityPolicy() { return m_contentSecurityPolicy.get(); }
 
+    NodeRareData* documentRareData() const { return m_documentRareData; };
+    void setDocumentRareData(NodeRareData* rareData) { m_documentRareData = rareData; }
+
 protected:
     Document(Frame*, const KURL&, bool isXHTML, bool isHTML);
 
     void clearXMLVersion() { m_xmlVersion = String(); }
-
 
 private:
     friend class IgnoreDestructiveWriteCountIncrementer;
@@ -1364,8 +1379,15 @@ private:
     
     RefPtr<EventQueue> m_eventQueue;
 
+    NodeRareData* m_documentRareData;
+
 #if ENABLE(WML)
     bool m_containsWMLContent;
+#endif
+
+#if ENABLE(WEBGL) && PLATFORM(ANDROID)
+    bool m_containsWebGLContent;
+    HashSet<Element*> m_documentSuspendCallbackElements;
 #endif
 
     RefPtr<DocumentWeakReference> m_weakReference;
@@ -1412,8 +1434,13 @@ inline Node::Node(Document* document, ConstructionType type)
     : m_document(document)
     , m_previous(0)
     , m_next(0)
+#ifdef __ARM_USE_PLD
+    , m_prefetch(0)
+#endif
     , m_renderer(0)
     , m_nodeFlags(type)
+    , m_previousNode(0)
+    , m_nextNode(0)
 {
     if (m_document)
         m_document->guardRef();

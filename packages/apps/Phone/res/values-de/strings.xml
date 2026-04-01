@@ -174,6 +174,16 @@
     <string name="preferred_network_mode_global_summary" msgid="1633134285545730364">"Bevorzugter Netzwerkmodus: Global"</string>
     <string name="preferred_network_mode_lte_wcdma_summary" msgid="9180775701594742750">"Bevorzugter Netzwerkmodus: LTE/WCDMA"</string>
   <string-array name="preferred_network_mode_choices">
+    <item>TD-SCDMA/LTE/GSM/WCDMA/CDMA/EVDO</item>
+    <item>TD-SCDMA/GSM/WCDMA/CDMA/EVDO</item>
+    <item>TD-SCDMA/GSM/WCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA/LTE</item>
+    <item>TD-SCDMA/GSM/WCDMA</item>
+    <item>TD-SCDMA/GSM/LTE</item>
+    <item>TD-SCDMA/GSM</item>
+    <item>TD-SCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA</item>
+    <item>Nur TD-SCDMA</item>
     <item msgid="7886739962255042385">"LTE/WCDMA"</item>
     <item msgid="577652050447385699">"LTE"</item>
     <item msgid="6813597571293773656">"Global"</item>
@@ -483,7 +493,7 @@
     <string name="ota_speaker" msgid="6904589278542719647">"Lautspr."</string>
     <string name="ota_progress" msgid="3420314892609254729">"Bitte warten Sie, während Ihr Telefon programmiert wird."</string>
     <string name="ota_failure" msgid="4311299546379674378">"Programmierung fehlgeschlagen"</string>
-    <string name="ota_successful" msgid="1880780692887077407">"Ihr Telefon ist jetzt aktiviert. Es kann bis zu 15 Minuten dauern, bis der Dienst gestartet wird."</string>
+    <string name="ota_successful" msgid="1880780692887077407">"Ihr Telefon ist jetzt aktiviert. Es kann bis zu 15 Minuten dauern, bis der Dienst gestartet wird."</string>
     <string name="ota_unsuccessful" msgid="8072141612635635357">"Ihr Telefon wurde nicht aktiviert. "\n"Suchen Sie einen Bereich auf, in dem Sie besseren Empfang haben, zum Beispiel in der Nähe eines Fensters oder unter freiem Himmel. "\n\n"Versuchen Sie es bitte noch einmal oder rufen Sie den Kundenservice an."</string>
     <string name="ota_spc_failure" msgid="3909983542575030796">"ZU VIELE SPC-FEHLER"</string>
     <string name="ota_call_end" msgid="4537279738134612388">"Zurück"</string>

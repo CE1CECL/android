@@ -50,7 +50,7 @@ static int wpa_supplicant_global_iface_interfaces(struct wpa_global *global,
 
 static int pno_start(struct wpa_supplicant *wpa_s)
 {
-	int ret;
+	int ret, interval;
 	size_t i, num_ssid;
 	struct wpa_ssid *ssid;
 	struct wpa_driver_scan_params params;
@@ -108,7 +108,10 @@ static int pno_start(struct wpa_supplicant *wpa_s)
 	if (wpa_s->conf->filter_rssi)
 		params.filter_rssi = wpa_s->conf->filter_rssi;
 
-	ret = wpa_drv_sched_scan(wpa_s, &params, 10 * 1000);
+	interval = wpa_s->conf->sched_scan_interval ?
+		wpa_s->conf->sched_scan_interval : 10;
+
+	ret = wpa_drv_sched_scan(wpa_s, &params, interval * 1000);
 	os_free(params.filter_ssids);
 	if (ret == 0)
 		wpa_s->pno = 1;
@@ -569,6 +572,7 @@ static int wpa_supplicant_ctrl_iface_tdls_teardown(
 	struct wpa_supplicant *wpa_s, char *addr)
 {
 	u8 peer[ETH_ALEN];
+	int ret;
 
 	if (hwaddr_aton(addr, peer)) {
 		wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN: invalid "
@@ -579,8 +583,14 @@ static int wpa_supplicant_ctrl_iface_tdls_teardown(
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE TDLS_TEARDOWN " MACSTR,
 		   MAC2STR(peer));
 
-	return wpa_tdls_teardown_link(wpa_s->wpa, peer,
-				      WLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED);
+	if (wpa_tdls_is_external_setup(wpa_s->wpa))
+		ret = wpa_tdls_teardown_link(
+			wpa_s->wpa, peer,
+			WLAN_REASON_TDLS_TEARDOWN_UNSPECIFIED);
+	else
+		ret = wpa_drv_tdls_oper(wpa_s, TDLS_TEARDOWN, peer);
+
+	return ret;
 }
 
 #endif /* CONFIG_TDLS */
@@ -2012,6 +2022,8 @@ static int wpa_supplicant_ctrl_iface_scan_result(
 	const u8 *ie, *ie2, *p2p;
 
 	p2p = wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE);
+	if (!p2p)
+		p2p = wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE);
 	if (p2p && bss->ssid_len == P2P_WILDCARD_SSID_LEN &&
 	    os_memcmp(bss->ssid, P2P_WILDCARD_SSID, P2P_WILDCARD_SSID_LEN) ==
 	    0)
@@ -2963,6 +2975,55 @@ static int ctrl_iface_get_capability_channels(struct wpa_supplicant *wpa_s,
 }
 
 
+static int ctrl_iface_get_capability_freq(struct wpa_supplicant *wpa_s,
+					      char *buf, size_t buflen)
+{
+	struct hostapd_channel_data *chnl;
+	int ret, i, j;
+	char *pos, *end, *hmode;
+
+	pos = buf;
+	end = pos + buflen;
+
+	for (j = 0; j < wpa_s->hw.num_modes; j++) {
+		switch (wpa_s->hw.modes[j].mode) {
+		case HOSTAPD_MODE_IEEE80211B:
+			hmode = "B";
+			break;
+		case HOSTAPD_MODE_IEEE80211G:
+			hmode = "G";
+			break;
+		case HOSTAPD_MODE_IEEE80211A:
+			hmode = "A";
+			break;
+		default:
+			continue;
+		}
+		ret = os_snprintf(pos, end - pos, "Mode[%s] Channels:\n", hmode);
+		if (ret < 0 || ret >= end - pos)
+			return pos - buf;
+		pos += ret;
+		chnl = wpa_s->hw.modes[j].channels;
+		for (i = 0; i < wpa_s->hw.modes[j].num_channels; i++) {
+			if (chnl[i].flag & HOSTAPD_CHAN_DISABLED)
+				continue;
+			ret = os_snprintf(pos, end - pos, " %d = %d MHz%s\n",
+					  chnl[i].chan, chnl[i].freq,
+					  chnl[i].flag & HOSTAPD_CHAN_NO_IBSS ? " (NO_IBSS)" : "");
+			if (ret < 0 || ret >= end - pos)
+				return pos - buf;
+			pos += ret;
+		}
+		ret = os_snprintf(pos, end - pos, "\n");
+		if (ret < 0 || ret >= end - pos)
+			return pos - buf;
+		pos += ret;
+	}
+
+	return pos - buf;
+}
+
+
 static int wpa_supplicant_ctrl_iface_get_capability(
 	struct wpa_supplicant *wpa_s, const char *_field, char *buf,
 	size_t buflen)
@@ -3019,6 +3080,9 @@ static int wpa_supplicant_ctrl_iface_get_capability(
 
 	if (os_strcmp(field, "channels") == 0)
 		return ctrl_iface_get_capability_channels(wpa_s, buf, buflen);
+
+	if (os_strcmp(field, "freq") == 0)
+		return ctrl_iface_get_capability_freq(wpa_s, buf, buflen);
 
 	wpa_printf(MSG_DEBUG, "CTRL_IFACE: Unknown GET_CAPABILITY field '%s'",
 		   field);
@@ -3204,7 +3268,8 @@ static int print_bss_info(struct wpa_supplicant *wpa_s, struct wpa_bss *bss,
 				return 0;
 			pos += ret;
 		}
-		if (wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE)) {
+		if (wpa_bss_get_vendor_ie(bss, P2P_IE_VENDOR_TYPE) ||
+		    wpa_bss_get_vendor_ie_beacon(bss, P2P_IE_VENDOR_TYPE)) {
 			ret = os_snprintf(pos, end - pos, "[P2P]");
 			if (ret < 0 || ret >= end - pos)
 				return 0;
@@ -4147,7 +4212,8 @@ static int p2p_ctrl_group_add_persistent(struct wpa_supplicant *wpa_s,
 		return -1;
 	}
 
-	return wpas_p2p_group_add_persistent(wpa_s, ssid, 0, freq, ht40, NULL);
+	return wpas_p2p_group_add_persistent(wpa_s, ssid, 0, freq, ht40, NULL,
+					     0);
 }
 
 
@@ -4937,6 +5003,19 @@ static int wpas_ctrl_iface_wnm_sleep(struct wpa_supplicant *wpa_s, char *cmd)
 	return ret;
 }
 
+
+static int wpas_ctrl_iface_wnm_bss_query(struct wpa_supplicant *wpa_s, char *cmd)
+{
+	int query_reason;
+
+	query_reason = atoi(cmd);
+
+	wpa_printf(MSG_DEBUG, "CTRL_IFACE: WNM_BSS_QUERY query_reason=%d",
+		   query_reason);
+
+	return wnm_send_bss_transition_mgmt_query(wpa_s, query_reason);
+}
+
 #endif /* CONFIG_WNM */
 
 
@@ -4984,7 +5063,27 @@ static int wpa_supplicant_driver_cmd(struct wpa_supplicant *wpa_s, char *cmd,
 {
 	int ret;
 
-	ret = wpa_drv_driver_cmd(wpa_s, cmd, buf, buflen);
+	if (os_strncasecmp(cmd, "SETBAND ", 8) == 0) {
+		int val = atoi(cmd + 8);
+		/*
+		* Use driver_cmd for drivers that support it, but ignore the
+		* return value since scan requests from wpa_supplicant will
+		* provide a list of channels to scan for based on the SETBAND
+		* setting.
+		*/
+		wpa_printf(MSG_DEBUG, "SETBAND: %d", val);
+		wpa_drv_driver_cmd(wpa_s, cmd, buf, buflen);
+		ret = 0;
+		if (val == 0)
+			wpa_s->setband = WPA_SETBAND_AUTO;
+		else if (val == 1)
+			wpa_s->setband = WPA_SETBAND_5G;
+		else if (val == 2)
+			wpa_s->setband = WPA_SETBAND_2G;
+		else
+			ret = -1;
+	} else
+		ret = wpa_drv_driver_cmd(wpa_s, cmd, buf, buflen);
 	if (ret == 0)
 		ret = sprintf(buf, "%s\n", "OK");
 	return ret;
@@ -5573,6 +5672,9 @@ char * wpa_supplicant_ctrl_iface_process(struct wpa_supplicant *wpa_s,
 	} else if (os_strncmp(buf, "WNM_SLEEP ", 10) == 0) {
 		if (wpas_ctrl_iface_wnm_sleep(wpa_s, buf + 10))
 			reply_len = -1;
+	} else if (os_strncmp(buf, "WNM_BSS_QUERY ", 10) == 0) {
+		if (wpas_ctrl_iface_wnm_bss_query(wpa_s, buf + 10))
+				reply_len = -1;
 #endif /* CONFIG_WNM */
 	} else if (os_strcmp(buf, "FLUSH") == 0) {
 		wpa_supplicant_ctrl_iface_flush(wpa_s);

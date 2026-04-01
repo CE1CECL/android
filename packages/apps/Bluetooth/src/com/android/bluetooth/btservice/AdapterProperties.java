@@ -347,15 +347,24 @@ class AdapterProperties {
     private boolean updateCountersAndCheckForConnectionStateChange(int state, int prevState) {
         switch (prevState) {
             case BluetoothProfile.STATE_CONNECTING:
-                mProfilesConnecting--;
+                if (mProfilesConnecting > 0)
+                    mProfilesConnecting--;
+                else
+                    Log.e(TAG, "mProfilesConnecting " + mProfilesConnecting);
                 break;
 
             case BluetoothProfile.STATE_CONNECTED:
-                mProfilesConnected--;
+                if (mProfilesConnected > 0)
+                    mProfilesConnected--;
+                else
+                    Log.e(TAG, "mProfilesConnected " + mProfilesConnected);
                 break;
 
             case BluetoothProfile.STATE_DISCONNECTING:
-                mProfilesDisconnecting--;
+                if (mProfilesDisconnecting > 0)
+                    mProfilesDisconnecting--;
+                else
+                    Log.e(TAG, "mProfilesDisconnecting " + mProfilesDisconnecting);
                 break;
         }
 
@@ -502,15 +511,22 @@ class AdapterProperties {
         // When BT is being turned on, all adapter properties will be sent in 1
         // callback. At this stage, set the scan mode.
         synchronized (mObject) {
-            if (getState() == BluetoothAdapter.STATE_TURNING_ON &&
-                    mScanMode == BluetoothAdapter.SCAN_MODE_NONE) {
+            if (getState() == BluetoothAdapter.STATE_TURNING_ON) {
                     /* mDiscoverableTimeout is part of the
                        adapterPropertyChangedCallback received before
                        onBluetoothReady */
-                    if (mDiscoverableTimeout != 0)
-                      setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE);
-                    else /* if timeout == never (0) at startup */
-                      setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+                    switch (mScanMode) {
+                        case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                            if (mDiscoverableTimeout != 0)
+                                setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE);
+                            else
+                                setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+                            break;
+                        case BluetoothAdapter.SCAN_MODE_NONE:
+                        case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+                        default:
+                            setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE);
+                    }
                     /* though not always required, this keeps NV up-to date on first-boot after flash */
                     setDiscoverableTimeout(mDiscoverableTimeout);
             }
@@ -527,19 +543,31 @@ class AdapterProperties {
         //continue with disable sequence
         debugLog("onBluetoothDisable()");
         mBluetoothDisabling = true;
+
         if (getState() == BluetoothAdapter.STATE_TURNING_OFF) {
-            setScanMode(AbstractionLayer.BT_SCAN_MODE_NONE);
+           switch (mScanMode) {
+               case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                   if (mDiscoverableTimeout != 0)
+                       setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE);
+                   else
+                       setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE_DISCOVERABLE);
+                   break;
+               case BluetoothAdapter.SCAN_MODE_NONE:
+               case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+               default:
+                   setScanMode(AbstractionLayer.BT_SCAN_MODE_CONNECTABLE);
+           }
         }
     }
     void discoveryStateChangeCallback(int state) {
-        infoLog("Callback:discoveryStateChangeCallback with state:" + state);
+        infoLog("Callback:discoveryStateChangeCallback with state:" + state + " disc: " + mDiscovering);
         synchronized (mObject) {
             Intent intent;
             if (state == AbstractionLayer.BT_DISCOVERY_STOPPED) {
                 mDiscovering = false;
                 intent = new Intent(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
                 mService.sendBroadcast(intent, mService.BLUETOOTH_PERM);
-            } else if (state == AbstractionLayer.BT_DISCOVERY_STARTED) {
+            } else if ((state == AbstractionLayer.BT_DISCOVERY_STARTED) && !mDiscovering) {
                 mDiscovering = true;
                 intent = new Intent(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
                 mService.sendBroadcast(intent, mService.BLUETOOTH_PERM);

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (C) 2013 The CyanogenMod Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="enter_input">El mensaje USSD debe tener entre <xliff:g id="min_len" >%d</xliff:g> y <xliff:g id="max_len" >%d</xliff:g> caracteres. Por favor, inténtalo de nuevo.</string>
+    <string name="throttle_status_subtext">Máx de <xliff:g id="used">%1$s</xliff:g> (<xliff:g id="used">%2$d</xliff:g>\u066A) del período <xliff:g id="used">%3$s</xliff:g>\nPróx período en <xliff:g id="used">%4$d</xliff:g> días (<xliff:g id="used">%5$s</xliff:g>)</string>
+    <string name="throttle_data_usage_subtext">Máx de <xliff:g id="used">%1$s</xliff:g> (<xliff:g id="used">%2$d</xliff:g>\u066A) del período <xliff:g id="used">%3$s</xliff:g></string>
+    <string name="callFailed_dialToUssd">Solicitud DIAL modificada por solicitud USSD.</string>
+    <string name="callFailed_dialToSs">Solicitud DIAL modificada por solicitud SS.</string>
+    <string name="callFailed_dialToDial">Solicitud DIAL modificada por DIAL con distinta numeración.</string>
+    <string name="callFailed_incoming_cb_enabled">Se han bloqueado todas las llamadas entrantes.</string>
+    <string name="modify_call_prompt_yes">Sí</string>
+    <string name="modify_call_prompt_no">No</string>
+    <string name="modify_call_failure_str">Falló la solicitud de modificación de llamada\n</string>
+    <string name="modify_call_option_title">¿Qué tipo de llamada?</string>
+    <string name="modify_call_option_vt">Vídeollamada</string>
+    <string name="modify_call_option_vt_tx">Transmisión de vídeo</string>
+    <string name="modify_call_option_vt_rx">Recepción de vídeo</string>
+    <string name="modify_call_option_voice">Solo voz</string>
+    <string name="accept_modify_call_request_prompt">¿Aceptar la solicitud de modificación de llamada?</string>
+    <string name="upgrade_vt_prompt">¿Quieres cambiar la llamada a videollamada?</string>
+    <string name="upgrade_vt_tx_prompt">¿Quieres cambiar la llamada a videollamada de solo transmisión?</string>
+    <string name="upgrade_vt_rx_prompt">¿Quieres cambiar la llamada a videollamada de solo recepción?</string>
+    <string name="vt_init_fail_str">Falló la inicialización de videollamada. Cambiando la llamada a voz sobre LTE\n</string>
+    <string name="label_nsdp">PIN de subgrupo de red de SIM</string>
+    <string name="label_cdp">PIN corporativo de SIM</string>
+    <string name="label_spdp">PIN del proveedor de servicio de SIM</string>
+    <string name="label_sdp">PIN de desbloqueo de SIM</string>
+    <string name="label_rn1dp">PIN de desbloqueo de red1 de RUIM</string>
+    <string name="label_rn2dp">PIN de desbloqueo de red2 de RUIM</string>
+    <string name="label_rhrpd">PIN de Hrpd de RUIM</string>
+    <string name="label_rcdp">PIN corporativo de RUIM</string>
+    <string name="label_rspdp">PIN del proveedor de servicio de RUIM</string>
+    <string name="label_rdp">PIN de desbloqueo de RUIM</string>
+    <string name="label_puk">Introducir PUK</string>
+    <string name="requesting_nw_unlock">Solicitando desbloqueo de red de SIM\u2026</string>
+    <string name="requesting_nw_subset_unlock">Solicitando desbloqueo de subgrupo de red de SIM\u2026</string>
+    <string name="requesting_sp_unlock">Solicitando desbloqueo del proveedor de servicios de SIM\u2026</string>
+    <string name="requesting_corporate_unlock">Solicitando desbloqueo corporativo de SIM\u2026</string>
+    <string name="requesting_sim_unlock">Solicitando desbloqueo de SIM\u2026</string>
+    <string name="requesting_rnw1_unlock">Solicitando desbloqueo de red1 RUIM\u2026</string>
+    <string name="requesting_rnw2_unlock">Solicitando desbloqueo de red2 RUIM\u2026</string>
+    <string name="requesting_rhrpd_unlock">Solicitando desbloqueo de Hrpd RUIM\u2026</string>
+    <string name="requesting_rsp_unlock">Solicitando desbloqueo del proveedor de servicio de RUIM\u2026</string>
+    <string name="requesting_rc_unlock">Solicitando desbloqueo corporativo de RUIM\u2026</string>
+    <string name="requesting_ruim_unlock">Solicitando desbloqueo de RUIM\u2026</string>
+    <string name="requesting_puk_unlock">Solicitando desbloqueo de PUK\u2026</string>
+    <string name="nw_unlock_failed">Falló la solicitud de desbloqueo de red de SIM.</string>
+    <string name="nw_subset_unlock_failed">Falló la solicitud de desbloqueo de subgrupo de red de SIM.</string>
+    <string name="sp_unlock_failed">Falló la solicitud de desbloqueo del proveedor de servicios de SIM.</string>
+    <string name="corporate_unlock_failed">Falló la solicitud de desbloqueo corporativo de SIM.</string>
+    <string name="sim_unlock_failed">Falló la solicitud de desbloqueo de SIM.</string>
+    <string name="rnw1_unlock_failed">Falló la solicitud de desbloqueo de red1 de RUIM.</string>
+    <string name="rnw2_unlock_failed">Falló la solicitud de desbloqueo de red2 de RUIM.</string>
+    <string name="rhrpd_unlock_failed">Falló la solicitud de desbloqueo de Hrpd de RUIM.</string>
+    <string name="rsp_unlock_failed">Falló la solicitud de desbloqueo del proveedor de servicios de RUIM.</string>
+    <string name="rc_unlock_failed">Falló la solicitud de desbloqueo corporativo de RUIM.</string>
+    <string name="ruim_unlock_failed">Falló la solicitud de desbloqueo de RUIM.</string>
+    <string name="puk_unlock_failed">Falló la solicitud de desbloqueo de PUK.</string>
+    <string name="nw_unlock_success">Desbloqueo de red de SIM satisfactorio.</string>
+    <string name="nw_subset_unlock_success">Desbloqueo de subgrupo red de SIM satisfactorio.</string>
+    <string name="sp_unlock_success">Desbloqueo del proveedor de servicios de SIM satisfactorio.</string>
+    <string name="corporate_unlock_success">Desbloqueo corporativo de SIM satisfactorio.</string>
+    <string name="sim_unlock_success">Desbloqueo de SIM satisfactorio.</string>
+    <string name="rnw1_unlock_success">Desbloqueo de red1 de RUIM satisfactorio.</string>
+    <string name="rnw2_unlock_success">Desbloqueo de red2 de RUIM satisfactorio.</string>
+    <string name="rhrpd_unlock_success">Desbloqueo de Hrpd de RUIM satisfactorio.</string>
+    <string name="rsp_unlock_success">Desbloqueo del proveedor de servicios de RUIM satisfactorio.</string>
+    <string name="rc_unlock_success">Desbloqueo corporativo de RUIM satisfactorio.</string>
+    <string name="ruim_unlock_success">Desbloqueo de RUIM satisfactorio.</string>
+    <string name="puk_unlock_success">Desbloqueo de PUK satisfactorio.</string>
+    <string name="stk_cc_ss_to_dial_error">Solicitud SS modificada por solicitud DIAL.</string>
+    <string name="stk_cc_ss_to_ussd_error">Solicitud SS modificada por solicitud USSD.</string>
+    <string name="stk_cc_ss_to_ss_error">Solicitud SS modificada por nueva solicitud SS.</string>
+    <string name="preferred_network_mode_td_scdma_only_summary">Modo de red preferido: solo TD-SCDMA</string>
+    <string name="preferred_network_mode_td_scdma_wcdma_summary">Modo de red preferido: TD-SCDMA / WCDMA</string>
+    <string name="preferred_network_mode_td_scdma_lte_summary">Modo de red preferido: TD-SCDMA / LTE</string>
+    <string name="preferred_network_mode_td_scdma_gsm_summary">Modo de red preferido: TD-SCDMA / GSM</string>
+    <string name="preferred_network_mode_td_scdma_gsm_lte_summary">Modo de red preferido: TD-SCDMA / GSM / LTE</string>
+    <string name="preferred_network_mode_td_scdma_gsm_wcdma_summary">Modo de red preferido: TD-SCDMA / GSM / WCDMA</string>
+    <string name="preferred_network_mode_td_scdma_wcdma_lte_summary">Modo de red preferido: TD-SCDMA / WCDMA / LTE</string>
+    <string name="preferred_network_mode_td_scdma_gsm_wcdma_lte_summary">Modo de red preferido: TD-SCDMA / GSM / WCDMA / LTE</string>
+    <string name="preferred_network_mode_td_scdma_lte_cdma_evdo_gsm_wcdma_summary">Modo de red preferido: TD-SCDMA / LTE / CDMA / EvDo / GSM / WCDMA</string>
+    <string name="preferred_network_mode_td_scdma_cdma_evdo_gsm_wcdma_summary">Modo de red preferido: TD-SCDMA / CDMA / EvDo / GSM / WCDMA</string>
+    <string name="mobile_network_setting">Ajustes de red móvil</string>
+    <string name="network_settings_sel_sub">Ajustes de suscripción</string>
+    <string name="network_manage_settings">Ajustes de red</string>
+    <string name="title_data_settings">Ajustes de datos</string>
+    <string name="summary_manage_subscriptions">Gestionar los ajustes de red de cada suscripción</string>
+    <string name="call_ind_services">Llamada a servicios independientes</string>
+    <string name="callind_multi_sim">Ajustes de suscripciones</string>
+    <string name="callind">Ajustes de funciones de llamada</string>
+    <string name="sub1">Suscripción 1</string>
+    <string name="sub1_summary">Gestionar suscripción 1</string>
+    <string name="sub2">Suscripción 2</string>
+    <string name="sub2_summary">Gestionar suscripción 2</string>
+    <string name="sub3">Suscripción 3</string>
+    <string name="sub3_summary">Gestionar suscripción 3</string>
+    <string name="prompt">Preguntar</string>
+    <string name="prompt_user">Preguntar al usuario</string>
+    <string name="fdn_failed">Falló la operación FDN.</string>
+    <string name="exportContacts">Exportando contactos a la tarjeta SIM\u2026</string>
+    <string name="puk2_blocked">El PUK2 está bloqueado permanentemente.</string>
+    <string name="pin2_attempts">\nIntentos restantes: </string>
+    <string name="pin2_unblocked">¡PIN2 desbloqueado!</string>    <string name="onscreenModifyCallText">Modificar llamada</string>
+    <string name="onscreenSwitchText">Cambiar suscripción</string>
+    <string name="onscreenAddParticipant">Añadir participante</string>
+    <string name="xdivert_title">X-Divert</string>
+    <string name="xdivert_summary">Ajustes CFNRc</string>
+    <string name="phone_numbers">Introducir números de teléfono</string>
+    <string name="sub1LineNumber">Número suscripción 1: </string>
+    <string name="sub2LineNumber">Número suscripción 2: </string>
+    <string name="proceed">Proceder</string>
+    <string name="xdivert_button">Ajustes X-Divert</string>
+    <string name="xdivert_setting">Ajustes X-Divert</string>
+    <string name="sum_xdivert_enabled">X-Divert habilitado</string>
+    <string name="sum_xdivert_disabled">X-Divert deshabilitado</string>
+    <string name="xdivert_not_supported">X-Divert no soportado en modo CDMA</string>
+    <string name="xdivert_enternumber_error">Introducir el número de teléfono para ambas suscripciones</string>
+    <string name="xdivert_partial_set">X-Divert ha sido establecido solo para la primera suscripción</string>
+    <string name="xdivert_sub_absent">Ambas suscripciones deberían ser activadas para procesar X-Divert</string>
+    <string name="xdivert_status">Estado de X-Divert</string>
+    <string name="xdivert_active">Activado</string>
+    <string name="xdivert_not_active">Desactivado</string>
+    <string name="xdivert_imsi_not_read">Inicialización de SIM en curso. Por favor, inténtalo más tarde.</string>
+    <string name="managed_roaming_title">Itinierancia</string>
+    <string name="managed_roaming_title_sub1">Itinerancia (suscripción 1)</string>
+    <string name="managed_roaming_title_sub2">Itinerancia (suscripción 2)</string>
+    <string name="managed_roaming_title_sub3">Itinerancia (suscripción 3)</string>
+    <string name="managed_roaming_dialog_content">Encontrada red con servicio limitado. ¿Quieres iniciar una búsqueda de redes?</string>
+    <string name="managed_roaming_dialog_ok_button">Sí</string>
+    <string name="managed_roaming_dialog_cancel_button">No</string>
+    <string name="no_volte">Imposible realizar una llamada IMS</string>
+    <string name="ims_edit_title">Detalles de cuenta IMS</string>
+    <string name="ims_accounts_title">Cuenta IMS</string>
+    <string name="ims_domain_address_title">Servidor IMS</string>
+    <string name="call_type_title">Tipo de llamada IMS</string>
+    <string name="use_ims_default_title">Usar siempre IMS</string>
+    <string name="use_ims_default_summary">Usar IMS para todas las llamadas de voz</string>
+    <string name="ims_menu_save">Guardar</string>
+    <string name="ims_menu_discard">Descartar</string>
+    <string name="remove_ims_account">Eliminar cuenta</string>
+    <string name="description_target_answer_video">Responder con vídeollamada</string>
+    <string name="description_target_answer_tx_video">Responder con transmisión de videollamada</string>
+    <string name="description_target_answer_rx_video">Responder con recepción de videollamada</string>
+    <string name="description_direction_up_right">Arriba derecha</string>
+    <string name="description_direction_up_left">Arriba izquierda</string>
+    <string name="description_direction_down_left">Abajo izquierda</string>
+    <string name="description_direction_down_right">Abajo derecha</string>
+    <string name="set_subscription">Elegir suscripciones</string>
+    <string name="card_01">Tarjeta 1 / Suscrip 1</string>
+    <string name="card_02">Tarjeta 2 / Suscrip 2</string>
+    <string name="card_03">Tarjeta 3 / Suscrip 3</string>
+    <string name="place_a_call1">Suscripción 1</string>
+    <string name="place_a_call2">Suscripción 2</string>
+    <string name="place_a_call3">Suscripción 3</string>
+    <string name="count_down">Segundos: </string>
+    <string name="call_number">A: </string>
+    <string name="cancel_call">Cancelar</string>
+    <string name="set_subscription_error_atleast_one">Elige al menos una suscripción</string>
+    <string name="sub_1">Suscrip 1</string>
+    <string name="sub_2">Suscrip 2</string>
+    <string name="sub_3">Suscrip 3</string>
+    <string name="set_uicc_subscription_progress">Selección de suscripción en curso\u2026</string>
+    <string name="set_sub_success">Establecida la suscripción correctamente</string>
+    <string name="set_sub_failed">Falló el establecimiento de la suscripción</string>
+    <string name="set_sub_1">Suscripción 1: </string>
+    <string name="set_sub_2">Suscripción 2: </string>
+    <string name="set_sub_3">Suscripción 3: </string>
+    <string name="set_sub_activate_success">Activación satisfactoria</string>
+    <string name="set_sub_deactivate_success">Desactivación satisfactoria</string>
+    <string name="set_sub_activate_failed">Activación fallida</string>
+    <string name="set_sub_global_activate_failed">Activación global fallida</string>
+    <string name="set_sub_global_deactivate_failed">Desactivación global fallida</string>
+    <string name="set_sub_deactivate_failed">Desactivación fallida</string>
+    <string name="set_sub_activate_not_supported">Activación no soportada</string>
+    <string name="set_sub_deactivate_not_supported">Desactivación no soportada</string>
+    <string name="set_sub_no_change">Sin cambios en la suscripción</string>
+    <string name="new_cards_available">Nueva tarjeta disponible. Por favor, configura las suscripciones.</string>
+    <string name="config_sub_title">Configurar suscripciones</string>
+    <string name="deact_all_sub_not_supported">La desactivación de todas las suscripciones no está soportada.</string>
+    <string name="set_sub_not_supported_phone_in_call">Activar o desactivar una suscripción no está permitido durante una llamada.</string>
+    <string name="ContactScreen">Añadir/editar contacto SIM</string>
+    <string name="ExportContactScreen">Exportar contactos del teléfono a SIM</string>
+    <string name="addSimEntries">Añadir contacto SIM</string>
+    <string name="deleteAllSimEntries">Eliminar todos los contactos de SIM</string>
+    <string name="deleteSimContacts">Eliminando contactos de SIM\u2026</string>
+    <string name="editContact">Editar</string>
+    <string name="sendSms">Enviar SMS</string>
+    <string name="delete">Eliminar</string>
+    <string name="dial">Marcar</string>
+    <string name="enterName">Introducir nombre:</string>
+    <string name="enterNumber">Introducir número de teléfono:</string>
+    <string name="contactAddSuccess">Contacto añadido a SIM satisfactoriamente</string>
+    <string name="contactAddFailed">¡Fallo al añadir el contacto a SIM!</string>
+    <string name="contactUpdateSuccess">Contacto actualizado en SIM satisfactoriamente</string>
+    <string name="contactUpdateFailed">¡Fallo al actualizar contacto en SIM!</string>
+    <string name="contactdeleteSuccess">Contacto de SIM eliminado satisfactoriamente</string>
+    <string name="contactdeleteFailed">¡Fallo al eliminar el contacto de SIM!</string>
+    <string name="allContactdeleteSuccess">Todos los contactos de SIM eliminados satisfactoriamente</string>
+    <string name="allContactdeleteFailed">¡Fallo al eliminar todos los contactos de SIM!</string>
+    <string name="exportAllcontatsSuccess">Todos los contactos de SIM exportados satisfactoriamente</string>
+    <string name="exportAllcontatsFailed">¡Fallo al exportar todos los contactos de SIM!</string>
+    <string name="cursorError">¡Datos incorrectos!</string>
+    <string name="callUnanswered_forwarded">Llamada perdida reenviada</string>
+    <string name="mwi_notification_title">Notificación buzón de voz</string>
+    <string name="mwi_notification_summary">Mostrar una notificación para los mensajes en espera del buzón de voz</string>
+    <string name="preferred_network_mode_lte_gsm_summary">Modo de red preferido: LTE / WCDMA/GSM</string>
+    <string name="preferred_network_mode_lte_cdma_evdo_gsm_wcdma_summary">Modo de red preferido: LTE / CMDA / EvDo / GSM/WCDMA</string>
+    <string name="card_title_dialing_waiting">Llamando (esperando\u2026)</string>
+    <string name="card_title_waiting_call">Llamada en espera</string>
+    <string name="call_notif_unconditionalCF">Desvío incondicional de llamada activo</string>
+    <string name="call_notif_conditionalCF">Desvío condicional de llamada activo</string>
+    <string name="call_notif_MOcall_forwarding">Reenvío de llamada saliente</string>
+    <string name="call_notif_cugcall">Llamada de grupo cerrado</string>
+    <string name="call_notif_outgoing_barred">Excluídas llamadas salientes</string>
+    <string name="call_notif_incoming_barred">Excluídas llamadas entrantes</string>
+    <string name="call_notif_clir_suppression_rejected">Rechazadas llamadas ocultas</string>
+    <string name="call_notif_call_deflected">Llamada desviada</string>
+    <string name="call_notif_MTcall_forwarding">Llamada entrante desviada</string>
+    <string name="call_notif_multipartycall">Llamada múltiple</string>
+    <string name="call_notif_callonhold_released">Llamada recuperada</string>
+    <string name="call_notif_forwardcheckreceived">Llamada enviada</string>
+    <string name="call_notif_callconnectingect">Llamada conectándose por centralita</string>
+    <string name="call_notif_callconnectedect">Llamada conectada por centralita</string>
+    <string name="incall_call_type_label_forwarded">Llamada desviada</string>
+    <string name="noise_suppression_title">Supresor de ruido</string>
+    <string name="noise_suppression_summary">Activar la supresión de ruido durante las llamadas</string>
+    <string name="advanced_setting">Configuración avanzada</string>
+    <string name="vibrate_outgoing">Vibrar al contestar</string>
+    <string name="vibrate_call_waiting">Vibrar en llamada en espera</string>
+    <string name="vibrate_hangup">Vibrar al colgar</string>
+    <string name="vibrate_45">Vibrar cada minuto</string>
+    <string name="vibrate_45_sum">Vibrar en el segundo 45 de cada minuto de una llamada saliente</string>
+    <string name="rejected_as_missed">Rechazar como perdidas</string>
+    <string name="rejected_as_missed_sum">Marcar las llamadas rechazadas como \u00ABperdidas\u00BB en vez de \u00ABentrantes\u00BB en el registro de llamadas</string>
+    <string name="show_ssn_label">Notificación de eventos</string>
+    <string name="show_ssn_summary">Mostrar la notificación de eventos de red relacionados con la gestión de llamadas</string>
+    <string name="calllog_after_call">Mostrar registro</string>
+    <string name="calllog_after_call_summary">Mostrar el registro de la llamada al colgar</string>
+    <string name="national_roaming">Itinerancia de datos nacional</string>
+    <string name="national_roaming_summary">Establecer conexión con servicios de datos en itinerancia nacional</string>
+    <string name="perm_change_mobile_network">Cambiar red (2G/3G)</string>
+    <string name="perm_change_mobile_network_desc">Las aplicaciones con este permiso pueden, en cualquier momento, cambiar entre datos 2G y 3G. Es más rápido 3G, pero consume más batería y puede costar más dinero.</string>
+    <string name="flip_action_title">Acción al voltear</string>
+    <string name="flip_action_dialog_title" product="tablet">Al voltear el tablet\u2026</string>
+    <string name="flip_action_dialog_title" product="default">Al voltear el teléfono\u2026</string>
+    <string name="flip_action_summary" product="tablet">Al voltear el tablet, <xliff:g id="action">%s</xliff:g></string>
+    <string name="flip_action_summary" product="default">Al voltear el teléfono, <xliff:g id="action">%s</xliff:g></string>
+    <string name="blacklist_title">Lista negra</string>
+    <string name="blacklist_summary_disabled">Deshabilitada</string>
+    <string name="blacklist_summary">Las llamadas entrantes de los números en la lista negra serán bloqueadas</string>
+    <string name="add_blacklist_number">Añadir número de teléfono</string>
+    <string name="add_to_blacklist">Añadir a la lista negra</string>
+    <string name="add_to_blacklist_message">Las llamadas de %s serán bloqueadas</string>
+    <string name="remove_blacklist_number_title">Quitar número de teléfono</string>
+    <string name="remove_blacklist_number">¿Quitar %s de la lista negra?</string>
+    <string name="blacklist_notification">Llamada de %s, bloqueada</string>
+    <string name="blacklist_notification_private_number">Llamada de número privado, bloqueada</string>
+    <string name="blacklist_notification_list_private">Privado</string>
+    <string name="blacklist_notification_unknown_number">Número desconocido %s, bloqueado</string>
+    <string name="blacklist_notification_multiple"><xliff:g id="count">%d</xliff:g> llamadas fueron bloqueadas</string>
+    <string name="unblock_number">Desbloquear</string>
+    <string name="onscreenBlacklistText">Lista negra</string>
+    <string name="voice_quality_preferences_title">Calidad de voz</string>
+    <string name="voice_quality_summary">Perfil usado: <xliff:g id="value">%s</xliff:g></string>
+    <string name="voice_quality_entry_normal">Normal</string>
+    <string name="voice_quality_entry_clear">Clara</string>
+    <string name="voice_quality_entry_crisp">Nítida</string>
+    <string name="voice_quality_entry_bright">Fuerte</string>
+    <string name="phone_number_label">Mi número de teléfono</string>
+    <string name="phone_number_summary" product="tablet">Establecer el número asociado a este tablet</string>
+    <string name="phone_number_summary" product="default">Establecer el número asociado a este teléfono</string>
+</resources>

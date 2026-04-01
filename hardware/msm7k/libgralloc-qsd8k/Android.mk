@@ -30,7 +30,11 @@ LOCAL_SRC_FILES := 	\
 	pmemalloc.cpp
 	
 LOCAL_MODULE := gralloc.$(TARGET_BOARD_PLATFORM)
+LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS:= -DLOG_TAG=\"$(TARGET_BOARD_PLATFORM).gralloc\"
+ifeq ($(TARGET_GRALLOC_USES_ASHMEM),true)
+LOCAL_CFLAGS += -DUSE_ASHMEM
+endif
 include $(BUILD_SHARED_LIBRARY)
 
 # Build a host library for testing
@@ -42,6 +46,7 @@ LOCAL_SRC_FILES :=		\
 
 LOCAL_MODULE_TAGS := tests
 LOCAL_MODULE := libgralloc_qsd8k_host
+LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS:= -DLOG_TAG=\"gralloc-qsd8k\"
 include $(BUILD_HOST_STATIC_LIBRARY)
 endif

@@ -967,10 +967,21 @@ public final class BearerData {
             paramBits -= EXPECTED_PARAM_SIZE;
             decodeSuccess = true;
             bData.messageType = inStream.read(4);
-            bData.messageId = inStream.read(8) << 8;
-            bData.messageId |= inStream.read(8);
-            bData.hasUserDataHeader = (inStream.read(1) == 1);
-            inStream.skip(3);
+            // Some Samsung CDMAphones parses messageId differently than other devices
+            // fix it here so that incoming sms works correctly
+            boolean hasSamsungCDMAAlternateMessageIDEncoding = Resources.getSystem()
+                    .getBoolean(com.android.internal.R.bool.config_smsSamsungCdmaAlternateMessageIDEncoding);
+            if (hasSamsungCDMAAlternateMessageIDEncoding) {
+                inStream.skip(4);
+                bData.messageId = inStream.read(8) << 8;
+                bData.messageId |= inStream.read(8);
+                bData.hasUserDataHeader = (inStream.read(8) == 1);
+            } else {
+                bData.messageId = inStream.read(8) << 8;
+                bData.messageId |= inStream.read(8);
+                bData.hasUserDataHeader = (inStream.read(1) == 1);
+                inStream.skip(3);
+            }
         }
         if ((! decodeSuccess) || (paramBits > 0)) {
             Rlog.d(LOG_TAG, "MESSAGE_IDENTIFIER decode " +
@@ -1121,6 +1132,22 @@ public final class BearerData {
         return decodeCharset(data, offset, numFields, 1, "Shift_JIS");
     }
 
+    private static String decodeGsmDcs(byte[] data, int offset, int numFields, int msgType)
+            throws CodingException
+    {
+        switch ((msgType >> 2) & 0x3) {
+        case UserData.ENCODING_GSM_DCS_7BIT:
+            return decode7bitGsm(data, offset, numFields);
+        case UserData.ENCODING_GSM_DCS_8BIT:
+            return decodeUtf8(data, offset, numFields);
+        case UserData.ENCODING_GSM_DCS_16BIT:
+            return decodeUtf16(data, offset, numFields);
+        default:
+            throw new CodingException("unsupported user msgType encoding ("
+                    + msgType + ")");
+        }
+    }
+
     private static void decodeUserDataPayload(UserData userData, boolean hasUserDataHeader)
         throws CodingException
     {
@@ -1174,6 +1201,10 @@ public final class BearerData {
             break;
         case UserData.ENCODING_SHIFT_JIS:
             userData.payloadStr = decodeShiftJis(userData.payload, offset, userData.numFields);
+            break;
+        case UserData.ENCODING_GSM_DCS:
+            userData.payloadStr = decodeGsmDcs(userData.payload, offset,
+                    userData.numFields, userData.msgType);
             break;
         default:
             throw new CodingException("unsupported user data encoding ("

@@ -98,6 +98,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     // Whether or not server-side search supports global search (i.e. all mailboxes); only valid
     // if FLAGS_SUPPORTS_SEARCH is true
     public static final int FLAGS_SUPPORTS_GLOBAL_SEARCH = 1<<12;
+    // Defines if the user wants to enable the notification LED
+    public final static int FLAGS_NOTIFY_USE_LED = 1<<13;
 
     // Deletion policy (see FLAGS_DELETE_POLICY_MASK, above)
     public static final int DELETE_POLICY_NEVER = 0;
@@ -113,6 +115,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     public String mSyncKey;
     public int mSyncLookback;
     public int mSyncInterval;
+    public int mSyncSize;
     public long mHostAuthKeyRecv;
     public long mHostAuthKeySend;
     public int mFlags;
@@ -157,6 +160,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     public static final int CONTENT_POLICY_KEY = 17;
     public static final int CONTENT_NOTIFIED_MESSAGE_ID_COLUMN = 18;
     public static final int CONTENT_NOTIFIED_MESSAGE_COUNT_COLUMN = 19;
+    public static final int CONTENT_SYNC_SIZE_COLUMN = 20;
 
     public static final String[] CONTENT_PROJECTION = new String[] {
         RECORD_ID, AccountColumns.DISPLAY_NAME,
@@ -167,7 +171,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         AccountColumns.RINGTONE_URI, AccountColumns.PROTOCOL_VERSION,
         AccountColumns.NEW_MESSAGE_COUNT, AccountColumns.SECURITY_SYNC_KEY,
         AccountColumns.SIGNATURE, AccountColumns.POLICY_KEY,
-        AccountColumns.NOTIFIED_MESSAGE_ID, AccountColumns.NOTIFIED_MESSAGE_COUNT
+        AccountColumns.NOTIFIED_MESSAGE_ID, AccountColumns.NOTIFIED_MESSAGE_COUNT,
+        AccountColumns.SYNC_SIZE
     };
 
     public static final int CONTENT_MAILBOX_TYPE_COLUMN = 1;
@@ -216,6 +221,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mRingtoneUri = "content://settings/system/notification_sound";
         mSyncInterval = -1;
         mSyncLookback = -1;
+        mSyncSize = Utility.ENTIRE_MAIL;
         mFlags = FLAGS_NOTIFY_NEW_MAIL;
         mCompatibilityUuid = UUID.randomUUID().toString();
     }
@@ -260,6 +266,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mSyncKey = cursor.getString(CONTENT_SYNC_KEY_COLUMN);
         mSyncLookback = cursor.getInt(CONTENT_SYNC_LOOKBACK_COLUMN);
         mSyncInterval = cursor.getInt(CONTENT_SYNC_INTERVAL_COLUMN);
+        mSyncSize = cursor.getInt(CONTENT_SYNC_SIZE_COLUMN);
         mHostAuthKeyRecv = cursor.getLong(CONTENT_HOST_AUTH_KEY_RECV_COLUMN);
         mHostAuthKeySend = cursor.getLong(CONTENT_HOST_AUTH_KEY_SEND_COLUMN);
         mFlags = cursor.getInt(CONTENT_FLAGS_COLUMN);
@@ -369,8 +376,27 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     }
 
     /**
+     * @return The max size each mail will be synced from service
+     * TODO define the values for "all", "20KB", "100KB", etc.  See arrays.xml
+     */
+    public int getSyncSize() {
+        return mSyncSize;
+    }
+
+    /**
+     * Set the max size each mail will be synced from service.  Be sure to call save() to
+     * commit to database.
+     * TODO define the values for "all", "20KB", "100KB", etc.  See arrays.xml
+     * @param size the max size each mail would be synced from service.
+     */
+    public void setSyncSize(int size) {
+        mSyncSize = size;
+    }
+
+    /**
      * @return the flags for this account
      * @see #FLAGS_NOTIFY_NEW_MAIL
+     * @see #FLAGS_NOTIFY_USE_LED
      * @see #FLAGS_VIBRATE
      */
     public int getFlags() {
@@ -380,6 +406,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     /**
      * Set the flags for this account
      * @see #FLAGS_NOTIFY_NEW_MAIL
+     * @see #FLAGS_NOTIFY_USE_LED
      * @see #FLAGS_VIBRATE
      * @param newFlags the new value for the flags
      */
@@ -570,7 +597,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
                 return c.getLong(Account.ID_PROJECTION_COLUMN);
             }
         } finally {
-            c.close();
+            if (c != null && !c.isClosed()) c.close();
         }
         return Account.NO_ACCOUNT;
     }
@@ -838,6 +865,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         values.put(AccountColumns.SYNC_KEY, mSyncKey);
         values.put(AccountColumns.SYNC_LOOKBACK, mSyncLookback);
         values.put(AccountColumns.SYNC_INTERVAL, mSyncInterval);
+        values.put(AccountColumns.SYNC_SIZE, mSyncSize);
         values.put(AccountColumns.HOST_AUTH_KEY_RECV, mHostAuthKeyRecv);
         values.put(AccountColumns.HOST_AUTH_KEY_SEND, mHostAuthKeySend);
         values.put(AccountColumns.FLAGS, mFlags);
@@ -891,6 +919,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         dest.writeString(mSyncKey);
         dest.writeInt(mSyncLookback);
         dest.writeInt(mSyncInterval);
+        dest.writeInt(mSyncSize);
         dest.writeLong(mHostAuthKeyRecv);
         dest.writeLong(mHostAuthKeySend);
         dest.writeInt(mFlags);
@@ -930,6 +959,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mSyncKey = in.readString();
         mSyncLookback = in.readInt();
         mSyncInterval = in.readInt();
+        mSyncSize = in.readInt();
         mHostAuthKeyRecv = in.readLong();
         mHostAuthKeySend = in.readLong();
         mFlags = in.readInt();

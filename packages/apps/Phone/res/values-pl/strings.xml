@@ -51,6 +51,7 @@
     <string name="ussdRunning" msgid="485588686340541690">"Uruchomiony kod USSD..."</string>
     <string name="mmiCancelled" msgid="2771923949751842276">"Kod MMI został anulowany"</string>
     <string name="cancel" msgid="5044513931633602634">"Anuluj"</string>
+    <string name="enter_input">Kod USSD powinien mieć od <xliff:g id="min_len" >%d</xliff:g> do <xliff:g id="max_len" >%d</xliff:g> znaków. Proszę spróbować ponownie.</string>
     <string name="manageConferenceLabel" msgid="4691922394301969053">"Zarządzaj połączeniem konferencyjnym"</string>
     <string name="audio_mode_speaker" msgid="27649582100085266">"Głośnik"</string>
     <string name="audio_mode_earpiece" msgid="4156527186373869107">"Słuchawka telefonu"</string>
@@ -174,6 +175,16 @@
     <string name="preferred_network_mode_global_summary" msgid="1633134285545730364">"Preferowany tryb sieci: globalny"</string>
     <string name="preferred_network_mode_lte_wcdma_summary" msgid="9180775701594742750">"Preferowany tryb sieci: LTE/WCDMA"</string>
   <string-array name="preferred_network_mode_choices">
+    <item>TD-SCDMA/LTE/GSM/WCDMA/CDMA/EVDO</item>
+    <item>TD-SCDMA/GSM/WCDMA/CDMA/EVDO</item>
+    <item>TD-SCDMA/GSM/WCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA/LTE</item>
+    <item>TD-SCDMA/GSM/WCDMA</item>
+    <item>TD-SCDMA/GSM/LTE</item>
+    <item>TD-SCDMA/GSM</item>
+    <item>TD-SCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA</item>
+    <item>TD-SCDMA only</item>
     <item msgid="7886739962255042385">"LTE/WCDMA"</item>
     <item msgid="577652050447385699">"LTE"</item>
     <item msgid="6813597571293773656">"Globalny"</item>

@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2011 The Android Open Source Project
+ * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,6 +127,30 @@ struct audio_policy {
      * Audio routing query functions
      */
 
+#ifdef QCOM_ICS_LPA_COMPAT
+    /* request an session appropriate for playback of the supplied stream type and
+     * parameters */
+    audio_io_handle_t (*get_session)(struct audio_policy *pol,
+                                    audio_stream_type_t stream,
+                                    uint32_t format,
+                                    audio_output_flags_t flags,
+                                    int sessionId);
+
+    /* pause session created for LPA Playback */
+    void (*pause_session)(struct audio_policy *pol,
+                          audio_io_handle_t output,
+                          audio_stream_type_t stream);
+
+    /* resume session created for LPA Playback */
+    void (*resume_session)(struct audio_policy *pol,
+                          audio_io_handle_t output,
+                          audio_stream_type_t stream);
+
+    /* release session created for LPA Playback */
+    void (*release_session)(struct audio_policy *pol,
+                          audio_io_handle_t output);
+#endif
+
     /* request an output appropriate for playback of the supplied stream type and
      * parameters */
     audio_io_handle_t (*get_output)(struct audio_policy *pol,
@@ -191,6 +216,7 @@ struct audio_policy {
                                    audio_stream_type_t stream,
                                    int *index);
 
+#ifndef ICS_AUDIO_BLOB
     /* sets the new stream volume at a level corresponding to the supplied
      * index for the specified device.
      * The index is within the range specified by init_stream_volume() */
@@ -204,6 +230,7 @@ struct audio_policy {
                                    audio_stream_type_t stream,
                                    int *index,
                                    audio_devices_t device);
+#endif
 
     /* return the strategy corresponding to a given stream type */
     uint32_t (*get_strategy_for_stream)(const struct audio_policy *pol,
@@ -231,13 +258,16 @@ struct audio_policy {
     bool (*is_stream_active)(const struct audio_policy *pol,
             audio_stream_type_t stream,
             uint32_t in_past_ms);
-
+#ifndef ICS_AUDIO_BLOB
+#ifndef MR1_AUDIO_BLOB
     bool (*is_stream_active_remotely)(const struct audio_policy *pol,
             audio_stream_type_t stream,
             uint32_t in_past_ms);
+#endif
 
     bool (*is_source_active)(const struct audio_policy *pol,
             audio_source_t source);
+#endif
 
     /* dump state */
     int (*dump)(const struct audio_policy *pol, int fd);
@@ -271,6 +301,18 @@ struct audio_policy_service_ops {
                                      audio_channel_mask_t *pChannelMask,
                                      uint32_t *pLatencyMs,
                                      audio_output_flags_t flags);
+
+#ifdef QCOM_ICS_LPA_COMPAT
+    audio_io_handle_t (*open_session)(void *service,
+                                     uint32_t *pDevices,
+                                     uint32_t *pFormat,
+                                     audio_output_flags_t flags,
+                                     int32_t stream,
+                                     int32_t sessionId);
+
+    audio_io_handle_t (*close_session)(void *service,
+                                      audio_io_handle_t output);
+#endif
 
     /* creates a special output that is duplicated to the two outputs passed as
      * arguments. The duplication is performed by
@@ -369,6 +411,13 @@ struct audio_policy_service_ops {
                         int session,
                         audio_io_handle_t src_output,
                         audio_io_handle_t dst_output);
+
+#ifdef QCOM_FM_ENABLED
+    /* set fm audio volume. */
+    int (*set_fm_volume)(void *service,
+                         float volume,
+                         int delay_ms);
+#endif
 
     /* loads an audio hw module.
      *

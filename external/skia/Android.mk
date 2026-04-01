@@ -52,6 +52,10 @@ ifeq ($(ARCH_ARM_HAVE_NEON),true)
 	LOCAL_CFLAGS += -D__ARM_HAVE_NEON
 endif
 
+# Enable Neon assembler optimized version of S32A_Opaque_BlitRow32 and
+# S32A_Blend_Blitrow32. Overrides the intrinsic blitter below.
+LOCAL_CFLAGS += -DENABLE_OPTIMIZED_S32A_BLITTERS
+
 # using freetype's embolden allows us to adjust fake bold settings at
 # draw-time, at which point we know which SkTypeface is being drawn
 LOCAL_CFLAGS += -DSK_USE_FREETYPE_EMBOLDEN
@@ -299,6 +303,9 @@ LOCAL_SRC_FILES:= \
 	src/utils/SkBase64.cpp \
 	src/utils/SkBitmapTransformer.cpp \
 	src/utils/SkBitSet.cpp \
+	src/core/SkAltCanvas.cpp \
+	src/core/SkRecordingData.cpp \
+	src/core/SkAltRecordingData.cpp \
 	src/utils/SkBoundaryPatch.cpp \
 	src/utils/SkCamera.cpp \
 	src/utils/SkCubicInterval.cpp \
@@ -419,11 +426,17 @@ LOCAL_SRC_FILES += \
 	src/gpu/gl/debug/GrDebugGL.cpp \
 	src/gpu/gl/android/GrGLCreateNativeInterface_android.cpp
 
+ifeq ($(BOARD_USES_SKTEXTBOX),true)
+LOCAL_SRC_FILES += \
+	src/views/SkTextBox.cpp
+endif
 
 ifeq ($(TARGET_ARCH),arm)
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
 LOCAL_SRC_FILES += \
+	src/opts/S32A_Opaque_BlitRow32_neon.S \
+	src/opts/S32A_Blend_BlitRow32_neon.S \
 	src/opts/memset16_neon.S \
 	src/opts/memset32_neon.S \
     src/opts/SkBitmapProcState_arm_neon.cpp \
@@ -469,6 +482,11 @@ LOCAL_STATIC_LIBRARIES := \
 	libwebp-decode \
 	libwebp-encode
 
+ifeq ($(WITH_QC_PERF),true)
+	LOCAL_WHOLE_STATIC_LIBRARIES += libqc-skia
+endif
+
+
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/include/core \
 	$(LOCAL_PATH)/include/config \
@@ -478,6 +496,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/include/pipe \
 	$(LOCAL_PATH)/include/ports \
 	$(LOCAL_PATH)/include/utils \
+	$(LOCAL_PATH)/include/views \
 	$(LOCAL_PATH)/include/xml \
 	$(LOCAL_PATH)/src/core \
 	$(LOCAL_PATH)/src/gpu \
@@ -503,6 +522,24 @@ LOCAL_EXPORT_C_INCLUDES := \
 	$(LOCAL_PATH)/include/utils
 
 LOCAL_LDLIBS += -lpthread
+
+# for FIMG2D acceleration
+ifeq ($(BOARD_USES_FIMGAPI),true)
+ifeq ($(BOARD_USES_SKIA_FIMGAPI),true)
+LOCAL_CFLAGS += -DFIMG2D_ENABLED
+ifeq ($(TARGET_SOC),exynos4210)
+LOCAL_SRC_FILES += src/core/SkFimgApi3x.cpp
+LOCAL_C_INCLUDES += $(TOP)/hardware/samsung/exynos4/hal/libfimg3x
+LOCAL_CFLAGS += -DFIMG2D3X
+endif
+ifeq ($(TARGET_SOC),exynos4x12)
+LOCAL_SRC_FILES += src/core/SkFimgApi4x.cpp
+LOCAL_C_INCLUDES += $(TOP)/hardware/samsung/exynos4/hal/include
+LOCAL_CFLAGS += -DFIMG2D4X
+endif
+LOCAL_SHARED_LIBRARIES += libfimg
+endif
+endif
 
 LOCAL_MODULE:= libskia
 

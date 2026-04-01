@@ -29,6 +29,10 @@
 
 #include <gui/Surface.h>
 
+#ifdef EGL_NEEDS_FNW
+#include <ui/FramebufferNativeWindow.h>
+#endif
+
 #include <GLES/gl.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -92,7 +96,11 @@ DisplayDevice::DisplayDevice(
       mOrientation()
 {
     mNativeWindow = new Surface(mDisplaySurface->getIGraphicBufferProducer());
+#ifndef EGL_NEEDS_FNW
     ANativeWindow* const window = mNativeWindow.get();
+#else
+    ANativeWindow* const window = new FramebufferNativeWindow();
+#endif
 
     int format;
     window->query(window, NATIVE_WINDOW_FORMAT, &format);
@@ -335,6 +343,20 @@ status_t DisplayDevice::orientationToTransfrom(
         int orientation, int w, int h, Transform* tr)
 {
     uint32_t flags = 0;
+    char value[PROPERTY_VALUE_MAX];
+    property_get("ro.sf.hwrotation", value, "0");
+    int additionalRot = atoi(value);
+
+    if (additionalRot) {
+        additionalRot /= 90;
+        if (orientation == DisplayState::eOrientationUnchanged) {
+            orientation = additionalRot;
+        } else {
+            orientation += additionalRot;
+            orientation %= 4;
+        }
+    }
+
     switch (orientation) {
     case DisplayState::eOrientationDefault:
         flags = Transform::ROT_0;
@@ -351,6 +373,7 @@ status_t DisplayDevice::orientationToTransfrom(
     default:
         return BAD_VALUE;
     }
+
     tr->set(flags, w, h);
     return NO_ERROR;
 }
@@ -369,7 +392,14 @@ void DisplayDevice::setProjection(int orientation,
     if (!frame.isValid()) {
         // the destination frame can be invalid if it has never been set,
         // in that case we assume the whole display frame.
-        frame = Rect(w, h);
+        char value[PROPERTY_VALUE_MAX];
+        property_get("ro.sf.hwrotation", value, "0");
+        int additionalRot = atoi(value);
+
+        if (additionalRot == 90 || additionalRot == 270)
+            frame = Rect(h, w);
+        else
+            frame = Rect(w, h);
     }
 
     if (viewport.isEmpty()) {

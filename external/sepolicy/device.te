@@ -1,11 +1,11 @@
 # Device types
 type device, dev_type, fs_type;
-type akm_device, dev_type;
 type accelerometer_device, dev_type;
 type alarm_device, dev_type, mlstrustedobject;
 type adb_device, dev_type;
 type ashmem_device, dev_type, mlstrustedobject;
 type audio_device, dev_type;
+type audio_capture_device, dev_type;
 type binder_device, dev_type, mlstrustedobject;
 type block_device, dev_type;
 type camera_device, dev_type;
@@ -23,8 +23,6 @@ type log_device, dev_type, mlstrustedobject;
 type mtd_device, dev_type;
 type mtp_device, dev_type, mlstrustedobject;
 type nfc_device, dev_type;
-type nv_device, dev_type, mlstrustedobject;
-type powervr_device, dev_type, mlstrustedobject;
 type ptmx_device, dev_type, mlstrustedobject;
 type qemu_device, dev_type;
 type kmsg_device, dev_type;
@@ -35,6 +33,7 @@ type serial_device, dev_type;
 type socket_device, dev_type;
 type owntty_device, dev_type, mlstrustedobject;
 type tty_device, dev_type;
+type uinput_device, dev_type;
 type urandom_device, dev_type;
 type video_device, dev_type;
 type vcs_device, dev_type;
@@ -49,7 +48,6 @@ type uhid_device, dev_type;
 type tun_device, dev_type, mlstrustedobject;
 type usbaccessory_device, dev_type;
 type usb_device, dev_type;
-type klog_device, dev_type;
 type properties_device, dev_type;
 
 # All devices have a uart for the hci

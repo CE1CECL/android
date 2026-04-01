@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------------
-Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -8,7 +8,7 @@ modification, are permitted provided that the following conditions are met:
     * Redistributions in binary form must reproduce the above copyright
       notice, this list of conditions and the following disclaimer in the
       documentation and/or other materials provided with the distribution.
-    * Neither the name of Code Aurora nor
+    * Neither the name of The Linux Foundation nor
       the names of its contributors may be used to endorse or promote
       products derived from this software without specific prior written
       permission.
@@ -185,7 +185,7 @@ void* async_venc_message_thread (void *input)
     }
     else if (error_code <0)
     {
-        DEBUG_PRINT_ERROR("\nioctl VEN_IOCTL_CMD_READ_NEXT_MSG failed");
+        DEBUG_PRINT_LOW("\nioctl VEN_IOCTL_CMD_READ_NEXT_MSG failed");
         break;
     }
     else if(omx->async_message_process(input,&venc_msg) < 0)
@@ -1265,9 +1265,22 @@ OMX_U32 venc_dev::pmem_allocate(OMX_U32 size, OMX_U32 alignment, OMX_U32 count)
 
   recon_buff[count].alloc_data.flags = 0;
   recon_buff[count].alloc_data.len = size;
-  recon_buff[count].alloc_data.heap_mask = (ION_HEAP(MEM_HEAP_ID) |
+#ifdef MAX_RES_720P
+#ifdef NEW_ION_API
+  recon_buff[count].alloc_data.heap_mask = ION_HEAP(MEM_HEAP_ID);
+#else
+  recon_buff[count].alloc_data.flags = ION_HEAP(MEM_HEAP_ID);
+#endif
+#else
+#ifdef NEW_ION_API
+  recon_buff[count].alloc_data.heap_mask =
+#else
+  recon_buff[count].alloc_data.flags =
+#endif
+                  (ION_HEAP(MEM_HEAP_ID) |
                   (venc_encoder->is_secure_session() ? ION_SECURE
                    : ION_HEAP(ION_IOMMU_HEAP_ID)));
+#endif
   recon_buff[count].alloc_data.align = clip2(alignment);
   if (recon_buff[count].alloc_data.align != 8192)
     recon_buff[count].alloc_data.align = 8192;
@@ -1324,7 +1337,7 @@ OMX_U32 venc_dev::pmem_allocate(OMX_U32 size, OMX_U32 alignment, OMX_U32 count)
   #ifdef USE_ION
       if(ioctl(recon_buff[count].ion_device_fd,ION_IOC_FREE,
          &recon_buff[count].alloc_data.handle)) {
-        DEBUG_PRINT_ERROR("ion recon buffer free failed");
+        DEBUG_PRINT_LOW("ion recon buffer free failed");
       }
       recon_buff[count].alloc_data.handle = NULL;
       recon_buff[count].ion_alloc_fd.fd =-1;
@@ -1387,7 +1400,7 @@ OMX_U32 venc_dev::pmem_free()
 #ifdef USE_ION
       if(ioctl(recon_buff[cnt].ion_device_fd,ION_IOC_FREE,
          &recon_buff[cnt].alloc_data.handle)) {
-        DEBUG_PRINT_ERROR("ion recon buffer free failed");
+        DEBUG_PRINT_LOW("ion recon buffer free failed");
       }
       recon_buff[cnt].alloc_data.handle = NULL;
       recon_buff[cnt].ion_alloc_fd.fd =-1;
@@ -1500,26 +1513,26 @@ bool venc_dev::venc_use_buf(void *buf_addr, unsigned port,unsigned)
       luma_size_2k = (luma_size + 2047) & ~2047;
 
       dev_buffer.sz = luma_size_2k + ((luma_size/2 + 2047) & ~2047);
-#ifdef USE_ION
-      ioctl_msg.in = NULL;
-      ioctl_msg.out = (void*)&buff_alloc_property;
-      if(ioctl (m_nDriver_fd,VEN_IOCTL_GET_INPUT_BUFFER_REQ,(void*)&ioctl_msg) < 0)
-      {
-         DEBUG_PRINT_ERROR("\nERROR: venc_use_buf:get input buffer failed ");
-         return false;
-      }
-      if(buff_alloc_property.alignment < 4096)
-      {
-         dev_buffer.sz = ((dev_buffer.sz + 4095) & ~4095);
-      }
-      else
-      {
-         dev_buffer.sz = ((dev_buffer.sz + (buff_alloc_property.alignment - 1)) &
-                                           ~(buff_alloc_property.alignment - 1));
-      }
-#endif
-      dev_buffer.maped_size = dev_buffer.sz;
     }
+#ifdef USE_ION
+    ioctl_msg.in = NULL;
+    ioctl_msg.out = (void*)&buff_alloc_property;
+    if(ioctl (m_nDriver_fd,VEN_IOCTL_GET_INPUT_BUFFER_REQ,(void*)&ioctl_msg) < 0)
+    {
+       DEBUG_PRINT_ERROR("\nERROR: venc_use_buf:get input buffer failed ");
+       return false;
+    }
+    if(buff_alloc_property.alignment < 4096)
+    {
+       dev_buffer.sz = ((dev_buffer.sz + 4095) & ~4095);
+    }
+    else
+    {
+       dev_buffer.sz = ((dev_buffer.sz + (buff_alloc_property.alignment - 1)) &
+                                         ~(buff_alloc_property.alignment - 1));
+    }
+#endif
+    dev_buffer.maped_size = dev_buffer.sz;
 
     ioctl_msg.in  = (void*)&dev_buffer;
     ioctl_msg.out = NULL;
@@ -2335,6 +2348,17 @@ bool venc_dev::venc_set_error_resilience(OMX_VIDEO_PARAM_ERRORCORRECTIONTYPE* er
         }
    DEBUG_PRINT_LOW("\n %s(): mode = %u, size = %u", __func__, multislice_cfg.mslice_mode,
                    multislice_cfg.mslice_size);
+#ifdef MAX_RES_1080P
+    if ((multislice_cfg.mslice_mode == VEN_MSLICE_CNT_BYTE) &&
+        (multislice_cfg.mslice_size < MIN_SLICE_BITS_1080P))
+    {
+       DEBUG_PRINT_ERROR("WARN: Slice size (%d bits) less than %d bits "\
+          "not supported, so disabling slice mode",
+          multislice_cfg.mslice_size, (int)MIN_SLICE_BITS_1080P);
+       multislice_cfg.mslice_mode = VEN_MSLICE_OFF;
+       multislice_cfg.mslice_size = 0;
+    }
+#endif
    ioctl_msg.in = (void*)&multislice_cfg;
    ioctl_msg.out = NULL;
    if (ioctl (m_nDriver_fd,VEN_IOCTL_SET_MULTI_SLICE_CFG,(void*)&ioctl_msg) < 0) {
@@ -2447,19 +2471,28 @@ bool venc_dev::venc_set_color_format(OMX_COLOR_FORMATTYPE color_format)
   venc_ioctl_msg ioctl_msg = {NULL, NULL};
   DEBUG_PRINT_LOW("\n venc_set_color_format: color_format = %u ", color_format);
 
-  if(color_format == OMX_COLOR_FormatYUV420SemiPlanar)
-  {
+  if(color_format == OMX_COLOR_FormatYUV420SemiPlanar ||
+      color_format == QOMX_COLOR_FORMATYUV420PackedSemiPlanar32m) {
 #ifdef MAX_RES_1080P
   m_sVenc_cfg.inputformat= VEN_INPUTFMT_NV12_16M2KA;
+    DEBUG_PRINT_HIGH("venc_set_color_format: VEN_INPUTFMT_NV12_16M2KA");
 #else
     m_sVenc_cfg.inputformat = VEN_INPUTFMT_NV12;
 #endif
   }
+#if defined(MAX_RES_1080P) && defined(VEN_INPUTFMT_NV21_16M2KA)
+  else if(color_format == QOMX_COLOR_FormatYUV420PackedSemiPlanar16m2ka_nv21)
+  {
+    m_sVenc_cfg.inputformat= VEN_INPUTFMT_NV21_16M2KA;
+    DEBUG_PRINT_HIGH("venc_set_color_format: VEN_INPUTFMT_NV21_16M2KA");
+  }
+#endif
   else
   {
     DEBUG_PRINT_ERROR("\nWARNING: Unsupported Color format [%d]", color_format);
 #ifdef MAX_RES_1080P
     m_sVenc_cfg.inputformat= VEN_INPUTFMT_NV12_16M2KA;
+    DEBUG_PRINT_HIGH("venc_set_color_format: VEN_INPUTFMT_NV12_16M2KA");
 #else
     m_sVenc_cfg.inputformat = VEN_INPUTFMT_NV12;
 #endif

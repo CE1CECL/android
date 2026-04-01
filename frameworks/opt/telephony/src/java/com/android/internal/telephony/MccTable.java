@@ -24,6 +24,7 @@ import android.content.res.Configuration;
 import android.net.wifi.WifiManager;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.telephony.Rlog;
@@ -177,6 +178,15 @@ public final class MccTable
         if (!TextUtils.isEmpty(mccmnc)) {
             int mcc, mnc;
 
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                String defaultMccMnc = TelephonyManager.getDefault().getSimOperator();
+                //Update mccmnc only for default subscription in case of MultiSim.
+                if (!defaultMccMnc.equals(mccmnc)) {
+                    Rlog.d(LOG_TAG, "Not a Default subscription, ignoring mccmnc config update.");
+                    return;
+                }
+            }
+
             try {
                 mcc = Integer.parseInt(mccmnc.substring(0,3));
                 mnc = Integer.parseInt(mccmnc.substring(3));
@@ -222,11 +232,11 @@ public final class MccTable
         if (null == language) {
             return; // no match possible
         }
-        language = language.toLowerCase();
+        language = language.toLowerCase(Locale.ROOT);
         if (null == country) {
             country = "";
         }
-        country = country.toUpperCase();
+        country = country.toUpperCase(Locale.ROOT);
 
         if((null == l || 0 == l.length()) && (null == c || 0 == c.length())) {
             try {

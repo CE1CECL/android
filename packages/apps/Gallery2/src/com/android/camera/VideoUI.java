@@ -30,27 +30,31 @@ import android.widget.FrameLayout.LayoutParams;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.view.View.OnLayoutChangeListener;
 
 import com.android.camera.CameraPreference.OnPreferenceChangedListener;
+import com.android.camera.FocusOverlayManager.FocusUI;
 import com.android.camera.ui.AbstractSettingPopup;
+import com.android.camera.ui.FocusIndicator;
 import com.android.camera.ui.PieRenderer;
 import com.android.camera.ui.PreviewSurfaceView;
 import com.android.camera.ui.RenderOverlay;
 import com.android.camera.ui.RotateLayout;
 import com.android.camera.ui.ZoomRenderer;
+import com.android.camera.PauseButton.OnPauseButtonListener;
 import com.android.gallery3d.R;
 import com.android.gallery3d.common.ApiHelper;
 
 import java.util.List;
 
 public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
-        PreviewGestures.SingleTapListener,
-        PreviewGestures.SwipeListener {
+        FocusUI, PreviewGestures.SingleTapListener, PreviewGestures.SwipeListener,
+        PauseButton.OnPauseButtonListener {
     private final static String TAG = "CAM_VideoUI";
     // module fields
     private CameraActivity mActivity;
     private View mRootView;
-    private PreviewFrameLayout mPreviewFrameLayout;
+    protected PreviewFrameLayout mPreviewFrameLayout;
     private boolean mSurfaceViewReady;
     private PreviewSurfaceView mPreviewSurfaceView;
     // An review image having same size as preview. It is displayed when
@@ -60,11 +64,12 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
     private View mReviewDoneButton;
     private View mReviewPlayButton;
     private ShutterButton mShutterButton;
+    private PauseButton mPauseButton;
     private TextView mRecordingTimeView;
     private LinearLayout mLabelsLinearLayout;
     private View mTimeLapseLabel;
     private RenderOverlay mRenderOverlay;
-    private PieRenderer mPieRenderer;
+    protected PieRenderer mPieRenderer;
     private VideoMenu mVideoMenu;
     private AbstractSettingPopup mPopup;
     private ZoomRenderer mZoomRenderer;
@@ -78,6 +83,9 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
     private List<Integer> mZoomRatios;
     private View mPreviewThumb;
 
+    private int mPreviewWidth = 0;
+    private int mPreviewHeight = 0;
+
     public VideoUI(CameraActivity activity, VideoController controller, View parent) {
         mActivity = activity;
         mController = controller;
@@ -88,7 +96,29 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         initializeMiscControls();
         initializeControlByIntent();
         initializeOverlay();
+        initializePauseButton();
     }
+
+	private OnLayoutChangeListener mLayoutListener = new OnLayoutChangeListener() {
+        @Override
+        public void onLayoutChange(View v, int left, int top, int right,
+                int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            int width = right - left;
+            int height = bottom - top;
+            // Get screennail size from mPreviewFrameLayout
+            int w = mPreviewFrameLayout.getWidth();
+            int h = mPreviewFrameLayout.getHeight();
+            if (Util.getDisplayRotation(mActivity) % 180 != 0) {
+                w = mPreviewFrameLayout.getHeight();
+                h = mPreviewFrameLayout.getWidth();
+            }
+            if (mPreviewWidth != width || mPreviewHeight != height) {
+                mPreviewWidth = width;
+                mPreviewHeight = height;
+                mController.onScreenSizeChanged(width, height, w, h);
+            }
+        }
+    };
 
     private void initializeControlByIntent() {
         mBlocker = mActivity.findViewById(R.id.blocker);
@@ -139,7 +169,7 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
     public boolean collapseCameraControls() {
         boolean ret = false;
         if (mPopup != null) {
-            dismissPopup(false);
+            dismissPopup();
             ret = true;
         }
         return ret;
@@ -147,7 +177,7 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
 
     public boolean removeTopLevelPopup() {
         if (mPopup != null) {
-            dismissPopup(true);
+            dismissPopup();
             return true;
         }
         return false;
@@ -164,6 +194,10 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
 
     public void overrideSettings(final String... keyvalues) {
         mVideoMenu.overrideSettings(keyvalues);
+    }
+
+    public void enableItem(int resId, boolean enable) {
+        mVideoMenu.enableItem(resId, enable);
     }
 
     public View getPreview() {
@@ -236,6 +270,8 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
                 mActivity.gotoGallery();
             }
         });
+
+        mRootView.addOnLayoutChangeListener(mLayoutListener);
     }
 
     public void setPrefChangedListener(OnPreferenceChangedListener listener) {
@@ -260,7 +296,14 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         mLabelsLinearLayout = (LinearLayout) mRootView.findViewById(R.id.labels);
     }
 
+    private void initializePauseButton() {
+        mPauseButton = (PauseButton) mRootView.findViewById(R.id.video_pause);
+        mGestures.addUnclickableArea(mPauseButton);
+        mPauseButton.setOnPauseButtonListener(this);
+    }
+
     public void updateOnScreenIndicators(Parameters param, ComboPreferences prefs) {
+      mOnScreenIndicators.updateVideoHDROnScreenIndicator(param.getVideoHDRMode());
       mOnScreenIndicators.updateFlashOnScreenIndicator(param.getFlashMode());
       boolean location = RecordLocationPreference.get(
               prefs, mActivity.getContentResolver());
@@ -297,14 +340,11 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         mGestures.addTouchReceiver(mPopup);
     }
 
-    public void dismissPopup(boolean topLevelOnly) {
-        dismissPopup(topLevelOnly, true);
+    public void dismissPopup() {
+        dismissPopup(true);
     }
 
-    public void dismissPopup(boolean topLevelPopupOnly, boolean fullScreen) {
-        // In review mode, we do not want to bring up the camera UI
-        if (mController.isInReviewMode()) return;
-
+    private void dismissPopup(boolean fullScreen) {
         if (fullScreen) {
             mActivity.showUI();
             mBlocker.setVisibility(View.VISIBLE);
@@ -315,7 +355,7 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
             ((FrameLayout) mRootView).removeView(mPopup);
             mPopup = null;
         }
-        mVideoMenu.popupDismissed(topLevelPopupOnly);
+        mVideoMenu.popupDismissed();
     }
 
     public void onShowSwitcherPopup() {
@@ -342,10 +382,20 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         }
     }
 
+    public void onPause() {
+        mRootView.removeOnLayoutChangeListener(mLayoutListener);
+    }
+
+    public void enablePause(boolean enable) {
+        if (mPauseButton != null) {
+            mPauseButton.setEnabled(enable);
+        }
+    }
+
     // PieListener
     @Override
     public void onPieOpened(int centerX, int centerY) {
-        dismissPopup(false, true);
+        dismissPopup();
         mActivity.cancelActivityTouchHandling();
         mActivity.setSwipingEnabled(false);
     }
@@ -389,7 +439,7 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         return mSurfaceViewReady;
     }
 
-    public void showRecordingUI(boolean recording, boolean zoomSupported) {
+    public void showRecordingUI(boolean recording, boolean zoomSupported, boolean isTimeLapse) {
         mMenu.setVisibility(recording ? View.GONE : View.VISIBLE);
         mOnScreenIndicators.setVisibility(recording ? View.GONE : View.VISIBLE);
         if (recording) {
@@ -397,6 +447,9 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
             mActivity.hideSwitcher();
             mRecordingTimeView.setText("");
             mRecordingTimeView.setVisibility(View.VISIBLE);
+            if (!isTimeLapse) {
+                mPauseButton.setVisibility(View.VISIBLE);
+            }
             // The camera is not allowed to be accessed in older api levels during
             // recording. It is therefore necessary to hide the zoom UI on older
             // platforms.
@@ -409,6 +462,8 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
             mShutterButton.setImageResource(R.drawable.btn_new_shutter_video);
             mActivity.showSwitcher();
             mRecordingTimeView.setVisibility(View.GONE);
+            if (!isTimeLapse)
+                mPauseButton.setVisibility(View.GONE);
             if (!ApiHelper.HAS_ZOOM_WHEN_RECORDING && zoomSupported) {
                 // TODO: enable zoom UI here.
             }
@@ -453,7 +508,7 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
             mGestures.setEnabled(full);
         }
         if (mPopup != null) {
-            dismissPopup(false, full);
+            dismissPopup();
         }
         if (mRenderOverlay != null) {
             // this can not happen in capture mode
@@ -523,6 +578,50 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
         }
     }
 
+    // implement focusUI interface
+    private FocusIndicator getFocusIndicator() {
+        return mPieRenderer;
+    }
+
+    @Override
+    public boolean hasFaces() {
+        return false;
+    }
+
+    @Override
+    public void clearFocus() {
+        FocusIndicator indicator = getFocusIndicator();
+        if (indicator != null) indicator.clear();
+    }
+
+    @Override
+    public void setFocusPosition(int x, int y) {
+        mPieRenderer.setFocus(x, y);
+    }
+
+    @Override
+    public void onFocusStarted(){
+        getFocusIndicator().showStart();
+    }
+
+    @Override
+    public void onFocusSucceeded(boolean timeOut) {
+        getFocusIndicator().showSuccess(timeOut);
+    }
+
+    @Override
+    public void onFocusFailed(boolean timeOut) {
+        getFocusIndicator().showFail(timeOut);
+    }
+
+    @Override
+    public void pauseFaceDetection() {
+    }
+
+    @Override
+    public void resumeFaceDetection() {
+    }
+
     @Override
     public void onSwipe(int direction) {
         if (direction == PreviewGestures.DIR_UP) {
@@ -541,5 +640,25 @@ public class VideoUI implements SurfaceHolder.Callback, PieRenderer.PieListener,
             mGestures.removeTouchReceiver(mPreviewThumb);
             mPreviewThumb.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    public void onButtonPause() {
+        mRecordingTimeView.setCompoundDrawablesWithIntrinsicBounds(
+            R.drawable.ic_pausing_indicator, 0, 0, 0);
+        mController.onButtonPause();
+    }
+
+    @Override
+    public void onButtonContinue() {
+        mRecordingTimeView.setCompoundDrawablesWithIntrinsicBounds(
+            R.drawable.ic_recording_indicator, 0, 0, 0);
+        mController.onButtonContinue();
+    }
+
+    public void resetPauseButton() {
+        mRecordingTimeView.setCompoundDrawablesWithIntrinsicBounds(
+            R.drawable.ic_recording_indicator, 0, 0, 0);
+        mPauseButton.setPaused(false);
     }
 }

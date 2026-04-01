@@ -245,6 +245,11 @@ public:
     virtual bool isOpaque() const;
 
     /*
+     * needsDithering - true if this surface needs dithering
+     */
+    virtual bool needsDithering() const     { return mNeedsDithering; }
+
+    /*
      * isSecure - true if this surface is secure, that is if it prevents
      * screenshots or VNC servers.
      */
@@ -276,6 +281,11 @@ public:
     // Updates the transform hint in our SurfaceFlingerConsumer to match
     // the current orientation of the display device.
     virtual void updateTransformHint(const sp<const DisplayDevice>& hw) const;
+#ifdef QCOM_BSP
+    virtual bool isExtOnly() const;
+    virtual bool isIntOnly() const;
+    virtual bool isSecureDisplay() const;
+#endif
 
     /*
      * returns the rectangle that crops the content of the layer and scales it
@@ -356,6 +366,7 @@ private:
     PixelFormat mFormat;
     const GLExtensions& mGLExtensions;
     bool mOpaqueLayer;
+    bool mNeedsDithering;
 
     // these are protected by an external lock
     State mCurrentState;

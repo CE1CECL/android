@@ -27,11 +27,15 @@ import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.provider.Telephony.Sms;
 import android.provider.Telephony.Sms.Inbox;
+import android.telephony.SmsMessage;
 import android.util.Log;
 
 import com.android.mms.LogTag;
+import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessagingPreferenceActivity;
 import com.google.android.mms.MmsException;
+
+import java.util.ArrayList;
 
 public class SmsMessageSender implements MessageSender {
     protected final Context mContext;
@@ -41,10 +45,12 @@ public class SmsMessageSender implements MessageSender {
     protected final String mServiceCenter;
     protected final long mThreadId;
     protected long mTimestamp;
+    protected int mSubscription;
     private static final String TAG = "SmsMessageSender";
 
     // Default preference values
     private static final boolean DEFAULT_DELIVERY_REPORT_MODE  = false;
+    private static final boolean DEFAULT_SMS_SPLIT_COUNTER = false;
 
     private static final String[] SERVICE_CENTER_PROJECTION = new String[] {
         Sms.Conversations.REPLY_PATH_PRESENT,
@@ -54,7 +60,8 @@ public class SmsMessageSender implements MessageSender {
     private static final int COLUMN_REPLY_PATH_PRESENT = 0;
     private static final int COLUMN_SERVICE_CENTER     = 1;
 
-    public SmsMessageSender(Context context, String[] dests, String msgText, long threadId) {
+    public SmsMessageSender(Context context, String[] dests,
+                 String msgText, long threadId, int subscription) {
         mContext = context;
         mMessageText = msgText;
         if (dests != null) {
@@ -68,6 +75,7 @@ public class SmsMessageSender implements MessageSender {
         mTimestamp = System.currentTimeMillis();
         mThreadId = threadId;
         mServiceCenter = getOutgoingServiceCenter(mThreadId);
+        mSubscription = subscription;
     }
 
     public boolean sendMessage(long token) throws MmsException {
@@ -87,29 +95,76 @@ public class SmsMessageSender implements MessageSender {
                 MessagingPreferenceActivity.SMS_DELIVERY_REPORT_MODE,
                 DEFAULT_DELIVERY_REPORT_MODE);
 
+        boolean splitMessage = MmsConfig.getSplitSmsEnabled();
+
+        boolean splitCounter = prefs.getBoolean(
+                MessagingPreferenceActivity.SMS_SPLIT_COUNTER,
+                DEFAULT_SMS_SPLIT_COUNTER);
+
+        int[] params = SmsMessage.calculateLength(mMessageText, false);
+            /* SmsMessage.calculateLength returns an int[4] with:
+             *   int[0] being the number of SMS's required,
+             *   int[1] the number of code units used,
+             *   int[2] is the number of code units remaining until the next message.
+             *   int[3] is the encoding type that should be used for the message.
+             */
+
+        int nSmsPages = params[0];
+
+        // To split or not to split, that is THE question!
+        if (splitMessage && (nSmsPages >  1))
+        {
+            // Split the message by encoding
+            ArrayList<String> MessageBody = SmsMessage.fragmentText(mMessageText);
+
+            // Start send loop for split messages
+            for(int page = 0; page < nSmsPages; page++)
+                {
+                    // Adds counter at end of message
+                    if(splitCounter) {
+                        String counterText = MessageBody.get(page) +  "(" + (page + 1) + "/" + nSmsPages + ")";
+                        MessageBody.set(page, counterText);
+                    }
+
+                    for (int i = 0; i < mNumberOfDests; i++) {
+                    try {
+                            Sms.addMessageToUri(mContext.getContentResolver(),
+                            Uri.parse("content://sms/queued"), mDests[i],
+                            MessageBody.get(page), null, mTimestamp,
+                            true /* read */,
+                            requestDeliveryReport,
+                            mThreadId);
+                        } catch (SQLiteException e) {
+                            SqliteWrapper.checkSQLiteException(mContext, e);
+                        }
+                    }
+                }
+        } else { // Send without split or counter
         for (int i = 0; i < mNumberOfDests; i++) {
             try {
                 if (LogTag.DEBUG_SEND) {
                     Log.v(TAG, "queueMessage mDests[i]: " + mDests[i] + " mThreadId: " + mThreadId);
                 }
+                log("updating Database with sub = " + mSubscription);
                 Sms.addMessageToUri(mContext.getContentResolver(),
-                        Uri.parse("content://sms/queued"), mDests[i],
-                        mMessageText, null, mTimestamp,
-                        true /* read */,
-                        requestDeliveryReport,
-                        mThreadId);
-            } catch (SQLiteException e) {
-                if (LogTag.DEBUG_SEND) {
-                    Log.e(TAG, "queueMessage SQLiteException", e);
+                    Uri.parse("content://sms/queued"), mDests[i],
+                    mMessageText, null, mTimestamp,
+                    true /* read */,
+                    requestDeliveryReport,
+                    mThreadId, mSubscription);
+                } catch (SQLiteException e) {
+                    if (LogTag.DEBUG_SEND) {
+                        Log.e(TAG, "queueMessage SQLiteException", e);
+                    }
+                    SqliteWrapper.checkSQLiteException(mContext, e);
                 }
-                SqliteWrapper.checkSQLiteException(mContext, e);
             }
         }
         // Notify the SmsReceiverService to send the message out
         mContext.sendBroadcast(new Intent(SmsReceiverService.ACTION_SEND_MESSAGE,
                 null,
                 mContext,
-                SmsReceiver.class));
+                PrivilegedSmsReceiver.class));
         return false;
     }
 

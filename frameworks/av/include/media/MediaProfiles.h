@@ -1,4 +1,6 @@
 /*
+ ** Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ ** Not a Contribution.
  **
  ** Copyright 2010, The Android Open Source Project.
  **
@@ -33,7 +35,13 @@ enum camcorder_quality {
     CAMCORDER_QUALITY_720P = 5,
     CAMCORDER_QUALITY_1080P = 6,
     CAMCORDER_QUALITY_QVGA = 7,
-    CAMCORDER_QUALITY_LIST_END = 7,
+    CAMCORDER_QUALITY_FWVGA = 8,
+    CAMCORDER_QUALITY_WVGA = 9,
+    CAMCORDER_QUALITY_VGA = 10,
+    CAMCORDER_QUALITY_WQVGA = 11,
+    CAMCORDER_QUALITY_4kUHD = 12,
+    CAMCORDER_QUALITY_4kDCI = 13,
+    CAMCORDER_QUALITY_LIST_END = 13,
 
     CAMCORDER_QUALITY_TIME_LAPSE_LIST_START = 1000,
     CAMCORDER_QUALITY_TIME_LAPSE_LOW  = 1000,
@@ -44,7 +52,11 @@ enum camcorder_quality {
     CAMCORDER_QUALITY_TIME_LAPSE_720P = 1005,
     CAMCORDER_QUALITY_TIME_LAPSE_1080P = 1006,
     CAMCORDER_QUALITY_TIME_LAPSE_QVGA = 1007,
-    CAMCORDER_QUALITY_TIME_LAPSE_LIST_END = 1007,
+    CAMCORDER_QUALITY_TIME_LAPSE_FWVGA = 1008,
+    CAMCORDER_QUALITY_TIME_LAPSE_WVGA = 1009,
+    CAMCORDER_QUALITY_TIME_LAPSE_VGA = 1010,
+    CAMCORDER_QUALITY_TIME_LAPSE_WQVGA = 1011,
+    CAMCORDER_QUALITY_TIME_LAPSE_LIST_END = 1011,
 };
 
 /**
@@ -456,6 +468,8 @@ private:
     static VideoEncoderCap* createDefaultH263VideoEncoderCap();
     static VideoEncoderCap* createDefaultM4vVideoEncoderCap();
     static AudioEncoderCap* createDefaultAmrNBEncoderCap();
+    static AudioEncoderCap* createDefaultAacEncoderCap();
+    static AudioEncoderCap* createDefaultLpcmEncoderCap();
 
     static int findTagForName(const NameToTagMap *map, size_t nMappings, const char *name);
 

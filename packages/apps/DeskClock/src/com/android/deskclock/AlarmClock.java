@@ -22,11 +22,14 @@ import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
 import android.app.LoaderManager;
+import android.app.Profile;
+import android.app.ProfileManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -35,7 +38,10 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.view.ActionMode;
 import android.view.ActionMode.Callback;
 import android.view.LayoutInflater;
@@ -60,6 +66,7 @@ import com.android.deskclock.widget.swipeablelistview.SwipeableListView;
 import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.HashSet;
+import java.util.UUID;
 
 /**
  * AlarmClock application.
@@ -81,6 +88,16 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
     private static final String KEY_DELETE_CONFIRMATION = "deleteConfirmation";
 
     private static final int REQUEST_CODE_RINGTONE = 1;
+    private static final int REQUEST_CODE_PROFILE = 2;
+
+    private Handler mHandler;
+    private ProfileManager mProfileManager;
+    private ProfilesObserver mProfileObserver;
+
+    private final Uri PROFILES_SETTINGS_URI =
+            Settings.System.getUriFor(Settings.System.SYSTEM_PROFILES_ENABLED);
+
+    private static final int MSG_PROFILE_STATUS_CHANGE = 1000;
 
     private SwipeableListView mAlarmsList;
     private AlarmItemAdapter mAdapter;
@@ -125,6 +142,22 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
             mSelectedAlarm = savedState.getParcelable(KEY_SELECTED_ALARM);
             mInDeleteConfirmation = savedState.getBoolean(KEY_DELETE_CONFIRMATION, false);
         }
+
+        // Register profiles status
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+
+                switch (msg.what) {
+                    case MSG_PROFILE_STATUS_CHANGE:
+                        updateProfilesStatus();
+                        break;
+                }
+            }
+        };
+        mProfileManager = (ProfileManager) getSystemService(Context.PROFILE_SERVICE);
+        mProfileObserver = new ProfilesObserver(mHandler);
 
         mAlarmsList = (SwipeableListView) findViewById(R.id.alarms_list);
         mAdapter = new AlarmItemAdapter(
@@ -181,8 +214,21 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+
+        // Unregister the profile observer
+        getContentResolver().unregisterContentObserver(mProfileObserver);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
+
+        // Update the profile status and register the profile observer
+        getContentResolver().registerContentObserver(PROFILES_SETTINGS_URI, false, mProfileObserver);
+        updateProfilesStatus();
+
         if (mInDeleteConfirmation) {
             showConfirmationDialog();
         }
@@ -314,6 +360,9 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
     public void onLoadFinished(Loader<Cursor> cursorLoader, final Cursor data) {
         mAdapter.swapCursor(data);
         gotoAlarmIfSpecified();
+        // Setting the empty view after swapCursor prevents the view from
+        // flickering on the first run.
+        mAlarmsList.setEmptyView(findViewById(android.R.id.empty));
     }
 
     /** If an alarm was passed in via intent and goes to that particular alarm in the list. */
@@ -367,6 +416,40 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
         startActivityForResult(intent, REQUEST_CODE_RINGTONE);
     }
 
+    private void launchProfilePicker(Alarm alarm) {
+        mSelectedAlarm = alarm;
+        final Intent intent = new Intent(ProfileManager.ACTION_PROFILE_PICKER);
+        final UUID uuid = alarm.profile == null ? ProfileManager.NO_PROFILE : alarm.profile;
+
+        intent.putExtra(ProfileManager.EXTRA_PROFILE_EXISTING_UUID, uuid.toString());
+        intent.putExtra(ProfileManager.EXTRA_PROFILE_SHOW_NONE, true);
+        startActivityForResult(intent, REQUEST_CODE_PROFILE);
+    }
+
+    private boolean isProfilesEnabled() {
+        return Settings.System.getInt(getContentResolver(),
+                Settings.System.SYSTEM_PROFILES_ENABLED, 1) == 1;
+    }
+
+    private String getProfileName(Alarm alarm) {
+        if (!isProfilesEnabled() || alarm.profile == null
+                || alarm.profile.equals(ProfileManager.NO_PROFILE)) {
+            return getString(R.string.profile_no_selected);
+        }
+        Profile profile = mProfileManager.getProfile(alarm.profile);
+        if (profile == null) {
+            return getString(R.string.profile_no_selected);
+        }
+        return profile.getName();
+    }
+
+    private void updateProfilesStatus() {
+        // Need to refresh the data
+        if (mAdapter != null) {
+            mAdapter.notifyDataSetChanged();
+        }
+    }
+
     private void saveRingtoneUri(Intent intent) {
         final Uri uri = intent.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI);
         mSelectedAlarm.alert = uri;
@@ -377,12 +460,29 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
         asyncUpdateAlarm(mSelectedAlarm, false);
     }
 
+    private void saveProfile(Intent intent) {
+        final String uuid = intent.getStringExtra(ProfileManager.EXTRA_PROFILE_PICKED_UUID);
+        if (uuid != null) {
+            try {
+                mSelectedAlarm.profile = UUID.fromString(uuid);
+            } catch (IllegalArgumentException ex) {
+                mSelectedAlarm.profile = ProfileManager.NO_PROFILE;
+            }
+        } else {
+            mSelectedAlarm.profile = ProfileManager.NO_PROFILE;
+        }
+        asyncUpdateAlarm(mSelectedAlarm, false);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             switch (requestCode) {
                 case REQUEST_CODE_RINGTONE:
                     saveRingtoneUri(data);
+                    break;
+                case REQUEST_CODE_PROFILE:
+                    saveProfile(data);
                     break;
                 default:
                     Log.w("Unhandled request code in onActivityResult: " + requestCode);
@@ -430,6 +530,27 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
         mActionMode.setTitle(String.format(getString(R.string.alarms_selected), items));
     }
 
+
+    private class ProfilesObserver extends ContentObserver {
+        public ProfilesObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            onChange(selfChange, null);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            if (uri == null) return;
+            if (PROFILES_SETTINGS_URI.equals(uri)) {
+                mHandler.removeMessages(MSG_PROFILE_STATUS_CHANGE);
+                mHandler.sendEmptyMessage(MSG_PROFILE_STATUS_CHANGE);
+            }
+        }
+    }
+
     public class AlarmItemAdapter extends CursorAdapter {
 
         private final Context mContext;
@@ -453,15 +574,7 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
         private final boolean mHasVibrator;
 
         // This determines the order in which it is shown and processed in the UI.
-        private final int[] DAY_ORDER = new int[] {
-                Calendar.SUNDAY,
-                Calendar.MONDAY,
-                Calendar.TUESDAY,
-                Calendar.WEDNESDAY,
-                Calendar.THURSDAY,
-                Calendar.FRIDAY,
-                Calendar.SATURDAY,
-        };
+        private final int[] DAY_ORDER;
 
         public class ItemHolder {
 
@@ -479,8 +592,10 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
             ViewGroup[] dayButtonParents = new ViewGroup[7];
             ToggleButton[] dayButtons = new ToggleButton[7];
             CheckBox vibrate;
+            CheckBox increasingVolume;
             ViewGroup collapse;
             TextView ringtone;
+            TextView profile;
             View hairLine;
 
             // Other states
@@ -539,6 +654,16 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
 
             mHasVibrator = ((Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE))
                     .hasVibrator();
+
+
+            DAY_ORDER = new int[7];
+            int firstDay = Calendar.getInstance().getFirstDayOfWeek();
+            int day;
+            for(day = 0; day < 7; day++)
+            {
+                DAY_ORDER[day] = firstDay;
+                firstDay = firstDay % 7 + 1;
+            }
         }
 
         public void removeSelectedId(int id) {
@@ -609,8 +734,10 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
                 holder.dayButtonParents[i] = viewgroup;
             }
             holder.vibrate = (CheckBox) view.findViewById(R.id.vibrate_onoff);
+            holder.increasingVolume = (CheckBox) view.findViewById(R.id.increasing_volume_onoff);
             holder.collapse = (ViewGroup) view.findViewById(R.id.collapse);
             holder.ringtone = (TextView) view.findViewById(R.id.choose_ringtone);
+            holder.profile = (TextView) view.findViewById(R.id.choose_profile);
 
             view.setTag(holder);
             return view;
@@ -686,6 +813,7 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
                 }
             });
             itemHolder.infoArea.setOnLongClickListener(mLongClickListener);
+            itemHolder.profile.setVisibility(isProfilesEnabled() ? View.VISIBLE : View.GONE);
 
             String colons = "";
             // Set the repeat text or leave it blank if it does not repeat.
@@ -856,7 +984,7 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
 
 
             if (!mHasVibrator) {
-                itemHolder.vibrate.setVisibility(View.INVISIBLE);
+                itemHolder.vibrate.setVisibility(View.GONE);
             } else {
                 itemHolder.vibrate.setVisibility(View.VISIBLE);
                 if (!alarm.vibrate) {
@@ -883,6 +1011,30 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
                         itemHolder.vibrate.setTextColor(mColorDim);
                     }
                     alarm.vibrate = checked;
+                    asyncUpdateAlarm(alarm, false);
+                }
+            });
+
+            itemHolder.increasingVolume.setVisibility(View.VISIBLE);
+            itemHolder.increasingVolume.setChecked(alarm.increasingVolume);
+            itemHolder.increasingVolume.setTextColor(
+                    alarm.increasingVolume ? mColorLit : mColorDim);
+            itemHolder.increasingVolume.setOnLongClickListener(mLongClickListener);
+
+            itemHolder.increasingVolume.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    final boolean checked = ((CheckBox) v).isChecked();
+                    //When action mode is on - simulate long click
+                    if (doLongClick(v)) {
+                        return;
+                    }
+                    if (checked) {
+                        itemHolder.increasingVolume.setTextColor(mColorLit);
+                    } else {
+                        itemHolder.increasingVolume.setTextColor(mColorDim);
+                    }
+                    alarm.increasingVolume = checked;
                     asyncUpdateAlarm(alarm, false);
                 }
             });
@@ -922,6 +1074,23 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
                 }
             });
             itemHolder.ringtone.setOnLongClickListener(mLongClickListener);
+
+            final String profile = getProfileName(alarm);
+            itemHolder.profile.setText(profile);
+            itemHolder.profile.setVisibility(isProfilesEnabled() ? View.VISIBLE : View.GONE);
+            itemHolder.profile.setContentDescription(
+                    mContext.getResources().getString(R.string.profile_description, profile));
+            itemHolder.profile.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //When action mode is on - simulate long click
+                    if (doLongClick(view)) {
+                        return;
+                    }
+                    launchProfilePicker(alarm);
+                }
+            });
+            itemHolder.profile.setOnLongClickListener(mLongClickListener);
         }
 
         // Sets the alpha of the item except the on/off switch. This gives a visual effect
@@ -1011,6 +1180,9 @@ public class AlarmClock extends Activity implements LoaderManager.LoaderCallback
             if (title == null) {
                 // This is slow because a media player is created during Ringtone object creation.
                 Ringtone ringTone = RingtoneManager.getRingtone(mContext, uri);
+                if (ringTone == null) {
+                    return null;
+                }
                 title = ringTone.getTitle(mContext);
                 if (title != null) {
                     mRingtoneTitleCache.putString(uri.toString(), title);

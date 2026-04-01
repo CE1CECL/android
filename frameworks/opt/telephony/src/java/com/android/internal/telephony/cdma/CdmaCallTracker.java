@@ -24,6 +24,7 @@ import android.os.RegistrantList;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
 import android.telephony.Rlog;
+import android.text.TextUtils;
 import android.os.SystemProperties;
 
 import com.android.internal.telephony.CallStateException;
@@ -53,7 +54,7 @@ public final class CdmaCallTracker extends CallTracker {
 
     //***** Constants
 
-    static final int MAX_CONNECTIONS = 1;   // only 1 connection allowed in CDMA
+    static final int MAX_CONNECTIONS = 2;   // only 2 connections allowed in CDMA
     static final int MAX_CONNECTIONS_PER_CALL = 1; // only 1 connection allowed per call
 
     //***** Instance Variables
@@ -76,6 +77,8 @@ public final class CdmaCallTracker extends CallTracker {
     CdmaConnection mPendingMO;
     boolean mHangupPendingMO;
     boolean mPendingCallInEcm=false;
+    //Used to re-request the list of current calls
+    boolean mSlowModem = (SystemProperties.getInt("ro.telephony.slowModem",0) != 0);
     boolean mIsInEmergencyCall = false;
     CDMAPhone mPhone;
 
@@ -93,7 +96,7 @@ public final class CdmaCallTracker extends CallTracker {
     //***** Events
 
     //***** Constructors
-    CdmaCallTracker(CDMAPhone phone) {
+    public CdmaCallTracker(CDMAPhone phone) {
         mPhone = phone;
         mCi = phone.mCi;
         mCi.registerForCallStateChanged(this, EVENT_CALL_STATE_CHANGE, null);
@@ -110,14 +113,24 @@ public final class CdmaCallTracker extends CallTracker {
         mCi.unregisterForCallWaitingInfo(this);
         for(CdmaConnection c : mConnections) {
             try {
-                if(c != null) hangup(c);
+                if(c != null) {
+                    hangup(c);
+                    // Since by now we are unregistered, we won't notify
+                    // PhoneApp that the call is gone. Do that here
+                    Rlog.d(LOG_TAG, "Posting connection disconnect due to LOST_SIGNAL");
+                    c.onDisconnect(Connection.DisconnectCause.LOST_SIGNAL);
+                }
             } catch (CallStateException ex) {
                 Rlog.e(LOG_TAG, "unexpected error on hangup during dispose");
             }
         }
 
         try {
-            if(mPendingMO != null) hangup(mPendingMO);
+            if(mPendingMO != null) {
+                hangup(mPendingMO);
+                Rlog.d(LOG_TAG, "Posting disconnect to pendingMO due to LOST_SIGNAL");
+                mPendingMO.onDisconnect(Connection.DisconnectCause.LOST_SIGNAL);
+            }
         } catch (CallStateException ex) {
             Rlog.e(LOG_TAG, "unexpected error on hangup during dispose");
         }
@@ -483,9 +496,17 @@ public final class CdmaCallTracker extends CallTracker {
         Connection newRinging = null; //or waiting
         boolean hasNonHangupStateChanged = false;   // Any change besides
                                                     // a dropped connection
+        boolean hasAnyCallDisconnected = false;
         boolean needsPollDelay = false;
         boolean unknownConnectionAppeared = false;
 
+        if (mSlowModem) {
+            if (polledCalls.size() == 0 && !mHangupPendingMO && mPendingMO != null) {
+                mLastRelevantPoll = obtainMessage(EVENT_POLL_CALLS_RESULT);
+                mCi.getCurrentCalls(mLastRelevantPoll);
+                return;
+            }
+        }
         for (int i = 0, curDC = 0, dcSize = polledCalls.size()
                 ; i < mConnections.length; i++) {
             CdmaConnection conn = mConnections[i];
@@ -504,6 +525,19 @@ public final class CdmaCallTracker extends CallTracker {
 
             if (DBG_POLL) log("poll: conn[i=" + i + "]=" +
                     conn+", dc=" + dc);
+
+            if (conn != null && dc != null && !TextUtils.isEmpty(conn.mAddress)
+                    && !conn.compareTo(dc)) {
+                // This means we received a different call than we expected in the call list.
+                // Drop the call, and set conn to null, so that the dc can be processed as a new
+                // call by the logic below.
+                // This may happen if for some reason the modem drops the call, and replaces it
+                // with another one, but still using the same index (for instance, if BS drops our
+                // MO and replaces with an MT due to priority rules)
+                log("New call with same index. Dropping old call");
+                mDroppedDuringPoll.add(conn);
+                conn = null;
+            }
 
             if (conn == null && dc != null) {
                 // Connection appeared in CLCC response that we don't know about
@@ -550,26 +584,36 @@ public final class CdmaCallTracker extends CallTracker {
                 }
                 hasNonHangupStateChanged = true;
             } else if (conn != null && dc == null) {
-                // This case means the RIL has no more active call anymore and
-                // we need to clean up the foregroundCall and ringingCall.
-                // Loop through foreground call connections as
-                // it contains the known logical connections.
-                int count = mForegroundCall.mConnections.size();
-                for (int n = 0; n < count; n++) {
-                    if (Phone.DEBUG_PHONE) log("adding fgCall cn " + n + " to droppedDuringPoll");
-                    CdmaConnection cn = (CdmaConnection)mForegroundCall.mConnections.get(n);
-                    mDroppedDuringPoll.add(cn);
+                if (dcSize != 0)
+                {
+                    // This happens if the call we are looking at (index i)
+                    // got dropped but the call list is not yet empty.
+                    log("conn != null, dc == null. Still have connections in the call list");
+                    mDroppedDuringPoll.add(conn);
+                } else {
+                    // This case means the RIL has no more active call anymore and
+                    // we need to clean up the foregroundCall and ringingCall.
+                    // Loop through foreground call connections as
+                    // it contains the known logical connections.
+                    int count = mForegroundCall.mConnections.size();
+                    for (int n = 0; n < count; n++) {
+                        if (Phone.DEBUG_PHONE)
+                            log("adding fgCall cn " + n + " to droppedDuringPoll");
+                        CdmaConnection cn = (CdmaConnection) mForegroundCall.mConnections.get(n);
+                        mDroppedDuringPoll.add(cn);
+                    }
+                    count = mRingingCall.mConnections.size();
+                    // Loop through ringing call connections as
+                    // it may contain the known logical connections.
+                    for (int n = 0; n < count; n++) {
+                        if (Phone.DEBUG_PHONE)
+                            log("adding rgCall cn " + n + " to droppedDuringPoll");
+                        CdmaConnection cn = (CdmaConnection) mRingingCall.mConnections.get(n);
+                        mDroppedDuringPoll.add(cn);
+                    }
+                    mForegroundCall.setGeneric(false);
+                    mRingingCall.setGeneric(false);
                 }
-                count = mRingingCall.mConnections.size();
-                // Loop through ringing call connections as
-                // it may contain the known logical connections.
-                for (int n = 0; n < count; n++) {
-                    if (Phone.DEBUG_PHONE) log("adding rgCall cn " + n + " to droppedDuringPoll");
-                    CdmaConnection cn = (CdmaConnection)mRingingCall.mConnections.get(n);
-                    mDroppedDuringPoll.add(cn);
-                }
-                mForegroundCall.setGeneric(false);
-                mRingingCall.setGeneric(false);
 
                 // Re-start Ecm timer when the connected emergency call ends
                 if (mIsEcmTimerCanceled) {
@@ -666,14 +710,11 @@ public final class CdmaCallTracker extends CallTracker {
                     log("setting cause to " + cause);
                 }
                 mDroppedDuringPoll.remove(i);
-                conn.onDisconnect(cause);
-            } else if (conn.mCause == Connection.DisconnectCause.LOCAL) {
-                // Local hangup
+                hasAnyCallDisconnected |= conn.onDisconnect(cause);
+            } else if (conn.mCause == Connection.DisconnectCause.LOCAL
+                    || conn.mCause == Connection.DisconnectCause.INVALID_NUMBER) {
                 mDroppedDuringPoll.remove(i);
-                conn.onDisconnect(Connection.DisconnectCause.LOCAL);
-            } else if (conn.mCause == Connection.DisconnectCause.INVALID_NUMBER) {
-                mDroppedDuringPoll.remove(i);
-                conn.onDisconnect(Connection.DisconnectCause.INVALID_NUMBER);
+                hasAnyCallDisconnected |= conn.onDisconnect(conn.mCause);
             }
         }
 
@@ -692,7 +733,7 @@ public final class CdmaCallTracker extends CallTracker {
         // 1) the phone has started to ring
         // 2) A Call/Connection object has changed state...
         //    we may have switched or held or answered (but not hung up)
-        if (newRinging != null || hasNonHangupStateChanged) {
+        if (newRinging != null || hasNonHangupStateChanged || hasAnyCallDisconnected) {
             internalClearDisconnected();
         }
 
@@ -702,7 +743,7 @@ public final class CdmaCallTracker extends CallTracker {
             mPhone.notifyUnknownConnection();
         }
 
-        if (hasNonHangupStateChanged || newRinging != null) {
+        if (hasNonHangupStateChanged || newRinging != null || hasAnyCallDisconnected) {
             mPhone.notifyPreciseCallStateChanged();
         }
 
@@ -819,6 +860,7 @@ public final class CdmaCallTracker extends CallTracker {
                     "does not belong to CdmaCallTracker " + this);
         }
 
+        mHangupPendingMO = true;
         call.onHangupLocal();
         mPhone.notifyPreciseCallStateChanged();
     }
@@ -924,6 +966,10 @@ public final class CdmaCallTracker extends CallTracker {
     handleMessage (Message msg) {
         AsyncResult ar;
 
+        if (!mPhone.mIsTheCurrentActivePhone) {
+            Rlog.w(LOG_TAG, "Ignoring events received on inactive CdmaPhone");
+            return;
+        }
         switch (msg.what) {
             case EVENT_POLL_CALLS_RESULT:{
                 Rlog.d(LOG_TAG, "Event EVENT_POLL_CALLS_RESULT Received");

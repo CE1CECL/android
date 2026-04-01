@@ -1,5 +1,9 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
+ * Copyright (c) 2013 The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +26,12 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
+import android.database.Cursor;
 import android.media.AudioService;
 import android.net.wifi.p2p.WifiP2pService;
 import android.os.Environment;
@@ -37,7 +44,9 @@ import android.os.StrictMode;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.service.dreams.DreamService;
+import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.EventLog;
 import android.util.Log;
@@ -53,10 +62,12 @@ import com.android.server.am.BatteryStatsService;
 import com.android.server.content.ContentService;
 import com.android.server.display.DisplayManagerService;
 import com.android.server.dreams.DreamManagerService;
+import com.android.server.gesture.GestureService;
 import com.android.server.input.InputManagerService;
 import com.android.server.net.NetworkPolicyManagerService;
 import com.android.server.net.NetworkStatsService;
 import com.android.server.os.SchedulingPolicyService;
+import com.android.server.pie.PieService;
 import com.android.server.pm.Installer;
 import com.android.server.pm.PackageManagerService;
 import com.android.server.pm.UserManagerService;
@@ -73,6 +84,8 @@ import dalvik.system.Zygote;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
+import com.stericsson.hardware.fm.FmReceiverService;
+import com.stericsson.hardware.fm.FmTransmitterService;
 
 class ServerThread extends Thread {
     private static final String TAG = "SystemServer";
@@ -84,6 +97,45 @@ class ServerThread extends Thread {
     void reportWtf(String msg, Throwable e) {
         Slog.w(TAG, "***********************************************");
         Log.wtf(TAG, "BOOT FAILURE " + msg, e);
+    }
+
+    private class AdbPortObserver extends ContentObserver {
+        public AdbPortObserver() {
+            super(null);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            int adbPort = Settings.Secure.getInt(mContentResolver,
+                Settings.Secure.ADB_PORT, 0);
+            // setting this will control whether ADB runs on TCP/IP or USB
+            SystemProperties.set("service.adb.tcp.port", Integer.toString(adbPort));
+        }
+    }
+
+    private class PerformanceProfileObserver extends ContentObserver {
+        private final String mPropName;
+        private final String mPropDef;
+
+        public PerformanceProfileObserver(Context ctx) {
+            super(null);
+            mPropName =
+                    ctx.getString(com.android.internal.R.string.config_perf_profile_prop);
+            mPropDef =
+                    ctx.getString(com.android.internal.R.string.config_perf_profile_default_entry);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            setSystemSetting();
+        }
+
+        void setSystemSetting() {
+            String perfProfile = Settings.System.getString(mContentResolver,
+                    Settings.System.PERFORMANCE_PROFILE);
+            if (perfProfile == null) {
+                perfProfile = mPropDef;
+            }
+            SystemProperties.set(mPropName, perfProfile);
+        }
     }
 
     @Override
@@ -128,6 +180,7 @@ class ServerThread extends Thread {
         LightsService lights = null;
         PowerManagerService power = null;
         DisplayManagerService display = null;
+        DeviceHandlerService device = null;
         BatteryService battery = null;
         VibratorService vibrator = null;
         AlarmManagerService alarm = null;
@@ -144,6 +197,8 @@ class ServerThread extends Thread {
         WindowManagerService wm = null;
         BluetoothManagerService bluetooth = null;
         DockObserver dock = null;
+        RotationSwitchObserver rotateSwitch = null;
+        RegulatoryObserver regulatory = null;
         UsbService usb = null;
         SerialService serial = null;
         TwilightService twilight = null;
@@ -153,6 +208,7 @@ class ServerThread extends Thread {
         CommonTimeManagementService commonTimeMgmtService = null;
         InputManagerService inputManager = null;
         TelephonyRegistry telephonyRegistry = null;
+        MSimTelephonyRegistry msimTelephonyRegistry = null;
 
         // Create a shared handler thread for UI within the system server.
         // This thread is used by at least the following components:
@@ -223,6 +279,12 @@ class ServerThread extends Thread {
             telephonyRegistry = new TelephonyRegistry(context);
             ServiceManager.addService("telephony.registry", telephonyRegistry);
 
+            if (android.telephony.MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                Slog.i(TAG, "MSimTelephony Registry");
+                msimTelephonyRegistry = new MSimTelephonyRegistry(context);
+                ServiceManager.addService("telephony.msim.registry", msimTelephonyRegistry);
+            }
+
             Slog.i(TAG, "Scheduling Policy");
             ServiceManager.addService(Context.SCHEDULING_POLICY_SERVICE,
                     new SchedulingPolicyService());
@@ -281,11 +343,15 @@ class ServerThread extends Thread {
             Slog.i(TAG, "System Content Providers");
             ActivityManagerService.installSystemProviders();
 
+            // Requires context, activity manager y providers
+            Slog.i(TAG, "Device Handler Service");
+            device = new DeviceHandlerService(context);
+
             Slog.i(TAG, "Lights Service");
             lights = new LightsService(context);
 
             Slog.i(TAG, "Battery Service");
-            battery = new BatteryService(context, lights);
+            battery = new BatteryService(context, lights, device);
             ServiceManager.addService("battery", battery);
 
             Slog.i(TAG, "Vibrator Service");
@@ -310,7 +376,7 @@ class ServerThread extends Thread {
 
             Slog.i(TAG, "Window Manager");
             wm = WindowManagerService.main(context, power, display, inputManager,
-                    uiHandler, wmHandler,
+                    device, uiHandler, wmHandler,
                     factoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL,
                     !firstBoot, onlyCore);
             ServiceManager.addService(Context.WINDOW_SERVICE, wm);
@@ -345,10 +411,14 @@ class ServerThread extends Thread {
             Slog.e("System", "************ Failure starting core service", e);
         }
 
+        boolean hasRotationLock = context.getResources().getBoolean(com.android
+                .internal.R.bool.config_hasRotationLockSwitch);
+
         DevicePolicyManagerService devicePolicy = null;
         StatusBarManagerService statusBar = null;
         InputMethodManagerService imm = null;
         AppWidgetService appWidget = null;
+        ProfileManagerService profile = null;
         NotificationManagerService notification = null;
         WallpaperManagerService wallpaper = null;
         LocationManagerService location = null;
@@ -356,6 +426,8 @@ class ServerThread extends Thread {
         TextServicesManagerService tsms = null;
         LockSettingsService lockSettings = null;
         DreamManagerService dreamy = null;
+        PieService pieService = null;
+        GestureService gestureService = null;
 
         // Bring up services needed for UI.
         if (factoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
@@ -477,6 +549,14 @@ class ServerThread extends Thread {
                 reportWtf("starting NetworkPolicy Service", e);
             }
 
+            try {
+                Slog.i(TAG, "Regulatory Observer");
+                // Listen for country code changes
+                regulatory = new RegulatoryObserver(context);
+            } catch (Throwable e) {
+                reportWtf("starting RegulatoryObserver", e);
+            }
+
            try {
                 Slog.i(TAG, "Wi-Fi P2pService");
                 wifiP2p = new WifiP2pService(context);
@@ -516,6 +596,21 @@ class ServerThread extends Thread {
             }
 
             try {
+                Slog.i(TAG, "FM receiver Service");
+                ServiceManager.addService("fm_receiver",
+                        new FmReceiverService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting FM receiver Service", e);
+            }
+
+            try {
+                Slog.i(TAG, "FM transmitter Service");
+                ServiceManager.addService("fm_transmitter",
+                        new FmTransmitterService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting FM transmitter Service", e);
+            }
+            try {
                 Slog.i(TAG, "UpdateLock Service");
                 ServiceManager.addService(Context.UPDATE_LOCK_SERVICE,
                         new UpdateLockService(context));
@@ -544,6 +639,14 @@ class ServerThread extends Thread {
                     contentService.systemReady();
             } catch (Throwable e) {
                 reportWtf("making Content Service ready", e);
+            }
+
+            try {
+                Slog.i(TAG, "Profile Manager");
+                profile = new ProfileManagerService(context);
+                ServiceManager.addService(Context.PROFILE_SERVICE, profile);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting Profile Manager", e);
             }
 
             try {
@@ -626,7 +729,17 @@ class ServerThread extends Thread {
             }
 
             try {
-                Slog.i(TAG, "Wired Accessory Manager");
+                if (hasRotationLock) {
+                    Slog.i(TAG, "Rotation Switch Observer");
+                    // Listen for switch changes
+                    rotateSwitch = new RotationSwitchObserver(context);
+                }
+            } catch (Throwable e) {
+                reportWtf("starting RotationSwitchObserver", e);
+            }
+
+            try {
+                Slog.i(TAG, "Wired Accessory Observer");
                 // Listen for wired headset changes
                 inputManager.setWiredAccessoryCallbacks(
                         new WiredAccessoryManager(context, inputManager));
@@ -744,11 +857,70 @@ class ServerThread extends Thread {
             }
 
             try {
+                Slog.i(TAG, "AssetRedirectionManager Service");
+                ServiceManager.addService("assetredirection", new AssetRedirectionManagerService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting AssetRedirectionManager Service", e);
+            }
+
+            if (context.getResources().getBoolean(
+                    com.android.internal.R.bool.config_enableIrdaManagerService)) {
+                try {
+                    Slog.i(TAG, "IrdaManager Service");
+                    ServiceManager.addService("irda", new IrdaManagerService(context));
+                } catch (Throwable e) {
+                    Slog.e(TAG, "Failure starting Irda Service", e);
+                }
+            }
+
+
+            if (context.getResources().getBoolean(
+                    com.android.internal.R.bool.config_allowPieService)) {
+                try {
+                    Slog.i(TAG, "Pie Delivery Service");
+                    pieService = new PieService(context, wm, inputManager);
+                    ServiceManager.addService("pieservice", pieService);
+                } catch (Throwable e) {
+                    Slog.e(TAG, "Failure starting Pie Delivery Service Service", e);
+                }
+            }
+
+            if (context.getResources().getBoolean(
+                    com.android.internal.R.bool.config_enableGestureService)) {
+                try {
+                    Slog.i(TAG, "Gesture Sensor Service");
+                    gestureService = new GestureService(context, inputManager);
+                    ServiceManager.addService("gesture", gestureService);
+                } catch (Throwable e) {
+                    Slog.e(TAG, "Failure starting Gesture Sensor Service", e);
+                }
+            }
+
+            try {
                 Slog.i(TAG, "IdleMaintenanceService");
                 new IdleMaintenanceService(context, battery);
             } catch (Throwable e) {
                 reportWtf("starting IdleMaintenanceService", e);
             }
+        }
+
+        // make sure the ADB_ENABLED setting value matches the secure property value
+        Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_PORT,
+                Integer.parseInt(SystemProperties.get("service.adb.tcp.port", "-1")));
+
+        // register observer to listen for settings changes
+        mContentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(Settings.Secure.ADB_PORT),
+            false, new AdbPortObserver());
+        if (!TextUtils.isEmpty(context.getString(
+                com.android.internal.R.string.config_perf_profile_prop))) {
+            PerformanceProfileObserver observer = new PerformanceProfileObserver(context);
+            mContentResolver.registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.PERFORMANCE_PROFILE),
+                    false, observer);
+
+            // Sync the system property with the current setting
+            observer.setSystemSetting();
         }
 
         // Before things start rolling, be sure we have decided whether
@@ -832,6 +1004,31 @@ class ServerThread extends Thread {
             reportWtf("making Display Manager Service ready", e);
         }
 
+        if (pieService != null) {
+            try {
+                pieService.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making Pie Delivery Service ready", e);
+            }
+        }
+
+        if (gestureService != null) {
+            try {
+                gestureService.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making Gesture Sensor Service ready", e);
+            }
+        }
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE);
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE_RESET);
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addCategory(Intent.CATEGORY_THEME_PACKAGE_INSTALLED_STATE_CHANGE);
+        filter.addDataScheme("package");
+        context.registerReceiver(new AppsLaunchFailureReceiver(), filter);
+
         // These are needed to propagate to the runnable below.
         final Context contextF = context;
         final MountService mountServiceF = mountService;
@@ -841,6 +1038,7 @@ class ServerThread extends Thread {
         final NetworkPolicyManagerService networkPolicyF = networkPolicy;
         final ConnectivityService connectivityF = connectivity;
         final DockObserver dockF = dock;
+        final RotationSwitchObserver rotateSwitchF = rotateSwitch;
         final UsbService usbF = usb;
         final TwilightService twilightF = twilight;
         final UiModeManagerService uiModeF = uiMode;
@@ -857,6 +1055,7 @@ class ServerThread extends Thread {
         final DreamManagerService dreamyF = dreamy;
         final InputManagerService inputManagerF = inputManager;
         final TelephonyRegistry telephonyRegistryF = telephonyRegistry;
+        final MSimTelephonyRegistry msimTelephonyRegistryF = msimTelephonyRegistry;
 
         // We now tell the activity manager it is okay to run third party
         // code.  It will call back into us once it has gotten to the state
@@ -907,6 +1106,11 @@ class ServerThread extends Thread {
                     if (dockF != null) dockF.systemReady();
                 } catch (Throwable e) {
                     reportWtf("making Dock Service ready", e);
+                }
+                try {
+                    if (rotateSwitchF != null) rotateSwitchF.systemReady();
+                } catch (Throwable e) {
+                    reportWtf("making Rotation Switch Service ready", e);
                 }
                 try {
                     if (usbF != null) usbF.systemReady();
@@ -986,6 +1190,11 @@ class ServerThread extends Thread {
                 }
                 try {
                     if (telephonyRegistryF != null) telephonyRegistryF.systemReady();
+                } catch (Throwable e) {
+                    reportWtf("making TelephonyRegistry ready", e);
+                }
+                try {
+                    if (msimTelephonyRegistryF != null) msimTelephonyRegistryF.systemReady();
                 } catch (Throwable e) {
                     reportWtf("making TelephonyRegistry ready", e);
                 }

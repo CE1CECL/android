@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:paddingTop="12dip"
+    android:paddingBottom="12dip"
+    android:paddingLeft="8dip"
+    android:paddingRight="8dip">
+
+    <TextView
+        android:gravity="center_horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/pref_text_mms_notification_vibrate_custom"
+        android:padding="1dip" />
+
+    <EditText
+        android:id="@+id/custom_vibrate_pattern"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:maxLength="100"
+        android:padding="4dp"
+        android:defaultValue="0,1200" />
+
+</LinearLayout>
+
+

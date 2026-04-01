@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2013 The CyanogenMod Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="application_copyright">Copyright \u00A9 2013 The CyanogenMod Project</string>
+    <string name="menu">Menu</string>
+    <string name="hidden_apps_title">Ukryte aplikacje</string>
+    <string name="preferences_title">Ustawienia</string>
+    <string name="preferences_interface_title">Interfejs</string>
+    <string name="preferences_application_title">Aplikacja</string>
+    <string name="preferences_interface_homescreen_title">Strona główna</string>
+    <string name="preferences_interface_homescreen_summary">Ekrany główne i tapeta</string>
+    <string name="preferences_interface_homescreen_general_category">Główne</string>
+    <string name="preferences_interface_homescreen_general_screens_title">Liczba ekranów głównych</string>
+    <string name="preferences_interface_homescreen_general_screens_summary">Liczba ekranów na stronie głównej</string>
+    <string name="preferences_interface_homescreen_general_default_screen_title">Domyślny ekran</string>
+    <string name="preferences_interface_homescreen_general_default_screen_summary">Wskaż domyślny ekran</string>
+    <string name="preferences_interface_homescreen_general_search_title">Pasek wyszukiwania</string>
+    <string name="preferences_interface_homescreen_general_search_summary">Aktywuje stale widoczny pasek wyszukiwania</string>
+    <string name="preferences_interface_homescreen_general_grid_title">Rozmiar siatki</string>
+    <string name="preferences_interface_homescreen_general_grid_summary">Wybierz liczbę wierszy/kolumn na ekranie głównym</string>
+    <string name="preferences_interface_homescreen_general_grid_rows_title">Wiersze</string>
+    <string name="preferences_interface_homescreen_general_grid_columns_title">Kolumny</string>
+    <string name="preferences_interface_homescreen_general_stretch_screens_title">Rozciągnij ekrany</string>
+    <string name="preferences_interface_homescreen_general_stretch_screens_summary">Rozszerza ekrany, by dopasować je do rozmiarów wyświetlacza</string>
+    <string name="preferences_interface_homescreen_general_hide_icon_labels_title">Ukryj nazwy aplikacji</string>
+    <string name="preferences_interface_homescreen_general_hide_icon_labels_summary">Ukrywa podpisy pod ikonami na ekranie głównym</string>
+    <string name="preferences_interface_homescreen_scrolling_category">Przewijanie</string>
+    <string name="preferences_interface_homescreen_scrolling_transition_effect_title">Efekt przejścia</string>
+    <string name="preferences_interface_homescreen_scrolling_transition_effect_summary">Efekt towarzyszący przewijaniu ekranów</string>
+    <string name="preferences_interface_homescreen_scrolling_scroll_wallpaper_title">Przewijaj tapetę</string>
+    <string name="preferences_interface_homescreen_scrolling_scroll_wallpaper_summary">Przewija tapetę wraz z ekranami</string>
+    <string name="preferences_interface_homescreen_scrolling_wallpaper_hack_title">Szybkie renderowanie tapety</string>
+    <string name="preferences_interface_homescreen_scrolling_wallpaper_hack_summary">Używa triku, który zwiększa płynność przewijania statycznej tapety</string>
+    <string name="preferences_interface_homescreen_scrolling_wallpaper_size_title">Rozmiar tapety</string>
+    <string name="preferences_interface_homescreen_scrolling_wallpaper_size_summary">Wskaż, na ile ekranów szeroka powinna być tapeta</string>
+    <string name="preferences_interface_homescreen_scrolling_fade_adjacent_screens_title">Wygaszaj boczne ekrany</string>
+    <string name="preferences_interface_homescreen_scrolling_fade_adjacent_screens_summary">Wygasza boczne ekrany w trakcie przewijania</string>
+    <string name="preferences_interface_homescreen_scrolling_show_outlines_title">Pokaż kontury</string>
+    <string name="preferences_interface_homescreen_scrolling_show_outlines_summary">Pokazuje kontury ekranów podczas ich przewijania</string>
+    <string name="preferences_interface_homescreen_indicator_category">Wskaźnik</string>
+    <string name="preferences_interface_homescreen_indicator_enable_title">Pokaż wskaźnik</string>
+    <string name="preferences_interface_homescreen_indicator_enable_summary">Pokazuje na ekranie wskaźnik aktywnego ekranu</string>
+    <string name="preferences_interface_homescreen_indicator_fade_title">Zanikający wskaźnik</string>
+    <string name="preferences_interface_homescreen_indicator_fade_summary">Wygasza wskaźnik po zmianie ekranu</string>
+    <string name="preferences_interface_homescreen_indicator_position_title">Pozycja wskaźnika</string>
+    <string name="preferences_interface_homescreen_indicator_position_summary">Wybierz, w którym miejscu ekranu ma być wyświetlany wskaźnik</string>
+    <string name="preferences_interface_drawer_title">Lista aplikacji</string>
+    <string name="preferences_interface_drawer_summary">Lista aplikacji i widżetów</string>
+    <string name="preferences_interface_drawer_orientation_title">Orientacja</string>
+    <string name="preferences_interface_drawer_orientation_summary">Wybierz, w którą stronę przewijana będzie lista</string>
+    <string name="preferences_interface_drawer_apps_category">Aplikacje</string>
+    <string name="preferences_interface_drawer_hidden_apps_title">Ukryte aplikacje</string>
+    <string name="preferences_interface_drawer_hidden_apps_summary">Ukrywa aplikacje na liście</string>
+    <string name="preferences_interface_drawer_hidden_apps_shortcuts_title">Ukryte aplikacje (skróty)</string>
+    <string name="preferences_interface_drawer_hidden_apps_shortcuts_summary">Usuń skróty ukrytych aplikacji z ekranu głównego</string>
+    <string name="preferences_interface_drawer_hidden_apps_widgets_title">Ukryte aplikacje (widżety)</string>
+    <string name="preferences_interface_drawer_hidden_apps_widgets_summary">Usuń widżety ukrytych aplikacji z ekranu głównego</string>
+    <string name="preferences_interface_drawer_widgets_category">Widżety</string>
+    <string name="preferences_interface_drawer_widgets_join_apps_title">Podłącz do aplikacji</string>
+    <string name="preferences_interface_drawer_widgets_join_apps_summary">Pozwala na przewijanie z listy aplikacji bezpośrednio do widżetów</string>
+    <string name="preferences_interface_drawer_scrolling_category">Przewijanie</string>
+    <string name="preferences_interface_drawer_scrolling_transition_effect_title">Efekt przejścia</string>
+    <string name="preferences_interface_drawer_scrolling_transition_effect_summary">Efekt towarzyszący przewijaniu stron</string>
+    <string name="preferences_interface_drawer_scrolling_fade_adjacent_screens_title">Wygaszaj boczne strony</string>
+    <string name="preferences_interface_drawer_scrolling_fade_adjacent_screens_summary">Wygasza boczne strony w trakcie przewijania</string>
+    <string name="preferences_interface_drawer_indicator_category">Wskaźnik</string>
+    <string name="preferences_interface_drawer_indicator_enable_title">Pokazuj wskaźnik strony</string>
+    <string name="preferences_interface_drawer_indicator_enable_summary">Pokazuje na na dole ekranu wskaźnik aktywnej strony</string>
+    <string name="preferences_interface_drawer_indicator_fade_title">Zanikający wskaźnik</string>
+    <string name="preferences_interface_drawer_indicator_fade_summary">Wygasza wskaźnik po zmianie strony</string>
+    <string name="preferences_interface_drawer_indicator_position_title">Pozycja wskaźnika</string>
+    <string name="preferences_interface_drawer_indicator_position_summary">Wybierz, w którym miejscu ekranu ma być wyświetlany wskaźnik</string>
+    <string name="preferences_interface_dock_title">Dok</string>
+    <string name="preferences_interface_dock_enabled_title">Pokaż dok</string>
+    <string name="preferences_interface_dock_enabled_summary">Pokazuje dok poniżej ekranu głównego</string>
+    <string name="preferences_interface_dock_pages_title">Strony</string>
+    <string name="preferences_interface_dock_pages_summary">Liczba stron doku</string>
+    <string name="preferences_interface_dock_default_page_title">Domyślna strona</string>
+    <string name="preferences_interface_dock_default_page_summary">Wybierz domyślną stronę</string>
+    <string name="preferences_interface_dock_icons_title">Ikony</string>
+    <string name="preferences_interface_dock_icons_summary">Liczba ikon/kolumn w doku</string>
+    <string name="preferences_interface_dock_icon_scale_title">Rozmiar ikon</string>
+    <string name="preferences_interface_dock_icon_scale_summary">Zmień rozmiar ikon wyświetlanych w doku</string>
+    <string name="preferences_interface_dock_divider_title">Pokaż separator doku</string>
+    <string name="preferences_interface_dock_divider_summary">Wyświetla separator między ekranem głównym a dokiem</string>
+    <string name="preferences_interface_icons_title">Ikony</string>
+    <string name="preferences_interface_general_title">Główne</string>
+    <string name="preferences_interface_general_orientation_title">Autoobracanie ekranu</string>
+    <string name="preferences_interface_general_fullscreen_title">Tryb pełnoekranowy</string>
+    <string name="preferences_interface_general_fullscreen_summary">Ukrywa pasek stanu, by rozszerzyć stronę główną</string>
+    <string name="folder_empty_contents_title">Nie znaleziono treści</string>
+    <string name="preferences_interface_general_iconpack_title">Pakiet ikon</string>
+    <string name="preferences_interface_general_iconpack_summary">Pakiety ikon pozwalają zastąpić standardowe ikony aplikacji</string>
+    <string name="dialog_pick_iconpack_title">Wybierz pakiet ikon</string>
+    <string name="default_iconpack_title">Domyślne</string>
+    <string name="no_iconpacks_summary">Nie ma żadnych zainstalowanych pakietów ikon</string>
+    <string name="effects_standard">Standardowo</string>
+    <string name="effects_tablet">Jak w tablecie</string>
+    <string name="effects_zoom_in">Powiększanie</string>
+    <string name="effects_zoom_out">Zmniejszanie</string>
+    <string name="effects_rotate_up">Obrót w górę</string>
+    <string name="effects_rotate_down">Obrót w dół</string>
+    <string name="effects_cylinder_in">Cylinder wewn.</string>
+    <string name="effects_cylinder_out">Cylinder zewn.</string>
+    <string name="effects_cube_in">Kostka wewn.</string>
+    <string name="effects_cube_out">Kostka zewn.</string>
+    <string name="effects_spin">Wirowanie</string>
+    <string name="effects_flip">Przerzucanie</string>
+    <string name="effects_stack">Układanie</string>
+    <string name="effects_accordion">Akordeonowo</string>
+    <string name="effects_carousel_left">Karuzela w lewo</string>
+    <string name="effects_carousel_right">Karuzela w prawo</string>
+    <string name="edit_target_label">Edytuj</string>
+    <string name="preferences_interface_dock_hide_icon_labels_title">Ukryj nazwy aplikacji w doku</string>
+    <string name="preferences_interface_dock_hide_icon_labels_summary">Ukrywa podpisy pod ikonami w doku</string>
+    <string name="menu_lock_workspace">Zablokuj ekran główny</string>
+    <string name="menu_unlock_workspace">Odblokuj ekran główny</string>
+    <string name="menu_preferences">Ustawienia</string>
+    <string name="menu_hidden_apps_delete">Zresetuj</string>
+    <string name="menu_apps_sort_title">Nazwa</string>
+    <string name="menu_apps_sort_install_date">Data instalacji</string>
+    <string name="menu_apps_filter_system">Systemowe</string>
+    <string name="menu_apps_filter_downloaded">Pobrane</string>
+    <string name="workspace_locked">Ekran główny jest zablokowany, w celu edycji odblokuj go w ustawieniach</string>
+    <string name="preferences_interface_general_lock_workspace_title">Blokada ekranu głównego</string>
+    <string name="preferences_interface_general_lock_workspace_summary">Zablokuj edycję ikon na ekranie głównym, w doku oraz na liście aplikacji i widżetów</string>
+    <string name="cancel_target_label">Anuluj</string>
+    <string name="all_apps_sort_cling_title">Sortuj aplikacje</string>
+    <string name="all_apps_sort_cling_add_item">Przytrzymaj kartę aplikacji aby wybrać tryb sortowania</string>
+    <string name="live_folder_cling_title">Foldery-Live</string>
+    <string name="live_folder_cling_create_folder">Foldery-Live pozwalają deweloperom tworzyć foldery z dynamiczną zawartością. Zawartość folderu może być usunięta, przez długie naciśnięcie na pojedyńczym wpisie. W przeciwieństwie do normalnych folderów, zawartość może być dodana tylko przez aplikację która utowrzyła folder</string>
+    <string name="conversations_title">Rozmowy</string>
+</resources>

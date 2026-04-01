@@ -46,7 +46,6 @@ pathmap_INCL := \
     libthread_db:bionic/libthread_db/include \
     mkbootimg:system/core/mkbootimg \
     opengl-tests-includes:frameworks/native/opengl/tests/include \
-    recovery:bootable/recovery \
     system-core:system/core/include \
     audio-effects:system/media/audio_effects/include \
     audio-utils:system/media/audio_utils/include \
@@ -54,6 +53,12 @@ pathmap_INCL := \
     wilhelm:frameworks/wilhelm/include \
     wilhelm-ut:frameworks/wilhelm/src/ut \
     speex:external/speex/include
+
+ifneq ($(WITH_SIMPLE_RECOVERY),true)
+    pathmap_INCL += recovery:bootable/recovery
+else
+    pathmap_INCL += recovery:bootable/simplerecovery
+endif
 
 #
 # Returns the path to the requested module's include directory,
@@ -96,6 +101,7 @@ FRAMEWORKS_BASE_SUBDIRS := \
 	    telephony \
 	    wifi \
 	    keystore \
+	    fmradio \
 	 )
 
 #

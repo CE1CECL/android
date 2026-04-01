@@ -39,6 +39,8 @@ import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
@@ -46,6 +48,7 @@ import android.util.Pair;
 
 import com.android.common.contacts.DataUsageStatUpdater;
 import com.android.common.userhappiness.UserHappinessSignals;
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.ContentRestrictionException;
 import com.android.mms.ExceedMessageSizeException;
 import com.android.mms.LogTag;
@@ -158,6 +161,10 @@ public class WorkingMessage {
     };
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
+    public static int mCurrentConvSub = MSimConstants.SUB1;
+
+    //flag indicate resend sms that the recipient of conversion is more than one.
+    private boolean mResendMultiRecipients;
 
     /**
      * Callback interface for communicating important state changes back to
@@ -366,6 +373,9 @@ public class WorkingMessage {
         return mText;
     }
 
+    public void setWorkingMessageSub(int subscription) {
+        mCurrentConvSub = subscription;
+    }
     /**
      * @return True if the message has any text. A message with just whitespace is not considered
      * to have text.
@@ -1316,7 +1326,13 @@ public class WorkingMessage {
 
         // just do a regular send. We're already on a non-ui thread so no need to fire
         // off another thread to do this work.
-        sendSmsWorker(msgText, semiSepRecipients, threadId);
+        if (mResendMultiRecipients) {
+            Log.d(TAG, "it is resend sms recipient="+recipientsInUI);
+            sendSmsWorker(msgText, recipientsInUI, threadId);
+            mResendMultiRecipients = false;
+        } else {
+            sendSmsWorker(msgText, semiSepRecipients, threadId);
+        }
 
         // Be paranoid and clean any draft SMS up.
         deleteDraftSmsMessage(threadId);
@@ -1328,7 +1344,11 @@ public class WorkingMessage {
             Log.d(LogTag.TRANSACTION, "sendSmsWorker sending message: recipients=" +
                     semiSepRecipients + ", threadId=" + threadId);
         }
-        MessageSender sender = new SmsMessageSender(mActivity, dests, msgText, threadId);
+        MessageSender sender;
+
+        sender = new SmsMessageSender(mActivity, dests, msgText, threadId,
+                        mCurrentConvSub);
+
         try {
             sender.sendMessage(threadId);
 
@@ -1458,8 +1478,17 @@ public class WorkingMessage {
             mStatusListener.onAttachmentError(error);
             return;
         }
+
+        ContentValues values = new ContentValues(1);
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            values.put(Mms.SUB_ID, mCurrentConvSub);
+        } else {
+           values.put(Mms.SUB_ID, MSimTelephonyManager.getDefault().getPreferredDataSubscription());
+        }
+        SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
+
         MessageSender sender = new MmsMessageSender(mActivity, mmsUri,
-                slideshow.getCurrentMessageSize());
+                slideshow.getCurrentMessageSize(), mCurrentConvSub);
         try {
             if (!sender.sendMessage(threadId)) {
                 // The message was sent through SMS protocol, we should
@@ -1519,6 +1548,9 @@ public class WorkingMessage {
         cursor = SqliteWrapper.query(context, cr,
                 Mms.Draft.CONTENT_URI, MMS_DRAFT_PROJECTION,
                 selection, null, null);
+        if (cursor == null) {
+            return null;
+        }
 
         Uri uri;
         try {
@@ -1805,6 +1837,14 @@ public class WorkingMessage {
         // to clear those messages as well as ones with a valid thread id.
         final String where = Mms.THREAD_ID +  (threadId > 0 ? " = " + threadId : " IS NULL");
         asyncDelete(Mms.Draft.CONTENT_URI, where, null);
+    }
+
+    public void setResendMultiRecipients(boolean bResendMultiRecipients) {
+        mResendMultiRecipients = bResendMultiRecipients;
+    }
+
+    public boolean getResendMultiRecipients() {
+        return mResendMultiRecipients;
     }
 
     /**

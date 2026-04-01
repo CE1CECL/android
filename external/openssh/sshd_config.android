@@ -16,7 +16,7 @@
 #ListenAddress ::
 
 # The default requires explicit activation of protocol 1
-Protocol 2
+#Protocol 2
 
 # HostKey for protocol version 1
 #HostKey /etc/ssh/ssh_host_key
@@ -46,7 +46,9 @@ HostKey /data/ssh/ssh_host_dsa_key
 
 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
 # but this is overridden so installations will only check .ssh/authorized_keys
-AuthorizedKeysFile	/data/ssh/authorized_keys
+AuthorizedKeysFile	/data/.ssh/authorized_keys
+
+#AuthorizedPrincipalsFile none
 
 # For this to work you will also need host keys in /etc/ssh/ssh_known_hosts
 #RhostsRSAAuthentication no
@@ -59,7 +61,7 @@ AuthorizedKeysFile	/data/ssh/authorized_keys
 #IgnoreRhosts yes
 
 # To disable tunneled clear text passwords, change to no here!
-PasswordAuthentication no
+#PasswordAuthentication yes
 #PermitEmptyPasswords no
 
 # Change to no to disable s/key passwords
@@ -96,7 +98,7 @@ PasswordAuthentication no
 #PrintLastLog yes
 #TCPKeepAlive yes
 #UseLogin no
-#UsePrivilegeSeparation yes
+UsePrivilegeSeparation sandbox         # Default for new installations.
 #PermitUserEnvironment no
 #Compression delayed
 #ClientAliveInterval 0
@@ -106,6 +108,7 @@ PasswordAuthentication no
 #MaxStartups 10
 #PermitTunnel no
 #ChrootDirectory none
+#VersionAddendum none
 
 # no default banner path
 #Banner none

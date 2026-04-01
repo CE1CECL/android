@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -675,6 +676,14 @@ public abstract class PackageManager {
     public static final int INSTALL_FAILED_USER_RESTRICTED = -111;
 
     /**
+     * Installation failed return code: this is passed to the {@link IPackageInstallObserver} by
+     * {@link #installPackage(android.net.Uri, IPackageInstallObserver, int)}
+     * if the system failed to install the package because of a policy denial.
+     * @hide
+     */
+    public static final int INSTALL_FAILED_POLICY_REJECTED_PERMISSION = -112;
+
+    /**
      * Flag parameter for {@link #deletePackage} to indicate that you don't want to delete the
      * package's data directory.
      *
@@ -912,6 +921,22 @@ public abstract class PackageManager {
      */
     @SdkConstant(SdkConstantType.FEATURE)
     public static final String FEATURE_CAMERA_FRONT = "android.hardware.camera.front";
+
+    /**
+     * Feature for {@link #getSystemAvailableFeatures} and
+     * {@link #hasSystemFeature}: The device is able to receive FM radio.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.FEATURE)
+    public static final String FEATURE_RADIO_FM_RECEIVER = "com.stericsson.hardware.fm.receiver";
+
+    /**
+     * Feature for {@link #getSystemAvailableFeatures} and
+     * {@link #hasSystemFeature}: The device is able to transmit FM radio.
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.FEATURE)
+    public static final String FEATURE_RADIO_FM_TRANSMITTER = "com.stericsson.hardware.fm.transmitter";
 
     /**
      * Feature for {@link #getSystemAvailableFeatures} and
@@ -1684,6 +1709,17 @@ public abstract class PackageManager {
      * @hide
      */
     public abstract List<PackageInfo> getInstalledPackages(int flags, int userId);
+
+    /**
+     * Return a List of all theme packages that are installed
+     * on the device.
+     *
+     * @return A List of PackageInfo objects, one for each theme package
+     *         that is installed on the device.
+     *
+     * @hide
+     */
+    public abstract List<PackageInfo> getInstalledThemePackages();
 
     /**
      * Check whether a particular package has been granted a particular

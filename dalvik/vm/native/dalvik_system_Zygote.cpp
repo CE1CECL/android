@@ -23,8 +23,13 @@
 #include <selinux/android.h>
 
 #include <signal.h>
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 7)
+#include <sys/resource.h>
+#endif
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
+#include <stdio.h>
 #include <grp.h>
 #include <errno.h>
 #include <paths.h>
@@ -448,19 +453,21 @@ static int setCapabilities(int64_t permitted, int64_t effective)
 {
 #ifdef HAVE_ANDROID_OS
     struct __user_cap_header_struct capheader;
-    struct __user_cap_data_struct capdata;
+    struct __user_cap_data_struct capdata[_LINUX_CAPABILITY_U32S_3];
 
     memset(&capheader, 0, sizeof(capheader));
     memset(&capdata, 0, sizeof(capdata));
 
-    capheader.version = _LINUX_CAPABILITY_VERSION;
+    capheader.version = _LINUX_CAPABILITY_VERSION_3;
     capheader.pid = 0;
 
-    capdata.effective = effective;
-    capdata.permitted = permitted;
+    capdata[0].effective = effective & 0xffffffffULL;
+    capdata[0].permitted = permitted & 0xffffffffULL;
+    capdata[1].effective = (uint64_t)effective >> 32;
+    capdata[1].permitted = (uint64_t)permitted >> 32;
 
     ALOGV("CAPSET perm=%llx eff=%llx", permitted, effective);
-    if (capset(&capheader, &capdata) != 0)
+    if (capset(&capheader, capdata) != 0)
         return errno;
 #endif /*HAVE_ANDROID_OS*/
 
@@ -500,6 +507,64 @@ static bool needsNoRandomizeWorkaround() {
     // Kernels before 3.4.* need the workaround.
     return (major < 3) || ((major == 3) && (minor < 4));
 #endif
+}
+
+/*
+ * Basic KSM Support
+ */
+#ifndef MADV_MERGEABLE
+#define MADV_MERGEABLE 12
+#endif
+
+static inline void pushAnonymousPagesToKSM(void)
+{
+    FILE *fp;
+    char section[100];
+    char perms[5];
+    unsigned long start, end, misc;
+    int ch, offset;
+
+    fp = fopen("/proc/self/maps","r");
+
+    if (fp != NULL) {
+        while (fscanf(fp, "%lx-%lx %4s %lx %lx:%lx %ld",
+                 &start, &end, perms, &misc, &misc, &misc, &misc) == 7)
+        {
+            /* Read the sections name striping any preceeding spaces
+               and truncating to 100char (99 + \0)*/
+            section[0] = 0;
+            offset = 0;
+            while(1)
+            {
+                ch = fgetc(fp);
+                if (ch == '\n' || ch == EOF) {
+                    break;
+                }
+                if ((offset == 0) && (ch == ' ')) {
+                    continue;
+                }
+                if ((offset + 1) < 100) {
+                    section[offset]=ch;
+                    section[offset+1]=0;
+                    offset++;
+                }
+            }
+            /* now decide if we want to scan the section or not:
+               for now we scan Anonymous (sections with no file name) stack and
+               heap sections*/
+            if (( section[0] == 0) ||
+               (strcmp(section,"[stack]") == 0) ||
+               (strcmp(section,"[heap]") == 0))
+            {
+                /* The section matches pass it into madvise */
+                madvise((void*) start, (size_t) end-start, MADV_MERGEABLE);
+            }
+            if (ch == EOF) {
+                break;
+            }
+        }
+        fclose(fp);
+    }
 }
 
 /*
@@ -690,6 +755,7 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
             ALOGE("error in post-zygote initialization");
             dvmAbort();
         }
+        pushAnonymousPagesToKSM();
     } else if (pid > 0) {
         /* the parent process */
         free(seInfo);

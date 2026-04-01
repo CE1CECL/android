@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2010-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +22,10 @@ package com.android.mms.ui;
 import java.util.regex.Pattern;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
@@ -56,6 +60,7 @@ public class MessageListAdapter extends CursorAdapter {
         // For SMS
         Sms.ADDRESS,
         Sms.BODY,
+        Sms.SUB_ID,
         Sms.DATE,
         Sms.DATE_SENT,
         Sms.READ,
@@ -86,26 +91,27 @@ public class MessageListAdapter extends CursorAdapter {
     static final int COLUMN_THREAD_ID           = 2;
     static final int COLUMN_SMS_ADDRESS         = 3;
     static final int COLUMN_SMS_BODY            = 4;
-    static final int COLUMN_SMS_DATE            = 5;
-    static final int COLUMN_SMS_DATE_SENT       = 6;
-    static final int COLUMN_SMS_READ            = 7;
-    static final int COLUMN_SMS_TYPE            = 8;
-    static final int COLUMN_SMS_STATUS          = 9;
-    static final int COLUMN_SMS_LOCKED          = 10;
-    static final int COLUMN_SMS_ERROR_CODE      = 11;
-    static final int COLUMN_MMS_SUBJECT         = 12;
-    static final int COLUMN_MMS_SUBJECT_CHARSET = 13;
-    static final int COLUMN_MMS_DATE            = 14;
-    static final int COLUMN_MMS_DATE_SENT       = 15;
-    static final int COLUMN_MMS_READ            = 16;
-    static final int COLUMN_MMS_MESSAGE_TYPE    = 17;
-    static final int COLUMN_MMS_MESSAGE_BOX     = 18;
-    static final int COLUMN_MMS_DELIVERY_REPORT = 19;
-    static final int COLUMN_MMS_READ_REPORT     = 20;
-    static final int COLUMN_MMS_ERROR_TYPE      = 21;
-    static final int COLUMN_MMS_LOCKED          = 22;
-    static final int COLUMN_MMS_STATUS          = 23;
-    static final int COLUMN_MMS_TEXT_ONLY       = 24;
+    static final int COLUMN_SUB_ID              = 5;
+    static final int COLUMN_SMS_DATE            = 6;
+    static final int COLUMN_SMS_DATE_SENT       = 7;
+    static final int COLUMN_SMS_READ            = 8;
+    static final int COLUMN_SMS_TYPE            = 9;
+    static final int COLUMN_SMS_STATUS          = 10;
+    static final int COLUMN_SMS_LOCKED          = 11;
+    static final int COLUMN_SMS_ERROR_CODE      = 12;
+    static final int COLUMN_MMS_SUBJECT         = 13;
+    static final int COLUMN_MMS_SUBJECT_CHARSET = 14;
+    static final int COLUMN_MMS_DATE            = 15;
+    static final int COLUMN_MMS_DATE_SENT       = 16;
+    static final int COLUMN_MMS_READ            = 17;
+    static final int COLUMN_MMS_MESSAGE_TYPE    = 18;
+    static final int COLUMN_MMS_MESSAGE_BOX     = 19;
+    static final int COLUMN_MMS_DELIVERY_REPORT = 20;
+    static final int COLUMN_MMS_READ_REPORT     = 21;
+    static final int COLUMN_MMS_ERROR_TYPE      = 22;
+    static final int COLUMN_MMS_LOCKED          = 23;
+    static final int COLUMN_MMS_STATUS          = 24;
+    static final int COLUMN_MMS_TEXT_ONLY       = 25;
 
     private static final int CACHE_SIZE         = 50;
 
@@ -122,6 +128,8 @@ public class MessageListAdapter extends CursorAdapter {
     private Pattern mHighlight;
     private Context mContext;
     private boolean mIsGroupConversation;
+    private boolean mFullTimestamp;
+    private boolean mSentTimestamp;
 
     public MessageListAdapter(
             Context context, Cursor c, ListView listView,
@@ -139,6 +147,10 @@ public class MessageListAdapter extends CursorAdapter {
         } else {
             mColumnsMap = new ColumnsMap(c);
         }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        mFullTimestamp = prefs.getBoolean(MessagingPreferenceActivity.FULL_TIMESTAMP, false);
+        mSentTimestamp = prefs.getBoolean(MessagingPreferenceActivity.SENT_TIMESTAMP, false);
 
         listView.setRecyclerListener(new AbsListView.RecyclerListener() {
             @Override
@@ -232,7 +244,7 @@ public class MessageListAdapter extends CursorAdapter {
         MessageItem item = mMessageItemCache.get(getKey(type, msgId));
         if (item == null && c != null && isCursorValid(c)) {
             try {
-                item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight);
+                item = new MessageItem(mContext, type, c, mColumnsMap, mHighlight, mFullTimestamp, mSentTimestamp);
                 mMessageItemCache.put(getKey(item.mType, item.mMsgId), item);
             } catch (MmsException e) {
                 Log.e(TAG, "getCachedMessageItem: ", e);
@@ -319,6 +331,7 @@ public class MessageListAdapter extends CursorAdapter {
         public int mColumnMsgId;
         public int mColumnSmsAddress;
         public int mColumnSmsBody;
+        public int mColumnSubId;
         public int mColumnSmsDate;
         public int mColumnSmsDateSent;
         public int mColumnSmsRead;
@@ -345,6 +358,7 @@ public class MessageListAdapter extends CursorAdapter {
             mColumnMsgId              = COLUMN_ID;
             mColumnSmsAddress         = COLUMN_SMS_ADDRESS;
             mColumnSmsBody            = COLUMN_SMS_BODY;
+            mColumnSubId              = COLUMN_SUB_ID;
             mColumnSmsDate            = COLUMN_SMS_DATE;
             mColumnSmsDateSent        = COLUMN_SMS_DATE_SENT;
             mColumnSmsType            = COLUMN_SMS_TYPE;
@@ -387,6 +401,12 @@ public class MessageListAdapter extends CursorAdapter {
 
             try {
                 mColumnSmsBody = cursor.getColumnIndexOrThrow(Sms.BODY);
+            } catch (IllegalArgumentException e) {
+                Log.w("colsMap", e.getMessage());
+            }
+
+            try {
+                mColumnSubId = cursor.getColumnIndexOrThrow(Sms.SUB_ID);
             } catch (IllegalArgumentException e) {
                 Log.w("colsMap", e.getMessage());
             }

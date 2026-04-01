@@ -56,12 +56,14 @@ public class Input {
                     return;
                 }
             } else if (command.equals("keyevent")) {
-                if (args.length == 2) {
-                    int keyCode = KeyEvent.keyCodeFromString(args[1]);
-                    if (keyCode == KeyEvent.KEYCODE_UNKNOWN) {
-                        keyCode = KeyEvent.keyCodeFromString("KEYCODE_" + args[1]);
+                if (args.length >= 2) {
+                    for (int i=1; i < args.length; i++) {
+                        int keyCode = KeyEvent.keyCodeFromString(args[i]);
+                        if (keyCode == KeyEvent.KEYCODE_UNKNOWN) {
+                            keyCode = KeyEvent.keyCodeFromString("KEYCODE_" + args[i]);
+                        }
+                        sendKeyEvent(keyCode);
                     }
-                    sendKeyEvent(keyCode);
                     return;
                 }
             } else if (command.equals("tap")) {
@@ -76,13 +78,15 @@ public class Input {
                     return;
                 }
             } else if (command.equals("touchscreen") || command.equals("touchpad")
-                    || command.equals("touchnavigation")) {
+                    || command.equals("touchnavigation") || command.equals("gesture")) {
                 // determine input source
                 int inputSource = InputDevice.SOURCE_TOUCHSCREEN;
                 if (command.equals("touchpad")) {
                     inputSource = InputDevice.SOURCE_TOUCHPAD;
                 } else if (command.equals("touchnavigation")) {
                     inputSource = InputDevice.SOURCE_TOUCH_NAVIGATION;
+                } else if (command.equals("gesture")) {
+                    inputSource = InputDevice.SOURCE_GESTURE_SENSOR;
                 }
                 // determine subcommand
                 if (args.length > 1) {
@@ -237,7 +241,7 @@ public class Input {
                 DEFAULT_META_STATE, DEFAULT_PRECISION_X, DEFAULT_PRECISION_Y, DEFAULT_DEVICE_ID,
                 DEFAULT_EDGE_FLAGS);
         event.setSource(inputSource);
-        Log.i("Input", "injectMotionEvent: " + event);
+        Log.i(TAG, "injectMotionEvent: " + event);
         InputManager.getInstance().injectInputEvent(event,
                 InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH);
     }

@@ -153,11 +153,10 @@ public class PanoramaModule implements CameraModule,
     private float mHorizontalViewAngle;
     private float mVerticalViewAngle;
 
-    // Prefer FOCUS_MODE_INFINITY to FOCUS_MODE_CONTINUOUS_VIDEO because of
-    // getting a better image quality by the former.
-    private String mTargetFocusMode = Parameters.FOCUS_MODE_INFINITY;
+    private String mTargetFocusMode;
 
     private PanoOrientationEventListener mOrientationEventListener;
+
     // The value could be 0, 90, 180, 270 for the 4 different orientations measured in clockwise
     // respectively.
     private int mDeviceOrientation;
@@ -363,6 +362,11 @@ public class PanoramaModule implements CameraModule,
         mCameraDevice = Util.openCamera(mActivity, cameraId);
         mCameraOrientation = Util.getCameraOrientation(cameraId);
         if (cameraId == CameraHolder.instance().getFrontCameraId()) mUsingFrontCamera = true;
+        if (mActivity.getResources().getBoolean(R.bool.useInfinityFocus)) {
+            mTargetFocusMode = Parameters.FOCUS_MODE_INFINITY;
+        } else {
+            mTargetFocusMode = Parameters.FOCUS_MODE_CONTINUOUS_VIDEO;
+        }
     }
 
     private boolean findBestPreviewSize(List<Size> supportedSizes, boolean need4To3,
@@ -908,35 +912,35 @@ public class PanoramaModule implements CameraModule,
         if (jpegData != null) {
             String filename = PanoUtil.createName(
                     mActivity.getResources().getString(R.string.pano_file_name_format), mTimeTaken);
-            String filepath = Storage.generateFilepath(filename);
+            String filepath = Storage.getInstance().generateFilepath(filename);
 
             Location loc = mLocationManager.getCurrentLocation();
             ExifInterface exif = new ExifInterface();
             try {
                 exif.readExif(jpegData);
-                exif.addGpsDateTimeStampTag(mTimeTaken);
                 exif.addDateTimeStampTag(ExifInterface.TAG_DATE_TIME, mTimeTaken,
                         TimeZone.getDefault());
                 exif.setTag(exif.buildTag(ExifInterface.TAG_ORIENTATION,
                         ExifInterface.getOrientationValueForRotation(orientation)));
-                writeLocation(loc, exif);
+                writeLocation(loc, mTimeTaken, exif);
                 exif.writeExif(jpegData, filepath);
             } catch (IOException e) {
                 Log.e(TAG, "Cannot set exif for " + filepath, e);
-                Storage.writeFile(filepath, jpegData);
+                Storage.getInstance().writeFile(filepath, jpegData);
             }
             int jpegLength = (int) (new File(filepath).length());
-            return Storage.addImage(mContentResolver, filename, mTimeTaken,
+            return Storage.getInstance().addImage(mContentResolver, filename, mTimeTaken,
                     loc, orientation, jpegLength, filepath, width, height);
         }
         return null;
     }
 
-    private static void writeLocation(Location location, ExifInterface exif) {
+    private static void writeLocation(Location location, long timestamp, ExifInterface exif) {
         if (location == null) {
             return;
         }
         exif.addGpsTags(location.getLatitude(), location.getLongitude());
+        exif.addGpsDateTimeStampTag(timestamp);
         exif.setTag(exif.buildTag(ExifInterface.TAG_GPS_PROCESSING_METHOD, location.getProvider()));
     }
 
@@ -1160,7 +1164,7 @@ public class PanoramaModule implements CameraModule,
             // image data from SurfaceTexture.
             mCameraDevice.setDisplayOrientation(0);
 
-            mCameraTexture.setOnFrameAvailableListener(this);
+            if (mCameraTexture != null) mCameraTexture.setOnFrameAvailableListener(this);
             mCameraDevice.setPreviewTextureAsync(mCameraTexture);
         }
         mCameraDevice.startPreviewAsync();
@@ -1254,11 +1258,30 @@ public class PanoramaModule implements CameraModule,
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                return true;
+            case KeyEvent.KEYCODE_CAMERA:
+                if (event.getRepeatCount() == 0) {
+                    // Only capture when in full screen capture mode
+                    if (mActivity.isInCameraApp() &&
+                            mShutterButton.getVisibility() == View.VISIBLE) {
+                        onShutterButtonClick();
+                    }
+                }
+                return true;
+        }
         return false;
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                return true;
+        }
         return false;
     }
 

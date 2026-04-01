@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2013 The CyanogenMod Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="bluetooth_sap_request">Richiesta SAP</string>
+    <string name="bluetooth_sap_acceptance_dialog_text">%1$s richiede l\'accesso alla scheda SIM. Consentire accesso a %2$s?</string>
+    <string name="map_notif_active_session">Sessione attiva MAP Bluetooth</string>
+    <string name="map_notif_connected">Messaggio di accesso Bluetooth a \u00AB<xliff:g id="device_name">%1$s</xliff:g>\u00BB</string>
+    <string name="bluetooth_mas_request">Richiesta di accesso a messaggi</string>
+    <string name="bluetooth_mas_acceptance_dialog_text">%1$s richiede l\'accesso ai tuoi messaggi. Consentire accesso a %2$s?</string>
+    <string name="ftp_notif_title">Richiesta di accesso FTP</string>
+    <string name="ftp_notif_active_session">Sessione attiva FTP Bluetooth</string>
+    <string name="ftp_notif_connected">Trasferimento file Bluetooth attivo su \u00AB<xliff:g id="device_name">%1$s</xliff:g>\u00BB</string>
+    <string name="bluetooth_ftp_request">Richiesta FTP</string>
+    <string name="bluetooth_ftp_acceptance_dialog_text">%1$s richiede l\'accesso ai tuoi file e cartelle. Consentire accesso a %2$s?</string>
+    <string name="defaultname">Kit auto</string>
+    <string name="bluetooth_remember_choice">Non richiedere di nuovo</string>
+    <string name="session_key_dialog_title">Digitare una chiave di sessione per %1$s</string>
+    <string name="session_key_dialog_header">Chiave di sessione Bluetooth richiesta</string>
+    <string name="acceptance_timeout_message">Intervallo di accesso da %1$s terminato</string>
+    <string name="authentication_timeout_message">L\'intervallo di autorizzazione della connessione con %1$s è terminato</string>
+    <string name="notif_ticker">Richiesta di connessione Bluetooth</string>
+    <string name="notif_message">Toccare per connettersi a \u00AB<xliff:g id="device_name">%1$s</xliff:g>\u00BB</string>
+    <string name="dun_notif_title">Chiave di sessione DUN richiesta</string>
+    <string name="bluetooth_dun_request">Richiesta DUN</string>
+    <string name="bluetooth_dun_acceptance_dialog_text">%1$s richiede l\'accesso DUN. Consentire accesso a %2$s?</string>
+</resources>

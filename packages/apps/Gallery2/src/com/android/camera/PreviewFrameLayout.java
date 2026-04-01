@@ -19,12 +19,14 @@ package com.android.camera;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewStub;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
-
 import com.android.camera.ui.LayoutChangeHelper;
 import com.android.camera.ui.LayoutChangeNotifier;
+import com.android.camera.ui.PieRenderer;
 import com.android.gallery3d.R;
 import com.android.gallery3d.common.ApiHelper;
 
@@ -44,11 +46,16 @@ public class PreviewFrameLayout extends RelativeLayout implements LayoutChangeNo
     private View mBorder;
     private OnSizeChangedListener mListener;
     private LayoutChangeHelper mLayoutChangeHelper;
+    private boolean mOrientationResize;
+    private boolean mPrevOrientationResize;
+    private PieRenderer mPieRenderer;
 
     public PreviewFrameLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
         setAspectRatio(4.0 / 3.0);
         mLayoutChangeHelper = new LayoutChangeHelper(this);
+        mOrientationResize = false;
+        mPrevOrientationResize = false;
     }
 
     @Override
@@ -56,13 +63,28 @@ public class PreviewFrameLayout extends RelativeLayout implements LayoutChangeNo
         mBorder = findViewById(R.id.preview_border);
     }
 
+     public void cameraOrientationPreviewResize(boolean orientation){
+         mPrevOrientationResize = mOrientationResize;
+         mOrientationResize = orientation;
+    }
+
     public void setAspectRatio(double ratio) {
         if (ratio <= 0.0) throw new IllegalArgumentException();
+
+        int rotation = ((WindowManager) mContext.getSystemService(
+                Context.WINDOW_SERVICE)).getDefaultDisplay().getRotation();
+        if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
+            ratio = 1 / ratio;
+        }
 
         if (mAspectRatio != ratio) {
             mAspectRatio = ratio;
             requestLayout();
         }
+        if(mOrientationResize != mPrevOrientationResize) {
+           requestLayout();
+        }
+
     }
 
     public void showBorder(boolean enabled) {
@@ -73,10 +95,16 @@ public class PreviewFrameLayout extends RelativeLayout implements LayoutChangeNo
         Util.fadeOut(mBorder);
     }
 
+    public void setRenderer(PieRenderer renderer) {
+       mPieRenderer = renderer;
+    }
+
     @Override
     protected void onMeasure(int widthSpec, int heightSpec) {
         int previewWidth = MeasureSpec.getSize(widthSpec);
         int previewHeight = MeasureSpec.getSize(heightSpec);
+        int originalWidth = previewWidth;
+        int originalHeight = previewHeight;
 
         if (!ApiHelper.HAS_SURFACE_TEXTURE) {
             // Get the padding of the border background.
@@ -106,6 +134,25 @@ public class PreviewFrameLayout extends RelativeLayout implements LayoutChangeNo
             // Add the padding of the border.
             previewWidth += hPadding;
             previewHeight += vPadding;
+        }
+
+        if (mOrientationResize) {
+            previewHeight = (int) (previewWidth * mAspectRatio);
+
+            if (previewHeight > originalHeight) {
+                previewWidth = (int)(((double)originalHeight / (double)previewHeight) * previewWidth);
+                previewHeight = originalHeight;
+            }
+           /* If the preview size of frame is small e.g. less than options menu size,
+            then the later appears cropped. This is because the child views use the parent
+            dimensions for layout sizes. Hence for now as a workaround the preview sizes are
+            updated to atleast match the options menu dimensions. This will result in a slight
+            stretch of preview images */
+            if(mPieRenderer != null) {
+                int settingsDiameter = mPieRenderer.getDiameter();
+                if(previewWidth < settingsDiameter) previewWidth = settingsDiameter;
+                else if(previewHeight < settingsDiameter) previewHeight = settingsDiameter;
+            }
         }
 
         // Ask children to follow the new preview dimension.

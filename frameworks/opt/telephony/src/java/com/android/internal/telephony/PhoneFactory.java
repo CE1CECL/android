@@ -19,6 +19,7 @@ package com.android.internal.telephony;
 import android.content.Context;
 import android.net.LocalServerSocket;
 import android.os.Looper;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.telephony.Rlog;
@@ -30,25 +31,27 @@ import com.android.internal.telephony.sip.SipPhone;
 import com.android.internal.telephony.sip.SipPhoneFactory;
 import com.android.internal.telephony.uicc.UiccController;
 
+import java.lang.reflect.Constructor;
+
 /**
  * {@hide}
  */
 public class PhoneFactory {
     static final String LOG_TAG = "PhoneFactory";
-    static final int SOCKET_OPEN_RETRY_MILLIS = 2 * 1000;
-    static final int SOCKET_OPEN_MAX_RETRY = 3;
+    static protected final int SOCKET_OPEN_RETRY_MILLIS = 2 * 1000;
+    static protected final int SOCKET_OPEN_MAX_RETRY = 3;
 
     //***** Class Variables
 
-    static private Phone sProxyPhone = null;
-    static private CommandsInterface sCommandsInterface = null;
+    static protected Phone sProxyPhone = null;
+    static protected CommandsInterface sCommandsInterface = null;
 
-    static private boolean sMadeDefaults = false;
-    static private PhoneNotifier sPhoneNotifier;
-    static private Looper sLooper;
-    static private Context sContext;
+    static protected boolean sMadeDefaults = false;
+    static protected PhoneNotifier sPhoneNotifier;
+    static protected Looper sLooper;
+    static protected Context sContext;
 
-    static final int sPreferredCdmaSubscription =
+    protected static final int sPreferredCdmaSubscription =
                          CdmaSubscriptionSourceManager.PREFERRED_CDMA_SUBSCRIPTION;
 
     //***** Class Methods
@@ -104,38 +107,44 @@ public class PhoneFactory {
                 if (TelephonyManager.getLteOnCdmaModeStatic() == PhoneConstants.LTE_ON_CDMA_TRUE) {
                     preferredNetworkMode = Phone.NT_MODE_GLOBAL;
                 }
+                if (TelephonyManager.getLteOnGsmModeStatic() != 0) {
+                    preferredNetworkMode = Phone.NT_MODE_LTE_GSM_WCDMA;
+                }
                 int networkMode = Settings.Global.getInt(context.getContentResolver(),
                         Settings.Global.PREFERRED_NETWORK_MODE, preferredNetworkMode);
                 Rlog.i(LOG_TAG, "Network Mode set to " + Integer.toString(networkMode));
 
-                // Get cdmaSubscription
-                // TODO: Change when the ril will provides a way to know at runtime
-                //       the configuration, bug 4202572. And the ril issues the
-                //       RIL_UNSOL_CDMA_SUBSCRIPTION_SOURCE_CHANGED, bug 4295439.
-                int cdmaSubscription;
-                int lteOnCdma = TelephonyManager.getLteOnCdmaModeStatic();
-                switch (lteOnCdma) {
-                    case PhoneConstants.LTE_ON_CDMA_FALSE:
-                        cdmaSubscription = CdmaSubscriptionSourceManager.SUBSCRIPTION_FROM_NV;
-                        Rlog.i(LOG_TAG, "lteOnCdma is 0 use SUBSCRIPTION_FROM_NV");
-                        break;
-                    case PhoneConstants.LTE_ON_CDMA_TRUE:
-                        cdmaSubscription = CdmaSubscriptionSourceManager.SUBSCRIPTION_FROM_RUIM;
-                        Rlog.i(LOG_TAG, "lteOnCdma is 1 use SUBSCRIPTION_FROM_RUIM");
-                        break;
-                    case PhoneConstants.LTE_ON_CDMA_UNKNOWN:
-                    default:
-                        //Get cdmaSubscription mode from Settings.System
-                        cdmaSubscription = Settings.Global.getInt(context.getContentResolver(),
-                                Settings.Global.PREFERRED_CDMA_SUBSCRIPTION,
-                                sPreferredCdmaSubscription);
-                        Rlog.i(LOG_TAG, "lteOnCdma not set, using PREFERRED_CDMA_SUBSCRIPTION");
-                        break;
+                // As per certain operator requirement, the device is expected to be in global
+                // mode from boot up, by enabling the property persist.env.phone.global the
+                // network mode is set to global during boot up.
+                if (SystemProperties.getBoolean("persist.env.phone.global", false)) {
+                    networkMode = Phone.NT_MODE_LTE_CMDA_EVDO_GSM_WCDMA;
+                    Settings.Global.putInt(context.getContentResolver(),
+                            Settings.Global.PREFERRED_NETWORK_MODE, networkMode);
                 }
+
+                // Get cdmaSubscription mode from Settings.Global
+                int cdmaSubscription;
+                cdmaSubscription = Settings.Global.getInt(context.getContentResolver(),
+                                Settings.Global.CDMA_SUBSCRIPTION_MODE,
+                                sPreferredCdmaSubscription);
                 Rlog.i(LOG_TAG, "Cdma Subscription set to " + cdmaSubscription);
 
                 //reads the system properties and makes commandsinterface
-                sCommandsInterface = new RIL(context, networkMode, cdmaSubscription);
+                String sRILClassname = SystemProperties.get("ro.telephony.ril_class", "RIL");
+                Rlog.i(LOG_TAG, "RILClassname is " + sRILClassname);
+
+                // Use reflection to construct the RIL class (defaults to RIL)
+                try {
+                    Class<?> classDefinition = Class.forName("com.android.internal.telephony." + sRILClassname);
+                    Constructor<?> constructor = classDefinition.getConstructor(new Class[] {Context.class, int.class, int.class});
+                    sCommandsInterface = (RIL) constructor.newInstance(new Object[] {context, networkMode, cdmaSubscription});
+                } catch (Exception e) {
+                    // 6 different types of exceptions are thrown here that it's
+                    // easier to just catch Exception as our "error handling" is the same.
+                    Rlog.i(LOG_TAG, "Unable to construct command interface", e);
+                    throw new RuntimeException(e);
+                }
 
                 // Instantiate UiccController so that all other classes can just call getInstance()
                 UiccController.make(context, sCommandsInterface);

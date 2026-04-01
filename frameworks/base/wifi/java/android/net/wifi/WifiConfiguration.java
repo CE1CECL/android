@@ -44,6 +44,10 @@ public class WifiConfiguration implements Parcelable {
     /** {@hide} */
     public static final String hiddenSSIDVarName = "scan_ssid";
     /** {@hide} */
+    public static final String modeVarName = "mode";
+    /** {@hide} */
+    public static final String frequencyVarName = "frequency";
+    /** {@hide} */
     public static final int INVALID_NETWORK_ID = -1;
     /**
      * Recognized key management schemes.
@@ -173,6 +177,8 @@ public class WifiConfiguration implements Parcelable {
     public static final int DISABLED_DHCP_FAILURE                           = 2;
     /** @hide */
     public static final int DISABLED_AUTH_FAILURE                           = 3;
+    /** @hide */
+    public static final int DISABLED_ASSOCIATION_REJECT                     = 4;
 
     /**
      * The ID number that the supplicant uses to identify this
@@ -243,6 +249,18 @@ public class WifiConfiguration implements Parcelable {
      * SSID-specific probe request must be used for scans.
      */
     public boolean hiddenSSID;
+
+   /**
+     * This is an Ad-Hoc (IBSS) network
+     * {@hide}
+     */
+    public boolean isIBSS;
+
+    /**
+     * Frequency of the Ad-Hoc (IBSS) network, if newly created
+     * {@hide}
+     */
+    public int frequency;
 
     /**
      * The set of key management protocols supported by this configuration.
@@ -327,6 +345,8 @@ public class WifiConfiguration implements Parcelable {
         BSSID = null;
         priority = 0;
         hiddenSSID = false;
+        isIBSS = false;
+        frequency = 0;
         disableReason = DISABLED_UNKNOWN_REASON;
         allowedKeyManagement = new BitSet();
         allowedProtocols = new BitSet();
@@ -565,6 +585,8 @@ public class WifiConfiguration implements Parcelable {
             wepTxKeyIndex = source.wepTxKeyIndex;
             priority = source.priority;
             hiddenSSID = source.hiddenSSID;
+            isIBSS = source.isIBSS;
+            frequency = source.frequency;
             allowedKeyManagement   = (BitSet) source.allowedKeyManagement.clone();
             allowedProtocols       = (BitSet) source.allowedProtocols.clone();
             allowedAuthAlgorithms  = (BitSet) source.allowedAuthAlgorithms.clone();
@@ -593,6 +615,8 @@ public class WifiConfiguration implements Parcelable {
         dest.writeInt(wepTxKeyIndex);
         dest.writeInt(priority);
         dest.writeInt(hiddenSSID ? 1 : 0);
+        dest.writeInt(isIBSS ? 1 : 0);
+        dest.writeInt(frequency);
 
         writeBitSet(dest, allowedKeyManagement);
         writeBitSet(dest, allowedProtocols);
@@ -624,6 +648,8 @@ public class WifiConfiguration implements Parcelable {
                 config.wepTxKeyIndex = in.readInt();
                 config.priority = in.readInt();
                 config.hiddenSSID = in.readInt() != 0;
+                config.isIBSS = in.readInt() != 0;
+                config.frequency = in.readInt();
                 config.allowedKeyManagement   = readBitSet(in);
                 config.allowedProtocols       = readBitSet(in);
                 config.allowedAuthAlgorithms  = readBitSet(in);

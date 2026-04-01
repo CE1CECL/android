@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +15,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * This file was modified by Dolby Laboratories, Inc. The portions of the
+ * code that are surrounded by "DOLBY..." are copyrighted and
+ * licensed separately, as follows:
+ *
+ *  (C) 2011-2012 Dolby Laboratories, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 //#define LOG_NDEBUG 0
@@ -32,12 +54,24 @@
 #include <media/stagefright/NativeWindowWrapper.h>
 #include <media/stagefright/OMXClient.h>
 #include <media/stagefright/OMXCodec.h>
+#include <media/stagefright/ExtendedCodec.h>
 
 #include <media/hardware/HardwareAPI.h>
 
 #include <OMX_Component.h>
 
+#ifdef USE_SAMSUNG_COLORFORMAT
+#include <sec_format.h>
+#endif
+
+#include <media/stagefright/ExtendedCodec.h>
 #include "include/avc_utils.h"
+#include "include/QCUtils.h"
+
+#ifdef DOLBY_UDC
+ #include <QCMediaDefs.h>
+#endif //DOLBY_UDC
+#include "include/ResourceManager.h"
 
 namespace android {
 
@@ -363,7 +397,12 @@ ACodec::ACodec()
       mEncoderDelay(0),
       mEncoderPadding(0),
       mChannelMaskPresent(false),
-      mChannelMask(0) {
+      mChannelMask(0),
+      mInSmoothStreamingMode(false) {
+
+    mUseCase = "";
+    mUseCaseFlag = false;
+
     mUninitializedState = new UninitializedState(this);
     mLoadedState = new LoadedState(this);
     mLoadedToIdleState = new LoadedToIdleState(this);
@@ -384,6 +423,7 @@ ACodec::ACodec()
 }
 
 ACodec::~ACodec() {
+
 }
 
 void ACodec::setNotificationMessage(const sp<AMessage> &msg) {
@@ -443,6 +483,12 @@ void ACodec::initiateShutdown(bool keepComponentAllocated) {
 
 void ACodec::signalRequestIDRFrame() {
     (new AMessage(kWhatRequestIDRFrame, id()))->post();
+}
+
+void ACodec::signalConcurrencyParam(bool streamPaused) {
+    sp<AMessage> msg = new AMessage(kWhatConcurrencyParam, id());
+    msg->setInt32("streamPaused", streamPaused);
+    msg->post();
 }
 
 status_t ACodec::allocateBuffersOnPort(OMX_U32 portIndex) {
@@ -543,11 +589,22 @@ status_t ACodec::allocateOutputBuffersFromNativeWindow() {
         return err;
     }
 
+#ifdef USE_SAMSUNG_COLORFORMAT
+    OMX_COLOR_FORMATTYPE eNativeColorFormat = def.format.video.eColorFormat;
+    setNativeWindowColorFormat(eNativeColorFormat);
+
+    err = native_window_set_buffers_geometry(
+    mNativeWindow.get(),
+    def.format.video.nFrameWidth,
+    def.format.video.nFrameHeight,
+    eNativeColorFormat);
+#else
     err = native_window_set_buffers_geometry(
             mNativeWindow.get(),
             def.format.video.nFrameWidth,
             def.format.video.nFrameHeight,
             def.format.video.eColorFormat);
+#endif
 
     if (err != 0) {
         ALOGE("native_window_set_buffers_geometry failed: %s (%d)",
@@ -690,6 +747,25 @@ status_t ACodec::allocateOutputBuffersFromNativeWindow() {
     return err;
 }
 
+#ifdef USE_SAMSUNG_COLORFORMAT
+void ACodec::setNativeWindowColorFormat(OMX_COLOR_FORMATTYPE &eNativeColorFormat)
+{
+    // In case of Samsung decoders, we set proper native color format for the Native Window
+    if (!strcasecmp(mComponentName.c_str(), "OMX.SEC.AVC.Decoder")
+        || !strcasecmp(mComponentName.c_str(), "OMX.SEC.FP.AVC.Decoder")) {
+        switch (eNativeColorFormat) {
+            case OMX_COLOR_FormatYUV420SemiPlanar:
+                eNativeColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCbCr_420_SP;
+                break;
+            case OMX_COLOR_FormatYUV420Planar:
+            default:
+                eNativeColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCbCr_420_P;
+                break;
+        }
+    }
+}
+#endif
+
 status_t ACodec::cancelBufferToNativeWindow(BufferInfo *info) {
     CHECK_EQ((int)info->mStatus, (int)BufferInfo::OWNED_BY_US);
 
@@ -817,6 +893,10 @@ status_t ACodec::setComponentRole(
             "audio_decoder.amrnb", "audio_encoder.amrnb" },
         { MEDIA_MIMETYPE_AUDIO_AMR_WB,
             "audio_decoder.amrwb", "audio_encoder.amrwb" },
+#ifdef ENABLE_QC_AV_ENHANCEMENTS
+        { MEDIA_MIMETYPE_AUDIO_AMR_WB_PLUS,
+            "audio_decoder.amrwbplus", "audio_encoder.amrwbplus" },
+#endif
         { MEDIA_MIMETYPE_AUDIO_AAC,
             "audio_decoder.aac", "audio_encoder.aac" },
         { MEDIA_MIMETYPE_AUDIO_VORBIS,
@@ -825,6 +905,12 @@ status_t ACodec::setComponentRole(
             "audio_decoder.g711mlaw", "audio_encoder.g711mlaw" },
         { MEDIA_MIMETYPE_AUDIO_G711_ALAW,
             "audio_decoder.g711alaw", "audio_encoder.g711alaw" },
+#ifdef DOLBY_UDC
+        { MEDIA_MIMETYPE_AUDIO_AC3,
+            "audio_decoder.ac3", NULL },
+        { MEDIA_MIMETYPE_AUDIO_EAC3,
+            "audio_decoder.eac3", NULL },
+#endif // DOLBY_UDC
         { MEDIA_MIMETYPE_VIDEO_AVC,
             "video_decoder.avc", "video_encoder.avc" },
         { MEDIA_MIMETYPE_VIDEO_MPEG4,
@@ -852,7 +938,7 @@ status_t ACodec::setComponentRole(
     }
 
     if (i == kNumMimeToRole) {
-        return ERROR_UNSUPPORTED;
+        return ExtendedCodec::setSupportedRole(mOMX, mNode, isEncoder, mime);
     }
 
     const char *role =
@@ -958,6 +1044,10 @@ status_t ACodec::configureCodec(
                 err = setupVideoDecoder(mime, width, height);
             }
         }
+        if (err == OK) {
+            const char* componentName = mComponentName.c_str();
+            ExtendedCodec::configureVideoDecoder(msg, mime, mOMX, 0, mNode, componentName);
+        }
     } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)) {
         int32_t numChannels, sampleRate;
         if (!msg->findInt32("channel-count", &numChannels)
@@ -1040,6 +1130,19 @@ status_t ACodec::configureCodec(
         } else {
             err = setupRawAudioFormat(kPortIndexInput, sampleRate, numChannels);
         }
+    } else {
+        if (encoder) {
+            int32_t numChannels, sampleRate;
+            if (msg->findInt32("channel-count", &numChannels)
+                  && msg->findInt32("sample-rate", &sampleRate)) {
+                setupRawAudioFormat(kPortIndexInput, sampleRate, numChannels);
+            }
+       }
+       err = ExtendedCodec::setAudioFormat(
+                 msg, mime, mOMX, mNode, mIsEncoder);
+       if(err != OK) {
+           return err;
+       }
     }
 
     if (err != OK) {
@@ -1517,7 +1620,9 @@ status_t ACodec::setupVideoDecoder(
     status_t err = GetVideoCodingTypeFromMime(mime, &compressionFormat);
 
     if (err != OK) {
-        return err;
+        err = ExtendedCodec::setVideoOutputFormat(mime, &compressionFormat);
+        if (err != OK)
+            return err;
     }
 
     err = setVideoPortFormatType(
@@ -1546,6 +1651,9 @@ status_t ACodec::setupVideoDecoder(
     if (err != OK) {
         return err;
     }
+
+    ExtendedCodec::enableSmoothStreaming(
+            mOMX, mNode, &mInSmoothStreamingMode, mComponentName.c_str());
 
     return OK;
 }
@@ -1640,7 +1748,11 @@ status_t ACodec::setupVideoEncoder(const char *mime, const sp<AMessage> &msg) {
     err = GetVideoCodingTypeFromMime(mime, &compressionFormat);
 
     if (err != OK) {
-        return err;
+        err = ExtendedCodec::setVideoInputFormat(mime, &compressionFormat);
+        if (err != OK) {
+            ALOGE("Not a supported video mime type: %s", mime);
+            return err;
+        }
     }
 
     err = setVideoPortFormatType(
@@ -2300,6 +2412,9 @@ void ACodec::sendFormatChange(const sp<AMessage> &reply) {
                             rect.nTop,
                             rect.nLeft + rect.nWidth,
                             rect.nTop + rect.nHeight);
+                    reply->setInt32(
+                            "color-format",
+                            (int)(videoDef->eColorFormat));
                 }
             }
             break;
@@ -2408,7 +2523,24 @@ void ACodec::sendFormatChange(const sp<AMessage> &reply) {
                 }
 
                 default:
+                {
+                    AString mimeType;
+                    status_t err = ExtendedCodec::handleSupportedAudioFormats(
+                        audioDef->eEncoding, &mimeType);
+                    if (err == OK) {
+                        int channelCount;
+                        err = ExtendedCodec::getSupportedAudioFormatInfo(
+                                      &mimeType,
+                                      mOMX,
+                                      mNode,
+                                      kPortIndexOutput,
+                                      &channelCount);
+                        notify->setString("mime", mimeType.c_str());
+                        notify->setInt32("channel-count", channelCount);
+                        break;
+                    }
                     TRESPASS();
+                }
             }
             break;
         }
@@ -2653,6 +2785,16 @@ bool ACodec::BaseState::onMessageReceived(const sp<AMessage> &msg) {
             break;
         }
 
+        case kWhatConcurrencyParam:
+        {
+            status_t err = OK;
+            err = ResourceManager::AudioConcurrencyInfo::updateConcurrencyParam(
+                    msg, mCodec->mUseCase,  mCodec->mUseCaseFlag);
+            if(err != OK) {
+                    mCodec->signalError(OMX_ErrorUndefined, INVALID_OPERATION);
+            }
+            break;
+        }
         default:
             return false;
     }
@@ -3128,6 +3270,13 @@ void ACodec::BaseState::onOutputBufferDrained(const sp<AMessage> &msg) {
     android_native_rect_t crop;
     if (msg->findRect("crop",
             &crop.left, &crop.top, &crop.right, &crop.bottom)) {
+        if (mCodec->mInSmoothStreamingMode) {
+            OMX_COLOR_FORMATTYPE eColorFormat = OMX_COLOR_FormatUnused;
+            CHECK(msg->findInt32("color-format", (int32_t*)&eColorFormat));
+            QCUtils::updateNativeWindowBufferGeometry(
+                    mCodec->mNativeWindow.get(), crop.right,
+                    crop.bottom, eColorFormat);
+        }
         CHECK_EQ(0, native_window_set_crop(
                 mCodec->mNativeWindow.get(), &crop));
     }
@@ -3221,6 +3370,10 @@ void ACodec::UninitializedState::stateEntered() {
     mCodec->mQuirks = 0;
     mCodec->mFlags = 0;
     mCodec->mComponentName.clear();
+
+    ResourceManager::AudioConcurrencyInfo::resetParameter(
+        mCodec->mUseCase, mCodec->mUseCaseFlag);
+
 }
 
 bool ACodec::UninitializedState::onMessageReceived(const sp<AMessage> &msg) {
@@ -3304,8 +3457,9 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
     Vector<OMXCodec::CodecNameAndQuirks> matchingCodecs;
 
     AString mime;
-
+    int32_t encoder = 0;
     AString componentName;
+
     uint32_t quirks = 0;
     if (msg->findString("componentName", &componentName)) {
         ssize_t index = matchingCodecs.add();
@@ -3319,7 +3473,6 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
     } else {
         CHECK(msg->findString("mime", &mime));
 
-        int32_t encoder;
         if (!msg->findInt32("encoder", &encoder)) {
             encoder = false;
         }
@@ -3339,6 +3492,7 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
             ++matchIndex) {
         componentName = matchingCodecs.itemAt(matchIndex).mName.string();
         quirks = matchingCodecs.itemAt(matchIndex).mQuirks;
+        ExtendedCodec::overrideComponentName(quirks, msg, &componentName);
 
         pid_t tid = androidGetTid();
         int prevPriority = androidGetThreadPriority(tid);
@@ -3346,11 +3500,18 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
         status_t err = omx->allocateNode(componentName.c_str(), observer, &node);
         androidSetThreadPriority(tid, prevPriority);
 
+        if(err == OK) {
+            err = ResourceManager::AudioConcurrencyInfo::findUseCaseAndSetParameter(
+                mime.c_str(), componentName.c_str(), !encoder, mCodec->mUseCase, mCodec->mUseCaseFlag);
+        }
+
         if (err == OK) {
             break;
         }
-
-        node = NULL;
+        if(node != NULL) {
+            CHECK_EQ(omx->freeNode(node), (status_t)OK);
+            node = NULL;
+        }
     }
 
     if (node == NULL) {

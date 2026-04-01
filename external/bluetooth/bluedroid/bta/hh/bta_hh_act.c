@@ -232,6 +232,13 @@ static void bta_hh_sdp_cback(UINT16 result, UINT16 attr_mask,
             status = BTA_HH_ERR_TOD_UNSPT;
     }
 
+    if (p_cb->unknown_incoming_conn)
+    {
+        /* Send l2cap connect response to unknown device */
+        HID_HostSendL2capConnectRsp(status);
+        p_cb->unknown_incoming_conn = FALSE;
+    }
+
     /* free disc_db when SDP is completed */
     utl_freebuf((void **)&bta_hh_cb.p_disc_db);
 
@@ -301,6 +308,11 @@ static void bta_hh_di_sdp_cback(UINT16 result)
         utl_freebuf((void **)&bta_hh_cb.p_disc_db);
         /* send SDP_CMPL_EVT into state machine */
         bta_hh_sm_execute(p_cb, BTA_HH_SDP_CMPL_EVT, (tBTA_HH_DATA *)&status);
+        if (p_cb->unknown_incoming_conn)
+        {
+            HID_HostSendL2capConnectRsp(status);
+            p_cb->unknown_incoming_conn = FALSE;
+        }
     }
     return;
 
@@ -324,6 +336,8 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     tBTA_HH_STATUS          status = BTA_HH_ERR_SDP;
     UINT8                   hdl;
 
+    if (p_data->api_conn.incoming_conn)
+        p_cb->unknown_incoming_conn = TRUE;
     p_cb->sec_mask  = p_data->api_conn.sec_mask;
     p_cb->mode      = p_data->api_conn.mode;
     bta_hh_cb.p_cur = p_cb;
@@ -387,7 +401,15 @@ void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     }
 
     if (status != BTA_HH_OK)
+    {
+        /* SDP failed for unknown device, send l2cap connect response */
+        if (p_cb->unknown_incoming_conn)
+        {
+            HID_HostSendL2capConnectRsp(status);
+            p_cb->unknown_incoming_conn = FALSE;
+        }
         bta_hh_sm_execute(p_cb, BTA_HH_SDP_CMPL_EVT, (tBTA_HH_DATA *)&status);
+    }
 
     return;
 
@@ -522,6 +544,8 @@ void bta_hh_open_cmpl_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     /* increase connection number */
     bta_hh_cb.cnt_num ++;
 
+    /* inform role manager */
+    bta_sys_conn_open(BTA_ID_HH, p_cb->app_id, p_cb->addr);
     /* initialize device driver */
     bta_hh_co_open(p_cb->hid_handle, p_cb->sub_class,
                        p_cb->attr_mask,  p_cb->app_id);
@@ -795,8 +819,6 @@ void bta_hh_close_act (tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     /* otherwise report CLOSE/VC_UNPLUG event */
     else
     {
-        /* finaliza device driver */
-        bta_hh_co_close(p_cb->hid_handle, p_cb->app_id);
         /* inform role manager */
         bta_sys_conn_close( BTA_ID_HH ,p_cb->app_id, p_cb->addr);
         /* update total conn number */
@@ -870,6 +892,7 @@ void bta_hh_maint_dev_act(tBTA_HH_DEV_CB *p_cb, tBTA_HH_DATA *p_data)
     {
     case BTA_HH_ADD_DEV_EVT:    /* add a device */
         bdcpy(dev_info.bda, p_dev_info->bda);
+        dev_info.priority = p_dev_info->priority;
         /* initialize callback data */
         if (p_cb->hid_handle == BTA_HH_INVALID_HANDLE)
         {
@@ -1055,6 +1078,9 @@ static void bta_hh_cback (UINT8 dev_handle, UINT8 event, UINT32 data,
     case HID_HDEV_EVT_OPEN:
         sm_event = BTA_HH_INT_OPEN_EVT;
         break;
+    case HID_HDEV_EVT_PERFORM_SDP:
+        sm_event = BTA_HH_INT_PERFORM_SDP_EVT;
+        break;
     case HID_HDEV_EVT_CLOSE:
         sm_event = BTA_HH_INT_CLOSE_EVT;
         break;
@@ -1176,6 +1202,8 @@ static char * bta_hh_hid_event_name(UINT16 event)
         return "HID_HDEV_EVT_HANDSHAKE";
     case HID_HDEV_EVT_VC_UNPLUG:
         return "HID_HDEV_EVT_VC_UNPLUG";
+    case HID_HDEV_EVT_PERFORM_SDP:
+        return "HID_HDEV_EVT_PERFORM_SDP";
     default:
         return "Unknown HID event";
     }

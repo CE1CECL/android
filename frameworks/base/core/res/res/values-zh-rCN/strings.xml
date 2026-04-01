@@ -135,16 +135,16 @@
     <string name="power_dialog" product="tablet" msgid="8545351420865202853">"平板电脑选项"</string>
     <string name="power_dialog" product="default" msgid="1319919075463988638">"手机选项"</string>
     <string name="silent_mode" msgid="7167703389802618663">"静音模式"</string>
-    <string name="turn_on_radio" msgid="3912793092339962371">"打开收音机"</string>
-    <string name="turn_off_radio" msgid="8198784949987062346">"关闭收音机"</string>
+    <string name="turn_on_radio" msgid="3912793092339962371">"打开无线电"</string>
+    <string name="turn_off_radio" msgid="8198784949987062346">"关闭无线电"</string>
     <string name="screen_lock" msgid="799094655496098153">"屏幕锁定"</string>
     <string name="power_off" msgid="4266614107412865048">"关机"</string>
     <string name="silent_mode_silent" msgid="319298163018473078">"振铃器关闭"</string>
     <string name="silent_mode_vibrate" msgid="7072043388581551395">"振铃器振动"</string>
     <string name="silent_mode_ring" msgid="8592241816194074353">"振铃器开启"</string>
     <string name="shutdown_progress" msgid="2281079257329981203">"正在关机..."</string>
-    <string name="shutdown_confirm" product="tablet" msgid="3385745179555731470">"您的平板电脑会关闭。"</string>
-    <string name="shutdown_confirm" product="default" msgid="649792175242821353">"您的手机将会关机。"</string>
+    <string name="shutdown_confirm" product="tablet" msgid="3385745179555731470">"您的平板电脑将会关机."</string>
+    <string name="shutdown_confirm" product="default" msgid="649792175242821353">"您的手机将会关机."</string>
     <string name="shutdown_confirm_question" msgid="2906544768881136183">"您要关机吗？"</string>
     <string name="reboot_safemode_title" msgid="7054509914500140361">"重新启动并进入安全模式"</string>
     <string name="reboot_safemode_confirm" msgid="55293944502784668">"您要重新启动并进入安全模式吗？这样会停用您已安装的所有第三方应用。再次重新启动将恢复这些应用。"</string>
@@ -775,7 +775,7 @@
     <string name="keyguard_password_wrong_pin_code" msgid="2422225591006134936">"PIN 码有误。"</string>
     <string name="keyguard_label_text" msgid="861796461028298424">"要解锁，请先按 MENU 再按 0。"</string>
     <string name="emergency_call_dialog_number_for_display" msgid="696192103195090970">"急救或报警电话"</string>
-    <string name="lockscreen_carrier_default" msgid="8963839242565653192">"无服务。"</string>
+    <string name="lockscreen_carrier_default" msgid="8963839242565653192">"无服务."</string>
     <string name="lockscreen_screen_locked" msgid="7288443074806832904">"屏幕已锁定。"</string>
     <string name="lockscreen_instructions_when_pattern_enabled" msgid="46154051614126049">"按 Menu 解锁或进行紧急呼救。"</string>
     <string name="lockscreen_instructions_when_pattern_disabled" msgid="686260028797158364">"按 MENU 解锁。"</string>
@@ -786,10 +786,10 @@
     <string name="lockscreen_pattern_wrong" msgid="4317955014948108794">"重试"</string>
     <string name="lockscreen_password_wrong" msgid="5737815393253165301">"重试"</string>
     <string name="faceunlock_multiple_failures" msgid="754137583022792429">"已超过“人脸解锁”尝试次数上限"</string>
-    <string name="lockscreen_plugged_in" msgid="8057762828355572315">"正在充电，<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
+    <string name="lockscreen_plugged_in" msgid="8057762828355572315">"正在充电, <xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
     <string name="lockscreen_charged" msgid="321635745684060624">"充电完成"</string>
     <string name="lockscreen_battery_short" msgid="4477264849386850266">"<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
-    <string name="lockscreen_low_battery" msgid="1482873981919249740">"连接您的充电器。"</string>
+    <string name="lockscreen_low_battery" msgid="1482873981919249740">"连接您的充电器, <xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g>"</string>
     <string name="lockscreen_missing_sim_message_short" msgid="5099439277819215399">"没有 SIM 卡"</string>
     <string name="lockscreen_missing_sim_message" product="tablet" msgid="151659196095791474">"平板电脑中没有 SIM 卡。"</string>
     <string name="lockscreen_missing_sim_message" product="default" msgid="2186920585695169078">"手机中无 SIM 卡"</string>
@@ -1212,11 +1212,11 @@
     <string name="usb_notification_message" msgid="2290859399983720271">"触摸可显示其他 USB 选项。"</string>
     <string name="extmedia_format_title" product="nosdcard" msgid="9020092196061007262">"格式化 USB 存储设备吗？"</string>
     <string name="extmedia_format_title" product="default" msgid="3648415921526526069">"要格式化 SD 卡吗？"</string>
-    <string name="extmedia_format_message" product="nosdcard" msgid="3934016853425761078">"您的 USB 存储设备中存储的所有文件都将清除。该操作无法撤消！"</string>
-    <string name="extmedia_format_message" product="default" msgid="14131895027543830">"您卡上的所有数据都会丢失。"</string>
+    <string name="extmedia_format_message" product="nosdcard" msgid="3934016853425761078">"您在 USB 存储设备里 (\'%1$s\' 路径下) 存储的所有文件都将被删除. 该操作将无法被撤消!"</string>
+    <string name="extmedia_format_message" product="default" msgid="14131895027543830">"您卡上 (在 \'%1$s\' 路径下) 的所有数据都将被删除. 该操作将无法被撤消!"</string>
     <string name="extmedia_format_button_format" msgid="4131064560127478695">"格式化"</string>
-    <string name="adb_active_notification_title" msgid="6729044778949189918">"已连接 USB 调试"</string>
-    <string name="adb_active_notification_message" msgid="1016654627626476142">"触摸可停用 USB 调试。"</string>
+    <string name="adb_active_notification_title" msgid="6729044778949189918">"Android 调试模式已启用"</string>
+    <string name="adb_active_notification_message" msgid="1016654627626476142">"选择即可停用调试模式."</string>
     <string name="select_input_method" msgid="4653387336791222978">"选择输入法"</string>
     <string name="configure_input_methods" msgid="9091652157722495116">"设置输入法"</string>
     <string name="use_physical_keyboard" msgid="6203112478095117625">"物理键盘"</string>

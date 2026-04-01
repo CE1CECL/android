@@ -16,11 +16,13 @@
 
 package com.android.deskclock;
 
+import android.app.ProfileManager;
 import android.content.Context;
 import android.database.Cursor;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Parcel;
+import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.provider.BaseColumns;
 
@@ -28,6 +30,7 @@ import java.text.DateFormatSymbols;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.UUID;
 
 public final class Alarm implements Parcelable {
 
@@ -60,6 +63,9 @@ public final class Alarm implements Parcelable {
         p.writeString(label);
         p.writeParcelable(alert, flags);
         p.writeInt(silent ? 1 : 0);
+        p.writeInt(increasingVolume ? 1 : 0);
+        ParcelUuid uuid = new ParcelUuid(profile);
+        uuid.writeToParcel(p, 0);
     }
     //////////////////////////////
     // end Parcelable apis
@@ -125,6 +131,18 @@ public final class Alarm implements Parcelable {
         public static final String ALERT = "alert";
 
         /**
+         * True if alarm should start off quiet and slowly increase volume
+         * <P>Type: BOOLEAN</P>
+         */
+        public static final String INCREASING_VOLUME = "incvol";
+
+        /**
+         * Profile to change to when alarm triggers
+         * <P>Type: STRING</P>
+         */
+         public static final String PROFILE = "profile";
+
+        /**
          * The default sort order for this table
          */
         public static final String DEFAULT_SORT_ORDER =
@@ -135,7 +153,7 @@ public final class Alarm implements Parcelable {
 
         static final String[] ALARM_QUERY_COLUMNS = {
             _ID, HOUR, MINUTES, DAYS_OF_WEEK, ALARM_TIME,
-            ENABLED, VIBRATE, MESSAGE, ALERT };
+            ENABLED, VIBRATE, MESSAGE, ALERT, INCREASING_VOLUME, PROFILE };
 
         /**
          * These save calls to cursor.getColumnIndexOrThrow()
@@ -150,6 +168,8 @@ public final class Alarm implements Parcelable {
         public static final int ALARM_VIBRATE_INDEX = 6;
         public static final int ALARM_MESSAGE_INDEX = 7;
         public static final int ALARM_ALERT_INDEX = 8;
+        public static final int ALARM_INCREASING_VOLUME_INDEX = 9;
+        public static final int ALARM_PROFILE_INDEX = 10;
     }
     //////////////////////////////
     // End column definitions
@@ -166,6 +186,8 @@ public final class Alarm implements Parcelable {
     public String     label;
     public Uri        alert;
     public boolean    silent;
+    public boolean    increasingVolume;
+    public UUID       profile;
 
     @Override
     public String toString() {
@@ -178,8 +200,10 @@ public final class Alarm implements Parcelable {
                 ", daysOfWeek=" + daysOfWeek +
                 ", time=" + time +
                 ", vibrate=" + vibrate +
+                ", increasingVolume=" + increasingVolume +
                 ", label='" + label + '\'' +
                 ", silent=" + silent +
+                ", profile=" + profile +
                 '}';
     }
 
@@ -210,6 +234,17 @@ public final class Alarm implements Parcelable {
                         RingtoneManager.TYPE_ALARM);
             }
         }
+        increasingVolume = c.getInt(Columns.ALARM_INCREASING_VOLUME_INDEX) == 1;
+        String alarmProfile = c.getString(Columns.ALARM_PROFILE_INDEX);
+        if (alarmProfile == null || alarmProfile.equals(String.valueOf(ProfileManager.NO_PROFILE))) {
+            profile = ProfileManager.NO_PROFILE;
+        } else {
+            try {
+                profile = UUID.fromString(alarmProfile);
+            } catch (IllegalArgumentException ex) {
+                profile = ProfileManager.NO_PROFILE;
+            }
+        }
     }
 
     public Alarm(Parcel p) {
@@ -223,6 +258,8 @@ public final class Alarm implements Parcelable {
         label = p.readString();
         alert = (Uri) p.readParcelable(null);
         silent = p.readInt() == 1;
+        increasingVolume = p.readInt() == 1;
+        profile = ParcelUuid.CREATOR.createFromParcel(p).getUuid();
     }
 
     // Creates a default alarm at the current time.
@@ -234,6 +271,8 @@ public final class Alarm implements Parcelable {
         daysOfWeek = new DaysOfWeek(0);
         label = "";
         alert = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        increasingVolume = false;
+        profile = ProfileManager.NO_PROFILE;
     }
 
     public String getLabelOrDefault(Context context) {

@@ -162,9 +162,9 @@
     <string name="preferred_network_mode_wcdma_perf_summary" msgid="8521677230113533809">"首选网络模式：首选 WCDMA"</string>
     <string name="preferred_network_mode_gsm_only_summary" msgid="3352445413437453511">"首选网络模式：仅限 GSM"</string>
     <string name="preferred_network_mode_wcdma_only_summary" msgid="2836897236221063413">"首选网络模式：仅限 WCDMA"</string>
-    <string name="preferred_network_mode_gsm_wcdma_summary" msgid="3161255745326408587">"首选网络模式：GSM/WCDMA"</string>
+    <string name="preferred_network_mode_gsm_wcdma_summary" msgid="3161255745326408587">"首选网络模式：GSM / WCDMA"</string>
     <string name="preferred_network_mode_cdma_summary" msgid="3175690187294334241">"首选网络模式：CDMA"</string>
-    <string name="preferred_network_mode_cdma_evdo_summary" msgid="8332063064712726618">"首选网络模式：CDMA/EvDo"</string>
+    <string name="preferred_network_mode_cdma_evdo_summary" msgid="8332063064712726618">"首选网络模式：CDMA / EvDo"</string>
     <string name="preferred_network_mode_cdma_only_summary" msgid="1309770926198634150">"首选网络模式：仅限 CDMA"</string>
     <string name="preferred_network_mode_evdo_only_summary" msgid="8472220691721269155">"首选网络模式：仅限 EvDo"</string>
     <string name="preferred_network_mode_cdma_evdo_gsm_wcdma_summary" msgid="4726682079415227330">"首选网络模式：CDMA/EvDo/GSM/WCDMA"</string>
@@ -174,6 +174,16 @@
     <string name="preferred_network_mode_global_summary" msgid="1633134285545730364">"首选网络模式：通用"</string>
     <string name="preferred_network_mode_lte_wcdma_summary" msgid="9180775701594742750">"首选网络模式：LTE/WCDMA"</string>
   <string-array name="preferred_network_mode_choices">
+    <item>TD-SCDMA/LTE/GSM/WCDMA/CDMA/EVDO </item>
+    <item>TD-SCDMA/GSM/WCDMA/CDMA/EVDO </item>
+    <item>TD-SCDMA/GSM/WCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA/LTE</item>
+    <item>TD-SCDMA/GSM/WCDMA</item>
+    <item>TD-SCDMA/GSM/LTE</item>
+    <item>TD-SCDMA/GSM</item>
+    <item>TD-SCDMA/LTE</item>
+    <item>TD-SCDMA/WCDMA</item>
+    <item>TD-SCDMA only</item>
     <item msgid="7886739962255042385">"LTE/WCDMA"</item>
     <item msgid="577652050447385699">"LTE"</item>
     <item msgid="6813597571293773656">"通用"</item>

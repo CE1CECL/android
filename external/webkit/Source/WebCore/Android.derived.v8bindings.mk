@@ -1,5 +1,7 @@
 ##
 ## Copyright 2009, The Android Open Source Project
+## Copyright (C) 2011 Sony Ericsson Mobile Communications AB
+## Copyright (C) 2012 Sony Mobile Communications AB
 ##
 ## Redistribution and use in source and binary forms, with or without
 ## modification, are permitted provided that the following conditions
@@ -32,11 +34,21 @@ js_binding_scripts := \
 
 # Add ACCELERATED_COMPOSITING=1 and ENABLE_3D_RENDERING=1 for layers support
 FEATURE_DEFINES := ENABLE_ORIENTATION_EVENTS=1 ENABLE_TOUCH_EVENTS=1 ENABLE_DATABASE=1 ENABLE_OFFLINE_WEB_APPLICATIONS=1 ENABLE_DOM_STORAGE=1 ENABLE_VIDEO=1 ENABLE_GEOLOCATION=1 ENABLE_CONNECTION=1 ENABLE_APPLICATION_INSTALLED=1 ENABLE_XPATH=1 ENABLE_XSLT=1 ENABLE_DEVICE_ORIENTATION=1 ENABLE_FILE_READER=1 ENABLE_BLOB=1 ENABLE_WEB_TIMING=1 ENABLE_MEDIA_CAPTURE=1
+
+# Add HTML5 WebSockets support
+FEATURE_DEFINES += ENABLE_WEB_SOCKETS=1
+
 # The defines above should be identical to those for JSC.
 FEATURE_DEFINES += V8_BINDING
 
 ifeq ($(ENABLE_SVG), true)
     FEATURE_DEFINES += ENABLE_SVG=1
+endif
+
+FEATURE_DEFINES += ENABLE_REQUEST_ANIMATION_FRAME
+
+ifeq ($(ENABLE_WEBAUDIO), true)
+    FEATURE_DEFINES += ENABLE_WEBAUDIO=1
 endif
 
 # CSS
@@ -125,6 +137,7 @@ GEN := \
     $(intermediates)/bindings/V8ProgressEvent.h \
     $(intermediates)/bindings/V8Range.h \
     $(intermediates)/bindings/V8RangeException.h \
+    $(intermediates)/bindings/V8RequestAnimationFrameCallback.h \
     $(intermediates)/bindings/V8Text.h \
     $(intermediates)/bindings/V8TextEvent.h \
     $(intermediates)/bindings/V8Touch.h \
@@ -290,6 +303,43 @@ LOCAL_GENERATED_SOURCES += $(GEN) $(GEN:%.h=%.cpp)
 # above rules.  Specifying this explicitly makes -j2 work.
 $(patsubst %.h,%.cpp,$(GEN)): $(intermediates)/bindings/%.cpp : $(intermediates)/bindings/%.h
 
+# Webaudio
+ifeq ($(ENABLE_WEBAUDIO), true)
+GEN := \
+	$(intermediates)/bindings/V8AudioBufferCallback.h \
+	$(intermediates)/bindings/V8AudioBuffer.h \
+	$(intermediates)/bindings/V8AudioBufferSourceNode.h \
+	$(intermediates)/bindings/V8AudioChannelMerger.h \
+	$(intermediates)/bindings/V8AudioChannelSplitter.h \
+	$(intermediates)/bindings/V8AudioDestinationNode.h \
+	$(intermediates)/bindings/V8AudioGain.h \
+	$(intermediates)/bindings/V8AudioGainNode.h \
+	$(intermediates)/bindings/V8AudioListener.h \
+	$(intermediates)/bindings/V8AudioNode.h \
+	$(intermediates)/bindings/V8AudioParam.h \
+	$(intermediates)/bindings/V8AudioSourceNode.h \
+	$(intermediates)/bindings/V8BiquadFilterNode.h \
+	$(intermediates)/bindings/V8ConvolverNode.h \
+	$(intermediates)/bindings/V8DelayNode.h \
+	$(intermediates)/bindings/V8DynamicsCompressorNode.h \
+	$(intermediates)/bindings/V8HighPass2FilterNode.h \
+	$(intermediates)/bindings/V8JavaScriptAudioNode.h \
+	$(intermediates)/bindings/V8LowPass2FilterNode.h \
+	$(intermediates)/bindings/V8MediaElementAudioSourceNode.h \
+	$(intermediates)/bindings/V8RealtimeAnalyserNode.h \
+	$(intermediates)/bindings/V8WaveShaperNode.h
+
+$(GEN): PRIVATE_PATH := $(LOCAL_PATH)
+$(GEN): PRIVATE_CUSTOM_TOOL = SOURCE_ROOT=$(PRIVATE_PATH) perl -I$(PRIVATE_PATH)/bindings/scripts $(PRIVATE_PATH)/bindings/scripts/generate-bindings.pl --defines "$(FEATURE_DEFINES) LANGUAGE_JAVASCRIPT" --generator V8 --include dom --include html --include webaudio --outputdir $(dir $@) $<
+$(GEN): $(intermediates)/bindings/V8%.h : $(LOCAL_PATH)/webaudio/%.idl $(js_binding_scripts)
+	$(transform-generated-source)
+LOCAL_GENERATED_SOURCES += $(GEN) $(GEN:%.h=%.cpp)
+
+# We also need the .cpp files, which are generated as side effects of the
+# above rules.  Specifying this explicitly makes -j2 work.
+$(patsubst %.h,%.cpp,$(GEN)): $(intermediates)/bindings/%.cpp : $(intermediates)/bindings/%.h
+endif
+
 # Canvas
 GEN := \
     $(intermediates)/bindings/V8ArrayBuffer.h \
@@ -308,6 +358,7 @@ GEN := \
     $(intermediates)/bindings/V8OESTextureFloat.h \
     $(intermediates)/bindings/V8OESVertexArrayObject.h \
     $(intermediates)/bindings/V8Uint8Array.h \
+    $(intermediates)/bindings/V8Uint8ClampedArray.h \
     $(intermediates)/bindings/V8Uint16Array.h \
     $(intermediates)/bindings/V8Uint32Array.h \
     $(intermediates)/bindings/V8WebGLActiveInfo.h \
@@ -321,6 +372,13 @@ GEN := \
     $(intermediates)/bindings/V8WebGLTexture.h \
     $(intermediates)/bindings/V8WebGLUniformLocation.h \
     $(intermediates)/bindings/V8WebGLVertexArrayObjectOES.h
+
+ifeq ($(ENABLE_WEBGL), true)
+GEN += \
+    $(intermediates)/bindings/V8OESStandardDerivatives.h \
+    $(intermediates)/bindings/V8WebGLContextEvent.h \
+    $(intermediates)/bindings/V8WebKitLoseContext.h
+endif
 
 $(GEN): PRIVATE_PATH := $(LOCAL_PATH)
 $(GEN): PRIVATE_CUSTOM_TOOL = SOURCE_ROOT=$(PRIVATE_PATH) perl -I$(PRIVATE_PATH)/bindings/scripts $(PRIVATE_PATH)/bindings/scripts/generate-bindings.pl --defines "$(FEATURE_DEFINES) LANGUAGE_JAVASCRIPT" --generator V8 --include dom --include html --include html/canvas --outputdir $(dir $@) $<
@@ -728,7 +786,9 @@ $(patsubst %.h,%.cpp,$(GEN)): $(intermediates)/bindings/%.cpp : $(intermediates)
 # These headers are required by the V8 bindings even when Web Audio is disabled
 GEN := \
     $(intermediates)/bindings/V8AudioContext.h \
-    $(intermediates)/bindings/V8AudioPannerNode.h
+    $(intermediates)/bindings/V8AudioPannerNode.h \
+    $(intermediates)/bindings/V8AudioProcessingEvent.h \
+    $(intermediates)/bindings/V8OfflineAudioCompletionEvent.h
 
 $(GEN): PRIVATE_PATH := $(LOCAL_PATH)
 $(GEN): PRIVATE_CUSTOM_TOOL = SOURCE_ROOT=$(PRIVATE_PATH) perl -I$(PRIVATE_PATH)/bindings/scripts $(PRIVATE_PATH)/bindings/scripts/generate-bindings.pl --defines "$(FEATURE_DEFINES) LANGUAGE_JAVASCRIPT" --generator V8 --include dom --include html --include webaudio --outputdir $(dir $@) $<

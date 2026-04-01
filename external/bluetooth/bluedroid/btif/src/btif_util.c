@@ -1,5 +1,7 @@
 /******************************************************************************
  *
+ *  Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *  Not a Contribution.
  *  Copyright (C) 2009-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,6 +49,7 @@
 #include "bta_ag_api.h"
 #include "bta_av_api.h"
 #include "bta_hh_api.h"
+#include "bta_hf_client_api.h"
 #include "avrc_defs.h"
 
 
@@ -96,8 +99,8 @@ char *bd2str(const bt_bdaddr_t *bdaddr, bdstr_t *bdstr)
     char *addr = (char *) bdaddr->address;
 
     sprintf((char*)bdstr, "%02x:%02x:%02x:%02x:%02x:%02x",
-                       (int)addr[0],(int)addr[1],(int)addr[2],
-                       (int)addr[3],(int)addr[4],(int)addr[5]);
+                       (uint8_t)addr[0], (uint8_t)addr[1], (uint8_t)addr[2],
+                       (uint8_t)addr[3], (uint8_t)addr[4], (uint8_t)addr[5]);
     return (char *)bdstr;
 }
 
@@ -245,6 +248,7 @@ const char* dump_property_type(bt_property_type_t type)
         CASE_RETURN_STR(BT_PROPERTY_ADAPTER_BONDED_DEVICES)
         CASE_RETURN_STR(BT_PROPERTY_ADAPTER_SCAN_MODE)
         CASE_RETURN_STR(BT_PROPERTY_REMOTE_FRIENDLY_NAME)
+        CASE_RETURN_STR(BT_PROPERTY_REMOTE_TRUST_VALUE)
 
         default:
             return "UNKNOWN PROPERTY ID";
@@ -320,6 +324,38 @@ const char* dump_hf_event(UINT16 event)
         CASE_RETURN_STR(BTA_AG_AT_CBC_EVT)
         CASE_RETURN_STR(BTA_AG_AT_BAC_EVT)
         CASE_RETURN_STR(BTA_AG_AT_BCS_EVT)
+
+        default:
+            return "UNKNOWN MSG ID";
+     }
+}
+
+const char* dump_hf_client_event(UINT16 event)
+{
+    switch(event)
+    {
+        CASE_RETURN_STR(BTA_HF_CLIENT_ENABLE_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_REGISTER_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_OPEN_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CLOSE_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CONN_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_AUDIO_OPEN_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_AUDIO_MSBC_OPEN_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_AUDIO_CLOSE_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_SPK_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_MIC_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_DISABLE_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_IND_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_VOICE_REC_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_OPERATOR_NAME_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CLIP_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CCWA_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_AT_RESULT_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CLCC_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_CNUM_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_BTRH_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_BSIR_EVT)
+        CASE_RETURN_STR(BTA_HF_CLIENT_BINP_EVT)
 
         default:
             return "UNKNOWN MSG ID";

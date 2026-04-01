@@ -78,6 +78,7 @@ import com.android.settings.deviceinfo.StorageMeasurement;
 import com.android.settings.Utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -246,6 +247,7 @@ public class ManageApplications extends Fragment implements
             mRootView = inflater.inflate(mListType == LIST_TYPE_RUNNING
                     ? R.layout.manage_applications_running
                     : R.layout.manage_applications_apps, null);
+            mRootView.setLayoutDirection(mRootView.getResources().getConfiguration().getLayoutDirection());
             mLoadingContainer = mRootView.findViewById(R.id.loading_container);
             mLoadingContainer.setVisibility(View.VISIBLE);
             mListContainer = mRootView.findViewById(R.id.list_container);
@@ -260,6 +262,7 @@ public class ManageApplications extends Fragment implements
                 lv.setSaveEnabled(true);
                 lv.setItemsCanFocus(true);
                 lv.setTextFilterEnabled(true);
+                lv.setFastScrollEnabled(true);
                 mListView = lv;
                 mApplications = new ApplicationsAdapter(mApplicationsState, this, mFilter);
                 mListView.setAdapter(mApplications);
@@ -896,6 +899,7 @@ public class ManageApplications extends Fragment implements
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        container.setLayoutDirection(container.getResources().getConfiguration().getLayoutDirection());
         // initialize the inflater
         mInflater = inflater;
 
@@ -922,6 +926,10 @@ public class ManageApplications extends Fragment implements
         }
 
         if (savedInstanceState == null) {
+            //Reverse the tab list once if the language is RTL.
+            if(container.isLayoutRtl()){
+                Collections.reverse(mTabs);
+            }
             // First time init: make sure view pager is showing the correct tab.
             for (int i = 0; i < mTabs.size(); i++) {
                 TabInfo tab = mTabs.get(i);
@@ -1083,6 +1091,7 @@ public class ManageApplications extends Fragment implements
             mOptionsMenu.findItem(SHOW_RUNNING_SERVICES).setVisible(showingBackground);
             mOptionsMenu.findItem(SHOW_BACKGROUND_PROCESSES).setVisible(!showingBackground);
             mOptionsMenu.findItem(RESET_APP_PREFERENCES).setVisible(false);
+            mShowBackground = showingBackground;
         } else {
             mOptionsMenu.findItem(SORT_ORDER_ALPHA).setVisible(mSortOrder != SORT_ORDER_ALPHA);
             mOptionsMenu.findItem(SORT_ORDER_SIZE).setVisible(mSortOrder != SORT_ORDER_SIZE);

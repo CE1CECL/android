@@ -19,11 +19,10 @@ LOCAL_SRC_FILES:=                                      \
                   PppController.cpp                    \
                   ResolverController.cpp               \
                   SecondaryTableController.cpp         \
-                  SoftapController.cpp                 \
                   TetherController.cpp                 \
                   oem_iptables_hook.cpp                \
                   main.cpp                             \
-
+                  RouteController.cpp
 
 LOCAL_MODULE:= netd
 
@@ -40,6 +39,31 @@ LOCAL_CFLAGS := -Wno-format
 LOCAL_SHARED_LIBRARIES := libstlport libsysutils liblog libcutils libnetutils \
                           libcrypto libhardware_legacy libmdnssd libdl \
                           liblogwrap
+
+ifdef USES_TI_MAC80211
+  LOCAL_SRC_FILES += SoftapControllerTI.cpp
+else
+  LOCAL_SRC_FILES += SoftapController.cpp
+endif
+
+ifneq ($(BOARD_HOSTAPD_DRIVER),)
+  LOCAL_CFLAGS += -DHAVE_HOSTAPD
+  ifneq ($(BOARD_HOSTAPD_DRIVER_NAME),)
+    LOCAL_CFLAGS += -DHOSTAPD_DRIVER_NAME=\"$(BOARD_HOSTAPD_DRIVER_NAME)\"
+  endif
+endif
+
+ifeq ($(BOARD_HAVE_BLUETOOTH),true)
+  LOCAL_SHARED_LIBRARIES := $(LOCAL_SHARED_LIBRARIES) libbluedroid
+  LOCAL_CFLAGS := $(LOCAL_CFLAGS) -DHAVE_BLUETOOTH
+endif
+
+ifeq ($(BOARD_HAS_QCOM_WLAN_SDK), true)
+  LOCAL_SRC_FILES += QualcommSoftapCmd.cpp
+  LOCAL_CFLAGS += -DQCOM_WLAN
+  LOCAL_SHARED_LIBRARIES += libqsap_sdk
+  LOCAL_C_INCLUDES += $(LOCAL_PATH)/../qcom/softap/sdk/
+endif
 
 include $(BUILD_EXECUTABLE)
 

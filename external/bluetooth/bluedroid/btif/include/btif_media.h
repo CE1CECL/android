@@ -233,7 +233,7 @@ int btif_a2dp_start_media_task(void);
 void btif_a2dp_stop_media_task(void);
 
 void btif_a2dp_on_init(void);
-void btif_a2dp_setup_codec(void);
+tBTIF_STATUS btif_a2dp_setup_codec(void);
 void btif_a2dp_on_idle(void);
 void btif_a2dp_on_open(void);
 void btif_a2dp_on_started(tBTA_AV_START *p_av);
@@ -243,7 +243,7 @@ void btif_a2dp_on_stopped(tBTA_AV_SUSPEND *p_av);
 void btif_a2dp_on_suspend(void);
 void btif_a2dp_on_suspended(tBTA_AV_SUSPEND *p_av);
 void btif_a2dp_set_tx_flush(BOOLEAN enable);
-
+void btif_set_edr_cap(tBTA_AV_OPEN *p_av);
 void btif_media_check_iop_exceptions(UINT8 *peer_bda);
 
 #endif

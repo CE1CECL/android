@@ -168,6 +168,9 @@ public class RecipientsEditor extends RecipientEditTextView {
         ContactList list = new ContactList();
         for (String number : numbers) {
             Contact contact = Contact.get(number, blocking);
+            if (number.startsWith("*31#") || number.startsWith("#31#")) {
+                number = number.substring(4);
+            }
             contact.setNumber(number);
             list.add(contact);
         }

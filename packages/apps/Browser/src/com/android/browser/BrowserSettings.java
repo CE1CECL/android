@@ -287,6 +287,7 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         settingsClassic.setDoubleTapZoom(getDoubleTapZoom());
         settingsClassic.setAutoFillEnabled(isAutofillEnabled());
         settingsClassic.setAutoFillProfile(getAutoFillProfile());
+        settingsClassic.setWebSocketsEnabled(isWebSocketsEnabled());
 
         boolean useInverted = useInvertedRendering();
         settingsClassic.setProperty(WebViewProperties.gfxInvertedScreen,
@@ -666,6 +667,10 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
         return mPrefs.getString(PREF_SEARCH_ENGINE, SearchEngine.GOOGLE);
     }
 
+    public int getUserAgent() {
+        return Integer.parseInt(mPrefs.getString(PREF_USER_AGENT, "0"));
+    }
+
     public boolean allowAppTabs() {
         return mPrefs.getBoolean(PREF_ALLOW_APP_TABS, false);
     }
@@ -746,13 +751,6 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
             return false;
         }
         return mPrefs.getBoolean(PREF_ENABLE_HARDWARE_ACCEL_SKIA, false);
-    }
-
-    public int getUserAgent() {
-        if (!isDebugEnabled()) {
-            return 0;
-        }
-        return Integer.parseInt(mPrefs.getString(PREF_USER_AGENT, "0"));
     }
 
     // -----------------------------
@@ -852,6 +850,11 @@ public class BrowserSettings implements OnSharedPreferenceChangeListener,
     public float getInvertedContrast() {
         return 1 + (mPrefs.getInt(PREF_INVERTED_CONTRAST, 0) / 10f);
     }
+
+    public boolean isWebSocketsEnabled() {
+        return mPrefs.getBoolean(PREF_ENABLE_WEBSOCKETS, false);
+    }
+
 
     // -----------------------------
     // getter/setters for privacy_security_preferences.xml
