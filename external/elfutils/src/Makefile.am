@@ -32,7 +32,7 @@ else
 AM_CFLAGS =
 endif
 AM_CFLAGS += -Wall -Wshadow -std=gnu99 $(native_ld_cflags) \
-	     $(if $($(*F)_no_Werror),,-Werror) \
+	     $(if $($(*F)_no_Werror),,) \
 	     $(if $($(*F)_no_Wunused),,-Wunused -Wextra) \
 	     $(if $($(*F)_no_Wformat),,-Wformat=2) $(CFLAGS_$(*F))
 

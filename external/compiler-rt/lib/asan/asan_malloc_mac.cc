@@ -240,7 +240,7 @@ void *mz_memalign(malloc_zone_t *zone, size_t align, size_t size) {
   return asan_memalign(align, size, &stack, FROM_MALLOC);
 }
 
-// This function is currently unused, and we build with -Werror.
+// This function is currently unused, and we build with .
 #if 0
 void mz_free_definite_size(malloc_zone_t* zone, void *ptr, size_t size) {
   // TODO(glider): check that |size| is valid.

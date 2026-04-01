@@ -12,7 +12,7 @@
         </activity>
         <activity android:name="A3DSelector"
                   android:label="A3DSelector"
-                  android:hardwareAccelerated="true">
+                  android:hardwareAccelerated="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>

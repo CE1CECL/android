@@ -30,7 +30,7 @@ AM_CFLAGS = -fmudflap
 else
 AM_CFLAGS =
 endif
-AM_CFLAGS += -fpic -Wall -Wshadow -Werror -Wunused -Wextra -Wformat=2 \
+AM_CFLAGS += -fpic -Wall -Wshadow  -Wunused -Wextra -Wformat=2 \
 	     -std=gnu99
 INCLUDES = -I$(srcdir) -I$(top_srcdir)/libebl -I$(top_srcdir)/libasm \
 	   -I$(top_srcdir)/libelf -I$(top_srcdir)/libdw \

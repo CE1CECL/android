@@ -276,7 +276,7 @@
 2011-03-27  Joel E. Denny  <joeldenny@joeldenny.org>
 
 	Add -Wconflicts-sr and -Wconflicts-rr.
-	Thus, conflict reports are now affected by -Werror and -Wnone
+	Thus, conflict reports are now affected by  and -Wnone
 	(unless %expect or %expect-rr is specified).  Reported by George
 	Neuner at
 	<http://lists.gnu.org/archive/html/bug-bison/2010-08/msg00002.html>.
@@ -286,7 +286,7 @@
 	function.
 	* src/conflicts.c (conflicts_print): Suppress conflict report
 	based on -Wno-conflicts-sr and -Wno-conflicts-rr, and treat
-	conflicts as errors if -Werror.
+	conflicts as errors if .
 	* src/getargs.c (warnings_flag): Initialize with
 	warnings_conflicts_sr and warnings_conflicts_rr as well.
 	(warnings_args, warnings_types): Add entries for
@@ -342,14 +342,14 @@
 
 2011-03-27  Joel E. Denny  <joeldenny@joeldenny.org>
 
-	Don't let -Wnone disable -Werror.
+	Don't let -Wnone disable .
 	Discussed at
 	<http://lists.gnu.org/archive/html/bison-patches/2010-08/msg00009.html>.
 	* NEWS (2.5): Document.
 	* src/getargs.c (flags_argmatch): Accept a new argument that
 	specifies what flags "all" and thus "none" affect.
 	(FLAGS_ARGMATCH): Update flags_argmatch invocation.
-	* tests/input.at (-Werror is not affected by -Wnone and -Wall):
+	* tests/input.at ( is not affected by -Wnone and -Wall):
 	New test group.
 
 2011-03-27  Joel E. Denny  <joeldenny@joeldenny.org>
@@ -974,17 +974,17 @@
 
 2010-08-01  Joel E. Denny  <joeldenny@joeldenny.org>
 
-	-Werror: fix for rules useless in parser after conflicts.
+	: fix for rules useless in parser after conflicts.
 	* NEWS (2.4.3): Document fix.
 	* src/complain.c (error_message): Extend to handle incomplete
 	error messages so warn and warn_at can be used in more cases.
 	* src/gram.c (grammar_rules_useless_report): Use warn_at so that
-	-Werror is always obeyed.
+	 is always obeyed.
 	* src/reduce.c (reduce_print): Use warn so that the "warnings
 	being treated as errors" message is printed consistently before
 	the first warning message.  This makes testing easier.
 	* tests/local.at (AT_BISON_WERROR_MSG): New macro.
-	(AT_BISON_CHECK_NO_XML): Extend to check -Werror and
+	(AT_BISON_CHECK_NO_XML): Extend to check  and
 	--warnings=error when warnings appear in bison's stderr.
 
 2010-07-29  Joel E. Denny  <joeldenny@joeldenny.org>
@@ -20315,9 +20315,9 @@
 
 2001-11-30  Akim Demaille  <akim@epita.fr>
 
-	* configure.in (WARNING_CFLAGS): Add -Werror when possible.
+	* configure.in (WARNING_CFLAGS): Add  when possible.
 	(CFLAGS): Do not include the WARNING_CFLAGS here, since GNU
-	Gettext doesn't compile cleanly, and dies with -Werror.
+	Gettext doesn't compile cleanly, and dies with .
 	* src/Makefile.am, lib/Makefile.am, tests/atlocal.in (CFLAGS):
 	Include WARNING_CFLAGS here.
 	* lib/xstrdup.c: Include xalloc.h, so that xstrdup be declared
@@ -20871,7 +20871,7 @@
 	use abs. path to find config.h.
 	* tests/calc.at (AT_CHECK_CALC): Don't try to check the compiler's
 	stderr, there can be way too much random noise.
-	Instead pass -Werror to GCC and rely on the exit status.
+	Instead pass  to GCC and rely on the exit status.
 	Reported by Wolfram Wagner.
 
 2001-11-14  Akim Demaille  <akim@epita.fr>

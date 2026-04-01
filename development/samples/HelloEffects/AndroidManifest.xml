@@ -20,7 +20,7 @@
     <application android:label="@string/app_name"
             android:icon="@drawable/ic_launcher"
             android:debuggable="true"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
         <activity android:name="com.example.android.mediafx.HelloEffects"
                 android:label="@string/app_name">
             <intent-filter>

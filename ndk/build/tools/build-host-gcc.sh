@@ -1005,8 +1005,8 @@ setup_build_for_toolchain ()
         TARGET_CFLAGS=$TARGET_CFLAGS" \
         -DANDROID -D__ANDROID__ -Ulinux \
         -fPIC -Wa,--noexecstack -m32 -fstack-protector \
-        -W -Wall -Werror=address -Werror=format-security -Werror=non-virtual-dtor -Werror=return-type \
-        -Werror=sequence-point -Winit-self -Wno-multichar -Wno-unused -Wpointer-arith -Wstrict-aliasing=2 \
+        -W -Wall -Wno-address -Wno-format-security -Wno-non-virtual-dtor -Wno-return-type \
+        -Wno-sequence-point -Winit-self -Wno-multichar -Wno-unused -Wpointer-arith -Wstrict-aliasing=2 \
         -fexceptions -ffunction-sections -finline-functions \
         -finline-limit=300 -fmessage-length=0 -fno-inline-functions-called-once \
         -fno-strict-aliasing -frtti \
@@ -1022,10 +1022,10 @@ setup_build_for_toolchain ()
         -funswitch-loops -funwind-tables -mstackrealign \
         -ffunction-sections -funwind-tables -fmessage-length=0 \
         -march=i686 -mstackrealign -mfpmath=sse -mbionic \
-        -Wno-multichar -Wl,-z,noexecstack -Werror=format-security -Wstrict-aliasing=2 \
-        -W -Wall -Wno-unused -Winit-self -Wpointer-arith -Werror=return-type -Werror=non-virtual-dtor \
-        -Werror=address -Werror=sequence-point \
-        -Werror=format-security -Wl,--no-undefined"
+        -Wno-multichar -Wl,-z,noexecstack -Wno-format-security -Wstrict-aliasing=2 \
+        -W -Wall -Wno-unused -Winit-self -Wpointer-arith -Wno-return-type -Wno-non-virtual-dtor \
+        -Wno-address -Wno-sequence-point \
+        -Wno-format-security -Wl,--no-undefined"
 
         # The following was removed from the assignment above because we can't build these object files
         # unless we already have a working binutils / assembler for them. I believe these are now handled

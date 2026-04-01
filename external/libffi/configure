@@ -3684,7 +3684,7 @@ else
        grep sub/conftest.${OBJEXT-o} sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -3803,7 +3803,7 @@ else
        grep sub/conftest.${OBJEXT-o} sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -5932,7 +5932,7 @@ else
        grep sub/conftest.${OBJEXT-o} sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -22603,7 +22603,7 @@ else
 
 	echo 'int __attribute__ ((visibility ("hidden"))) foo (void) { return 1; }' > conftest.c
 	libffi_cv_hidden_visibility_attribute=no
-	if { ac_try='${CC-cc} -Werror -S conftest.c -o conftest.s 1>&5'
+	if { ac_try='${CC-cc}  -S conftest.c -o conftest.s 1>&5'
   { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
   (eval $ac_try) 2>&5
   ac_status=$?

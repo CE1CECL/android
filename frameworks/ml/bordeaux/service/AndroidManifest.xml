@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application android:label="@string/bordeaux_app"
                  android:debuggable="true"
-                 android:hardwareAccelerated="true">
+                 android:hardwareAccelerated="false">
 <!-- BEGIN_INCLUDE(remote_service_declaration) -->
         <service android:name=".services.BordeauxService"
                 android:icon="@drawable/ic_bordeaux"

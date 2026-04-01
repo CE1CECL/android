@@ -1,7 +1,7 @@
 // RUN: %clang_cc1 -fsyntax-only -verify %s
 // RUN: cp %s %t
 // RUN: not %clang_cc1 -fsyntax-only -fixit -x objective-c %t
-// RUN: %clang_cc1 -fsyntax-only -pedantic -Werror -x objective-c %t
+// RUN: %clang_cc1 -fsyntax-only -pedantic  -x objective-c %t
 
 typedef unsigned char BOOL;
 

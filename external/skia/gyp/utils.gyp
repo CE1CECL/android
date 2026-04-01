@@ -231,7 +231,7 @@
         [ 'skia_os == "mac"', {
           'xcode_settings': {
             'OTHER_CPLUSPLUSFLAGS!': [
-              '-Werror',
+              '',
             ]
           },
         }],

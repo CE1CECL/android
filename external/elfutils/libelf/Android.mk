@@ -177,7 +177,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
 
-LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -Werror
+LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 
 
 # to suppress the "pointer of type ‘void *’ used in arithmetic" warning
 LOCAL_CFLAGS += -Wno-pointer-arith

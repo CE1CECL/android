@@ -187,7 +187,7 @@ ENABLE_LIBCPP = @ENABLE_LIBCPP@
 # When ENABLE_CXX11 is enabled, LLVM uses c++11 mode by default to build.
 ENABLE_CXX11 = @ENABLE_CXX11@
 
-# When ENABLE_WERROR is enabled, we'll pass -Werror on the command line
+# When ENABLE_WERROR is enabled, we'll pass  on the command line
 ENABLE_WERROR = @ENABLE_WERROR@
 
 # When ENABLE_OPTIMIZED is enabled, LLVM code is optimized and output is put

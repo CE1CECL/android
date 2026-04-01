@@ -244,7 +244,7 @@ ENABLE_CLANG_REWRITER = @ENABLE_CLANG_REWRITER@
 # When ENABLE_CLANG_STATIC_ANALYZER is enabled, clang will have StaticAnalyzer.
 ENABLE_CLANG_STATIC_ANALYZER = @ENABLE_CLANG_STATIC_ANALYZER@
 
-# When ENABLE_WERROR is enabled, we'll pass -Werror on the command line
+# When ENABLE_WERROR is enabled, we'll pass  on the command line
 ENABLE_WERROR = @ENABLE_WERROR@
 
 # When ENABLE_OPTIMIZED is enabled, LLVM code is optimized and output is put

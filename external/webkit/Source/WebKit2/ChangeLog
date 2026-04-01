@@ -2285,7 +2285,7 @@
         [Qt] [WK2] WebKitTestRunner, QtWebProcess and WTRInjectBundle should fail to compile when there's undefined symbols
         https://bugs.webkit.org/show_bug.cgi?id=54896
         
-        Add -Wl,--no-undefined to catch missing symbols early.
+        Add -Wl,--allow-shlib-undefined to catch missing symbols early.
 
         * WebProcess.pro:
 

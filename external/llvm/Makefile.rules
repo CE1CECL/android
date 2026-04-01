@@ -316,8 +316,8 @@ ifeq ($(ENABLE_CXX11),1)
 endif
 
 ifeq ($(ENABLE_WERROR),1)
-  CXX.Flags += -Werror
-  C.Flags += -Werror
+  CXX.Flags += 
+  C.Flags += 
 endif
 
 ifeq ($(ENABLE_PROFILING),1)

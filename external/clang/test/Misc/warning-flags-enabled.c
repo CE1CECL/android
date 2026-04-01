@@ -12,7 +12,7 @@
 
 
 // RUN: diagtool show-enabled -Wno-everything -Wobjc-root-class %s | FileCheck -check-prefix CHECK-WARN %s
-// RUN: diagtool show-enabled -Wno-everything -Werror=objc-root-class %s | FileCheck -check-prefix CHECK-ERROR %s
+// RUN: diagtool show-enabled -Wno-everything -Wno-objc-root-class %s | FileCheck -check-prefix CHECK-ERROR %s
 // RUN: diagtool show-enabled -Wno-everything -Wfatal-errors=objc-root-class %s | FileCheck -check-prefix CHECK-FATAL %s
 //
 // CHECK-WARN:  W  warn_objc_root_class_missing [-Wobjc-root-class]

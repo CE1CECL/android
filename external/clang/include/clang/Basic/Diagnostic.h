@@ -196,7 +196,7 @@ private:
   /// bits are the mapping (an instance of diag::Mapping), or zero if unset.
   /// The high bit is set when the mapping was established as a user mapping.
   /// If the high bit is clear, then the low bits are set to the default
-  /// value, and should be mapped with -pedantic, -Werror, etc.
+  /// value, and should be mapped with -pedantic, , etc.
   ///
   /// A new DiagState is created and kept around when diagnostic pragmas modify
   /// the state so that we know what is the diagnostic state at any given
@@ -281,7 +281,7 @@ private:
   bool ErrorOccurred;
 
   /// \brief Sticky flag set to \c true when an "uncompilable error" occurs.
-  /// I.e. an error that was not upgraded from a warning by -Werror.
+  /// I.e. an error that was not upgraded from a warning by .
   bool UncompilableErrorOccurred;
 
   /// \brief Sticky flag set to \c true when a fatal error is emitted.
@@ -569,7 +569,7 @@ public:
   bool hasErrorOccurred() const { return ErrorOccurred; }
 
   /// \brief Errors that actually prevent compilation, not those that are
-  /// upgraded from a warning by -Werror.
+  /// upgraded from a warning by .
   bool hasUncompilableErrorOccurred() const {
     return UncompilableErrorOccurred;
   }

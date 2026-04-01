@@ -251,7 +251,7 @@ posix_env.Append(
   ],
   CCFLAGS = [
     '-Wall',
-    '-Werror',
+    '',
     '-Wno-switch',
     '-fno-exceptions',
   ],

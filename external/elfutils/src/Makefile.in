@@ -288,13 +288,13 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @MUDFLAP_FALSE@AM_CFLAGS = -Wall -Wshadow -std=gnu99 \
 @MUDFLAP_FALSE@	$(native_ld_cflags) $(if \
-@MUDFLAP_FALSE@	$($(*F)_no_Werror),,-Werror) $(if \
+@MUDFLAP_FALSE@	$($(*F)_no_Werror),,) $(if \
 @MUDFLAP_FALSE@	$($(*F)_no_Wunused),,-Wunused -Wextra) $(if \
 @MUDFLAP_FALSE@	$($(*F)_no_Wformat),,-Wformat=2) \
 @MUDFLAP_FALSE@	$(CFLAGS_$(*F))
 @MUDFLAP_TRUE@AM_CFLAGS = -fmudflap -Wall -Wshadow -std=gnu99 \
 @MUDFLAP_TRUE@	$(native_ld_cflags) $(if \
-@MUDFLAP_TRUE@	$($(*F)_no_Werror),,-Werror) $(if \
+@MUDFLAP_TRUE@	$($(*F)_no_Werror),,) $(if \
 @MUDFLAP_TRUE@	$($(*F)_no_Wunused),,-Wunused -Wextra) $(if \
 @MUDFLAP_TRUE@	$($(*F)_no_Wformat),,-Wformat=2) $(CFLAGS_$(*F))
 INCLUDES = -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \

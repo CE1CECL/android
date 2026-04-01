@@ -66,7 +66,7 @@ else
         $(TARGET_OBJCOPY) --add-gnu-debuglink=$< $@
 endif
 
-TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
+TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--allow-shlib-undefined
 
 TARGET_arm_CFLAGS :=    -O2 \
                         -fomit-frame-pointer \
@@ -100,7 +100,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-funwind-tables \
 			-fstack-protector \
 			-Wa,--noexecstack \
-			-Werror=format-security \
+			-Wno-format-security \
 			-D_FORTIFY_SOURCE=1 \
 			-fno-short-enums \
 			$(arch_variant_cflags)
@@ -109,7 +109,7 @@ android_config_h := $(call select-android-config-h,linux-arm)
 TARGET_ANDROID_CONFIG_CFLAGS := -include $(android_config_h) -I $(dir $(android_config_h))
 TARGET_GLOBAL_CFLAGS += $(TARGET_ANDROID_CONFIG_CFLAGS)
 
-# This warning causes dalvik not to build with gcc 4.6+ and -Werror.
+# This warning causes dalvik not to build with gcc 4.6+ and .
 # We cannot turn it off blindly since the option is not available
 # in gcc-4.4.x.  We also want to disable sincos optimization globally
 # by turning off the builtin sin function.
@@ -133,7 +133,7 @@ TARGET_GLOBAL_LDFLAGS += \
 			-Wl,-z,relro \
 			-Wl,-z,now \
 			-Wl,--warn-shared-textrel \
-			-Wl,--fatal-warnings \
+			-Wl,--no-fatal-warnings \
 			-Wl,--icf=safe \
 			$(arch_variant_ldflags)
 

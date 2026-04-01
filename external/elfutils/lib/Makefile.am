@@ -30,7 +30,7 @@ AM_CFLAGS = -fmudflap
 else
 AM_CFLAGS =
 endif
-AM_CFLAGS += -fpic -Wall -Wshadow -Werror -Wunused -Wextra $($(*F)_CFLAGS)
+AM_CFLAGS += -fpic -Wall -Wshadow  -Wunused -Wextra $($(*F)_CFLAGS)
 INCLUDES = -I$(srcdir)/../libelf -I..
 
 noinst_LIBRARIES = libeu.a

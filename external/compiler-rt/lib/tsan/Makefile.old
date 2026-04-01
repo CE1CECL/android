@@ -1,6 +1,6 @@
 DEBUG=0
 LDFLAGS=-ldl -lpthread -pie
-CXXFLAGS = -fPIE -fno-rtti -g -Wall -Werror \
+CXXFLAGS = -fPIE -fno-rtti -g -Wall  \
 					 -DGTEST_HAS_RTTI=0 -DTSAN_DEBUG=$(DEBUG) -DSANITIZER_DEBUG=$(DEBUG)
 CLANG=clang
 # Silence warnings that Clang produces for gtest code.

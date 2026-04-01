@@ -201,7 +201,7 @@ createInvocationForMigration(CompilerInvocation &origCI) {
   CInvok->getDiagnosticOpts().ErrorLimit = 0;
   CInvok->getDiagnosticOpts().PedanticErrors = 0;
 
-  // Ignore -Werror flags when migrating.
+  // Ignore  flags when migrating.
   std::vector<std::string> WarnOpts;
   for (std::vector<std::string>::iterator
          I = CInvok->getDiagnosticOpts().Warnings.begin(),

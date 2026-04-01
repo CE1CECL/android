@@ -669,7 +669,7 @@ ASTConsumer* ento::CreateAnalysisConsumer(const Preprocessor& pp,
                                           const std::string& outDir,
                                           AnalyzerOptionsRef opts,
                                           ArrayRef<std::string> plugins) {
-  // Disable the effects of '-Werror' when using the AnalysisConsumer.
+  // Disable the effects of '' when using the AnalysisConsumer.
   pp.getDiagnostics().setWarningsAsErrors(false);
 
   return new AnalysisConsumer(pp, outDir, opts, plugins);

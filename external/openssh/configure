@@ -1403,7 +1403,7 @@ Optional Packages:
   --with-cppflags         Specify additional flags to pass to preprocessor
   --with-ldflags          Specify additional flags to pass to linker
   --with-libs             Specify additional libraries to link with
-  --with-Werror           Build main code with -Werror
+  --with           Build main code with 
   --with-solaris-contracts Enable Solaris process contracts (experimental)
   --with-solaris-projects Enable Solaris projects (experimental)
   --with-osfsia           Enable Digital Unix SIA
@@ -5817,15 +5817,15 @@ rm -f core conftest.err conftest.$ac_objext \
 
 	# -fstack-protector-all doesn't always work for some GCC versions
 	# and/or platforms, so we test if we can.  If it's not supported
-	# on a given platform gcc will emit a warning so we use -Werror.
+	# on a given platform gcc will emit a warning so we use .
 	if test "x$use_stack_protector" = "x1"; then
 	    for t in -fstack-protector-all -fstack-protector; do
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports $t" >&5
 $as_echo_n "checking if $CC supports $t... " >&6; }
 		saved_CFLAGS="$CFLAGS"
 		saved_LDFLAGS="$LDFLAGS"
-		CFLAGS="$CFLAGS $t -Werror"
-		LDFLAGS="$LDFLAGS $t -Werror"
+		CFLAGS="$CFLAGS $t "
+		LDFLAGS="$LDFLAGS $t "
 		cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
  #include <stdio.h>
@@ -5980,11 +5980,11 @@ if test "${with_libs+set}" = set; then :
 fi
 
 
-# Check whether --with-Werror was given.
+# Check whether --with was given.
 if test "${with_Werror+set}" = set; then :
   withval=$with_Werror;
 		if test -n "$withval"  &&  test "x$withval" != "xno"; then
-			werror_flags="-Werror"
+			werror_flags=""
 			if test "x${withval}" != "xyes"; then
 				werror_flags="$withval"
 			fi

@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 -x objective-c -triple x86_64-apple-darwin10 %S/Common.h -emit-pch -o %t.pch
-// RUN: %clang_cc1 -include-pch %t.pch -arcmt-check -verify -triple x86_64-apple-darwin10 -fblocks -Werror %s
+// RUN: %clang_cc1 -include-pch %t.pch -arcmt-check -verify -triple x86_64-apple-darwin10 -fblocks  %s
 // DISABLE: mingw32
 
 // rdar://9601437

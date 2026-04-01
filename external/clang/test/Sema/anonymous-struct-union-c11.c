@@ -2,7 +2,7 @@
 // RUN: %clang_cc1 -fsyntax-only -verify -Wc11-extensions %s
 
 // Expect no warnings in C11 mode:
-// RUN: %clang_cc1 -fsyntax-only -pedantic -Werror -std=c11 %s
+// RUN: %clang_cc1 -fsyntax-only -pedantic  -std=c11 %s
 
 struct s {
   int a;

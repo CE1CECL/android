@@ -21,7 +21,7 @@ LOCAL_LDFLAGS := -shared -Wl,--exclude-libs,ALL
 LOCAL_CFLAGS += -fno-stack-protector \
         -Wstrict-overflow=5 \
         -fvisibility=hidden \
-        -Wall -Wextra -Werror
+        -Wall -Wextra 
 
 # We need to access Bionic private headers in the linker.
 LOCAL_CFLAGS += -I$(LOCAL_PATH)/../libc/

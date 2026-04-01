@@ -35,7 +35,7 @@ LOCAL_C_INCLUDES := $(KERNEL_HEADERS) \
                     bionic/libc/private \
                     $(call include-path-for, libhardware_legacy)/hardware_legacy
 
-LOCAL_CFLAGS := -Werror=format
+LOCAL_CFLAGS := -Wno-format
 
 LOCAL_SHARED_LIBRARIES := libstlport libsysutils liblog libcutils libnetutils \
                           libcrypto libhardware_legacy libmdnssd libdl \

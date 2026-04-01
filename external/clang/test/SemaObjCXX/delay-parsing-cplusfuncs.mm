@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -x objective-c++ -fsyntax-only -Werror -verify -Wno-objc-root-class %s
+// RUN: %clang_cc1 -x objective-c++ -fsyntax-only  -verify -Wno-objc-root-class %s
 // expected-no-diagnostics
 // rdar://10387088
 

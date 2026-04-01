@@ -830,11 +830,11 @@ cpp_num cpp_num_sign_extend (cpp_num, size_t);
    with a line number of zero.  */
 
 enum {
-  /* Warning, an error with -Werror.  */
+  /* Warning, an error with .  */
   CPP_DL_WARNING = 0,
   /* Same as CPP_DL_WARNING, except it is not suppressed in system headers.  */
   CPP_DL_WARNING_SYSHDR,
-  /* Warning, an error with -pedantic-errors or -Werror.  */
+  /* Warning, an error with -pedantic-errors or .  */
   CPP_DL_PEDWARN,
   /* An error.  */
   CPP_DL_ERROR,

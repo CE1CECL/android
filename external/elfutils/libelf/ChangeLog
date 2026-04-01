@@ -526,7 +526,7 @@
 
 	* Makefile.am: Check for text relocations in constructed DSO.
 
-	* Makefile.am [MUDFLAP] (AM_CFLAGS): Add -Werror -fpic -fmudflap.
+	* Makefile.am [MUDFLAP] (AM_CFLAGS): Add  -fpic -fmudflap.
 
 2005-02-04  Ulrich Drepper  <drepper@redhat.com>
 

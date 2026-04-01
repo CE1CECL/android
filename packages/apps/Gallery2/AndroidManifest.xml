@@ -40,8 +40,8 @@
             android:name="com.android.gallery3d.app.GalleryAppImpl"
             android:theme="@style/Theme.Gallery"
             android:logo="@mipmap/ic_launcher_gallery"
-            android:hardwareAccelerated="true"
-            android:largeHeap="true"
+            android:hardwareAccelerated="false"
+            android:largeHeap="false"
             android:backupAgent="com.android.camera.CameraBackupAgent"
             android:restoreAnyVersion="true">
         <uses-library android:name="com.google.android.media.effects" android:required="false" />

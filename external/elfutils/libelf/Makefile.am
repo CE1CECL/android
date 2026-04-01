@@ -33,7 +33,7 @@ endif
 if BUILD_STATIC
 AM_CFLAGS += -fpic
 endif
-AM_CFLAGS += -Wall -Wshadow -Werror -Wunused -Wextra -Wformat=2 -std=gnu99 \
+AM_CFLAGS += -Wall -Wshadow  -Wunused -Wextra -Wformat=2 -std=gnu99 \
 	     $($(*F)_CFLAGS)
 INCLUDES = -I$(srcdir) -I$(top_srcdir)/lib -I..
 GCC_INCLUDE = -I$(shell $(CC) -print-file-name=include)

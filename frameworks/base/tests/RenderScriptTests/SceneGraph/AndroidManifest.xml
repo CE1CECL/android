@@ -20,7 +20,7 @@
         </activity>
         <activity android:name="FileSelector"
                   android:label="FileSelector"
-                  android:hardwareAccelerated="true">
+                  android:hardwareAccelerated="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>

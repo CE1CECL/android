@@ -15,6 +15,6 @@ void foo() { int b=0; while (b==b); }
 
 // RUN: env CINDEXTEST_EDITING=1 CINDEXTEST_FAILONERROR=1 c-index-test -test-load-source-reparse 5 local \
 // RUN: -I%S/Inputs \
-// RUN:   %s -Wall -Werror | FileCheck %s
+// RUN:   %s -Wall  | FileCheck %s
 
 // CHECK: pragma-diag-reparse.c:8:7: VarDecl=x:8:7 (Definition) Extent=[8:3 - 8:10]

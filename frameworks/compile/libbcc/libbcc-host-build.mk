@@ -17,7 +17,7 @@
 LOCAL_CFLAGS := \
   -Wall \
   -Wno-unused-parameter \
-  -Werror \
+   \
   -D__HOST__ \
   $(LOCAL_CFLAGS)
 

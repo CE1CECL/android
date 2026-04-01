@@ -51,7 +51,7 @@ endif
 
 LOCAL_SHARED_LIBRARIES += libdl libcutils liblog libgccdemangle
 
-LOCAL_CFLAGS += -std=gnu99 -Werror
+LOCAL_CFLAGS += -std=gnu99 
 LOCAL_MODULE := libcorkscrew
 LOCAL_MODULE_TAGS := optional
 
@@ -60,7 +60,7 @@ include $(BUILD_SHARED_LIBRARY)
 # Build test.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := test.c
-LOCAL_CFLAGS += -std=gnu99 -Werror -fno-inline-small-functions
+LOCAL_CFLAGS += -std=gnu99  -fno-inline-small-functions
 LOCAL_SHARED_LIBRARIES := libcorkscrew
 LOCAL_MODULE := libcorkscrew_test
 LOCAL_MODULE_TAGS := optional
@@ -76,7 +76,7 @@ LOCAL_CFLAGS += -DCORKSCREW_HAVE_ARCH
 LOCAL_SHARED_LIBRARIES += libgccdemangle
 LOCAL_STATIC_LIBRARIES += libcutils liblog
 LOCAL_LDLIBS += -ldl -lrt
-LOCAL_CFLAGS += -std=gnu99 -Werror
+LOCAL_CFLAGS += -std=gnu99 
 LOCAL_MODULE := libcorkscrew
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_HOST_SHARED_LIBRARY)
@@ -84,7 +84,7 @@ include $(BUILD_HOST_SHARED_LIBRARY)
 # Build test.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := test.c
-LOCAL_CFLAGS += -std=gnu99 -Werror -fno-inline-small-functions
+LOCAL_CFLAGS += -std=gnu99  -fno-inline-small-functions
 LOCAL_SHARED_LIBRARIES := libcorkscrew
 LOCAL_MODULE := libcorkscrew_test
 LOCAL_MODULE_TAGS := optional

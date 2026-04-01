@@ -975,7 +975,7 @@ have been fixed.
 Accomodations for gcc's stupidity in not realizing that constant
 strings that do not contain a '%' character are safe to use in format
 strings have been made so that distributions that want to compile
-e2fsprogs with -Werror=format-security have an easier time doing so.
+e2fsprogs with -Wno-format-security have an easier time doing so.
 
 Added a new 64-bit getsize interface, ext2fs_get_device_size2().
 

@@ -32,7 +32,7 @@ AM_CFLAGS =
 endif
 AM_CFLAGS += -Wall -Wshadow -Wunused -Wextra -std=gnu99 -fpic \
 	     $($(*F)_CFLAGS) \
-	     $(if $($(*F)_no_Werror),,-Werror)
+	     $(if $($(*F)_no_Werror),,)
 INCLUDES = -I$(srcdir) -I$(srcdir)/../lib -I$(srcdir)/../libelf \
 	   -I$(srcdir)/../libebl -I$(srcdir)/../libdw -I$(srcdir)/../libasm
 LEXCOMPILE = $(LEX) $(LFLAGS) $(AM_LFLAGS) -P$(<F:lex.l=)

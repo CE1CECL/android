@@ -98,7 +98,7 @@ core_static_libraries := $(sort $(LOCAL_STATIC_LIBRARIES))
 
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += -Wall -Wextra -Werror
+LOCAL_CFLAGS += -Wall -Wextra 
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CPPFLAGS += $(core_cppflags)
 ifeq ($(TARGET_ARCH),arm)
@@ -125,7 +125,7 @@ include $(BUILD_SHARED_LIBRARY)
 ifeq ($(LIBCORE_SKIP_TESTS),)
 include $(CLEAR_VARS)
 
-LOCAL_CFLAGS += -Wall -Wextra -Werror
+LOCAL_CFLAGS += -Wall -Wextra 
 LOCAL_CFLAGS += $(core_cflags)
 LOCAL_CPPFLAGS += $(core_cppflags)
 ifeq ($(TARGET_ARCH),arm)

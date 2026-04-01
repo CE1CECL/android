@@ -10,7 +10,7 @@
         android:name=".FakeApp"
         android:allowClearUserData="false"
         android:allowBackup="false"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
         android:label="Fake OEM Features">
 
         <service android:name=".FakeCoreService" android:process=":core"

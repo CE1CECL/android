@@ -92,7 +92,7 @@ CONFIG -= warn_on
 
 # Treat warnings as errors on x86/Linux/GCC
 linux-g++* {
-    isEqual(QT_ARCH,x86_64)|isEqual(QT_ARCH,i386): QMAKE_CXXFLAGS += -Werror
+    isEqual(QT_ARCH,x86_64)|isEqual(QT_ARCH,i386): QMAKE_CXXFLAGS += 
 }
 
 symbian|*-armcc {

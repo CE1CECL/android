@@ -27,7 +27,7 @@ INCLUDES = -I$(top_srcdir) -I$(includedir)
 include Makefile.common
 
 if HAVE_WARNINGS_AS_ERRORS
-AM_CFLAGS = -Werror
+AM_CFLAGS = 
 endif
 
 plugin_LTLIBRARIES = spdy.la

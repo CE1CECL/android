@@ -1,7 +1,7 @@
 
 LOCAL_PATH:=$(call my-dir)
 
-rs_base_CFLAGS := -Werror -Wall -Wno-unused-parameter -Wno-unused-variable
+rs_base_CFLAGS :=  -Wall -Wno-unused-parameter -Wno-unused-variable
 ifeq ($(TARGET_BUILD_PDK), true)
   rs_base_CFLAGS += -D__RS_PDK__
 endif

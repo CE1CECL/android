@@ -22,7 +22,7 @@
     <application
       android:icon="@drawable/icon"
       android:label="@string/app_name"
-      android:hardwareAccelerated="true">
+      android:hardwareAccelerated="false">
         <activity android:label="@string/app_name"
                   android:name="com.example.android.layouttranschanging.LayoutTransChanging">
             <intent-filter>

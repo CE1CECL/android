@@ -178,13 +178,13 @@ if test "$enable_gcov" = yes; then
 fi
 
 AC_ARG_ENABLE(werror,
-	[  --disable-werror            disable -Werror flag (default is enabled for non-release)],
+	[  --disable-werror            disable  flag (default is enabled for non-release)],
         enable_werror=$enableval, enable_werror=yes)
 if test "$enable_werror" = yes; then
-	# enable -Werror for non-release versions.
+	# enable  for non-release versions.
 	if echo "$VERSION" | grep cvs >/dev/null; then
-		AX_CFLAGS_OPTION(OP_CFLAGS,[-Werror])
-		AX_CXXFLAGS_OPTION(OP_CXXFLAGS,[-Werror])
+		AX_CFLAGS_OPTION(OP_CFLAGS,[])
+		AX_CXXFLAGS_OPTION(OP_CXXFLAGS,[])
 	fi
 fi
 

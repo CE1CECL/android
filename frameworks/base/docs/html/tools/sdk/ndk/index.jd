@@ -517,7 +517,7 @@ $('#Downloads').after($('#download-table'));
             path for {@code libraries/gdbserver} from the default {@code $PROJECT/libs}.
             For more information, see {@code OVERVIEW.html}.</li>
           <li>Changed ndk-build script defaults to compile code with format string protection
-            {@code -Wformat -Werror=format-security}. You may set
+            {@code -Wformat -Wno-format-security}. You may set
             {@code LOCAL_DISABLE_FORMAT_STRING_CHECKS=true} to disable it.
             For more information, see {@code ANDROID-MK.html}</li>
           <li>Added STL pretty-print support in {@code ndk-gdb-py}. For more information, see
@@ -781,7 +781,7 @@ $('#Downloads').after($('#download-table'));
                 with a standalone toolchain.) Compiling a <em>dynamic</em> executable using
                 {@code include $(BUILD_EXECUTABLE)} continues to work because the compiler
                 automatically adds the {@code -ldl} option.</li>
-              <li>If your project links using {@code -nostdlib} and {-Wl,--no-undefined}, you
+              <li>If your project links using {@code -nostdlib} and {-Wl,--allow-shlib-undefined}, you
                 must manually include the {@code -ldl} option.</li>
             </ul>
               For more information, see {@code CPLUSPLUS-SUPPORT.html}.
@@ -1141,7 +1141,7 @@ Expected in: /usr/lib/libSystem.B.dylib</pre>
           support legacy native libraries. NDK-generated should never reference them directly.
           Instead, each shared library or executable should embed its own version of these symbols,
           provided by {@code crtbegin_*.o}.
-          <p>If your project is linked with the {@code -nostdlib -Wl,--no-undefined} options, you
+          <p>If your project is linked with the {@code -nostdlib -Wl,--allow-shlib-undefined} options, you
           must provide your own {@code __dso_handle} because {@code crtbegin_so.o} is not linked in
           this case. The content of {@code __dso_handle} does not matter, as shown in the following
           example code:</p>

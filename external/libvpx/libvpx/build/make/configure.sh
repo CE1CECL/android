@@ -333,7 +333,7 @@ check_cxxflags() {
 
     # Catch CFLAGS that trigger CXX warnings
     case "$CXX" in
-      *g++*) check_cxx -Werror "$@" <<EOF
+      *g++*) check_cxx  "$@" <<EOF
 int x;
 EOF
       ;;

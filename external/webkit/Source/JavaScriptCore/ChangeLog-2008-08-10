@@ -25565,7 +25565,7 @@
         <rdar://problem/5602936> Need to resolve new GCC 4.2 warnings
 
         Fix all warnings emitted by GCC 4.2 when building JavaScriptCore.  This allows builds with
-        -Werror to succeed.  At present they will crash when executed due to code that is not safe
+         to succeed.  At present they will crash when executed due to code that is not safe
         under strict aliasing (<rdar://problem/5536806>).
 
         * Configurations/Base.xcconfig: Remove the -Wno-long-double flag.

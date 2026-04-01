@@ -683,7 +683,7 @@
 
         Fixed a bug in Page::GetRegionMaskForSpan (Chromium issue 94425).
 
-        Fixed a few clang warnings (which -Werror treated as errors).
+        Fixed a few clang warnings (which  treated as errors).
 
         Performance improvements on all platforms.
 
@@ -2181,7 +2181,7 @@
         Added an API to control the disposal of external string resources.
 
         Added missing initialization of a couple of variables which makes
-        some compilers complaint when compiling with -Werror.
+        some compilers complaint when compiling with .
 
         Improved performance on all platforms.
 

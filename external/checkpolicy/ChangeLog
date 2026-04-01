@@ -16,7 +16,7 @@
 2.1.7 2011-12-05
 	* dis* fixed signed vs unsigned errors
 	* dismod: fix unused parameter errors
-	* test: Makefile: include -W and -Werror
+	* test: Makefile: include -W and 
 	* allow ~ in filename transition rules
 
 2.1.6 2011-11-03

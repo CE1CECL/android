@@ -119,7 +119,7 @@ endif
 
 
 ifdef CONFIG_EAPOL_TEST
-CFLAGS += -Werror -DEAPOL_TEST
+CFLAGS +=  -DEAPOL_TEST
 endif
 
 ifdef CONFIG_HT_OVERRIDES

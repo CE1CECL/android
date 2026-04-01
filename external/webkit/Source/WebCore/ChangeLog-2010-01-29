@@ -39687,7 +39687,7 @@
 
         Reviewed by Eric Seidel.
 
-        Fix GCC compiler warnings in WebCore, and enable -Wall and -Werror for Chromium build.
+        Fix GCC compiler warnings in WebCore, and enable -Wall and  for Chromium build.
         https://bugs.webkit.org/show_bug.cgi?id=30716
 
         * WebCore.gyp/WebCore.gyp:  Enable "chromium_code" flag, just on Mac build for now.
@@ -72519,7 +72519,7 @@ form controls that have different validity states.
 
         Reviewed by Adam Treat.
 
-        Mark unused variables to avoid compile failures in -Werror.
+        Mark unused variables to avoid compile failures in .
 
         * wml/WMLAnchorElement.cpp:
         (WebCore::WMLAnchorElement::deregisterTask):
@@ -86953,7 +86953,7 @@ form controls that have different validity states.
 
         Fix for https://bugs.webkit.org/show_bug.cgi?id=27237
 
-        Make V8DOMMap.h compiling with gcc option -Werror=non=virtual-dtor.  
+        Make V8DOMMap.h compiling with gcc option -Wno-non=virtual-dtor.  
 
         * bindings/v8/V8DOMMap.h:
         (WebCore::WeakReferenceMap::WeakReferenceMap):

@@ -7720,7 +7720,7 @@
 
         Reviewed by James Robinson.
 
-        [chromium] enable -Werror for DRT and webkit_unit_tests on Linux
+        [chromium] enable  for DRT and webkit_unit_tests on Linux
         https://bugs.webkit.org/show_bug.cgi?id=46829
 
         * WebKit.gyp:
@@ -7733,7 +7733,7 @@
 
         Reviewed by James Robinson.
 
-        [chromium] enable -Werror on chromium linux webkit
+        [chromium] enable  on chromium linux webkit
         https://bugs.webkit.org/show_bug.cgi?id=46821
 
         * WebKit.gyp:

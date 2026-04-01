@@ -179,7 +179,7 @@
 2012-12-07  Akim Demaille  <akim@lrde.epita.fr>
 
 	build: keep -Wmissing-declarations and -Wmissing-prototypes for modern GCCs
-	Fixes a -Werror failure of xalloc.h used in src.
+	Fixes a  failure of xalloc.h used in src.
 	From Eric Blake.
 	http://lists.gnu.org/archive/html/bug-gnulib/2012-12/msg00006.html
 
@@ -828,7 +828,7 @@
 	  maint: be compilable with GCC 4.0
 	  tests: address a warning from GCC 4.4
 	  tests: don't use options that Clang does not support
-	  tests: restore the tests on -Werror
+	  tests: restore the tests on 
 	  regen
 	  parse-gram: update the Bison interface
 	  fix comment
@@ -911,7 +911,7 @@
 
 2012-10-25  Akim Demaille  <akim@lrde.epita.fr>
 
-	tests: restore the tests on -Werror
+	tests: restore the tests on 
 	When run as /bin/sh, Bash sets the shell variable POSIXLY_CORRECT to
 	y.  The test suite checks for the envvar POSIXLY_CORRECT to turn of
 	some tests not supported in POSIX mode.  Restore these tests.
@@ -1025,7 +1025,7 @@
 	Fix the following warning
 
 	  parse-gram.c:2078:14: error: equality comparison with extraneous parentheses
-	                        [-Werror,-Wparentheses-equality]
+	                        [,-Wparentheses-equality]
 	    if (((yyn) == (-91)))
 	         ~~~~~~^~~~~~~~
 	  parse-gram.c:2078:14: note: remove extraneous parentheses around the
@@ -1042,7 +1042,7 @@
 	and the following one:
 
 	  input.cc:740:1: error: function declared 'noreturn' should not return
-	                         [-Werror,-Winvalid-noreturn]
+	                         [,-Winvalid-noreturn]
 	  static void yyMemoryExhausted (yyGLRStack* yystackp)
 	    __attribute__ ((__noreturn__));
 	  static void
@@ -1378,7 +1378,7 @@
 	Fix the following warning
 
 	  parse-gram.c:2078:14: error: equality comparison with extraneous parentheses
-	                        [-Werror,-Wparentheses-equality]
+	                        [,-Wparentheses-equality]
 	    if (((yyn) == (-91)))
 	         ~~~~~~^~~~~~~~
 	  parse-gram.c:2078:14: note: remove extraneous parentheses around the
@@ -1395,7 +1395,7 @@
 	and the following one:
 
 	  input.cc:740:1: error: function declared 'noreturn' should not return
-	                         [-Werror,-Winvalid-noreturn]
+	                         [,-Winvalid-noreturn]
 	  static void yyMemoryExhausted (yyGLRStack* yystackp)
 	    __attribute__ ((__noreturn__));
 	  static void

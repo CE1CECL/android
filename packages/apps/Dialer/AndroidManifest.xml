@@ -48,7 +48,7 @@
     <application
         android:label="@string/applicationLabel"
         android:icon="@mipmap/ic_launcher_phone"
-        android:hardwareAccelerated="true"
+        android:hardwareAccelerated="false"
         android:supportsRtl="true">
 
         <!-- The entrance point for Phone UI.

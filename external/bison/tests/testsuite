@@ -624,7 +624,7 @@ at_help_all="1;input.at:27;Invalid inputs;;
 32;input.at:1346;Bad character literals;;
 33;input.at:1399;Bad escapes in literals;;
 34;input.at:1448;LAC: Errors for %define;;
-35;input.at:1471;-Werror is not affected by -Wnone and -Wall;;
+35;input.at:1471; is not affected by -Wnone and -Wall;;
 36;input.at:1505;%name-prefix and %define api.prefix are incompatible;;
 37;input.at:1534;Stray \$ or @;;
 38;input.at:1568;Code injection;;
@@ -2853,11 +2853,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror" "input.at:286"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Werror
+$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y " "input.at:286"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -2964,9 +2964,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -3005,12 +3005,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror" "input.at:286"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone " "input.at:286"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3021,9 +3021,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror" "input.at:286"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:286: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none " "input.at:286"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3257,11 +3257,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror" "input.at:287"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror
+$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y " "input.at:287"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3392,9 +3392,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -3433,12 +3433,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror" "input.at:287"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone " "input.at:287"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3449,9 +3449,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror" "input.at:287"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:287: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none " "input.at:287"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3677,11 +3677,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror" "input.at:296"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Werror
+$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y " "input.at:296"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3788,9 +3788,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -3829,12 +3829,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror" "input.at:296"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone " "input.at:296"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -3845,9 +3845,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror" "input.at:296"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:296: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none " "input.at:296"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4084,11 +4084,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror" "input.at:297"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Werror
+$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y " "input.at:297"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4219,9 +4219,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -4260,12 +4260,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror" "input.at:297"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone " "input.at:297"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4276,9 +4276,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror" "input.at:297"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:297: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none " "input.at:297"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --warnings=midrule-values -fcaret input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4559,11 +4559,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "input.at:421"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "input.at:421"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4598,9 +4598,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -4639,12 +4639,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "input.at:421"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "input.at:421"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4655,9 +4655,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "input.at:421"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:421: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "input.at:421"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4780,11 +4780,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "input.at:438"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "input.at:438"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4818,9 +4818,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -4859,12 +4859,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "input.at:438"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "input.at:438"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -4875,9 +4875,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "input.at:438"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:438: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "input.at:438"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -5014,11 +5014,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "input.at:462"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "input.at:462"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -5053,9 +5053,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -5094,12 +5094,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "input.at:462"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "input.at:462"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -5110,9 +5110,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "input.at:462"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:462: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "input.at:462"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -6277,11 +6277,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Werror" "input.at:772"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y -Werror
+$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y " "input.at:772"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -6315,9 +6315,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -6356,12 +6356,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone -Werror" "input.at:772"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone " "input.at:772"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -6372,9 +6372,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none -Werror" "input.at:772"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:772: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none " "input.at:772"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wyacc input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -7005,11 +7005,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "input.at:960"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "input.at:960"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -7042,9 +7042,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -7083,12 +7083,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "input.at:960"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "input.at:960"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -7099,9 +7099,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "input.at:960"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:960: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "input.at:960"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8579,7 +8579,7 @@ read at_status <"$at_status_file"
 #AT_STOP_34
 #AT_START_35
 at_fn_group_banner 35 'input.at:1471' \
-  "-Werror is not affected by -Wnone and -Wall" "    " 1
+  " is not affected by -Wnone and -Wall" "    " 1
 at_xfail=no
 (
   $as_echo "35. $at_setup_line: testing $at_desc ..."
@@ -8592,7 +8592,7 @@ foo-bar: ;
 _ATEOF
 
 
-# -Werror is not enabled by -Wall or equivalent.
+#  is not enabled by -Wall or equivalent.
 if test x"$BISON_TEST_XML" = x1 && test x"$XSLTPROC" != x""; then
   at_save_special_files
   mkdir xml-tests
@@ -8689,11 +8689,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Werror" "input.at:1479"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y -Werror
+$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y " "input.at:1479"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8726,9 +8726,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -8767,12 +8767,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Wnone -Werror" "input.at:1479"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y -Wnone " "input.at:1479"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8783,9 +8783,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none -Werror" "input.at:1479"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:1479: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none " "input.at:1479"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wall input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8894,11 +8894,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Werror" "input.at:1482"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y -Werror
+$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y " "input.at:1482"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8931,9 +8931,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -8972,12 +8972,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Wnone -Werror" "input.at:1482"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y -Wnone " "input.at:1482"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -8988,9 +8988,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y --warnings=none -Werror" "input.at:1482"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:1482: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -W input.y --warnings=none " "input.at:1482"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -W input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9099,11 +9099,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Werror" "input.at:1485"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y -Werror
+$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y " "input.at:1485"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9136,9 +9136,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -9177,12 +9177,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone -Werror" "input.at:1485"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone " "input.at:1485"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9193,9 +9193,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none -Werror" "input.at:1485"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:1485: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none " "input.at:1485"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Wno-none input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9209,12 +9209,12 @@ $at_traceon; }
   at_restore_special_files
 fi
 
-# -Werror is not disabled by -Wnone or equivalent.
+#  is not disabled by -Wnone or equivalent.
 
 { set +x
-$as_echo "$at_srcdir/input.at:1490: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror,none,yacc input.y"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror,none,yacc input.y" "input.at:1490"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Werror,none,yacc input.y
+$as_echo "$at_srcdir/input.at:1490: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison ,none,yacc input.y"
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison ,none,yacc input.y" "input.at:1490"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison ,none,yacc input.y
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9244,9 +9244,9 @@ $at_traceon; }
 mv stderr experr
 
 { set +x
-$as_echo "$at_srcdir/input.at:1496: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror,no-all,yacc input.y"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror,no-all,yacc input.y" "input.at:1496"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Werror,no-all,yacc input.y
+$as_echo "$at_srcdir/input.at:1496: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison ,no-all,yacc input.y"
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison ,no-all,yacc input.y" "input.at:1496"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison ,no-all,yacc input.y
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9514,11 +9514,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "input.at:1548"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "input.at:1548"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9558,9 +9558,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -9599,12 +9599,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "input.at:1548"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "input.at:1548"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -9615,9 +9615,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "input.at:1548"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/input.at:1548: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "input.at:1548"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -11159,11 +11159,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Werror" "named-refs.at:279"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y -Werror
+$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y " "named-refs.at:279"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -11198,9 +11198,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -11239,12 +11239,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone -Werror" "named-refs.at:279"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone -Werror
+$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone " "named-refs.at:279"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -11255,9 +11255,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none -Werror" "named-refs.at:279"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none -Werror
+$as_echo "$at_srcdir/named-refs.at:279: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none " "named-refs.at:279"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o test.c test.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -12154,11 +12154,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Werror" "named-refs.at:696"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y -Werror
+$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y " "named-refs.at:696"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -12192,9 +12192,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -12233,12 +12233,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Wnone -Werror" "named-refs.at:696"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y -Wnone -Werror
+$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y -Wnone " "named-refs.at:696"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -12249,9 +12249,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y --warnings=none -Werror" "named-refs.at:696"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y --warnings=none -Werror
+$as_echo "$at_srcdir/named-refs.at:696: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison test.y --warnings=none " "named-refs.at:696"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison test.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15154,11 +15154,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Werror" "output.at:158"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y -Werror
+$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y " "output.at:158"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15191,9 +15191,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -15232,12 +15232,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Wnone -Werror" "output.at:158"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y -Wnone -Werror
+$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y -Wnone " "output.at:158"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15248,9 +15248,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y --warnings=none -Werror" "output.at:158"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y --warnings=none -Werror
+$as_echo "$at_srcdir/output.at:158: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"foo.tab.c\" foo.y --warnings=none " "output.at:158"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="foo.tab.c" foo.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15328,11 +15328,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Werror" "output.at:163"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y -Werror
+$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y " "output.at:163"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15365,9 +15365,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -15406,12 +15406,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Wnone -Werror" "output.at:163"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y -Wnone -Werror
+$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y -Wnone " "output.at:163"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15422,9 +15422,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y --warnings=none -Werror" "output.at:163"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y --warnings=none -Werror
+$as_echo "$at_srcdir/output.at:163: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v foo.y --warnings=none " "output.at:163"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v foo.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15502,11 +15502,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Werror" "output.at:168"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y -Werror
+$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y " "output.at:168"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15539,9 +15539,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -15580,12 +15580,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Wnone -Werror" "output.at:168"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y -Wnone -Werror
+$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y -Wnone " "output.at:168"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -15596,9 +15596,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y --warnings=none -Werror" "output.at:168"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y --warnings=none -Werror
+$as_echo "$at_srcdir/output.at:168: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --graph=\"location.hh\" foo.y --warnings=none " "output.at:168"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --graph="location.hh" foo.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -21745,11 +21745,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "reduce.at:90"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "reduce.at:90"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -21791,9 +21791,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -21832,12 +21832,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "reduce.at:90"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "reduce.at:90"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -21848,9 +21848,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "reduce.at:90"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:90: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "reduce.at:90"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22074,11 +22074,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Werror" "reduce.at:145"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Werror
+$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y " "reduce.at:145"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22166,9 +22166,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -22207,12 +22207,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror" "reduce.at:145"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone " "reduce.at:145"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22223,9 +22223,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror" "reduce.at:145"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:145: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none " "reduce.at:145"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22354,11 +22354,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "reduce.at:204"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "reduce.at:204"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22410,9 +22410,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -22451,12 +22451,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "reduce.at:204"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "reduce.at:204"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22467,9 +22467,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "reduce.at:204"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:204: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "reduce.at:204"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22682,11 +22682,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Werror" "reduce.at:300"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Werror
+$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y " "reduce.at:300"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22735,9 +22735,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -22776,12 +22776,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone -Werror" "reduce.at:300"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone " "reduce.at:300"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22792,9 +22792,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none -Werror" "reduce.at:300"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:300: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none " "reduce.at:300"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret not-reduced.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22910,11 +22910,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Werror" "reduce.at:320"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y -Werror
+$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y " "reduce.at:320"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -22953,9 +22953,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -22994,12 +22994,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Wnone -Werror" "reduce.at:320"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y -Wnone " "reduce.at:320"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -23010,9 +23010,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none -Werror" "reduce.at:320"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:320: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none " "reduce.at:320"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison not-reduced.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -23308,11 +23308,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Werror" "reduce.at:395"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Werror
+$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y " "reduce.at:395"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -23351,9 +23351,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -23392,12 +23392,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone -Werror" "reduce.at:395"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone -Werror
+$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y -Wnone " "reduce.at:395"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -23408,9 +23408,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror" "reduce.at:395"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none -Werror
+$as_echo "$at_srcdir/reduce.at:395: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input.y --warnings=none " "reduce.at:395"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46371,11 +46371,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror" "actions.at:1303"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Werror
+$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y " "actions.at:1303"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46409,9 +46409,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -46450,12 +46450,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror" "actions.at:1303"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone " "actions.at:1303"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46466,9 +46466,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror" "actions.at:1303"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/actions.at:1303: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none " "actions.at:1303"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46583,11 +46583,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror" "actions.at:1308"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror
+$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y " "actions.at:1308"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46625,9 +46625,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -46666,12 +46666,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror" "actions.at:1308"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone " "actions.at:1308"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -46682,9 +46682,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror" "actions.at:1308"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/actions.at:1308: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none " "actions.at:1308"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -48635,11 +48635,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror" "actions.at:1597"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Werror
+$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y " "actions.at:1597"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -48707,9 +48707,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -48748,12 +48748,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror" "actions.at:1597"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone " "actions.at:1597"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -48764,9 +48764,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror" "actions.at:1597"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/actions.at:1597: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none " "actions.at:1597"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49457,11 +49457,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror" "conflicts.at:40"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Werror
+$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y " "conflicts.at:40"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49494,9 +49494,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -49535,12 +49535,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror" "conflicts.at:40"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone " "conflicts.at:40"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49551,9 +49551,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror" "conflicts.at:40"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/conflicts.at:40: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none " "conflicts.at:40"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49665,11 +49665,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror" "conflicts.at:44"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror
+$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y " "conflicts.at:44"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49704,9 +49704,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -49745,12 +49745,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror" "conflicts.at:44"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone " "conflicts.at:44"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -49761,9 +49761,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror" "conflicts.at:44"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/conflicts.at:44: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none " "conflicts.at:44"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -56244,11 +56244,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Werror" "conflicts.at:786"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Werror
+$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y " "conflicts.at:786"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -56282,9 +56282,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -56323,12 +56323,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone -Werror" "conflicts.at:786"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone -Werror
+$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone " "conflicts.at:786"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -56339,9 +56339,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none -Werror" "conflicts.at:786"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none -Werror
+$as_echo "$at_srcdir/conflicts.at:786: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none " "conflicts.at:786"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c --report=all input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57304,11 +57304,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Werror" "conflicts.at:1106"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y -Werror
+$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y " "conflicts.at:1106"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57348,9 +57348,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -57389,12 +57389,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Wnone -Werror" "conflicts.at:1106"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y -Wnone -Werror
+$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y -Wnone " "conflicts.at:1106"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57405,9 +57405,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none -Werror" "conflicts.at:1106"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none -Werror
+$as_echo "$at_srcdir/conflicts.at:1106: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none " "conflicts.at:1106"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57687,11 +57687,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Werror" "conflicts.at:1258"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y -Werror
+$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y " "conflicts.at:1258"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57728,9 +57728,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -57769,12 +57769,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Wnone -Werror" "conflicts.at:1258"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y -Wnone -Werror
+$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y -Wnone " "conflicts.at:1258"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -57785,9 +57785,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y --warnings=none -Werror" "conflicts.at:1258"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y --warnings=none -Werror
+$as_echo "$at_srcdir/conflicts.at:1258: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison input-keep.y --warnings=none " "conflicts.at:1258"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison input-keep.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -58588,10 +58588,10 @@ $at_traceon; }
   # --report=all isn't required to get the full XML file.
   { set +x
 $as_echo "$at_srcdir/conflicts.at:1498: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --report-file=xml-tests/test.output \\
-                  --graph=xml-tests/test.dot -Werror \$file"
+                  --graph=xml-tests/test.dot  \$file"
 at_fn_check_prepare_notrace 'an embedded newline' "conflicts.at:1498"
 ( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --report-file=xml-tests/test.output \
-                  --graph=xml-tests/test.dot -Werror $file
+                  --graph=xml-tests/test.dot  $file
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -58602,9 +58602,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/conflicts.at:1498: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml -Werror \$file"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml -Werror $file" "conflicts.at:1498"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml -Werror $file
+$as_echo "$at_srcdir/conflicts.at:1498: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml  \$file"
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml  $file" "conflicts.at:1498"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --xml=xml-tests/test.xml  $file
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -58654,9 +58654,9 @@ $at_traceon; }
   at_restore_special_files
 fi
 { set +x
-$as_echo "$at_srcdir/conflicts.at:1498: bison -Werror \$file"
-at_fn_check_prepare_dynamic "bison -Werror $file" "conflicts.at:1498"
-( $at_check_trace; bison -Werror $file
+$as_echo "$at_srcdir/conflicts.at:1498: bison  \$file"
+at_fn_check_prepare_dynamic "bison  $file" "conflicts.at:1498"
+( $at_check_trace; bison  $file
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -58694,9 +58694,9 @@ $at_traceon; }
 
 
 { set +x
-$as_echo "$at_srcdir/conflicts.at:1510: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror \$file"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -Werror $file" "conflicts.at:1510"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -Werror $file
+$as_echo "$at_srcdir/conflicts.at:1510: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison  \$file"
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison  $file" "conflicts.at:1510"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison  $file
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -136442,11 +136442,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -136479,9 +136479,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -136520,12 +136520,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -136536,9 +136536,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -137456,11 +137456,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -137493,9 +137493,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -137534,12 +137534,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -137550,9 +137550,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -139537,11 +139537,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -139574,9 +139574,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -139615,12 +139615,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -139631,9 +139631,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror" "existing.at:1403"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/existing.at:1403: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none " "existing.at:1403"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison --report=all --defines -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -140646,11 +140646,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Werror" "regression.at:211"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y -Werror
+$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y " "regression.at:211"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -140683,9 +140683,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -140724,12 +140724,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone -Werror" "regression.at:211"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone " "regression.at:211"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -140740,9 +140740,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none -Werror" "regression.at:211"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/regression.at:211: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none " "regression.at:211"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -v -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141383,11 +141383,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror" "regression.at:480"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Werror
+$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y " "regression.at:480"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141421,9 +141421,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -141462,12 +141462,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror" "regression.at:480"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone " "regression.at:480"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141478,9 +141478,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror" "regression.at:480"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/regression.at:480: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none " "regression.at:480"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141594,11 +141594,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror" "regression.at:484"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Werror
+$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y " "regression.at:484"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141636,9 +141636,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -141677,12 +141677,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror" "regression.at:484"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone " "regression.at:484"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -141693,9 +141693,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror" "regression.at:484"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/regression.at:484: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none " "regression.at:484"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -fcaret -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -144484,11 +144484,11 @@ if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
   # To avoid expanding it repeatedly, store specified stdout.
   : >expout
 
-  # Run with -Werror.
+  # Run with .
   { set +x
-$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Werror" "regression.at:1201"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Werror
+$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y " "regression.at:1201"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -144522,9 +144522,9 @@ _ATEOF
   echo 'bison: warnings being treated as errors' >> experr
 
   # Finish building expected stderr and check.  Unlike warnings,
-  # complaints cause bison to exit early.  Thus, with -Werror, bison
+  # complaints cause bison to exit early.  Thus, with , bison
   # does not necessarily report all warnings that it does without
-  # -Werror, but it at least reports one.
+  # , but it at least reports one.
   at_bison_check_last=`sed -n '$=' stderr`
   : ${at_bison_check_last:=1}
   at_bison_check_last=`expr $at_bison_check_last - 1`
@@ -144563,12 +144563,12 @@ $at_traceon; }
 
 
   # Now check -Wnone and --warnings=none by making sure that
-  # -Werror doesn't change the exit status when -Wnone or
+  #  doesn't change the exit status when -Wnone or
   # --warnings=none is specified.
   { set +x
-$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror" "regression.at:1201"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone -Werror
+$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone " "regression.at:1201"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y -Wnone 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter
@@ -144579,9 +144579,9 @@ $at_failed && at_fn_log_failure
 $at_traceon; }
 
   { set +x
-$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror"
-at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror" "regression.at:1201"
-( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none -Werror
+$as_echo "$at_srcdir/regression.at:1201: VALGRIND_OPTS=\"\$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none "
+at_fn_check_prepare_dynamic "VALGRIND_OPTS=\"$VALGRIND_OPTS --leak-check=summary --show-reachable=no\"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none " "regression.at:1201"
+( $at_check_trace; VALGRIND_OPTS="$VALGRIND_OPTS --leak-check=summary --show-reachable=no"; export VALGRIND_OPTS; bison -o input.c input.y --warnings=none 
 ) >>"$at_stdout" 2>>"$at_stderr" 5>&-
 at_status=$? at_failed=false
 $at_check_filter

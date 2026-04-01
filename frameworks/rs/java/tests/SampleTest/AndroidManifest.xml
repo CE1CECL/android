@@ -21,7 +21,7 @@
     package="com.android.rs.sample">
     <uses-sdk android:minSdkVersion="14" />
     <application android:label="Sample Test"
-                 android:hardwareAccelerated="true">
+                 android:hardwareAccelerated="false">
 
         <activity android:name="SampleRSActivity"
                   android:label="Sample Test">

@@ -25,7 +25,7 @@
         <activity android:name="NotificationBuilderTest"
                 android:label="_Notify Builder"
                 android:theme="@android:style/Theme.Holo"
-                android:hardwareAccelerated="true"
+                android:hardwareAccelerated="false"
                 >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

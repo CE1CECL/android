@@ -140,9 +140,9 @@
           },
         },
         'cflags': [
-          # TODO(tony): Enable -Werror once all the strict-aliasing problems
+          # TODO(tony): Enable  once all the strict-aliasing problems
           # are fixed.
-          #'-Werror',
+          #'',
           '-Wall',
           '-Wextra',
           '-Wno-unused',
@@ -153,7 +153,7 @@
         'conditions' : [
           ['skia_warnings_as_errors == 1', {
             'cflags': [
-              '-Werror',
+              '',
             ],
           }],
           ['skia_arch_width == 64', {
@@ -208,7 +208,7 @@
             'xcode_settings': {
               'ARCHS': 'i386',
               'OTHER_CPLUSPLUSFLAGS': [
-                '-Werror',
+                '',
               ],
             },
           }],
@@ -318,7 +318,7 @@
         'conditions': [
           [ 'skia_warnings_as_errors == 1', {
             'cflags': [
-              '-Werror',
+              '',
             ],
           }],
           [ 'skia_profile_enabled == 1', {

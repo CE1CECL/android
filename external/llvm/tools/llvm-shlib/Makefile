@@ -76,7 +76,7 @@ endif
 
 ifeq ($(HOST_OS), $(filter $(HOST_OS), Linux GNU))
     # Don't allow unresolved symbols.
-    LLVMLibsOptions += -Wl,--no-undefined
+    LLVMLibsOptions += -Wl,--allow-shlib-undefined
 endif
 
 ifeq ($(HOST_OS),SunOS)

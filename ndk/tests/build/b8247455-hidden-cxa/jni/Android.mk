@@ -19,12 +19,12 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := libidiv
 LOCAL_SRC_FILES:= idiv.cpp
-LOCAL_CFLAGS := -Wall -Werror -Wno-unused-parameter
+LOCAL_CFLAGS := -Wall  -Wno-unused-parameter
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libthrow
 LOCAL_SRC_FILES:= throw.cpp
-LOCAL_CFLAGS := -Wall -Werror -frtti -fexceptions
+LOCAL_CFLAGS := -Wall  -frtti -fexceptions
 LOCAL_SHARED_LIBRARIES = libidiv
 include $(BUILD_SHARED_LIBRARY)

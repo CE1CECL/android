@@ -69,7 +69,7 @@
             android:icon="@mipmap/ic_launcher_settings"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Holo"
-            android:hardwareAccelerated="true"
+            android:hardwareAccelerated="false"
             android:requiredForAllUsers="true"
             android:supportsRtl="true">
 

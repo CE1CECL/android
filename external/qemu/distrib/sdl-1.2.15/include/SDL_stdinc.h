@@ -79,7 +79,7 @@
 #define SDL_TABLESIZE(table)	SDL_arraysize(table)
 
 /* Use proper C++ casts when compiled as C++ to be compatible with the option
- -Wold-style-cast of GCC (and -Werror=old-style-cast in GCC 4.2 and above. */
+ -Wold-style-cast of GCC (and -Wno-old-style-cast in GCC 4.2 and above. */
 #ifdef __cplusplus
 #define SDL_reinterpret_cast(type, expression) reinterpret_cast<type>(expression)
 #define SDL_static_cast(type, expression) static_cast<type>(expression)

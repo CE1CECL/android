@@ -214,7 +214,7 @@
 
         Fixes the following warning with -Wcast-align enabled:
 
-            Source/WebKit/mac/Plugins/WebBasePluginPackage.mm:402:21:{402:21-402:93}{402:39-402:93}: error: cast from 'uint8_t *' (aka 'unsigned char *') to 'struct fat_arch *' increases required alignment from 1 to 4 [-Werror,-Wcast-align,3]
+            Source/WebKit/mac/Plugins/WebBasePluginPackage.mm:402:21:{402:21-402:93}{402:39-402:93}: error: cast from 'uint8_t *' (aka 'unsigned char *') to 'struct fat_arch *' increases required alignment from 1 to 4 [,-Wcast-align,3]
                          archs = (struct fat_arch*)((uint8_t*)rawData.data() + sizeof(struct fat_header));
                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

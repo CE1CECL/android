@@ -282,7 +282,7 @@
           '../platform/win',
         ],
       },{
-        # enable -Wall and -Werror, just for Mac and Linux builds for now
+        # enable -Wall and , just for Mac and Linux builds for now
         # FIXME: Also enable this for Windows after verifying no warnings
         'chromium_code': 1,
       }],

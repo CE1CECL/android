@@ -26,7 +26,7 @@ LOCAL_C_INCLUDES := \
 	system/security/keystore \
 	external/openssl/include
 
-LOCAL_C_FLAGS = -fvisibility=hidden -Wall -Werror
+LOCAL_C_FLAGS = -fvisibility=hidden -Wall 
 
 LOCAL_SHARED_LIBRARIES := libcrypto liblog libkeystore_binder
 

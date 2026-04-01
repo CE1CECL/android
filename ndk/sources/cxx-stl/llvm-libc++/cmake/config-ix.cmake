@@ -12,7 +12,7 @@ check_cxx_compiler_flag(-Wno-unused-parameter LIBCXX_HAS_WNO_UNUSED_PARAMETER_FL
 check_cxx_compiler_flag(-Wwrite-strings       LIBCXX_HAS_WWRITE_STRINGS_FLAG)
 check_cxx_compiler_flag(-Wno-long-long        LIBCXX_HAS_WNO_LONG_LONG_FLAG)
 check_cxx_compiler_flag(-pedantic             LIBCXX_HAS_PEDANTIC_FLAG)
-check_cxx_compiler_flag(-Werror               LIBCXX_HAS_WERROR_FLAG)
+check_cxx_compiler_flag(               LIBCXX_HAS_WERROR_FLAG)
 check_cxx_compiler_flag(-fno-exceptions       LIBCXX_HAS_FNO_EXCEPTIONS_FLAG)
 check_cxx_compiler_flag(-fno-rtti             LIBCXX_HAS_FNO_RTTI_FLAG)
 check_cxx_compiler_flag(/WX                   LIBCXX_HAS_WX_FLAG)

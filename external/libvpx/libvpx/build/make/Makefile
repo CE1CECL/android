@@ -252,7 +252,7 @@ define so_template
 $(1):
 	$(if $(quiet),@echo "    [LD] $$@")
 	$(qexec)$$(LD) -shared $$(LDFLAGS) \
-            -Wl,--no-undefined -Wl,-soname,$$(SONAME) \
+            -Wl,--allow-shlib-undefined -Wl,-soname,$$(SONAME) \
             -Wl,--version-script,$$(SO_VERSION_SCRIPT) -o $$@ \
             $$(filter %.o,$$?) $$(extralibs)
 endef

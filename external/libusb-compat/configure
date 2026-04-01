@@ -3599,7 +3599,7 @@ else
        grep sub/conftest.${OBJEXT-o} sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -11584,7 +11584,7 @@ cat >>confdefs.h <<\_ACEOF
 #define API_EXPORTED __attribute__((visibility("default")))
 _ACEOF
 
-AM_CFLAGS="-std=gnu99 $inline_cflags -Wall -Wundef -Wunused -Wstrict-prototypes -Werror-implicit-function-declaration -Wno-pointer-sign -Wshadow"
+AM_CFLAGS="-std=gnu99 $inline_cflags -Wall -Wundef -Wunused -Wstrict-prototypes -Wno-implicit-function-declaration -Wno-pointer-sign -Wshadow"
 
 
 ac_config_files="$ac_config_files libusb.pc libusb-config Makefile libusb/Makefile examples/Makefile"

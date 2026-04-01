@@ -17750,7 +17750,7 @@ second time a page that contained an iframe was loaded.
 
 2002-03-06  Maciej Stachowiak  <mjs@apple.com>
 
-	* WebKit.pbproj/project.pbxproj: Turn on -Werror.
+	* WebKit.pbproj/project.pbxproj: Turn on .
 
 2002-03-05  Richard Williamson  <rjw@apple.com>
 
@@ -18864,7 +18864,7 @@ second time a page that contained an iframe was loaded.
 	* Misc.subproj/WebKitDebug.h: Use (void) for C prototypes, not ().
 	* WebView.subproj/NSWebPageDataSource.mm: (+[NSWebPageDataSource
 	initialize]): Remove unused variable to fix warning.
-	* WebKit.pbproj/project.pbxproj: Enable many warning flags and -Werror
+	* WebKit.pbproj/project.pbxproj: Enable many warning flags and 
 
 2001-12-13  Maciej Stachowiak  <mjs@apple.com>
 

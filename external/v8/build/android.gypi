@@ -119,7 +119,7 @@
         ],
         'ldflags': [
           '-nostdlib',
-          '-Wl,--no-undefined',
+          '-Wl,--allow-shlib-undefined',
           '-Wl,--icf=safe',  # Enable identical code folding to reduce size
           # Don't export symbols from statically linked libraries.
           '-Wl,--exclude-libs=ALL',

@@ -6,7 +6,7 @@
 
 # These flags are used to ensure that a binary doesn't reference undefined
 # flags.
-TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
+TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--allow-shlib-undefined
 
 
 # Return the list of object, static libraries and shared libraries as they

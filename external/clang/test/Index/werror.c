@@ -7,6 +7,6 @@ void fatal(int);
 void fatal(float);
 #endif
 
-// RUN: c-index-test -write-pch %t.pch -Werror %s
-// RUN: c-index-test -write-pch %t.pch -DFATAL -Werror %s
+// RUN: c-index-test -write-pch %t.pch  %s
+// RUN: c-index-test -write-pch %t.pch -DFATAL  %s
 

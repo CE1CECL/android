@@ -66,7 +66,7 @@ else
 CFLAGS += -fomit-frame-pointer
 endif
 #   Warnings
-CFLAGS += -Wall  -Wno-trigraphs -Werror-implicit-function-declaration #-Wno-format
+CFLAGS += -Wall  -Wno-trigraphs -Wno-implicit-function-declaration #-Wno-format
 #   Optimizations
 #CFLAGS += -O2 -fno-strict-aliasing
 #CFLAGS += -Os -fno-strict-aliasing

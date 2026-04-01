@@ -164,7 +164,7 @@ static DiagnosticMappingInfo GetDefaultDiagMappingInfo(unsigned DiagID) {
 
     if (StaticInfo->WarnNoWerror) {
       assert(Info.getMapping() == diag::MAP_WARNING &&
-             "Unexpected mapping with no-Werror bit!");
+             "Unexpected mapping with no bit!");
       Info.setNoWarningAsError(true);
     }
 
@@ -470,11 +470,11 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
     return Result;
 
   // Honor -w, which is lower in priority than pedantic-errors, but higher than
-  // -Werror.
+  // .
   if (Result == DiagnosticIDs::Warning && Diag.IgnoreAllWarnings)
     return DiagnosticIDs::Ignored;
 
-  // If -Werror is enabled, map warnings to errors unless explicitly disabled.
+  // If  is enabled, map warnings to errors unless explicitly disabled.
   if (Result == DiagnosticIDs::Warning) {
     if (Diag.WarningsAsErrors && !MappingInfo.hasNoWarningAsError())
       Result = DiagnosticIDs::Error;
@@ -488,7 +488,7 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, unsigned DiagClass,
   }
 
   // If we are in a system header, we ignore it. We look at the diagnostic class
-  // because we also want to ignore extensions and warnings in -Werror and
+  // because we also want to ignore extensions and warnings in  and
   // -pedantic-errors modes, which *map* warnings/extensions to errors.
   if (Result >= DiagnosticIDs::Warning &&
       DiagClass != CLASS_ERROR &&

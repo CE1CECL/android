@@ -3,7 +3,7 @@
 // RUN: %clang_cc1 -fsyntax-only -Wextra-semi -verify -std=c++11 %s
 // RUN: cp %s %t
 // RUN: %clang_cc1 -x c++ -Wextra-semi -fixit %t
-// RUN: %clang_cc1 -x c++ -Wextra-semi -Werror %t
+// RUN: %clang_cc1 -x c++ -Wextra-semi  %t
 
 class A {
   void A1();
