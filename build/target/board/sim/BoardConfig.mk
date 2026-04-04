@@ -23,6 +23,9 @@ TARGET_CPU_ABI := none
 # But it is very likely SMP.
 TARGET_CPU_SMP := true
 
-BOARD_USES_GENERIC_AUDIO := false
+#the simulator partially emulates the original HTC /dev/eac audio interface
+HAVE_HTC_AUDIO_DRIVER := true
+BOARD_USES_GENERIC_AUDIO := true
 
+# no hardware camera
 USE_CAMERA_STUB := true

@@ -1,6 +1,13 @@
 # Configuration for Linux on ARM.
 # Generating binaries for the ARMv5TE architecture and higher
 #
+ARCH_ARM_HAVE_THUMB_SUPPORT     := true
+ARCH_ARM_HAVE_FAST_INTERWORKING := true
+ARCH_ARM_HAVE_64BIT_DATA        := true
+ARCH_ARM_HAVE_HALFWORD_MULTIPLY := true
+ARCH_ARM_HAVE_CLZ               := true
+ARCH_ARM_HAVE_FFS               := true
+ARCH_ARM_HAVE_VFP               := true
 
 ifeq ($(strip $(TARGET_ARCH_VARIANT_FPU)),)
 TARGET_ARCH_VARIANT_FPU         := vfp

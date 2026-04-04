@@ -95,7 +95,6 @@ loglevel 0
     write /dev/cpuctl/bg_non_interactive/cpu.shares 52
 
 on fs
-    # Permissions for System Server and daemons.
     start brightness
 
 on post-fs
