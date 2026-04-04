@@ -8,7 +8,6 @@ on early-init
     mkdir /mnt 0775 root system
     export EXTERNAL_STORAGE /mnt/sdcard
     mkdir /mnt/sdcard 0000 system system
-    # for backwards compatibility
     symlink /mnt/sdcard /sdcard
 
 on init
@@ -97,7 +96,6 @@ loglevel 0
     chmod 0644 /dev/xt_qtaguid
 
 on fs
-    # Permissions for System Server and daemons.
     start brightness
 
 on post-fs

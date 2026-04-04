@@ -24,7 +24,7 @@ PRODUCT_PACKAGES := \
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 $(call inherit-product, $(SRC_TARGET_DIR)/board/generic_armv5/device.mk)
-$(call inherit-product-if-exists, vendor/cm/config/common_full_phone.mk)
+$(call inherit-product, vendor/cm/config/common_full_phone.mk)
 
 # Overrides
 PRODUCT_NAME := full
