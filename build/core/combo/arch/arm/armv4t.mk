@@ -8,6 +8,12 @@
 # not supported.
 #
 $(warning ARMv4t support is currently a work in progress. It does not work right now!)
+ARCH_ARM_HAVE_THUMB_SUPPORT := false
+ARCH_ARM_HAVE_THUMB_INTERWORKING := false
+ARCH_ARM_HAVE_64BIT_DATA := false
+ARCH_ARM_HAVE_HALFWORD_MULTIPLY := false
+ARCH_ARM_HAVE_CLZ := false
+ARCH_ARM_HAVE_FFS := false
 
 DEFAULT_TARGET_CPU := arm920t
 

@@ -737,7 +737,7 @@
     <integer name="config_networkPolicyDefaultWarning">2048</integer>
 
     <!-- Set and Unsets WiMAX -->
-    <bool name="config_wimaxEnabled">true</bool>
+    <bool name="config_wimaxEnabled">false</bool>
     <!-- Location of the wimax framwork jar location -->
     <string name="config_wimaxServiceJarLocation" translatable="false"></string>
     <!-- Location of the wimax native library locaiton -->

@@ -24,8 +24,10 @@ PRODUCT_PACKAGES := \
     libdrmframework \
     libdrmframework_jni \
     libfwdlockengine \
+    libWnnEngDic \
+    libWnnJpnDic \
+    libwnndict \
     lights.default \
-    sensors.default \
     VideoEditor \
     WAPPushManager
 

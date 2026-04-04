@@ -19,10 +19,3 @@ include build/target/board/generic/BoardConfig.mk
 TARGET_ARCH_VARIANT :=
 TARGET_CPU_ABI := armeabi
 TARGET_CPU_ABI2 :=
-ARCH_ARM_HAVE_ARMV7A := false
-ARCH_ARM_HAVE_NEON := false
-ARCH_ARM_HAVE_THUMB_SUPPORT := true
-ARCH_ARM_HAVE_TLS_REGISTER := false
-ARCH_ARM_HAVE_VFP := false
-ARCH_ARM_HAVE_VFP_D32 := false
-
