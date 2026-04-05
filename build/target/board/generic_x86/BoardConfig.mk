@@ -14,9 +14,10 @@ TARGET_PRELINK_MODULE := false
 # The IA emulator (qemu) uses the Goldfish devices
 HAVE_HTC_AUDIO_DRIVER := true
 BOARD_USES_GENERIC_AUDIO := true
+BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
 # no hardware camera
-USE_CAMERA_STUB := true
+USE_CAMERA_STUB := false
 
 # customize the malloced address to be 16-byte aligned
 BOARD_MALLOC_ALIGNMENT := 16
