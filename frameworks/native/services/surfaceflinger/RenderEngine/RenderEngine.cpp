@@ -205,6 +205,14 @@ void RenderEngine::readPixels(size_t l, size_t b, size_t w, size_t h, uint32_t* 
     glReadPixels(l, b, w, h, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 }
 
+void RenderEngine::setDither(bool dither) {
+    if (dither) {
+        glEnable(GL_DITHER);
+    } else {
+        glDisable(GL_DITHER);
+    }
+}
+
 void RenderEngine::dump(String8& result) {
     const GLExtensions& extensions(GLExtensions::getInstance());
     result.appendFormat("GLES: %s, %s, %s\n",
@@ -217,9 +225,11 @@ void RenderEngine::dump(String8& result) {
 // ---------------------------------------------------------------------------
 
 RenderEngine::BindImageAsFramebuffer::BindImageAsFramebuffer(
-        RenderEngine& engine, EGLImageKHR image) : mEngine(engine)
+        RenderEngine& engine, EGLImageKHR image, bool useReadPixels,
+        int reqWidth, int reqHeight) : mEngine(engine), mUseReadPixels(useReadPixels)
 {
-    mEngine.bindImageAsFramebuffer(image, &mTexName, &mFbName, &mStatus);
+    mEngine.bindImageAsFramebuffer(image, &mTexName, &mFbName, &mStatus,
+            useReadPixels, reqWidth, reqHeight);
 
     ALOGE_IF(mStatus != GL_FRAMEBUFFER_COMPLETE_OES,
             "glCheckFramebufferStatusOES error %d", mStatus);
@@ -227,7 +237,7 @@ RenderEngine::BindImageAsFramebuffer::BindImageAsFramebuffer(
 
 RenderEngine::BindImageAsFramebuffer::~BindImageAsFramebuffer() {
     // back to main framebuffer
-    mEngine.unbindFramebuffer(mTexName, mFbName);
+    mEngine.unbindFramebuffer(mTexName, mFbName, mUseReadPixels);
 }
 
 status_t RenderEngine::BindImageAsFramebuffer::getStatus() const {

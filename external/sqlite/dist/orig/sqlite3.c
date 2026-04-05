@@ -659,7 +659,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.7.11"
 #define SQLITE_VERSION_NUMBER 3007011
-#define SQLITE_SOURCE_ID      "2012-03-20 11:35:50 00bb9c9ce4f465e6ac321ced2a9d0062dc364669"
+#define SQLITE_SOURCE_ID      "2015-05-21 02:24:35 000197cc4e3874711388d79d9ad5af6f0aba6cf9"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -11253,7 +11253,7 @@ struct Trigger {
  * orconf    -> stores the ON CONFLICT algorithm
  * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then
  *              this stores a pointer to the SELECT statement. Otherwise NULL.
- * target    -> A token holding the quoted name of the table to insert into.
+ * zTarget   -> Dequoted name of the table to insert into.
  * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then
  *              this stores values to be inserted. Otherwise NULL.
  * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 
@@ -11261,12 +11261,12 @@ struct Trigger {
  *              inserted into.
  *
  * (op == TK_DELETE)
- * target    -> A token holding the quoted name of the table to delete from.
+ * zTarget   -> Dequoted name of the table to delete from.
  * pWhere    -> The WHERE clause of the DELETE statement if one is specified.
  *              Otherwise NULL.
  * 
  * (op == TK_UPDATE)
- * target    -> A token holding the quoted name of the table to update rows of.
+ * zTarget   -> Dequoted name of the table to update.
  * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.
  *              Otherwise NULL.
  * pExprList -> A list of the columns to update and the expressions to update
@@ -11278,8 +11278,8 @@ struct TriggerStep {
   u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT */
   u8 orconf;           /* OE_Rollback etc. */
   Trigger *pTrig;      /* The trigger that this step is a part of */
-  Select *pSelect;     /* SELECT statment or RHS of INSERT INTO .. SELECT ... */
-  Token target;        /* Target table for DELETE, UPDATE, INSERT */
+  Select *pSelect;     /* SELECT statement or RHS of INSERT INTO SELECT ... */
+  char *zTarget;       /* Target table for DELETE, UPDATE, INSERT */
   Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps */
   ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT */
   IdList *pIdList;     /* Column names for INSERT */
@@ -88759,10 +88759,10 @@ static Trigger *fkActionTrigger(
       ** parent table are used for the comparison. */
       pEq = sqlite3PExpr(pParse, TK_EQ,
           sqlite3PExpr(pParse, TK_DOT, 
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tOld),
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol)
+            sqlite3ExprAlloc(db, TK_ID, &tOld, 0),
+            sqlite3ExprAlloc(db, TK_ID, &tToCol, 0)
           , 0),
-          sqlite3PExpr(pParse, TK_ID, 0, 0, &tFromCol)
+          sqlite3ExprAlloc(db, TK_ID, &tFromCol, 0)
       , 0);
       pWhere = sqlite3ExprAnd(db, pWhere, pEq);
 
@@ -88774,12 +88774,12 @@ static Trigger *fkActionTrigger(
       if( pChanges ){
         pEq = sqlite3PExpr(pParse, TK_IS,
             sqlite3PExpr(pParse, TK_DOT, 
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tOld),
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol),
+              sqlite3ExprAlloc(db, TK_ID, &tOld, 0),
+              sqlite3ExprAlloc(db, TK_ID, &tToCol, 0),
               0),
             sqlite3PExpr(pParse, TK_DOT, 
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tNew),
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol),
+              sqlite3ExprAlloc(db, TK_ID, &tNew, 0),
+              sqlite3ExprAlloc(db, TK_ID, &tToCol, 0),
               0),
             0);
         pWhen = sqlite3ExprAnd(db, pWhen, pEq);
@@ -88789,8 +88789,8 @@ static Trigger *fkActionTrigger(
         Expr *pNew;
         if( action==OE_Cascade ){
           pNew = sqlite3PExpr(pParse, TK_DOT, 
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tNew),
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol)
+            sqlite3ExprAlloc(db, TK_ID, &tNew, 0),
+            sqlite3ExprAlloc(db, TK_ID, &tToCol, 0)
           , 0);
         }else if( action==OE_SetDflt ){
           Expr *pDflt = pFKey->pFrom->aCol[iFromCol].pDflt;
@@ -88837,13 +88837,12 @@ static Trigger *fkActionTrigger(
     pTrigger = (Trigger *)sqlite3DbMallocZero(db, 
         sizeof(Trigger) +         /* struct Trigger */
         sizeof(TriggerStep) +     /* Single step in trigger program */
-        nFrom + 1                 /* Space for pStep->target.z */
+        nFrom + 1                 /* Space for pStep->zTarget */
     );
     if( pTrigger ){
       pStep = pTrigger->step_list = (TriggerStep *)&pTrigger[1];
-      pStep->target.z = (char *)&pStep[1];
-      pStep->target.n = nFrom;
-      memcpy((char *)pStep->target.z, zFrom, nFrom);
+      pStep->zTarget = (char *)&pStep[1];
+      memcpy((char *)pStep->zTarget, zFrom, nFrom);
   
       pStep->pWhere = sqlite3ExprDup(db, pWhere, EXPRDUP_REDUCE);
       pStep->pExprList = sqlite3ExprListDup(db, pList, EXPRDUP_REDUCE);
@@ -93704,7 +93703,7 @@ SQLITE_PRIVATE int sqlite3InitCallback(void *pInit, int argc, char **argv, char 
   if( argv==0 ) return 0;   /* Might happen if EMPTY_RESULT_CALLBACKS are on */
   if( argv[1]==0 ){
     corruptSchema(pData, argv[0], 0);
-  }else if( argv[2] && argv[2][0] ){
+  }else if( argv[2] && sqlite3_strnicmp(argv[2],"create ",7)==0 ){
     /* Call the parser to process a CREATE TABLE, INDEX or VIEW.
     ** But because db->init.busy is set to 1, no VDBE code is generated
     ** or executed.  All the parser does is build the internal data
@@ -93735,8 +93734,8 @@ SQLITE_PRIVATE int sqlite3InitCallback(void *pInit, int argc, char **argv, char 
       }
     }
     sqlite3_finalize(pStmt);
-  }else if( argv[0]==0 ){
-    corruptSchema(pData, 0, 0);
+  }else if( argv[0]==0 || (argv[2]!=0 && argv[2][0]!=0) ){
+    corruptSchema(pData, argv[0], 0);
   }else{
     /* If the SQL column is blank it means this is an index that
     ** was created to be the PRIMARY KEY or to fulfill a UNIQUE
@@ -99687,12 +99686,12 @@ static TriggerStep *triggerStepAllocate(
 ){
   TriggerStep *pTriggerStep;
 
-  pTriggerStep = sqlite3DbMallocZero(db, sizeof(TriggerStep) + pName->n);
+  pTriggerStep = sqlite3DbMallocZero(db, sizeof(TriggerStep) + pName->n + 1);
   if( pTriggerStep ){
     char *z = (char*)&pTriggerStep[1];
     memcpy(z, pName->z, pName->n);
-    pTriggerStep->target.z = z;
-    pTriggerStep->target.n = pName->n;
+    sqlite3Dequote(z);
+    pTriggerStep->zTarget = z;
     pTriggerStep->op = op;
   }
   return pTriggerStep;
@@ -99981,7 +99980,7 @@ SQLITE_PRIVATE Trigger *sqlite3TriggersExist(
 }
 
 /*
-** Convert the pStep->target token into a SrcList and return a pointer
+** Convert the pStep->zTarget string into a SrcList and return a pointer
 ** to that SrcList.
 **
 ** This routine adds a specific database name, if needed, to the target when
@@ -99994,17 +99993,17 @@ static SrcList *targetSrcList(
   Parse *pParse,       /* The parsing context */
   TriggerStep *pStep   /* The trigger containing the target token */
 ){
+  sqlite3 *db = pParse->db;
   int iDb;             /* Index of the database to use */
   SrcList *pSrc;       /* SrcList to be returned */
 
-  pSrc = sqlite3SrcListAppend(pParse->db, 0, &pStep->target, 0);
+  pSrc = sqlite3SrcListAppend(db, 0, 0, 0);
   if( pSrc ){
     assert( pSrc->nSrc>0 );
-    assert( pSrc->a!=0 );
-    iDb = sqlite3SchemaToIndex(pParse->db, pStep->pTrig->pSchema);
+    pSrc->a[pSrc->nSrc-1].zName = sqlite3DbStrDup(db, pStep->zTarget);
+    iDb = sqlite3SchemaToIndex(db, pStep->pTrig->pSchema);
     if( iDb==0 || iDb>=2 ){
-      sqlite3 *db = pParse->db;
-      assert( iDb<pParse->db->nDb );
+      assert( iDb<db->nDb );
       pSrc->a[pSrc->nSrc-1].zDatabase = sqlite3DbStrDup(db, db->aDb[iDb].zName);
     }
   }
@@ -101487,6 +101486,8 @@ end_of_vacuum:
 struct VtabCtx {
   Table *pTab;
   VTable *pVTable;
+  VtabCtx *pPrior;    /* Parent context (if any) */
+  int bDeclared;      /* True after sqlite3_declare_vtab() is called */
 };
 
 /*
@@ -101916,8 +101917,20 @@ static int vtabCallConstructor(
   const char *const*azArg = (const char *const*)pTab->azModuleArg;
   int nArg = pTab->nModuleArg;
   char *zErr = 0;
-  char *zModuleName = sqlite3MPrintf(db, "%s", pTab->zName);
+  char *zModuleName;
+  VtabCtx *pCtx;
 
+  /* Check that the virtual-table is not already being initialized */
+  for(pCtx=db->pVtabCtx; pCtx; pCtx=pCtx->pPrior){
+    if( pCtx->pTab==pTab ){
+      *pzErr = sqlite3MPrintf(db, 
+          "vtable constructor called recursively: %s", pTab->zName
+      );
+      return SQLITE_LOCKED;
+    }
+  }
+
+  zModuleName = sqlite3MPrintf(db, "%s", pTab->zName);
   if( !zModuleName ){
     return SQLITE_NOMEM;
   }
@@ -101935,10 +101948,13 @@ static int vtabCallConstructor(
   assert( xConstruct );
   sCtx.pTab = pTab;
   sCtx.pVTable = pVTable;
+  sCtx.pPrior = db->pVtabCtx;
+  sCtx.bDeclared = 0;
   db->pVtabCtx = &sCtx;
   rc = xConstruct(db, pMod->pAux, nArg, azArg, &pVTable->pVtab, &zErr);
-  db->pVtabCtx = 0;
+  db->pVtabCtx = sCtx.pPrior;
   if( rc==SQLITE_NOMEM ) db->mallocFailed = 1;
+  assert( sCtx.pTab==pTab );
 
   if( SQLITE_OK!=rc ){
     if( zErr==0 ){
@@ -101953,7 +101969,7 @@ static int vtabCallConstructor(
     ** the sqlite3_vtab object if successful.  */
     pVTable->pVtab->pModule = pMod->pModule;
     pVTable->nRef = 1;
-    if( sCtx.pTab ){
+    if( sCtx.bDeclared==0 ){
       const char *zFormat = "vtable constructor did not declare schema: %s";
       *pzErr = sqlite3MPrintf(db, zFormat, pTab->zName);
       sqlite3VtabUnlock(pVTable);
@@ -102123,18 +102139,19 @@ SQLITE_PRIVATE int sqlite3VtabCallCreate(sqlite3 *db, int iDb, const char *zTab,
 ** virtual table module.
 */
 SQLITE_API int sqlite3_declare_vtab(sqlite3 *db, const char *zCreateTable){
+  VtabCtx *pCtx = db->pVtabCtx;
   Parse *pParse;
-
   int rc = SQLITE_OK;
   Table *pTab;
   char *zErr = 0;
 
   sqlite3_mutex_enter(db->mutex);
-  if( !db->pVtabCtx || !(pTab = db->pVtabCtx->pTab) ){
+  if( !pCtx || pCtx->bDeclared ){
     sqlite3Error(db, SQLITE_MISUSE, 0);
     sqlite3_mutex_leave(db->mutex);
     return SQLITE_MISUSE_BKPT;
   }
+  pTab = pCtx->pTab;
   assert( (pTab->tabFlags & TF_Virtual)!=0 );
 
   pParse = sqlite3StackAllocZero(db, sizeof(*pParse));
@@ -102157,7 +102174,7 @@ SQLITE_API int sqlite3_declare_vtab(sqlite3 *db, const char *zCreateTable){
         pParse->pNewTable->nCol = 0;
         pParse->pNewTable->aCol = 0;
       }
-      db->pVtabCtx->pTab = 0;
+      pCtx->bDeclared = 1;
     }else{
       sqlite3Error(db, SQLITE_ERROR, (zErr ? "%s" : 0), zErr);
       sqlite3DbFree(db, zErr);
@@ -117555,7 +117572,6 @@ static int fts3PrefixParameter(
 
   aIndex = sqlite3_malloc(sizeof(struct Fts3Index) * nIndex);
   *apIndex = aIndex;
-  *pnIndex = nIndex;
   if( !aIndex ){
     return SQLITE_NOMEM;
   }
@@ -117567,11 +117583,17 @@ static int fts3PrefixParameter(
     for(i=1; i<nIndex; i++){
       int nPrefix;
       if( fts3GobbleInt(&p, &nPrefix) ) return SQLITE_ERROR;
-      aIndex[i].nPrefix = nPrefix;
+      if( nPrefix<=0 ){
+        nIndex--;
+        i--;
+      }else{
+        aIndex[i].nPrefix = nPrefix;
+      }
       p++;
     }
   }
 
+  *pnIndex = nIndex;
   return SQLITE_OK;
 }
 
@@ -117606,7 +117628,8 @@ static int fts3ContentColumns(
   const char *zTbl,               /* Name of content table */
   const char ***pazCol,           /* OUT: Malloc'd array of column names */
   int *pnCol,                     /* OUT: Size of array *pazCol */
-  int *pnStr                      /* OUT: Bytes of string content */
+  int *pnStr,                     /* OUT: Bytes of string content */
+  char **pzErr                    /* OUT: error message */
 ){
   int rc = SQLITE_OK;             /* Return code */
   char *zSql;                     /* "SELECT *" statement on zTbl */  
@@ -117617,6 +117640,9 @@ static int fts3ContentColumns(
     rc = SQLITE_NOMEM;
   }else{
     rc = sqlite3_prepare(db, zSql, -1, &pStmt, 0);
+    if( rc!=SQLITE_OK ){
+      *pzErr = sqlite3_mprintf("%s", sqlite3_errmsg(db));
+    }
   }
   sqlite3_free(zSql);
 
@@ -117850,7 +117876,7 @@ static int fts3InitVtab(
     if( nCol==0 ){
       sqlite3_free((void*)aCol); 
       aCol = 0;
-      rc = fts3ContentColumns(db, argv[1], zContent, &aCol, &nCol, &nString);
+      rc = fts3ContentColumns(db, argv[1], zContent,&aCol,&nCol,&nString,pzErr);
 
       /* If a languageid= option was specified, remove the language id
       ** column from the aCol[] array. */ 

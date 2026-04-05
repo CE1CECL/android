@@ -57,11 +57,15 @@ class CallStateMonitor extends Handler {
     public static final int PHONE_RINGBACK_TONE = 11;
     public static final int PHONE_RESEND_MUTE = 12;
     public static final int PHONE_ON_DIAL_CHARS = 13;
+    public static final int PHONE_SUPP_SERVICE_NOTIFY = 14;
+    public static final int PHONE_ACTIVE_SUBSCRIPTION_CHANGE = 15;
+    public static final int PHONE_CALL_MODIFY = 16;
+    public static final int PHONE_SUPP_SERVICE_FAILED = 17;
 
     // Other events from call manager
     public static final int EVENT_OTA_PROVISION_CHANGE = 20;
 
-    private CallManager callManager;
+    protected CallManager callManager;
     private ArrayList<Handler> registeredHandlers;
 
     // Events generated internally:
@@ -75,7 +79,7 @@ class CallStateMonitor extends Handler {
     /**
      * Register for call state notifications with the CallManager.
      */
-    private void registerForNotifications() {
+    protected void registerForNotifications() {
         callManager.registerForNewRingingConnection(this, PHONE_NEW_RINGING_CONNECTION, null);
         callManager.registerForPreciseCallStateChanged(this, PHONE_STATE_CHANGED, null);
         callManager.registerForDisconnect(this, PHONE_DISCONNECT, null);
@@ -90,6 +94,9 @@ class CallStateMonitor extends Handler {
         callManager.registerForRingbackTone(this, PHONE_RINGBACK_TONE, null);
         callManager.registerForResendIncallMute(this, PHONE_RESEND_MUTE, null);
         callManager.registerForPostDialCharacter(this, PHONE_ON_DIAL_CHARS, null);
+        callManager.registerForSuppServiceNotification(this, PHONE_SUPP_SERVICE_NOTIFY, null);
+        callManager.registerForCallModify(this, PHONE_CALL_MODIFY, null);
+        callManager.registerForSuppServiceFailed(this, PHONE_SUPP_SERVICE_FAILED, null);
     }
 
     public void addListener(Handler handler) {
@@ -134,6 +141,8 @@ class CallStateMonitor extends Handler {
         callManager.unregisterForInCallVoicePrivacyOn(this);
         callManager.unregisterForInCallVoicePrivacyOff(this);
         callManager.unregisterForPostDialCharacter(this);
+        callManager.unregisterForSuppServiceNotification(this);
+        callManager.unregisterForCallModify(this);
 
         registerForNotifications();
     }

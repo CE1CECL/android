@@ -81,6 +81,22 @@
             android:title="@string/account_settings_background_attachments_label"
             android:summary="@string/account_settings_background_attachments_summary" />
 
+        <!-- (will show on POP3 accounts) -->
+        <ListPreference
+            android:key="account_auto_fetch_attachments"
+            android:order="7"
+            android:title="@string/account_auto_fetch_attachments_label"
+            android:entries="@array/account_auto_fetch_attachments_entries"
+            android:entryValues="@array/account_auto_fetch_attachments_values"
+            android:dialogTitle="@string/account_auto_fetch_attachments_label" />
+
+        <ListPreference
+            android:key="account_sync_size"
+            android:title="@string/account_settings_sync_size_label"
+            android:entries="@array/account_setup_options_mail_sync_size_entries_labels"
+            android:entryValues="@array/account_setup_options_mail_sync_size_entries_values"
+            android:dialogTitle="@string/account_settings_sync_size_label" />
+
     </PreferenceCategory>
 
     <!-- This category is enabled after the folder preferences are loaded -->
@@ -105,6 +121,12 @@
             android:dependency="notifications-enabled"
             android:defaultValue="false"
             android:title="@string/account_settings_vibrate_when_label" />
+
+        <CheckBoxPreference
+            android:key="notification-notify-every-message"
+            android:dependency="notifications-enabled"
+            android:defaultValue="false"
+            android:title="@string/account_settings_notify_every_message_label" />
 
     </PreferenceCategory>
 
@@ -163,6 +185,16 @@
             android:key="policies_retry_account"
             android:title="@string/account_settings_retry_label"
             android:summary="@string/account_settings_retry_summary" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="account_settings"
+        android:title="@string/account_settings">
+
+        <Preference
+            android:key="delete_account"
+            android:title="@string/delete_account_title"
+            android:summary="@string/delete_account_summary" />
     </PreferenceCategory>
 
 </PreferenceScreen>

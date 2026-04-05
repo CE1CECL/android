@@ -65,6 +65,7 @@ import com.android.exchange.adapter.AttachmentLoader;
 import com.android.exchange.adapter.EmailSyncAdapter;
 import com.android.exchange.adapter.FolderSyncParser;
 import com.android.exchange.adapter.GalParser;
+import com.android.exchange.adapter.LoadMore;
 import com.android.exchange.adapter.MeetingResponseParser;
 import com.android.exchange.adapter.MoveItemsParser;
 import com.android.exchange.adapter.Parser.EmptyStreamException;
@@ -578,8 +579,9 @@ public class EasSyncService extends AbstractSyncService {
                     } else {
                         // If not, set the proper code (the account will not be created)
                         resultCode = MessagingException.SECURITY_POLICIES_UNSUPPORTED;
+                        boolean hasPolicy = (pp != null && pp.getPolicy() != null);
                         bundle.putParcelable(EmailServiceProxy.VALIDATE_BUNDLE_POLICY_SET,
-                                pp.getPolicy());
+                                hasPolicy ? pp.getPolicy() : Policy.NO_POLICY);
                     }
                 } else if (CommandStatus.isDeniedAccess(status)) {
                     userLog("Denied access: ", CommandStatus.toString(status));
@@ -1182,6 +1184,10 @@ public class EasSyncService extends AbstractSyncService {
        }
     }
 
+    protected void fetchMessageRequest(FetchMessageRequest req) throws IOException {
+        LoadMore.loadMoreForMessage(mContext, req.mMessageId);
+    }
+
     /**
      * Using mUserName and mPassword, lazily create the strings that are commonly used in our HTTP
      * POSTs, including the authentication header string, the base URI we use to communicate with
@@ -1659,6 +1665,8 @@ public class EasSyncService extends AbstractSyncService {
                     sendMeetingResponse((MeetingResponseRequest)req);
                 } else if (req instanceof MessageMoveRequest) {
                     messageMoveRequest((MessageMoveRequest)req);
+                } else if (req instanceof FetchMessageRequest) {
+                    fetchMessageRequest((FetchMessageRequest)req);
                 }
 
                 // If there's an exception handling the request, we'll throw it

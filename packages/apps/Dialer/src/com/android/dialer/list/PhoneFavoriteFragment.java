@@ -199,7 +199,6 @@ public class PhoneFavoriteFragment extends Fragment implements OnItemClickListen
 
     private PhoneFavoriteListView mListView;
 
-    private View mPhoneFavoritesMenu;
     private View mContactTileFrame;
 
     private TileInteractionTeaserView mTileInteractionTeaserView;
@@ -255,6 +254,7 @@ public class PhoneFavoriteFragment extends Fragment implements OnItemClickListen
         final String currentCountryIso = GeoUtil.getCurrentCountryIso(getActivity());
         mCallLogAdapter = ObjectFactory.newCallLogAdapter(getActivity(), this,
                 new ContactInfoHelper(getActivity(), currentCountryIso), false, false);
+        mCallLogAdapter.setStatsLabel("call_from_favorite_most_recent");
         setHasOptionsMenu(true);
     }
 
@@ -291,16 +291,13 @@ public class PhoneFavoriteFragment extends Fragment implements OnItemClickListen
 
         mEmptyView = mParentView.findViewById(R.id.phone_no_favorites_view);
 
-        mPhoneFavoritesMenu = inflater.inflate(R.layout.phone_favorites_menu, mListView, false);
-        prepareFavoritesMenu(mPhoneFavoritesMenu);
-
         mContactTileFrame = mParentView.findViewById(R.id.contact_tile_frame);
 
         mTileInteractionTeaserView = (TileInteractionTeaserView) inflater.inflate(
                 R.layout.tile_interactions_teaser_view, mListView, false);
 
         mAdapter = new PhoneFavoriteMergedAdapter(getActivity(), this, mContactTileAdapter,
-                mCallLogAdapter, mPhoneFavoritesMenu, mTileInteractionTeaserView);
+                mCallLogAdapter, mTileInteractionTeaserView);
 
         mTileInteractionTeaserView.setAdapter(mAdapter);
 
@@ -663,18 +660,4 @@ public class PhoneFavoriteFragment extends Fragment implements OnItemClickListen
         fetchCalls();
     }
 
-    /**
-     * Prepares the favorites menu which contains the static label "Speed Dial" and the
-     * "All Contacts" button.  Sets the onClickListener for the "All Contacts" button.
-     */
-    private void prepareFavoritesMenu(View favoritesMenu) {
-        Button allContactsButton = (Button) favoritesMenu.findViewById(R.id.all_contacts_button);
-        // Set the onClick listener for the button to bring up the all contacts view.
-        allContactsButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showAllContacts();
-            }
-        });
-    }
 }

@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2007-2008 Esmertec AG.
  * Copyright (C) 2007-2008 The Android Open Source Project
  *
@@ -21,23 +23,37 @@ import static android.provider.Telephony.Sms.Intents.WAP_PUSH_DELIVER_ACTION;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_DELIVERY_IND;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND;
 import static com.google.android.mms.pdu.PduHeaders.MESSAGE_TYPE_READ_ORIG_IND;
+import android.app.PendingIntent;
+import android.app.NotificationManager;
+import android.app.Notification;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.PowerManager;
+import android.os.SystemProperties;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Mms.Inbox;
+import android.provider.Telephony.Mms.Sent;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.MmsConfig;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.util.Recycler;
+import com.android.mms.R;
+import com.android.mms.util.MultiSimUtility;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.DeliveryInd;
@@ -48,6 +64,13 @@ import com.google.android.mms.pdu.PduParser;
 import com.google.android.mms.pdu.PduPersister;
 import com.google.android.mms.pdu.ReadOrigInd;
 
+import com.android.internal.telephony.TelephonyProperties;
+
+import java.lang.Class;
+import java.lang.reflect.Method;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
 /**
  * Receives Intent.WAP_PUSH_RECEIVED_ACTION intents and starts the
  * TransactionService by passing the push-data to it.
@@ -56,6 +79,11 @@ public class PushReceiver extends BroadcastReceiver {
     private static final String TAG = "PushReceiver";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = false;
+    private Context mContext;
+    private static final String WAP_PUSH_MESSAGE = "pref_key_enable_wap_push";
+    private static final String WAP_PUSH_TYPE_SIC = "application/vnd.wap.sic";
+    private static final String WAP_PUSH_TYPE_SLC = "application/vnd.wap.slc";
+    private static final String WAP_PUSH = ":Browser Information"; // Wap push key
 
     private class ReceivePushTask extends AsyncTask<Intent,Void,Void> {
         private Context mContext;
@@ -63,12 +91,86 @@ public class PushReceiver extends BroadcastReceiver {
             mContext = context;
         }
 
+
+    int
+    hexCharToInt(char c) {
+        if (c >= '0' && c <= '9') return (c - '0');
+        if (c >= 'A' && c <= 'F') return (c - 'A' + 10);
+        if (c >= 'a' && c <= 'f') return (c - 'a' + 10);
+
+        throw new RuntimeException ("invalid hex char '" + c + "'");
+    }
+
+
+    /**
+     * Converts a byte array into a String of hexadecimal characters.
+     *
+     * @param bytes an array of bytes
+     *
+     * @return hex string representation of bytes array
+     */
+    public String bytesToHexString(byte[] bytes) {
+        if (bytes == null) return null;
+
+        StringBuilder ret = new StringBuilder(2*bytes.length);
+
+        for (int i = 0 ; i < bytes.length ; i++) {
+            int b;
+
+            b = 0x0f & (bytes[i] >> 4);
+
+            ret.append("0123456789abcdef".charAt(b));
+
+            b = 0x0f & bytes[i];
+
+            ret.append("0123456789abcdef".charAt(b));
+        }
+
+        return ret.toString();
+    }
+
+
         @Override
         protected Void doInBackground(Intent... intents) {
             Intent intent = intents[0];
 
             // Get raw PDU push-data from the message and parse it
             byte[] pushData = intent.getByteArrayExtra("data");
+
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+            boolean wapPushEnabled = prefs.getBoolean(WAP_PUSH_MESSAGE, true);
+
+            if (wapPushEnabled && (WAP_PUSH_TYPE_SIC.equals(intent.getType())
+                    || WAP_PUSH_TYPE_SLC.equals(intent.getType()))) {
+                ByteArrayInputStream bais = new ByteArrayInputStream(pushData);
+                try {
+                    Class mWapPushHandler = Class.forName("com.qrd.wappush.WapPushHandler");
+                    Object WapPushHandlerObj = mWapPushHandler.newInstance();
+                    Method mHandleWapPush = mWapPushHandler.getDeclaredMethod("handleWapPush",
+                            InputStream.class, String.class, Context.class,
+                            int.class, String.class);
+                    Method mGetThreadID = mWapPushHandler.getDeclaredMethod("getThreadID");
+                    Uri pushMsgUri = (Uri)mHandleWapPush.invoke(WapPushHandlerObj, bais,
+                            intent.getType(), mContext, intent.getIntExtra("subscription", 0),
+                            intent.getStringExtra("address") + WAP_PUSH);
+
+                    if (pushMsgUri != null) {
+                        // Called off of the UI thread so ok to block.
+                        Recycler.getSmsRecycler().deleteOldMessagesByThreadId(
+                            mContext.getApplicationContext(),
+                            (Long)mGetThreadID.invoke(WapPushHandlerObj));
+                        MessagingNotification.blockingUpdateNewMessageIndicator(
+                            mContext, (Long)mGetThreadID.invoke(WapPushHandlerObj), false);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Wap Push Hander Error :" + e);
+                }
+
+                return null;
+            }
+            if (DEBUG) {
+                Log.d(TAG, "PushReceive: pushData="+bytesToHexString(pushData));
+            }
             PduParser parser = new PduParser(pushData);
             GenericPdu pdu = parser.parse();
 
@@ -93,7 +195,7 @@ public class PushReceiver extends BroadcastReceiver {
                             break;
                         }
 
-                        Uri uri = p.persist(pdu, Inbox.CONTENT_URI, true,
+                        Uri uri = p.persist(pdu, Sent.CONTENT_URI, true,
                                 MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext), null);
                         // Update thread ID for ReadOrigInd & DeliveryInd.
                         ContentValues values = new ContentValues(1);
@@ -119,20 +221,53 @@ public class PushReceiver extends BroadcastReceiver {
                         }
 
                         if (!isDuplicateNotification(mContext, nInd)) {
-                            // Save the pdu. If we can start downloading the real pdu immediately,
-                            // don't allow persist() to create a thread for the notificationInd
-                            // because it causes UI jank.
-                            Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
-                                    !NotificationTransaction.allowAutoDownload(),
-                                    MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
-                                    null);
+                            int subId = intent.getIntExtra(MSimConstants.SUBSCRIPTION_KEY, 0);
 
+                            Uri uri = p.persist(pdu, Inbox.CONTENT_URI,
+                                    true,
+                                    MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext),
+                                    null, subId);
+
+                            boolean enableMmsData = mContext.getResources().getBoolean(
+                                    com.android.internal.R.bool.config_setup_mms_data);
+                            if (MessageUtils.isMobileDataDisabled(mContext) && !enableMmsData) {
+                                MessagingNotification.nonBlockingUpdateNewMessageIndicator(mContext,
+                                        MessagingNotification.THREAD_ALL, false);
+                            }
                             // Start service to finish the notification transaction.
                             Intent svc = new Intent(mContext, TransactionService.class);
                             svc.putExtra(TransactionBundle.URI, uri.toString());
                             svc.putExtra(TransactionBundle.TRANSACTION_TYPE,
                                     Transaction.NOTIFICATION_TRANSACTION);
-                            mContext.startService(svc);
+                            svc.putExtra(Mms.SUB_ID, subId); //destination sub id
+                            svc.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                    MultiSimUtility.getDefaultDataSubscription(mContext));
+
+                            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                                boolean isSilent = true; //default, silent enabled.
+                                if ("prompt".equals(
+                                    SystemProperties.get(
+                                        TelephonyProperties.PROPERTY_MMS_TRANSACTION))) {
+                                    isSilent = false;
+                                }
+
+                                if (isSilent) {
+                                    Log.d(TAG, "MMS silent transaction");
+                                    Intent silentIntent = new Intent(mContext,
+                                            com.android.mms.ui.SelectMmsSubscription.class);
+                                    silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    silentIntent.putExtras(svc); //copy all extras
+                                    mContext.startService(silentIntent);
+
+                                } else {
+                                    Log.d(TAG, "MMS prompt transaction");
+                                    triggerPendingOperation(svc, subId);
+                                }
+                            } else {
+                                mContext.startService(svc);
+                            }
+
+
                         } else if (LOCAL_LOGV) {
                             Log.v(TAG, "Skip downloading duplicate message: "
                                     + new String(nInd.getContentLocation()));
@@ -156,10 +291,49 @@ public class PushReceiver extends BroadcastReceiver {
         }
     }
 
+    private void triggerPendingOperation(Intent intent, int subId) {
+        Log.d(TAG, "triggerPendingOperation(), SubId="+subId+", Intent="+intent);
+
+            if (MultiSimUtility.getCurrentDataSubscription(mContext) != subId) {
+                Log.d(TAG, "triggerPendingOperation(), Current subscription is different.");
+
+
+                String ns = Context.NOTIFICATION_SERVICE;
+                NotificationManager mNotificationManager = (NotificationManager)
+                        mContext.getSystemService(ns);
+
+                //TODO: use the proper messaging icon
+                int icon = android.R.drawable.stat_notify_chat;
+
+                long when = System.currentTimeMillis();
+
+                Notification notification = new Notification(icon,
+                        mContext.getString(R.string.pending_mms_title), when);
+
+                Intent notificationIntent = new Intent(mContext,
+                        com.android.mms.ui.SelectMmsSubscription.class);
+                notificationIntent.putExtras(intent);
+                PendingIntent contentIntent = PendingIntent.getService(mContext, 0,
+                        notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+                notification.setLatestEventInfo(mContext, mContext.getString(R.string.pending_mms),
+                        mContext.getString(R.string.pending_mms_text), contentIntent);
+
+                mNotificationManager.notify(1, notification);
+            } else {
+                Log.d(TAG, "triggerPendingOperation(), Current subscription is same");
+                // No need to switch subscription, go ahead.
+                mContext.startService(intent);
+            }
+    }
+
     @Override
     public void onReceive(Context context, Intent intent) {
+        mContext = context;
         if (intent.getAction().equals(WAP_PUSH_DELIVER_ACTION)
-                && ContentType.MMS_MESSAGE.equals(intent.getType())) {
+                && (ContentType.MMS_MESSAGE.equals(intent.getType())
+                || WAP_PUSH_TYPE_SIC.equals(intent.getType())
+                || WAP_PUSH_TYPE_SLC.equals(intent.getType())))  {
             if (LOCAL_LOGV) {
                 Log.v(TAG, "Received PUSH Intent: " + intent);
             }

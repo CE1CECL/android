@@ -24,22 +24,33 @@ import android.view.View;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
+import com.android.systemui.quicksettings.QuickSettingsTile;
+
 /**
  *
  */
-class QuickSettingsTileView extends FrameLayout {
+public class QuickSettingsTileView extends FrameLayout {
     private static final String TAG = "QuickSettingsTileView";
 
     private int mContentLayoutId;
     private int mColSpan;
     private boolean mPrepared;
     private OnPrepareListener mOnPrepareListener;
+    private QuickSettingsTile mTile;
 
     public QuickSettingsTileView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mContentLayoutId = -1;
         mColSpan = 1;
+    }
+
+    public void setTile(QuickSettingsTile tile) {
+        mTile = tile;
+    }
+
+    public QuickSettingsTile getTile() {
+        return mTile;
     }
 
     void setColumnSpan(int span) {
@@ -50,7 +61,7 @@ class QuickSettingsTileView extends FrameLayout {
         return mColSpan;
     }
 
-    void setContent(int layoutId, LayoutInflater inflater) {
+    public void setContent(int layoutId, LayoutInflater inflater) {
         mContentLayoutId = layoutId;
         inflater.inflate(layoutId, this);
     }

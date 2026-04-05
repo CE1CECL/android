@@ -1342,7 +1342,6 @@ public class MediaPlayer implements SubtitleController.Listener
      */
     public void release() {
         stayAwake(false);
-        updateSurfaceScreenOn();
         mOnPreparedListener = null;
         mOnBufferingUpdateListener = null;
         mOnCompletionListener = null;
@@ -2193,6 +2192,7 @@ public class MediaPlayer implements SubtitleController.Listener
                 Log.w(TAG, "mediaplayer went away with unhandled events");
                 return;
             }
+            try {
             switch(msg.what) {
             case MEDIA_PREPARED:
                 scanInternalSubtitleTracks();
@@ -2307,6 +2307,13 @@ public class MediaPlayer implements SubtitleController.Listener
             default:
                 Log.e(TAG, "Unknown message type " + msg.what);
                 return;
+            }
+            } catch (NullPointerException e) {
+                /**
+                 * We may get an NPE even with the null checks above due
+                 * to threading issues.  Just ignore it.
+                 */
+                Log.e(TAG, "Unhandled NPE from message type " + msg.what);
             }
         }
     }
@@ -2741,6 +2748,23 @@ public class MediaPlayer implements SubtitleController.Listener
         return (mode == VIDEO_SCALING_MODE_SCALE_TO_FIT ||
                 mode == VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING);
     }
+
+    /** @hide
+    */
+    public boolean suspend() {
+        stayAwake(false);
+        return _suspend();
+    }
+
+    private native boolean _suspend();
+
+    /** @hide
+    */
+    public boolean resume() {
+        return _resume();
+    }
+
+    private native boolean _resume();
 
     private Context mProxyContext = null;
     private ProxyReceiver mProxyReceiver = null;

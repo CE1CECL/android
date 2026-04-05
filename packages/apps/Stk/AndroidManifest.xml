@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2007 The Android Open Source Project
+<!-- Copyright (c) 2011, 2013 The Linux Foundation. All rights reserved.
+     Not a Contribution.
+     Copyright (C) 2007 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -23,6 +25,8 @@
     <original-package android:name="com.android.stk" />
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.GET_TASKS"/>
+    <uses-permission android:name="android.permission.RECEIVE_STK_COMMANDS" />
 
 	<application android:icon="@drawable/ic_launcher_sim_toolkit"
 		android:label="@string/app_name"
@@ -31,6 +35,8 @@
 
 		<activity android:name="StkLauncherActivity"
 			android:label="@string/app_name"
+			android:theme="@android:style/Theme.Holo"
+            android:taskAffinity="android.task.StkLauncherActivity"
 			android:enabled="false"	>
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
@@ -38,7 +44,28 @@
 			</intent-filter>
 		</activity>
 
+                <activity android:name="StkLauncherActivity2"
+                        android:label="@string/app_name2"
+                        android:taskAffinity="android.task.StkLauncherActivity2"
+                        android:enabled="false" >
+                        <intent-filter>
+                                <action android:name="android.intent.action.MAIN" />
+                                <category android:name="android.intent.category.LAUNCHER" />
+                        </intent-filter>
+                </activity>
+
+                <activity android:name="StkLauncherActivity3"
+                        android:label="@string/app_name3"
+                        android:taskAffinity="android.task.StkLauncherActivity3"
+                        android:enabled="false" >
+                        <intent-filter>
+                                <action android:name="android.intent.action.MAIN" />
+                                <category android:name="android.intent.category.LAUNCHER" />
+                        </intent-filter>
+                </activity>
+
 		<activity android:name="StkMenuActivity"
+			  android:theme="@android:style/Theme.Holo"
              android:launchMode="singleTop">
 	         <intent-filter>
 	             <action android:name="android.intent.action.VIEW" />
@@ -48,6 +75,7 @@
          </activity>
 
          <activity android:name="StkInputActivity"
+                   android:theme="@android:style/Theme.Holo"
             android:configChanges="orientation|screenSize">
 			<intent-filter>
 		        <action android:name="android.intent.action.VIEW" />
@@ -57,16 +85,17 @@
 		</activity>
 
         <activity android:name="StkDialogActivity"
-            android:theme="@android:style/Theme.Dialog"
+            android:theme="@android:style/Theme.Holo.Dialog"
             android:configChanges="orientation|screenSize">
         </activity>
 
         <activity android:name="ToneDialog"
-            android:theme="@android:style/Theme.Dialog">
+            android:theme="@android:style/Theme.Holo.Dialog">
         </activity>
 
 		<!-- SIM Toolkit settings activity -->
 		<activity android:name="StkSettings"
+			android:theme="@android:style/Theme.Holo"
 			android:label="@string/app_name">
 			<intent-filter>
 				<action android:name="android.intent.action.VIEW" />
@@ -76,10 +105,14 @@
 			</intent-filter>
 		</activity>
 
-		<receiver android:name="com.android.stk.StkCmdReceiver">
+        <receiver android:name="com.android.stk.StkCmdReceiver">
             <intent-filter>
                 <action android:name= "android.intent.action.stk.command" />
                 <action android:name= "android.intent.action.stk.session_end" />
+                <action android:name= "org.codeaurora.intent.action.stk.idle_screen" />
+                <action android:name= "android.intent.action.LOCALE_CHANGED" />
+                <action android:name= "org.codeaurora.intent.action.stk.icc_status_change" />
+                <action android:name= "org.codeaurora.intent.action.stk.alpha_notify" />
             </intent-filter>
         </receiver>
 

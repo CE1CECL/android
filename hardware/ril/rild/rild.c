@@ -1,6 +1,8 @@
 /* //device/system/rild/rild.c
 **
-** Copyright 2006, The Android Open Source Project
+** Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+** Not a Contribution
+** Copyright 2006 The Android Open Source Project
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -42,8 +44,12 @@
 static void usage(const char *argv0)
 {
     fprintf(stderr, "Usage: %s -l <ril impl library> [-- <args for impl library>]\n", argv0);
-    exit(-1);
+    exit(EXIT_FAILURE);
 }
+
+#ifdef QCOM_HARDWARE
+extern char rild[MAX_SOCKET_NAME_LENGTH] __attribute__((weak));
+#endif
 
 extern void RIL_register (const RIL_RadioFunctions *callbacks);
 
@@ -56,6 +62,7 @@ extern void RIL_onUnsolicitedResponse(int unsolResponse, const void *data,
 extern void RIL_requestTimedCallback (RIL_TimedCallback callback,
                                void *param, const struct timeval *relativeTime);
 
+extern void RIL_setRilSocketName(char * s) __attribute__((weak));
 
 static struct RIL_Env s_rilEnv = {
     RIL_onRequestComplete,
@@ -89,12 +96,23 @@ void switchUser() {
     setuid(AID_RADIO);
 
     struct __user_cap_header_struct header;
-    struct __user_cap_data_struct cap;
-    header.version = _LINUX_CAPABILITY_VERSION;
+    memset(&header, 0, sizeof(header));
+    header.version = _LINUX_CAPABILITY_VERSION_3;
     header.pid = 0;
-    cap.effective = cap.permitted = (1 << CAP_NET_ADMIN) | (1 << CAP_NET_RAW);
-    cap.inheritable = 0;
-    capset(&header, &cap);
+
+    struct __user_cap_data_struct data[2];
+    memset(&data, 0, sizeof(data));
+
+    data[CAP_TO_INDEX(CAP_NET_ADMIN)].effective |= CAP_TO_MASK(CAP_NET_ADMIN);
+    data[CAP_TO_INDEX(CAP_NET_ADMIN)].permitted |= CAP_TO_MASK(CAP_NET_ADMIN);
+
+    data[CAP_TO_INDEX(CAP_NET_RAW)].effective |= CAP_TO_MASK(CAP_NET_RAW);
+    data[CAP_TO_INDEX(CAP_NET_RAW)].permitted |= CAP_TO_MASK(CAP_NET_RAW);
+
+    if (capset(&header, &data[0]) == -1) {
+        RLOGE("capset failed: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char **argv)
@@ -108,6 +126,9 @@ int main(int argc, char **argv)
     unsigned char hasLibArgs = 0;
 
     int i;
+    const char *clientId = NULL;
+    RLOGD("**RIL Daemon Started**");
+    RLOGD("**RILd param count=%d**", argc);
 
     umask(S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH);
     for (i = 1; i < argc ;) {
@@ -118,10 +139,29 @@ int main(int argc, char **argv)
             i++;
             hasLibArgs = 1;
             break;
+        } else if (0 == strcmp(argv[i], "-c") &&  (argc - i > 1)) {
+            clientId = argv[i+1];
+            i += 2;
         } else {
             usage(argv[0]);
         }
     }
+
+#ifdef QCOM_HARDWARE
+    if (clientId == NULL) {
+        clientId = "0";
+    } else if (atoi(clientId) >= MAX_RILDS) {
+        RLOGE("Max Number of rild's supported is: %d", MAX_RILDS);
+        exit(0);
+    }
+    if (strncmp(clientId, "0", MAX_CLIENT_ID_LENGTH)) {
+        if (RIL_setRilSocketName) {
+            RIL_setRilSocketName(strncat(rild, clientId, MAX_SOCKET_NAME_LENGTH));
+        } else {
+            RLOGE("Trying to instantiate multiple rild sockets without a compatible libril!");
+        }
+    }
+#endif
 
     if (rilLibPath == NULL) {
         if ( 0 == property_get(LIB_PATH_PROPERTY, libPath, NULL)) {
@@ -136,14 +176,14 @@ int main(int argc, char **argv)
     /* special override when in the emulator */
 #if 1
     {
-        static char*  arg_overrides[3];
+        static char*  arg_overrides[5];
         static char   arg_device[32];
         int           done = 0;
 
 #define  REFERENCE_RIL_PATH  "/system/lib/libreference-ril.so"
 
         /* first, read /proc/cmdline into memory */
-        char          buffer[1024], *p, *q;
+        char          buffer[1024] = {'\0'}, *p, *q;
         int           len;
         int           fd = open("/proc/cmdline",O_RDONLY);
 
@@ -246,7 +286,7 @@ OpenLib:
 
     if (dlHandle == NULL) {
         RLOGE("dlopen failed: %s", dlerror());
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     RIL_startEventLoop();
@@ -255,7 +295,7 @@ OpenLib:
 
     if (rilInit == NULL) {
         RLOGE("RIL_Init not defined or exported in %s\n", rilLibPath);
-        exit(-1);
+        exit(EXIT_FAILURE);
     }
 
     if (hasLibArgs) {
@@ -269,18 +309,35 @@ OpenLib:
         argc = make_argv(args, rilArgv);
     }
 
+#ifdef QCOM_HARDWARE
+    rilArgv[argc++] = "-c";
+    rilArgv[argc++] = clientId;
+    RLOGD("RIL_Init argc = %d clientId = %s", argc, rilArgv[argc-1]);
+#endif
+
     // Make sure there's a reasonable argv[0]
     rilArgv[0] = argv[0];
 
     funcs = rilInit(&s_rilEnv, argc, rilArgv);
 
+#ifdef QCOM_HARDWARE
+    if (funcs == NULL) {
+        /* Pre-multi-client qualcomm vendor libraries won't support "-c" either, so
+         * try again without it. This should only happen on ancient qcoms, so raise
+         * a big fat warning
+         */
+        argc -= 2;
+        RLOGE("============= Retrying RIL_Init without a client id. This is only required for very old versions,");
+        RLOGE("============= and you're likely to have more radio breakage elsewhere!");
+        funcs = rilInit(&s_rilEnv, argc, rilArgv);
+    }
+#endif
+
     RIL_register(funcs);
 
 done:
 
-    while(1) {
-        // sleep(UINT32_MAX) seems to return immediately on bionic
-        sleep(0x00ffffff);
+    while (true) {
+        sleep(UINT32_MAX);
     }
 }
-

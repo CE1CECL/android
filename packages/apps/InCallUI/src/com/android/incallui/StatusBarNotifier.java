@@ -28,6 +28,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
 import android.text.TextUtils;
 
 import com.android.incallui.ContactInfoCache.ContactCacheEntry;
@@ -327,7 +328,14 @@ public class StatusBarNotifier implements InCallPresenter.InCallStateListener {
         }
 
         // set the content
-        builder.setContentText(mContext.getString(contentResId));
+        String contentText = mContext.getString(contentResId);
+        if (contentResId == R.string.notification_dialing) {
+            int sub = call.getSubscription();
+            String name = Settings.Global.getSimNameForSubscription(mContext, sub,
+                    String.valueOf(sub));
+            contentText +=  "  (" + name + ")";
+        }
+        builder.setContentText(contentText);
         builder.setSmallIcon(iconResId);
         builder.setContentTitle(contentTitle);
         builder.setLargeIcon(largeIcon);
@@ -451,10 +459,22 @@ public class StatusBarNotifier implements InCallPresenter.InCallStateListener {
         // different calls.  So if both lines are in use, display info
         // from the foreground call.  And if there's a ringing call,
         // display that regardless of the state of the other calls.
+        int resId;
+        int voicePrivacy = call.getCapabilities() & Call.Capabilities.VOICE_PRIVACY;
         if (call.getState() == Call.State.ONHOLD) {
-            return R.drawable.stat_sys_phone_call_on_hold;
+            if (voicePrivacy != 0) {
+                resId = R.drawable.stat_sys_vp_phone_call_on_hold;
+            } else {
+                resId = R.drawable.stat_sys_phone_call_on_hold;
+            }
+        } else {
+            if (voicePrivacy != 0) {
+                resId = R.drawable.stat_sys_vp_phone_call;
+            } else {
+                resId = R.drawable.stat_sys_phone_call;
+            }
         }
-        return R.drawable.stat_sys_phone_call;
+        return resId;
     }
 
     /**
@@ -539,12 +559,18 @@ public class StatusBarNotifier implements InCallPresenter.InCallStateListener {
         // If a call is onhold during an incoming call, the call actually comes in as
         // INCOMING.  For that case *and* traditional call-waiting, we want to
         // cancel the notification.
+
+        // For DSDA, we want to cancel the notification if we get an incoming call on
+        // one sub and there is a live call on another sub.
+        CallList callList = CallList.getInstance();
         boolean isCallWaiting = (call.getState() == Call.State.CALL_WAITING ||
                 (call.getState() == Call.State.INCOMING &&
-                        CallList.getInstance().getBackgroundCall() != null));
+                (callList.getBackgroundCall() != null ||
+                callList.isAnyOtherSubActive(callList.getActiveSubscription()))));
 
         if (isCallWaiting) {
-            Log.i(this, "updateInCallNotification: call-waiting! force relaunch...");
+            Log.i(this, "updateInCallNotification: call-waiting or dsda incoming call!"
+                    + " force relaunch...");
             // Cancel the IN_CALL_NOTIFICATION immediately before
             // (re)posting it; this seems to force the
             // NotificationManager to launch the fullScreenIntent.

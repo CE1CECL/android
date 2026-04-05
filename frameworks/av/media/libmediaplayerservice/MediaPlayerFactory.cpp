@@ -30,6 +30,7 @@
 #include "TestPlayerStub.h"
 #include "StagefrightPlayer.h"
 #include "nuplayer/NuPlayerDriver.h"
+#include <dlfcn.h>
 
 namespace android {
 
@@ -338,6 +339,49 @@ void MediaPlayerFactory::registerBuiltinFactories() {
     registerFactory_l(new NuPlayerFactory(), NU_PLAYER);
     registerFactory_l(new SonivoxPlayerFactory(), SONIVOX_PLAYER);
     registerFactory_l(new TestPlayerFactory(), TEST_PLAYER);
+
+    const char* FACTORY_LIB           = "libdashplayer.so";
+    const char* FACTORY_CREATE_FN     = "CreateDASHFactory";
+
+    MediaPlayerFactory::IFactory* pFactory  = NULL;
+    void* pFactoryLib = NULL;
+    typedef MediaPlayerFactory::IFactory* (*CreateDASHDriverFn)();
+    ALOGE("calling dlopen on FACTORY_LIB");
+    pFactoryLib = ::dlopen(FACTORY_LIB, RTLD_LAZY);
+    if (pFactoryLib == NULL) {
+      ALOGE("Failed to open FACTORY_LIB Error : %s ",::dlerror());
+    } else {
+      CreateDASHDriverFn pCreateFnPtr;
+      ALOGE("calling dlsym on pFactoryLib for FACTORY_CREATE_FN ");
+      pCreateFnPtr = (CreateDASHDriverFn) dlsym(pFactoryLib, FACTORY_CREATE_FN);
+      if (pCreateFnPtr == NULL) {
+          ALOGE("Could not locate pCreateFnPtr");
+      } else {
+        pFactory = pCreateFnPtr();
+        if(pFactory == NULL) {
+          ALOGE("Failed to invoke CreateDASHDriverFn...");
+        } else {
+          ALOGE("registering DASH Player factory...");
+          registerFactory_l(pFactory,DASH_PLAYER);
+        }
+      }
+    }
+
+#ifdef MTK_HARDWARE
+     void *fmPlayerLib = ::dlopen("libfmplayer.so", RTLD_LAZY);
+     if (fmPlayerLib == NULL) {
+         ALOGE("MTK FM Player lib not found, FM radio will not work");
+     } else {
+         typedef MediaPlayerFactory::IFactory* (*CreateFMPlayer)();
+         CreateFMPlayer createFMPlayerFunc = (CreateFMPlayer) ::dlsym(fmPlayerLib, "CreateFMPlayer");
+         if (createFMPlayerFunc == NULL) {
+             ALOGE("Factory method not found within the FM Player library");
+         } else {
+             ALOGI("Registering FM Player factory");
+             registerFactory_l(createFMPlayerFunc(), FM_AUDIO_PLAYER);
+         }
+     }
+#endif
 
     sInitComplete = true;
 }

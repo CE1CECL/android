@@ -227,12 +227,6 @@ struct p2p_srv_upnp {
 	char *service;
 };
 
-struct wpa_freq_range {
-	unsigned int min;
-	unsigned int max;
-};
-
-
 /**
  * struct wpa_global - Internal, global data for all %wpa_supplicant interfaces
  *
@@ -257,8 +251,8 @@ struct wpa_global {
 	struct dl_list p2p_srv_upnp; /* struct p2p_srv_upnp */
 	int p2p_disabled;
 	int cross_connection;
-	struct wpa_freq_range *p2p_disallow_freq;
-	unsigned int num_p2p_disallow_freq;
+	struct wpa_freq_range_list p2p_disallow_freq;
+	struct wpa_freq_range_list p2p_go_avoid_freq;
 	enum wpa_conc_pref {
 		WPA_CONC_PREF_NOT_SET,
 		WPA_CONC_PREF_STA,
@@ -347,7 +341,9 @@ struct wpa_supplicant {
 	struct wpa_bss *current_bss;
 	int ap_ies_from_associnfo;
 	unsigned int assoc_freq;
-
+#ifdef LEGACY_STA_EVENTS
+	unsigned int assoc_retries;
+#endif
 	/* Selected configuration (based on Beacon/ProbeResp WPA IE) */
 	int pairwise_cipher;
 	int group_cipher;
@@ -470,10 +466,14 @@ struct wpa_supplicant {
 		 * to be run.
 		 */
 		MANUAL_SCAN_REQ
-	} scan_req;
+	} scan_req, last_scan_req;
 	struct os_time scan_trigger_time;
 	int scan_runs; /* number of scan runs since WPS was started */
 	int *next_scan_freqs;
+	unsigned int own_scan_requested:1;
+	unsigned int own_scan_running:1;
+	unsigned int external_scan_running:1;
+	int *manual_scan_freqs;
 	int scan_interval; /* time in sec between scans to find suitable AP */
 	int normal_scans; /* normal scans run before sched_scan */
 	int scan_for_connection; /* whether the scan request was triggered for
@@ -603,6 +603,8 @@ struct wpa_supplicant {
 	u8 p2p_auth_invite[ETH_ALEN];
 	int p2p_sd_over_ctrl_iface;
 	int p2p_in_provisioning;
+	int p2p_in_invitation;
+	int p2p_invite_go_freq;
 	int pending_invite_ssid_id;
 	int show_group_started;
 	u8 go_dev_addr[ETH_ALEN];
@@ -647,6 +649,8 @@ struct wpa_supplicant {
 	unsigned int p2p_pd_before_go_neg:1;
 	unsigned int p2p_go_ht40:1;
 	unsigned int user_initiated_pd:1;
+	unsigned int p2p_go_group_formation_completed:1;
+	int p2p_first_connection_timeout;
 	int p2p_persistent_go_freq;
 	int p2p_persistent_id;
 	int p2p_go_intent;

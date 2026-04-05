@@ -1,16 +1,23 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_STATIC_JAVA_LIBRARIES := com.android.services.telephony.common \
-        guava \
+LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES := $(call all-java-files-under, src)
+# Need to specify an invalid resoure path to avoid including resource
+LOCAL_RESOURCE_DIR := res_none
+
+# Without any resource, we don't depend on framework-res in the build
+# system, but we actually do to compile AndroidManifest.xml. Avoid
+# the issue by setting an SDK version to compile against a historical
+# SDK.
+LOCAL_SDK_VERSION := 19
+
+LOCAL_JNI_SHARED_LIBRARIES := libvt_jni libimscamera_jni
+LOCAL_REQUIRED_MODULES := libvt_jni libimscamera_jni
 
 LOCAL_PACKAGE_NAME := InCallUI
-LOCAL_CERTIFICATE := platform
+LOCAL_CERTIFICATE := shared
 LOCAL_PRIVELEGED_MODULE := false
-
-LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
 include $(BUILD_PACKAGE)
 

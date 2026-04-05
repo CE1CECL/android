@@ -35,11 +35,9 @@ PRODUCT_PACKAGES := \
     LatinIME \
     Launcher2 \
     Music \
-    MusicFX \
     OneTimeInitializer \
     PrintSpooler \
     Provision \
-    QuickSearchBox \
     Settings \
     SystemUI \
     TeleService \
@@ -61,12 +59,7 @@ PRODUCT_PACKAGES += \
     wpa_supplicant
 
 PRODUCT_PACKAGES += \
-    librs_jni \
-    libvideoeditor_jni \
-    libvideoeditor_core \
-    libvideoeditor_osal \
-    libvideoeditor_videofilters \
-    libvideoeditorplayer \
+    librs_jni
 
 PRODUCT_PACKAGES += \
     audio.primary.default \

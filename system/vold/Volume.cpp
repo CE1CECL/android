@@ -35,6 +35,8 @@
 
 #include <private/android_filesystem_config.h>
 
+#include <blkid/blkid.h>
+
 #define LOG_TAG "Vold"
 
 #include <cutils/fs.h>
@@ -45,13 +47,17 @@
 #include "Volume.h"
 #include "VolumeManager.h"
 #include "ResponseCode.h"
+#include "Ext4.h"
 #include "Fat.h"
+#include "Ntfs.h"
+#include "Exfat.h"
+#include "F2FS.h"
 #include "Process.h"
 #include "cryptfs.h"
+#include "VoldUtil.h"
 
 extern "C" void dos_partition_dec(void const *pp, struct dos_partition *d);
 extern "C" void dos_partition_enc(void *pp, struct dos_partition *d);
-
 
 /*
  * Media directory - stuff that only media_rw user can see
@@ -85,7 +91,7 @@ const char *Volume::LOOPDIR           = "/mnt/obb";
 
 const char *Volume::BLKID_PATH = "/system/bin/blkid";
 
-static const char *stateToStr(int state) {
+extern "C" const char *stateToStr(int state) {
     if (state == Volume::State_Init)
         return "Initializing";
     else if (state == Volume::State_NoMedia)
@@ -118,15 +124,18 @@ Volume::Volume(VolumeManager *vm, const fstab_rec* rec, int flags) {
     mUserLabel = NULL;
     mState = Volume::State_Init;
     mFlags = flags;
+    mOpts = (rec->fs_options ? strdup(rec->fs_options) : NULL);
     mCurrentlyMountedKdev = -1;
     mPartIdx = rec->partnum;
     mRetryMount = false;
+    mLunNumber = -1;
 }
 
 Volume::~Volume() {
     free(mLabel);
     free(mUuid);
     free(mUserLabel);
+    free(mOpts);
 }
 
 void Volume::setDebug(bool enable) {
@@ -139,6 +148,22 @@ dev_t Volume::getDiskDevice() {
 
 dev_t Volume::getShareDevice() {
     return getDiskDevice();
+}
+
+char *getFsType(const char * devicePath) {
+    char *fstype = NULL;
+
+    SLOGD("Trying to get filesystem type for %s \n", devicePath);
+
+    fstype = blkid_get_tag_value(NULL, "TYPE", devicePath);
+    if (fstype) {
+        SLOGD("Found %s filesystem on %s\n", fstype, devicePath);
+    } else {
+        SLOGE("None or unknown filesystem on %s\n", devicePath);
+        return NULL;
+    }
+
+    return fstype;
 }
 
 void Volume::handleVolumeShared() {
@@ -197,7 +222,7 @@ void Volume::setState(int state) {
     int oldState = mState;
 
     if (oldState == state) {
-        SLOGW("Duplicate state (%d)\n", state);
+        SLOGW("Volume %s: Duplicate state (%d)\n", mLabel, state);
         return;
     }
 
@@ -229,7 +254,9 @@ int Volume::createDeviceNode(const char *path, int major, int minor) {
     return 0;
 }
 
-int Volume::formatVol(bool wipe) {
+int Volume::formatVol(bool wipe, const char* fstype) {
+
+    char* fstype2 = NULL;
 
     if (getState() == Volume::State_NoMedia) {
         errno = ENODEV;
@@ -271,16 +298,49 @@ int Volume::formatVol(bool wipe) {
     sprintf(devicePath, "/dev/block/vold/%d:%d",
             MAJOR(partNode), MINOR(partNode));
 
+#ifdef VOLD_EMMC_SHARES_DEV_MAJOR
+    // If emmc and sdcard share dev major number, vold may pick
+    // incorrectly based on partition nodes alone, formatting
+    // the wrong device. Use device nodes instead.
+    dev_t deviceNodes;
+    getDeviceNodes((dev_t *) &deviceNodes, 1);
+    sprintf(devicePath, "/dev/block/vold/%d:%d", MAJOR(deviceNodes), MINOR(deviceNodes));
+#endif
+
+    if (fstype == NULL) {
+        fstype2 = getFsType((const char*)devicePath);
+    } else {
+        fstype2 = strdup(fstype);
+    }
+
     if (mDebug) {
-        SLOGI("Formatting volume %s (%s)", getLabel(), devicePath);
+        SLOGI("Formatting volume %s (%s) as %s", getLabel(), devicePath, fstype2);
     }
 
-    if (Fat::format(devicePath, 0, wipe)) {
+    /* If the device has no filesystem, let's default to vfat.
+     * A NULL fstype2 will cause a MAPERR in the format
+     * switch below */
+    if (fstype2 == NULL) {
+        fstype2 = strdup("vfat");
+    }
+
+    if (strcmp(fstype2, "f2fs") == 0) {
+        ret = F2FS::format(devicePath);
+    } else if (strcmp(fstype2, "exfat") == 0) {
+        ret = Exfat::format(devicePath);
+    } else if (strcmp(fstype2, "ext4") == 0) {
+        ret = Ext4::format(devicePath, NULL);
+    } else if (strcmp(fstype2, "ntfs") == 0) {
+        ret = Ntfs::format(devicePath, wipe);
+    } else {
+        ret = Fat::format(devicePath, 0, wipe);
+    }
+
+    if (ret < 0) {
         SLOGE("Failed to format (%s)", strerror(errno));
-        goto err;
     }
 
-    ret = 0;
+    free(fstype2);
 
 err:
     setState(Volume::State_Idle);
@@ -314,7 +374,7 @@ bool Volume::isMountpointMounted(const char *path) {
 
 int Volume::mountVol() {
     dev_t deviceNodes[4];
-    int n, i, rc = 0;
+    int n, i = 0;
     char errmsg[255];
 
     int flags = getFlags();
@@ -378,14 +438,14 @@ int Volume::mountVol() {
 
        if (n != 1) {
            /* We only expect one device node returned when mounting encryptable volumes */
-           SLOGE("Too many device nodes returned when mounting %d\n", getMountpoint());
+           SLOGE("Too many device nodes returned when mounting %s\n", getMountpoint());
            return -1;
        }
 
        if (cryptfs_setup_volume(getLabel(), MAJOR(deviceNodes[0]), MINOR(deviceNodes[0]),
                                 new_sys_path, sizeof(new_sys_path),
                                 &new_major, &new_minor)) {
-           SLOGE("Cannot setup encryption mapping for %d\n", getMountpoint());
+           SLOGE("Cannot setup encryption mapping for %s\n", getMountpoint());
            return -1;
        }
        /* We now have the new sysfs path for the decrypted block device, and the
@@ -414,6 +474,7 @@ int Volume::mountVol() {
 
     for (i = 0; i < n; i++) {
         char devicePath[255];
+        char *fstype = NULL;
 
         sprintf(devicePath, "/dev/block/vold/%d:%d", MAJOR(deviceNodes[i]),
                 MINOR(deviceNodes[i]));
@@ -423,35 +484,123 @@ int Volume::mountVol() {
         errno = 0;
         setState(Volume::State_Checking);
 
-        if (Fat::check(devicePath)) {
-            if (errno == ENODATA) {
-                SLOGW("%s does not contain a FAT filesystem\n", devicePath);
-                continue;
-            }
-            errno = EIO;
-            /* Badness - abort the mount */
-            SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
-            setState(Volume::State_Idle);
-            return -1;
-        }
-
         errno = 0;
-        int gid;
 
-        if (Fat::doMount(devicePath, getMountpoint(), false, false, false,
-                AID_MEDIA_RW, AID_MEDIA_RW, 0007, true)) {
-            SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
-            continue;
+        fstype = getFsType((const char *)devicePath);
+
+        if (fstype != NULL) {
+            if (strcmp(fstype, "vfat") == 0) {
+
+                if (Fat::check(devicePath)) {
+                    errno = EIO;
+                    /* Badness - abort the mount */
+                    SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                    setState(Volume::State_Idle);
+                    free(fstype);
+                    return -1;
+                }
+
+                if (Fat::doMount(devicePath, getMountpoint(), false, false, false,
+                            AID_MEDIA_RW, AID_MEDIA_RW, 0007, true)) {
+                    SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
+                    continue;
+                }
+
+            } else if (strcmp(fstype, "ext4") == 0) {
+
+                if (Ext4::check(devicePath)) {
+                    errno = EIO;
+                    /* Badness - abort the mount */
+                    SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                    setState(Volume::State_Idle);
+                    free(fstype);
+                    return -1;
+                }
+
+                if (Ext4::doMount(devicePath, getMountpoint(), false, false, false, true, mOpts)) {
+                    SLOGE("%s failed to mount via EXT4 (%s)\n", devicePath, strerror(errno));
+                    continue;
+                }
+
+            } else if (strcmp(fstype, "ntfs") == 0) {
+
+                if (Ntfs::doMount(devicePath, getMountpoint(), false, false, false,
+                            AID_MEDIA_RW, AID_MEDIA_RW, 0007, true)) {
+                    SLOGE("%s failed to mount via NTFS (%s)\n", devicePath, strerror(errno));
+                    continue;
+                }
+
+            } else if (strcmp(fstype, "f2fs") == 0) {
+                /*
+                 * fsck.f2fs does not fix any inconsistencies "yet".
+                 *
+                 * Disable fsck routine as this is just wasting time
+                 * consumed to mount f2fs volumes.
+                 *
+                 * The kernel can determine if a f2fs volume is too damaged
+                 * that it shouldn't get mounted.
+                 */
+                #if 0
+                if (F2FS::check(devicePath)) {
+                    errno = EIO;
+                    /* Badness - abort the mount */
+                    SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                    setState(Volume::State_Idle);
+                    free(fstype);
+                    return -1;
+                }
+                #endif
+
+                if (F2FS::doMount(devicePath, getMountpoint(), false, false, false, true)) {
+                    SLOGE("%s failed to mount via F2FS (%s)\n", devicePath, strerror(errno));
+                    continue;
+                }
+
+            } else if (strcmp(fstype, "exfat") == 0) {
+
+                if (Exfat::check(devicePath)) {
+                    errno = EIO;
+                    /* Badness - abort the mount */
+                    SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                    setState(Volume::State_Idle);
+                    free(fstype);
+                    return -1;
+                }
+
+                if (Exfat::doMount(devicePath, getMountpoint(), false, false, false,
+                        AID_MEDIA_RW, AID_MEDIA_RW, 0007)) {
+                    SLOGE("%s failed to mount via EXFAT (%s)\n", devicePath, strerror(errno));
+                    continue;
+                }
+
+            } else {
+                // Unsupported filesystem
+                errno = ENODATA;
+                setState(Volume::State_Idle);
+                free(fstype);
+                return -1;
+            }
+
+            free(fstype);
+
+        } else {
+            // Unsupported filesystem
+            errno = ENODATA;
+            setState(Volume::State_Idle);
+            free(fstype);
+            return -1;
         }
 
         extractMetadata(devicePath);
 
+#ifndef MINIVOLD
         if (providesAsec && mountAsecExternal() != 0) {
             SLOGE("Failed to mount secure area (%s)", strerror(errno));
             umount(getMountpoint());
             setState(Volume::State_Idle);
             return -1;
         }
+#endif
 
         char service[64];
         snprintf(service, 64, "fuse_%s", getLabel());
@@ -531,8 +680,6 @@ int Volume::doUnmount(const char *path, bool force) {
 }
 
 int Volume::unmountVol(bool force, bool revert) {
-    int i, rc;
-
     int flags = getFlags();
     bool providesAsec = (flags & VOL_PROVIDES_ASEC) != 0;
 

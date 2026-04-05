@@ -1,5 +1,7 @@
 /**
  * Copyright (c) 2009, Google Inc.
+ * Copyright (c) 2013, The Linux Foundation. All Rights Reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,17 +26,22 @@ import android.app.ActionBar;
 import android.app.ListActivity;
 import android.app.SearchManager;
 import android.content.AsyncQueryHandler;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.SearchRecentSuggestions;
 import android.provider.Telephony;
 import android.text.SpannableString;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.style.StyleSpan;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -48,6 +55,8 @@ import android.widget.TextView;
 import com.android.mms.MmsApp;
 import com.android.mms.R;
 import com.android.mms.data.Contact;
+import com.android.mms.data.ContactList;
+import com.android.mms.data.Conversation;
 
 /***
  * Presents a List of search results.  Each item in the list represents a thread which
@@ -59,7 +68,15 @@ import com.android.mms.data.Contact;
 
 public class SearchActivity extends ListActivity
 {
+    private static final int REQUEST_VIEW_MESSAGE = 1;
+    public static final int RESULT_SAVE_MMS_DRAFT = 2;
+    public static final int RESULT_SAVE_SMS_DRAFT = 3;
+    public static final int RESULT_MSG_HAS_CHANGED = 4;
+
     private AsyncQueryHandler mQueryHandler;
+    private String mSearchString;
+    private boolean mNeedUpdate = false;
+    public static final String ACTION_QUERY_MMS = "com.android.search.QUERY_MMS";
 
     // Track which TextView's show which Contact objects so that we can update
     // appropriately when the Contact gets fully loaded.
@@ -236,7 +253,7 @@ public class SearchActivity extends ListActivity
         }
         final String searchString =
             searchStringParameter != null ? searchStringParameter.trim() : searchStringParameter;
-
+        mSearchString = searchString;
         // If we're being launched with a source_id then just go to that particular thread.
         // Work around the fact that suggestions can only launch the search activity, not some
         // arbitrary activity (such as ComposeMessageActivity).
@@ -253,7 +270,8 @@ public class SearchActivity extends ListActivity
                         onClickIntent.putExtra("highlight", searchString);
                         onClickIntent.putExtra("select_id", sourceId);
                         onClickIntent.putExtra("thread_id", threadId);
-                        startActivity(onClickIntent);
+                        onClickIntent.putExtra("from_search", true);
+                        startActivityForResult(onClickIntent, REQUEST_VIEW_MESSAGE);
                         finish();
                         return;
                     } catch (NumberFormatException ex) {
@@ -316,13 +334,6 @@ public class SearchActivity extends ListActivity
                         final TextViewSnippet snippet = (TextViewSnippet)(view.findViewById(R.id.subtitle));
 
                         String address = cursor.getString(addressPos);
-                        Contact contact = address != null ? Contact.get(address, false) : null;
-
-                        String titleString = contact != null ? contact.getNameAndNumber() : "";
-                        title.setText(titleString);
-
-                        snippet.setText(cursor.getString(bodyPos), searchString);
-
                         // if the user touches the item then launch the compose message
                         // activity with some extra parameters to highlight the search
                         // results and scroll to the latest part of the conversation
@@ -330,13 +341,45 @@ public class SearchActivity extends ListActivity
                         final long threadId = cursor.getLong(threadIdPos);
                         final long rowid = cursor.getLong(rowidPos);
 
+                        // The address of draft is null, but we should
+                        // show the numberAndName for it also, so we need
+                        // to use the thread_id to get the contactList.
+                        if (TextUtils.isEmpty(address)) {
+                            Conversation conversation = Conversation.get(SearchActivity.this,
+                                    threadId, false);
+                            if (null != conversation) {
+                                ContactList list = conversation.getRecipients();
+                                String sep = ", ";
+                                StringBuffer titleBuffer = new StringBuffer();
+                                for (Contact c : list) {
+                                    CharSequence charSequence = RecipientsEditor.contactToToken(c);
+                                    if (!TextUtils.isEmpty(charSequence)) {
+                                        titleBuffer.append(charSequence).append(sep);
+                                    }
+                                }
+                                // remove the last separator if there is
+                                int lastSepIndex = titleBuffer.lastIndexOf(sep);
+                                if (lastSepIndex != -1) {
+                                    titleBuffer.delete(lastSepIndex, titleBuffer.length());
+                                }
+                                title.setText(titleBuffer);
+                            }
+                        } else {
+                            Contact contact = Contact.get(address, false);
+                            String titleString = contact.getNameAndNumber();
+                            title.setText(titleString);
+                        }
+
+                        snippet.setText(cursor.getString(bodyPos), searchString);
+
                         view.setOnClickListener(new View.OnClickListener() {
                             public void onClick(View v) {
                                 final Intent onClickIntent = new Intent(SearchActivity.this, ComposeMessageActivity.class);
                                 onClickIntent.putExtra("thread_id", threadId);
                                 onClickIntent.putExtra("highlight", searchString);
                                 onClickIntent.putExtra("select_id", rowid);
-                                startActivity(onClickIntent);
+                                onClickIntent.putExtra("from_search", true);
+                                startActivityForResult(onClickIntent, REQUEST_VIEW_MESSAGE);
                             }
                         });
                     }
@@ -370,15 +413,24 @@ public class SearchActivity extends ListActivity
             }
         };
 
-        // don't pass a projection since the search uri ignores it
-        Uri uri = Telephony.MmsSms.SEARCH_URI.buildUpon()
-                    .appendQueryParameter("pattern", searchString).build();
-
-        // kick off a query for the threads which match the search string
-        mQueryHandler.startQuery(0, null, uri, null, null, null, null);
+        startQuery();
 
         ActionBar actionBar = getActionBar();
         actionBar.setDisplayHomeAsUpEnabled(true);
+        // Register a ContentObserver to monitor Sms.CONTENT_URI of database update
+        getContentResolver().registerContentObserver(
+                android.provider.Telephony.MmsSms.CONTENT_URI, true, mMessagesObserver);
+        IntentFilter filter = new IntentFilter(ACTION_QUERY_MMS);
+        registerReceiver(mBroadcastReceiver, filter);
+    }
+
+    private void startQuery() {
+        // don't pass a projection since the search uri ignores it
+        Uri uri = Telephony.MmsSms.SEARCH_URI.buildUpon()
+                    .appendQueryParameter("pattern", mSearchString).build();
+
+        // kick off a query for the threads which match the search string
+        mQueryHandler.startQuery(0, null, uri, null, null, null, null);
     }
 
     @Override
@@ -391,5 +443,58 @@ public class SearchActivity extends ListActivity
                 return true;
         }
         return false;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case REQUEST_VIEW_MESSAGE:
+                if ((resultCode == RESULT_SAVE_SMS_DRAFT) || (resultCode == RESULT_SAVE_MMS_DRAFT)) {
+                    // As this operation is delay, so should clear the ListView,
+                    // otherwise the ListView will use the old data before query completed
+                    setListAdapter(null);
+
+                    if (resultCode == RESULT_SAVE_MMS_DRAFT) {
+                        mNeedUpdate = true;
+                    } else {
+                        mNeedUpdate = false;
+                    }
+                } else if (resultCode == RESULT_MSG_HAS_CHANGED) {
+                    // If the msg database has changed (eg. delete or new message),
+                    // we should startQuery and refresh the ListView
+                    setListAdapter(null);
+                    startQuery();
+                }
+                break;
+        }
+    }
+
+    private ContentObserver mMessagesObserver = new ContentObserver(new Handler()) {
+        @Override
+        public void onChange(boolean selfUpdate) {
+            // If the msg update success, we should startQuery and refresh the ListView
+            startQuery();
+        }
+    };
+
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // When convert sms to Mms,contentProvider notify MmsSms.CONTENT_URI to update,
+            // but sometime can't not find the new Mms. so need update again.
+            if (mNeedUpdate) {
+                startQuery();
+                mNeedUpdate = false;
+            }
+        }
+    };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(mBroadcastReceiver);
+        // Unregister the ContentObserver of Sms.CONTENT_URI
+        getContentResolver().unregisterContentObserver(mMessagesObserver);
     }
 }

@@ -36,14 +36,13 @@ struct selabel_handle *sehandle;
 
 int main(int argc, char** argv) {
     // Various things log information to stdout or stderr more or less
-    // at random (though we've tried to standardize on stdout).  The
-    // log file makes more sense if buffering is turned off so things
-    // appear in the right order.
+    // at random.  The log file makes more sense if buffering is
+    // turned off so things appear in the right order.
     setbuf(stdout, NULL);
     setbuf(stderr, NULL);
 
     if (argc != 4) {
-        printf("unexpected number of arguments (%d)\n", argc);
+        fprintf(stderr, "unexpected number of arguments (%d)\n", argc);
         return 1;
     }
 
@@ -51,7 +50,7 @@ int main(int argc, char** argv) {
     if ((version[0] != '1' && version[0] != '2' && version[0] != '3') ||
         version[1] != '\0') {
         // We support version 1, 2, or 3.
-        printf("wrong updater binary API; expected 1, 2, or 3; "
+        fprintf(stderr, "wrong updater binary API; expected 1, 2, or 3; "
                         "got %s\n",
                 argv[1]);
         return 2;
@@ -70,20 +69,20 @@ int main(int argc, char** argv) {
     int err;
     err = mzOpenZipArchive(package_data, &za);
     if (err != 0) {
-        printf("failed to open package %s: %s\n",
+        fprintf(stderr, "failed to open package %s: %s\n",
                 package_data, strerror(err));
         return 3;
     }
 
     const ZipEntry* script_entry = mzFindZipEntry(&za, SCRIPT_NAME);
     if (script_entry == NULL) {
-        printf("failed to find %s in %s\n", SCRIPT_NAME, package_data);
+        fprintf(stderr, "failed to find %s in %s\n", SCRIPT_NAME, package_data);
         return 4;
     }
 
     char* script = malloc(script_entry->uncompLen+1);
     if (!mzReadZipEntry(&za, script_entry, script, script_entry->uncompLen)) {
-        printf("failed to read script from package\n");
+        fprintf(stderr, "failed to read script from package\n");
         return 5;
     }
     script[script_entry->uncompLen] = '\0';
@@ -102,7 +101,7 @@ int main(int argc, char** argv) {
     yy_scan_string(script);
     int error = yyparse(&root, &error_count);
     if (error != 0 || error_count > 0) {
-        printf("%d parse errors\n", error_count);
+        fprintf(stderr, "%d parse errors\n", error_count);
         return 6;
     }
 
@@ -113,7 +112,8 @@ int main(int argc, char** argv) {
     sehandle = selabel_open(SELABEL_CTX_FILE, seopts, 1);
 
     if (!sehandle) {
-        fprintf(cmd_pipe, "ui_print Warning: No file_contexts\n");
+        fprintf(stderr, "Warning:  No file_contexts\n");
+        // fprintf(cmd_pipe, "ui_print Warning: No file_contexts\n");
     }
 
     // Evaluate the parsed script.
@@ -131,10 +131,10 @@ int main(int argc, char** argv) {
     char* result = Evaluate(&state, root);
     if (result == NULL) {
         if (state.errmsg == NULL) {
-            printf("script aborted (no error message)\n");
+            fprintf(stderr, "script aborted (no error message)\n");
             fprintf(cmd_pipe, "ui_print script aborted (no error message)\n");
         } else {
-            printf("script aborted: %s\n", state.errmsg);
+            fprintf(stderr, "script aborted: %s\n", state.errmsg);
             char* line = strtok(state.errmsg, "\n");
             while (line) {
                 fprintf(cmd_pipe, "ui_print %s\n", line);
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
         free(state.errmsg);
         return 7;
     } else {
-        fprintf(cmd_pipe, "ui_print script succeeded: result was [%s]\n", result);
+        fprintf(stderr, "script result was [%s]\n", result);
         free(result);
     }
 

@@ -47,6 +47,14 @@ SkBitmapProcShader::SkBitmapProcShader(SkFlattenableReadBuffer& buffer)
     fFlags = 0; // computed in setContext
 }
 
+void SkBitmapProcShader::beginRect(int x, int y, int width) {
+    fState.beginRect(x, y, width);
+}
+
+void SkBitmapProcShader::endRect() {
+    fState.endRect();
+}
+
 SkShader::BitmapType SkBitmapProcShader::asABitmap(SkBitmap* texture,
                                                    SkMatrix* texM,
                                                    TileMode xy[]) const {
@@ -164,7 +172,13 @@ void SkBitmapProcShader::endContext() {
     this->INHERITED::endContext();
 }
 
-#define BUF_MAX     128
+/* Defines the buffer size for sample pixel indexes, used in the sample proc
+ * function calls.
+ * If the operation is bigger than the buffer, it's split into multiple calls.
+ * A display with a width of 1080 pixels requires a buffer size of at least 541,
+ * to run uninterrupted.
+ */
+#define BUF_MAX     576
 
 #define TEST_BUFFER_OVERRITEx
 

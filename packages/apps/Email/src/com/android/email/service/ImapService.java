@@ -26,6 +26,7 @@ import android.database.Cursor;
 import android.net.TrafficStats;
 import android.net.Uri;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
@@ -57,6 +58,7 @@ import com.android.emailcommon.provider.EmailContent.SyncColumns;
 import com.android.emailcommon.provider.Mailbox;
 import com.android.emailcommon.service.EmailServiceStatus;
 import com.android.emailcommon.service.SearchParams;
+import com.android.emailcommon.service.SyncSize;
 import com.android.emailcommon.utility.AttachmentUtilities;
 import com.android.mail.providers.UIProvider;
 import com.android.mail.utils.LogUtils;
@@ -72,6 +74,7 @@ public class ImapService extends Service {
     private static final long QUICK_SYNC_WINDOW_MILLIS = DateUtils.DAY_IN_MILLIS;
     private static final long FULL_SYNC_WINDOW_MILLIS = 7 * DateUtils.DAY_IN_MILLIS;
     private static final long FULL_SYNC_INTERVAL_MILLIS = 4 * DateUtils.HOUR_IN_MILLIS;
+    private static final String TAG = "ImapService";
 
     private static final int MINIMUM_MESSAGES_TO_SYNC = 10;
     private static final int LOAD_MORE_MIN_INCREMENT = 10;
@@ -103,8 +106,115 @@ public class ImapService extends Service {
      */
     private static final String LOCAL_SERVERID_PREFIX = "Local-";
 
+    private static final String EXTRA_ACCOUNT =
+            "com.android.email.intent.extra.ACCOUNT";
+    private static final String EXTRA_MESSAGE_ID =
+            "org.codeaurora.email.intent.extra.MESSAGE_ID";
+    private static final String EXTRA_MESSAGE_INFO =
+            "org.codeaurora.email.intent.extra.MESSAGE_INFO";
+
+    private static final String ACTION_CHECK_MAIL =
+            "com.android.email.intent.action.MAIL_SERVICE_WAKEUP";
+    private static final String ACTION_DELETE_MESSAGE =
+            "org.codeaurora.email.intent.action.MAIL_SERVICE_DELETE_MESSAGE";
+    private static final String ACTION_MOVE_MESSAGE =
+            "org.codeaurora.email.intent.action.MAIL_SERVICE_MOVE_MESSAGE";
+    private static final String ACTION_MESSAGE_READ =
+            "org.codeaurora.email.intent.action.MAIL_SERVICE_MESSAGE_READ";
+    private static final String ACTION_SEND_PENDING_MAIL =
+            "org.codeaurora.email.intent.action.MAIL_SERVICE_SEND_PENDING";
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        final String action = intent.getAction();
+        if (Logging.LOGD) {
+            LogUtils.d(Logging.LOG_TAG, "Action: ", action);
+        }
+        final long accountId = intent.getLongExtra(EXTRA_ACCOUNT, -1);
+        Context context = getApplicationContext();
+        if (ACTION_CHECK_MAIL.equals(action)) {
+            final long inboxId = Mailbox.findMailboxOfType(context, accountId,
+                    Mailbox.TYPE_INBOX);
+            if (Logging.LOGD) {
+                LogUtils.d(Logging.LOG_TAG, "accountId is " + accountId);
+                LogUtils.d(Logging.LOG_TAG, "inboxId is " + inboxId);
+            }
+            if (accountId <= -1 || inboxId <= -1) {
+                return START_NOT_STICKY;
+            }
+            mBinder.init(context);
+            mBinder.requestSync(inboxId, true, 0);
+        } else if (ACTION_DELETE_MESSAGE.equals(action)) {
+            final long messageId = intent.getLongExtra(EXTRA_MESSAGE_ID, -1);
+            if (Logging.LOGD) {
+                LogUtils.d(Logging.LOG_TAG, "action: Delete Message mail");
+                LogUtils.d(Logging.LOG_TAG, "action: delmsg " + messageId);
+            }
+            if (accountId <= -1 || messageId <= -1) {
+                return START_NOT_STICKY;
+            }
+            try {
+                mBinder.init(context);
+                mBinder.deleteMessage(messageId);
+                processPendingActionsSynchronous(context,
+                        Account.getAccountForMessageId(context, messageId));
+            } catch (Exception e) {
+                LogUtils.d(Logging.LOG_TAG, "RemoteException " + e);
+            }
+        } else if (ACTION_MESSAGE_READ.equals(action)) {
+            final long messageId = intent.getLongExtra(EXTRA_MESSAGE_ID, -1);
+            final int flagRead = intent.getIntExtra(EXTRA_MESSAGE_INFO, 0);
+            if (Logging.LOGD) {
+                LogUtils.d(Logging.LOG_TAG, "action: Message Mark Read or UnRead ");
+                LogUtils.d(Logging.LOG_TAG, "action: delmsg " + messageId);
+            }
+            if (accountId <= -1 || messageId <= -1) {
+                return START_NOT_STICKY;
+            }
+            try {
+                mBinder.init(context);
+                mBinder.setMessageRead(messageId, (flagRead == 1) ? true : false);
+                processPendingActionsSynchronous(context,
+                        Account.getAccountForMessageId(context, messageId));
+            } catch (Exception e) {
+                LogUtils.d(Logging.LOG_TAG, "RemoteException " + e);
+            }
+        } else if (ACTION_MOVE_MESSAGE.equals(action)) {
+            final long messageId = intent.getLongExtra(EXTRA_MESSAGE_ID, -1);
+            final int mailboxType = intent.getIntExtra(EXTRA_MESSAGE_INFO, Mailbox.TYPE_INBOX);
+            final long mailboxId = Mailbox.findMailboxOfType(context, accountId, mailboxType);
+            if (Logging.LOGD) {
+                LogUtils.d(Logging.LOG_TAG, "action:  Move Message mail");
+                LogUtils.d(Logging.LOG_TAG, "action: movemsg " + messageId + "mailbox: "
+                        + mailboxType +
+                        "accountId: " + accountId + " mailboxId: " + mailboxId);
+            }
+            if (accountId <= -1 || messageId <= -1 || mailboxId <= -1) {
+                return START_NOT_STICKY;
+            }
+            try {
+                mBinder.init(context);
+                mBinder.MoveMessages(messageId, mailboxId);
+                processPendingActionsSynchronous(context,
+                        Account.getAccountForMessageId(context, messageId));
+            } catch (Exception e) {
+                LogUtils.d(Logging.LOG_TAG, "RemoteException " + e);
+            }
+        } else if (ACTION_SEND_PENDING_MAIL.equals(action)) {
+            if (Logging.LOGD) {
+                LogUtils.d(Logging.LOG_TAG, "action: Send Pending Mail " + accountId);
+            }
+            if (accountId <= -1) {
+                return START_NOT_STICKY;
+            }
+            try {
+                mBinder.init(context);
+                mBinder.sendMail(accountId);
+            } catch (Exception e) {
+                LogUtils.e(Logging.LOG_TAG, "RemoteException " + e);
+            }
+        }
+
         return Service.START_STICKY;
     }
 
@@ -112,6 +222,48 @@ public class ImapService extends Service {
      * Create our EmailService implementation here.
      */
     private final EmailServiceStub mBinder = new EmailServiceStub() {
+        @Override
+        public void loadMore(long messageId) throws RemoteException {
+            LogUtils.i(TAG, "Try to load more content for message: " + messageId);
+            try {
+                final EmailContent.Message message =
+                        EmailContent.Message.restoreMessageWithId(mContext, messageId);
+                if (message == null
+                        || message.mFlagLoaded == EmailContent.Message.FLAG_LOADED_COMPLETE) {
+                    return;
+                }
+
+                // Open the remote folder.
+                final Account account = Account.restoreAccountWithId(mContext, message.mAccountKey);
+                final Mailbox mailbox = Mailbox.restoreMailboxWithId(mContext, message.mMailboxKey);
+                if (account == null || mailbox == null) {
+                    return;
+                }
+                TrafficStats.setThreadStatsTag(TrafficFlags.getSyncFlags(mContext, account));
+
+                final Store remoteStore = Store.getInstance(account, mContext);
+                final String remoteServerId;
+                // If this is a search result, use the protocolSearchInfo field to get the
+                // correct remote location
+                if (!TextUtils.isEmpty(message.mProtocolSearchInfo)) {
+                    remoteServerId = message.mProtocolSearchInfo;
+                } else {
+                    remoteServerId = mailbox.mServerId;
+                }
+                final Folder remoteFolder = remoteStore.getFolder(remoteServerId);
+                remoteFolder.open(OpenMode.READ_WRITE);
+
+                // Download the entire message
+                final Message remoteMessage = remoteFolder.getMessage(message.mServerId);
+                loadEntireViewableContent(mContext, account, remoteFolder, remoteMessage, mailbox,
+                        message.mFlagSeen);
+            } catch (MessagingException me) {
+                LogUtils.v(Logging.LOG_TAG, "ImapService loadMore: ", me);
+            } catch (RuntimeException rte) {
+                LogUtils.d(Logging.LOG_TAG, "ImapService loadMore: ", rte);
+            }
+        }
+
         @Override
         public int searchMessages(long accountId, SearchParams searchParams, long destMailboxId) {
             try {
@@ -209,6 +361,44 @@ public class ImapService extends Service {
     }
 
     /**
+     * Load the structure and body of messages
+     * @param account the account we're syncing
+     * @param remoteFolder the (open) Folder we're working on
+     * @param message the message we've got entire viewable content for
+     * @param toMailbox the destination mailbox we're syncing
+     * @throws MessagingException
+     */
+    static void loadEntireViewableContent(final Context context, final Account account,
+                Folder remoteFolder, Message message, final Mailbox toMailbox, boolean seen)
+                throws MessagingException {
+        FetchProfile fp = new FetchProfile();
+        fp.add(FetchProfile.Item.STRUCTURE);
+        Message [] oneMessageArray = new Message[] { message };
+        remoteFolder.fetch(oneMessageArray, fp, null);
+        // Build a list of parts we are interested in. Text parts will be downloaded
+        // right now, attachments will be left for later.
+        ArrayList<Part> viewables = new ArrayList<Part>();
+        ArrayList<Part> attachments = new ArrayList<Part>();
+        MimeUtility.collectParts(message, viewables, attachments);
+        // Download the viewables immediately
+        for (Part part : viewables) {
+            if (part.getMimeType().startsWith("text")) {
+                fp.clear();
+                fp.add(part);
+                remoteFolder.fetch(oneMessageArray, fp, null);
+            }
+        }
+
+        if (seen) {
+            // Set the SEEN flag to this message as it must be read.
+            message.setFlag(Flag.SEEN, true);
+        }
+        // Store the updated message locally and mark it fully loaded
+        Utilities.copyOneMessageToProvider(context, message, account, toMailbox,
+                EmailContent.Message.FLAG_LOADED_COMPLETE);
+    }
+
+    /**
      * Load the structure and body of messages not yet synced
      * @param account the account we're syncing
      * @param remoteFolder the (open) Folder we're working on
@@ -219,7 +409,6 @@ public class ImapService extends Service {
     static void loadUnsyncedMessages(final Context context, final Account account,
             Folder remoteFolder, ArrayList<Message> messages, final Mailbox toMailbox)
             throws MessagingException {
-
         FetchProfile fp = new FetchProfile();
         fp.add(FetchProfile.Item.STRUCTURE);
         remoteFolder.fetch(messages.toArray(new Message[messages.size()]), fp, null);
@@ -232,14 +421,34 @@ public class ImapService extends Service {
             MimeUtility.collectParts(message, viewables, attachments);
             // Download the viewables immediately
             oneMessageArray[0] = message;
+            boolean syncedEntireMail = true;
+            int allowSyncSize = account.getSyncSize();
             for (Part part : viewables) {
                 fp.clear();
                 fp.add(part);
+                // We will only try to limit the sync size for text part.
+                if (account.getSyncSize() != SyncSize.SYNC_SIZE_ENTIRE_MAIL
+                        && part.getMimeType().startsWith("text")) {
+                    LogUtils.d(Logging.LOG_TAG, "Try to fetch the text part as limit the size"
+                            + ", part size: " + part.getSize()
+                            + ", allow sync size: " + allowSyncSize);
+                    // If the part's size is larger than allow sync size, it means this part
+                    // couldn't get the entire content.
+                    if (part.getSize() > allowSyncSize) {
+                        syncedEntireMail = false;
+                        // If the allow sync size is less than 0, it means this part needn't sync.
+                        if (allowSyncSize <= 0) continue;
+                    }
+                    // Try to sync the viewable part, we need set the allow sync size for fp.
+                    fp.setAllowSyncSize(allowSyncSize);
+                    allowSyncSize = allowSyncSize - part.getSize();
+                }
                 remoteFolder.fetch(oneMessageArray, fp, null);
             }
             // Store the updated message locally and mark it fully loaded
             Utilities.copyOneMessageToProvider(context, message, account, toMailbox,
-                    EmailContent.Message.FLAG_LOADED_COMPLETE);
+                    syncedEntireMail ? EmailContent.Message.FLAG_LOADED_COMPLETE
+                            : EmailContent.Message.FLAG_LOADED_PARTIAL_COMPLETE);
         }
     }
 

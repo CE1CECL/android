@@ -27,6 +27,9 @@
 #include <utils/threads.h>
 
 #include <libexpat/expat.h>
+#ifdef QCOM_HARDWARE
+#include "include/ExtendedUtils.h"
+#endif
 
 namespace android {
 
@@ -63,7 +66,15 @@ MediaCodecList::MediaCodecList()
         addMediaCodec(true /* encoder */, "AACEncoder", "audio/mp4a-latm");
 
         addMediaCodec(
-                false /* encoder */, "OMX.google.raw.decoder", "audio/raw");
+                     false /* encoder */, "OMX.google.raw.decoder", "audio/raw");
+
+#ifdef QCOM_HARDWARE
+        Vector<AString> QcomAACQuirks;
+        QcomAACQuirks.push(AString("requires-allocate-on-input-ports"));
+        QcomAACQuirks.push(AString("requires-allocate-on-output-ports"));
+        ExtendedUtils::helper_addMediaCodec(mCodecInfos, mTypes, false, "OMX.qcom.audio.decoder.multiaac",
+            "audio/mp4a-latm", ExtendedUtils::helper_getCodecSpecificQuirks(mCodecQuirks, QcomAACQuirks));
+#endif
     }
 
 #if 0
@@ -73,7 +84,7 @@ MediaCodecList::MediaCodecList()
         AString line = info.mName;
         line.append(" supports ");
         for (size_t j = 0; j < mTypes.size(); ++j) {
-            uint32_t value = mTypes.valueAt(j);
+            uint64_t value = mTypes.valueAt(j);
 
             if (info.mTypes & (1ul << value)) {
                 line.append(mTypes.keyAt(j));
@@ -391,12 +402,12 @@ status_t MediaCodecList::addTypeFromAttributes(const char **attrs) {
 }
 
 void MediaCodecList::addType(const char *name) {
-    uint32_t bit;
+    uint64_t bit;
     ssize_t index = mTypes.indexOfKey(name);
     if (index < 0) {
         bit = mTypes.size();
 
-        if (bit == 32) {
+        if (bit == 64) {
             ALOGW("Too many distinct type names in configuration.");
             return;
         }
@@ -407,7 +418,7 @@ void MediaCodecList::addType(const char *name) {
     }
 
     CodecInfo *info = &mCodecInfos.editItemAt(mCodecInfos.size() - 1);
-    info->mTypes |= 1ul << bit;
+    info->mTypes |= 1ull << bit;
 }
 
 ssize_t MediaCodecList::findCodecByType(
@@ -418,7 +429,7 @@ ssize_t MediaCodecList::findCodecByType(
         return -ENOENT;
     }
 
-    uint32_t typeMask = 1ul << mTypes.valueAt(typeIndex);
+    uint64_t typeMask = 1ull << mTypes.valueAt(typeIndex);
 
     while (startIndex < mCodecInfos.size()) {
         const CodecInfo &info = mCodecInfos.itemAt(startIndex);
@@ -496,7 +507,7 @@ status_t MediaCodecList::getSupportedTypes(
     const CodecInfo &info = mCodecInfos.itemAt(index);
 
     for (size_t i = 0; i < mTypes.size(); ++i) {
-        uint32_t typeMask = 1ul << mTypes.valueAt(i);
+        uint64_t typeMask = 1ull << mTypes.valueAt(i);
 
         if (info.mTypes & typeMask) {
             types->push(mTypes.keyAt(i));
@@ -545,6 +556,16 @@ status_t MediaCodecList::getCodecCapabilities(
     }
 
     for (size_t i = 0; i < caps.mColorFormats.size(); ++i) {
+#ifdef MTK_HARDWARE
+        // Implicitly push YUV420Planar as a supported format if the codec supports an internal
+        // format that is compatible. This behavior is tested by the CTS VideoEncoderDecoderTest
+        if (!info.mIsEncoder &&
+            (OMX_COLOR_FormatVendorMTKYUV == caps.mColorFormats.itemAt(i)) ||
+            (OMX_MTK_COLOR_FormatYV12 == caps.mColorFormats.itemAt(i)) ||
+            (OMX_COLOR_FormatVendorMTKYUV_FCM == caps.mColorFormats.itemAt(i))) {
+            colorFormats->push(OMX_COLOR_FormatYUV420Planar);
+        }
+#endif
         colorFormats->push(caps.mColorFormats.itemAt(i));
     }
 

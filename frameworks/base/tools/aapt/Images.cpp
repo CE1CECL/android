@@ -11,9 +11,13 @@
 #include <androidfw/ResourceTypes.h>
 #include <utils/ByteOrder.h>
 
-#include <png.h>
-
 #define NOISY(x) //x
+
+typedef struct png_memory_file_s {
+    const char* data;
+    uint32_t dataSize;
+    uint32_t index;
+} png_memory_file_t;
 
 static void
 png_write_aapt_file(png_structp png_ptr, png_bytep data, png_size_t length)
@@ -24,6 +28,14 @@ png_write_aapt_file(png_structp png_ptr, png_bytep data, png_size_t length)
     }
 }
 
+static void
+png_read_mem_file(png_structp png_ptr, png_bytep data, png_size_t length)
+{
+    status_t err = ((PngMemoryFile*)png_ptr->io_ptr)->read(data, length);
+    if (err != NO_ERROR) {
+        png_error(png_ptr, "Read Error");
+    }
+}
 
 static void
 png_flush_aapt_file(png_structp png_ptr)
@@ -450,10 +462,11 @@ static status_t do_9patch(const char* imageName, image_info* image)
 
     int maxSizeXDivs = W * sizeof(int32_t);
     int maxSizeYDivs = H * sizeof(int32_t);
-    int32_t* xDivs = (int32_t*) malloc(maxSizeXDivs);
-    int32_t* yDivs = (int32_t*) malloc(maxSizeYDivs);
-    uint8_t  numXDivs = 0;
-    uint8_t  numYDivs = 0;
+    int32_t* xDivs = image->info9Patch.xDivs = (int32_t*) malloc(maxSizeXDivs);
+    int32_t* yDivs = image->info9Patch.yDivs = (int32_t*) malloc(maxSizeYDivs);
+    uint8_t numXDivs = 0;
+    uint8_t numYDivs = 0;
+
     int8_t numColors;
     int numRows;
     int numCols;
@@ -508,6 +521,10 @@ static status_t do_9patch(const char* imageName, image_info* image)
         goto getout;
     }
 
+    // Copy patch size data into image...
+    image->info9Patch.numXDivs = numXDivs;
+    image->info9Patch.numYDivs = numYDivs;
+
     // Find left and right of padding area...
     if (get_horizontal_ticks(image->rows[H-1], W, transparent, false, &image->info9Patch.paddingLeft,
                              &image->info9Patch.paddingRight, &errorMsg, NULL, false) != NO_ERROR) {
@@ -542,12 +559,6 @@ static status_t do_9patch(const char* imageName, image_info* image)
         NOISY(printf("layoutBounds=%d %d %d %d\n", image->layoutBoundsLeft, image->layoutBoundsTop,
                 image->layoutBoundsRight, image->layoutBoundsBottom));
     }
-
-    // Copy patch data into image
-    image->info9Patch.numXDivs = numXDivs;
-    image->info9Patch.numYDivs = numYDivs;
-    image->info9Patch.xDivs = xDivs;
-    image->info9Patch.yDivs = yDivs;
 
     // If padding is not yet specified, take values from size.
     if (image->info9Patch.paddingLeft < 0) {
@@ -955,7 +966,7 @@ static void analyze_image(const char *imageName, image_info &imageInfo, int gray
                 gg = *row++;
                 bb = *row++;
                 aa = *row++;
-                
+
                 if (isGrayscale) {
                     *out++ = rr;
                 } else {
@@ -1240,6 +1251,115 @@ bail:
     return error;
 }
 
+/**
+ * This function assumes file already contains the png data instead of just providing
+ * a path to the original png on disk.
+ */
+status_t preProcessImage(const Bundle* bundle, const sp<AaptFile>& file)
+{
+    String8 ext(file->getPath().getPathExtension());
+
+    // We currently only process PNG images.
+    if (strcmp(ext.string(), ".png") != 0) {
+        return NO_ERROR;
+    }
+
+    String8 printableName(file->getPrintableSource());
+
+    if (bundle->getVerbose()) {
+        printf("Processing image: %s\n", printableName.string());
+    }
+
+    png_structp read_ptr = NULL;
+    png_infop read_info = NULL;
+    PngMemoryFile* pmf = new PngMemoryFile();
+
+    image_info imageInfo;
+
+    png_structp write_ptr = NULL;
+    png_infop write_info = NULL;
+
+    status_t error = UNKNOWN_ERROR;
+
+    const size_t nameLen = file->getPath().length();
+
+    read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, (png_error_ptr)NULL,
+                                        (png_error_ptr)NULL);
+    if (!read_ptr) {
+        goto bail;
+    }
+
+    read_info = png_create_info_struct(read_ptr);
+    if (!read_info) {
+        goto bail;
+    }
+
+    if (setjmp(png_jmpbuf(read_ptr))) {
+        goto bail;
+    }
+
+    pmf->setDataSource((const char*)file->getData(), file->getSize());
+    png_set_read_fn(read_ptr, pmf, png_read_mem_file);
+    read_png(printableName.string(), read_ptr, read_info, &imageInfo);
+
+    if (nameLen > 6) {
+        const char* name = file->getPath().string();
+        if (name[nameLen-5] == '9' && name[nameLen-6] == '.') {
+            printf("processing 9patch");
+            if (do_9patch(printableName.string(), &imageInfo) != NO_ERROR) {
+                goto bail;
+            }
+        }
+    }
+
+    file->clearData();
+    write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, (png_error_ptr)NULL,
+                                        (png_error_ptr)NULL);
+    if (!write_ptr)
+    {
+        printf("write_ptr null");
+        goto bail;
+    }
+
+    write_info = png_create_info_struct(write_ptr);
+    if (!write_info)
+    {
+        printf("write_info null");
+        goto bail;
+    }
+
+    png_set_write_fn(write_ptr, (void*)file.get(),
+                     png_write_aapt_file, png_flush_aapt_file);
+
+    if (setjmp(png_jmpbuf(write_ptr)))
+    {
+        printf("setjmp failed");
+        goto bail;
+    }
+
+    write_png(printableName.string(), write_ptr, write_info, imageInfo,
+              bundle->getGrayscaleTolerance());
+
+    error = NO_ERROR;
+
+bail:
+    if (read_ptr) {
+        png_destroy_read_struct(&read_ptr, &read_info, (png_infopp)NULL);
+    }
+    if (write_ptr) {
+        png_destroy_write_struct(&write_ptr, &write_info);
+    }
+    if (pmf) {
+        delete pmf;
+    }
+
+    if (error != NO_ERROR) {
+        fprintf(stderr, "ERROR: Failure processing PNG image %s\n",
+                file->getPrintableSource().string());
+    }
+    return error;
+}
+
 status_t preProcessImageToCache(const Bundle* bundle, const String8& source, const String8& dest)
 {
     png_structp read_ptr = NULL;
@@ -1377,6 +1497,20 @@ status_t postProcessImage(const sp<AaptAssets>& assets,
     if (strcmp(ext.string(), ".xml") == 0) {
         return compileXmlFile(assets, file, table);
     }
+
+    return NO_ERROR;
+}
+
+status_t PngMemoryFile::read(png_bytep data, png_size_t length) {
+    if (data == NULL)
+        return -1;
+
+    if ((mIndex + length) >= mDataSize) {
+        length = mDataSize - mIndex;
+    }
+
+    memcpy(data, mData + mIndex, length);
+    mIndex += length;
 
     return NO_ERROR;
 }

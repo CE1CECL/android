@@ -421,6 +421,15 @@ void Composer::setDisplayProjection(const sp<IBinder>& token,
     mForceSynchronous = true; // TODO: do we actually still need this?
 }
 
+status_t Composer::setOrientation(int orientation) {
+    sp<ISurfaceComposer> sm(ComposerService::getComposerService());
+    sp<IBinder> token(sm->getBuiltInDisplay(ISurfaceComposer::eDisplayIdMain));
+    DisplayState& s(getDisplayStateLocked(token));
+    s.orientation = orientation;
+    mForceSynchronous = true; // TODO: do we actually still need this?
+    return NO_ERROR;
+}
+
 // ---------------------------------------------------------------------------
 
 SurfaceComposerClient::SurfaceComposerClient()
@@ -469,6 +478,30 @@ void SurfaceComposerClient::dispose() {
     mStatus = NO_INIT;
 }
 
+/* Create ICS/MR0-compatible constructors */
+extern "C" sp<SurfaceControl> _ZN7android21SurfaceComposerClient13createSurfaceERKNS_7String8Ejjij(
+        const String8& name,
+        uint32_t w,
+        uint32_t h,
+        PixelFormat format,
+        uint32_t flags);
+extern "C" sp<SurfaceControl> _ZN7android21SurfaceComposerClient13createSurfaceEijjij(
+        uint32_t display,
+        uint32_t w,
+        uint32_t h,
+        PixelFormat format,
+        uint32_t flags)
+{
+    String8 name;
+    const size_t SIZE = 128;
+    char buffer[SIZE];
+    snprintf(buffer, SIZE, "<pid_%d>", getpid());
+    name.append(buffer);
+
+    return _ZN7android21SurfaceComposerClient13createSurfaceERKNS_7String8Ejjij(name,
+            w, h, format, flags);
+}
+
 sp<SurfaceControl> SurfaceComposerClient::createSurface(
         const String8& name,
         uint32_t w,
@@ -482,11 +515,12 @@ sp<SurfaceControl> SurfaceComposerClient::createSurface(
         sp<IGraphicBufferProducer> gbp;
         status_t err = mClient->createSurface(name, w, h, format, flags,
                 &handle, &gbp);
-        ALOGE_IF(err, "SurfaceComposerClient::createSurface error %s", strerror(-err));
+        ALOGE_IF(err, "SurfaceComposerClient::createSurface(%s) error %s", name.string(), strerror(-err));
         if (err == NO_ERROR) {
             sur = new SurfaceControl(this, handle, gbp);
         }
-    }
+    } else
+        ALOGE("SurfaceComposerClient::createSurface(%s) error. Status = %s", name.string(), strerror(-mStatus));
     return sur;
 }
 
@@ -581,6 +615,11 @@ status_t SurfaceComposerClient::setMatrix(const sp<IBinder>& id, float dsdx, flo
     return getComposer().setMatrix(this, id, dsdx, dtdx, dsdy, dtdy);
 }
 
+status_t SurfaceComposerClient::setOrientation(int32_t dpy, int orientation, uint32_t flags)
+{
+    return Composer::getInstance().setOrientation(orientation);
+}
+
 // ----------------------------------------------------------------------------
 
 void SurfaceComposerClient::setDisplaySurface(const sp<IBinder>& token,
@@ -617,7 +656,42 @@ void SurfaceComposerClient::unblankDisplay(const sp<IBinder>& token) {
     ComposerService::getComposerService()->unblank(token);
 }
 
+// TODO: Remove me.  Do not use.
+// This is a compatibility shim for one product whose drivers are depending on
+// this legacy function (when they shouldn't).
+status_t SurfaceComposerClient::getDisplayInfo(
+        int32_t displayId, DisplayInfo* info)
+{
+    return getDisplayInfo(getBuiltInDisplay(displayId), info);
+}
+
+#if defined(ICS_CAMERA_BLOB) || defined(MR0_CAMERA_BLOB)
+ssize_t SurfaceComposerClient::getDisplayWidth(int32_t displayId) {
+    DisplayInfo info;
+    getDisplayInfo(getBuiltInDisplay(displayId), &info);
+    return info.w;
+}
+
+ssize_t SurfaceComposerClient::getDisplayHeight(int32_t displayId) {
+    DisplayInfo info;
+    getDisplayInfo(getBuiltInDisplay(displayId), &info);
+    return info.h;
+}
+
+ssize_t SurfaceComposerClient::getDisplayOrientation(int32_t displayId) {
+    DisplayInfo info;
+    getDisplayInfo(getBuiltInDisplay(displayId), &info);
+    return info.orientation;
+}
+#endif
+
 // ----------------------------------------------------------------------------
+
+#ifndef FORCE_SCREENSHOT_CPU_PATH
+#define SS_CPU_CONSUMER false
+#else
+#define SS_CPU_CONSUMER true
+#endif
 
 status_t ScreenshotClient::capture(
         const sp<IBinder>& display,
@@ -626,8 +700,17 @@ status_t ScreenshotClient::capture(
         uint32_t minLayerZ, uint32_t maxLayerZ) {
     sp<ISurfaceComposer> s(ComposerService::getComposerService());
     if (s == NULL) return NO_INIT;
+#ifdef USE_MHEAP_SCREENSHOT
+    int format = 0;
+    producer->query(NATIVE_WINDOW_FORMAT,&format);
+    if (format == PIXEL_FORMAT_RGBA_8888) {
+        /* For some reason, this format fails badly */
+        return BAD_VALUE;
+    }
+#endif
     return s->captureScreen(display, producer,
-            reqWidth, reqHeight, minLayerZ, maxLayerZ);
+            reqWidth, reqHeight, minLayerZ, maxLayerZ,
+            SS_CPU_CONSUMER);
 }
 
 ScreenshotClient::ScreenshotClient()
@@ -638,6 +721,13 @@ ScreenshotClient::ScreenshotClient()
 ScreenshotClient::~ScreenshotClient() {
     ScreenshotClient::release();
 }
+
+#if defined(TOROPLUS_RADIO)
+status_t ScreenshotClient::update() {
+    sp<ISurfaceComposer> sm(ComposerService::getComposerService());
+    return update(sm->getBuiltInDisplay(0));
+}
+#endif
 
 sp<CpuConsumer> ScreenshotClient::getCpuConsumer() const {
     if (mCpuConsumer == NULL) {
@@ -653,6 +743,19 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
         uint32_t minLayerZ, uint32_t maxLayerZ) {
     sp<ISurfaceComposer> s(ComposerService::getComposerService());
     if (s == NULL) return NO_INIT;
+#ifdef USE_MHEAP_SCREENSHOT
+    int ret = -1;
+    mHeap = 0;
+    ret = s->captureScreen(display, &mHeap,
+            &mBuffer.width, &mBuffer.height, reqWidth, reqHeight,
+            minLayerZ, maxLayerZ);
+    if (ret == NO_ERROR) {
+        mBuffer.format = PIXEL_FORMAT_RGBA_8888;
+        mBuffer.stride = mBuffer.width;
+        mBuffer.data = (uint8_t *)mHeap->getBase();
+    }
+    return ret;
+#else
     sp<CpuConsumer> cpuConsumer = getCpuConsumer();
 
     if (mHaveBuffer) {
@@ -662,7 +765,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
     }
 
     status_t err = s->captureScreen(display, mBufferQueue,
-            reqWidth, reqHeight, minLayerZ, maxLayerZ);
+            reqWidth, reqHeight, minLayerZ, maxLayerZ, true);
 
     if (err == NO_ERROR) {
         err = mCpuConsumer->lockNextBuffer(&mBuffer);
@@ -671,6 +774,7 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
         }
     }
     return err;
+#endif
 }
 
 status_t ScreenshotClient::update(const sp<IBinder>& display) {
@@ -683,12 +787,16 @@ status_t ScreenshotClient::update(const sp<IBinder>& display,
 }
 
 void ScreenshotClient::release() {
+#ifdef USE_MHEAP_SCREENSHOT
+    mHeap = 0;
+#else
     if (mHaveBuffer) {
         mCpuConsumer->unlockBuffer(mBuffer);
         memset(&mBuffer, 0, sizeof(mBuffer));
         mHaveBuffer = false;
     }
     mCpuConsumer.clear();
+#endif
 }
 
 void const* ScreenshotClient::getPixels() const {

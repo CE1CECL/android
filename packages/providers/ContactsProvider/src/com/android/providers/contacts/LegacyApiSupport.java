@@ -72,6 +72,8 @@ import java.util.Locale;
 public class LegacyApiSupport {
 
     private static final String TAG = "ContactsProviderV1";
+    private static final String PHONE_NAME = "PHONE";
+    private static final String ACCOUNT_TYPE_PHONE = "com.android.localphone";
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -1937,8 +1939,7 @@ public class LegacyApiSupport {
             sb.append(" AND " + RawContacts.ACCOUNT_TYPE + "=");
             DatabaseUtils.appendEscapedSQLString(sb, mAccount.type);
         } else {
-            sb.append(RawContacts.ACCOUNT_NAME + " IS NULL" +
-                    " AND " + RawContacts.ACCOUNT_TYPE + " IS NULL");
+            sb.append("1=1");
         }
     }
 
@@ -1955,8 +1956,9 @@ public class LegacyApiSupport {
             sb.append(" AND " + Groups.ACCOUNT_TYPE + "=");
             DatabaseUtils.appendEscapedSQLString(sb, mAccount.type);
         } else {
-            sb.append(Groups.ACCOUNT_NAME + " IS NULL" +
-                    " AND " + Groups.ACCOUNT_TYPE + " IS NULL");
+            sb.append(Groups.ACCOUNT_NAME + " = '" + AccountWithDataSet.LOCAL.getAccountName() +
+                    "' AND " + Groups.ACCOUNT_TYPE + " = '" +
+                    AccountWithDataSet.LOCAL.getAccountType() + "'");
         }
     }
 

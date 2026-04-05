@@ -57,6 +57,12 @@
     <!-- Background color of dialer list items (contacts, call log entries) -->
     <color name="background_dialer_list_items">#eeeeee</color>
 
+    <!-- Background color where keypad digits are displayed -->
+    <color name="background_digits_dialpad">#f2ffffff</color>
+
+    <!-- Call button color separated from dialpad_primary_text_color, for better theme support -->
+    <color name="dialpad_call_button_color">#404040</color>
+
     <!-- Background color of action bars.  Ensure this stays in sync with packages/Telephony
          actionbar_background_color. -->
     <color name="actionbar_background_color">#3B77E7</color>
@@ -135,4 +141,23 @@
     <!-- Color of action bar text. Ensure this stays in sync with packages/Telephony
          phone_settings_actionbar_text_color-->
     <color name="actionbar_text_color">#FFFFFF</color>
+
+    <!-- Colors for incoming and outgoing calls in the call statistics -->
+    <color name="call_stats_incoming">#33b5e5</color>
+    <color name="call_stats_outgoing">#99cc00</color>
+    <color name="call_stats_missed">#eb1313</color>
+    <color name="call_stats_bar_background">#88888888</color>
+
+    <!-- New Colors for Theme Chooser to be compatible -->
+    <color name="call_detail_photo_bg">#7f000000</color>
+    <color name="call_log_divider">#55ffffff</color>
+    <color name="call_log_primary_text_color">#000000</color>
+    <color name="call_log_primary_background_color">#000000</color>
+    <color name="call_log_secondary_text_color">#888888</color>
+    <color name="call_log_secondary_background_color">#333333</color>
+    <color name="call_log_header_color">#33b5e5</color>
+    <color name="call_log_voicemail_status_background_color">#262626</color>
+    <color name="call_log_voicemail_status_text_color">#888888</color>
+    <color name="call_log_voicemail_status_action_text_color">#33b5e5</color>
+    <color name="dialtacts_frame_color">#33999999</color>
 </resources>

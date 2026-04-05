@@ -33,13 +33,20 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.Telephony;
+import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Xml;
 
 import com.android.internal.telephony.BaseCommands;
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.XmlUtils;
+import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.TelephonyProperties;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -55,13 +62,14 @@ public class TelephonyProvider extends ContentProvider
     private static final String DATABASE_NAME = "telephony.db";
     private static final boolean DBG = true;
 
-    private static final int DATABASE_VERSION = 8 << 16;
+    private static final int DATABASE_VERSION = 15 << 16;
     private static final int URL_TELEPHONY = 1;
     private static final int URL_CURRENT = 2;
     private static final int URL_ID = 3;
     private static final int URL_RESTOREAPN = 4;
     private static final int URL_PREFERAPN = 5;
     private static final int URL_PREFERAPN_NO_UPDATE = 6;
+    private static final int URL_PREFERAPN_W_SUB_ID = 7;
 
     private static final String TAG = "TelephonyProvider";
     private static final String CARRIERS_TABLE = "carriers";
@@ -70,6 +78,16 @@ public class TelephonyProvider extends ContentProvider
     private static final String COLUMN_APN_ID = "apn_id";
 
     private static final String PARTNER_APNS_PATH = "etc/apns-conf.xml";
+
+    private static final String NUMERIC_MATCH_REGEX = "(numeric *= *[',\"][0-9]+[',\"])";
+    private static final String NUMERIC_ADD_DEFAULT_REGEX = "\\($1 or numeric = '000000'\\)";
+    private static final String NUMERIC_VMCCMNC_REGEX_PT1 = "\\($1 and \\(v_mccmnc " +
+        "= '000000' or v_mccmnc = '";
+
+    private static final String VISIT_AREA = "visit_area";
+
+    private static boolean sConfigDefaultApnEnabled;
+    private static boolean sConfigRoamingAreaApnRestrictionEnabled;
 
     private static final UriMatcher s_urlMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -83,6 +101,7 @@ public class TelephonyProvider extends ContentProvider
         s_urlMatcher.addURI("telephony", "carriers/restore", URL_RESTOREAPN);
         s_urlMatcher.addURI("telephony", "carriers/preferapn", URL_PREFERAPN);
         s_urlMatcher.addURI("telephony", "carriers/preferapn_no_update", URL_PREFERAPN_NO_UPDATE);
+        s_urlMatcher.addURI("telephony", "carriers/preferapn/#", URL_PREFERAPN_W_SUB_ID);
 
         s_currentNullMap = new ContentValues(1);
         s_currentNullMap.put("current", (Long) null);
@@ -147,9 +166,33 @@ public class TelephonyProvider extends ContentProvider
                     "carrier_enabled BOOLEAN," +
                     "bearer INTEGER," +
                     "mvno_type TEXT," +
-                    "mvno_match_data TEXT);");
+                    "mvno_match_data TEXT," +
+                    "preferred BOOLEAN DEFAULT 0," +
+                    "read_only BOOLEAN DEFAULT 0," +
+                    "ppp_number TEXT," +
+                    "localized_name TEXT," +
+                    "visit_area TEXT," +
+                    "v_mccmnc TEXT);");
 
             initDatabase(db);
+        }
+
+        private int getDefaultPreferredApnId(SQLiteDatabase db) {
+            int id = -1;
+            String configPref = mContext.getResources().getString(R.string.config_preferred_apn, "");
+            if (!TextUtils.isEmpty(configPref)) {
+                String[] s = configPref.split(",");
+                if (s.length == 3) {
+                    Cursor c = db.query("carriers", new String[] { "_id" },
+                            "apn='" + s[0] + "' AND mcc='" + s[1] + "' AND mnc='" + s[2] + "'",
+                            null, null, null, null);
+                    if (c.moveToFirst()) {
+                        id = c.getInt(0);
+                    }
+                    c.close();
+                }
+            }
+            return id;
         }
 
         private void initDatabase(SQLiteDatabase db) {
@@ -219,9 +262,11 @@ public class TelephonyProvider extends ContentProvider
             if (oldVersion < (6 << 16 | 6)) {
                 // Add protcol fields to the APN. The XML file does not change.
                 db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
-                        " ADD COLUMN protocol TEXT DEFAULT IP;");
+                        " ADD COLUMN protocol TEXT DEFAULT " +
+                        mContext.getString(R.string.default_protocol) + ";");
                 db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
-                        " ADD COLUMN roaming_protocol TEXT DEFAULT IP;");
+                        " ADD COLUMN roaming_protocol TEXT DEFAULT " +
+                        mContext.getString(R.string.default_protocol) + ";");
                 oldVersion = 6 << 16 | 6;
             }
             if (oldVersion < (7 << 16 | 6)) {
@@ -240,6 +285,73 @@ public class TelephonyProvider extends ContentProvider
                 db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
                         " ADD COLUMN mvno_match_data TEXT DEFAULT '';");
                 oldVersion = 8 << 16 | 6;
+            }
+            if (oldVersion < (9 << 16 | 6)) {
+                // Dummy upgrade from previous CM versions
+                oldVersion = 9 << 16 | 6;
+            }
+            if (oldVersion < (10 << 16 | 6)) {
+                // Add preferred field to the APN.
+                // The XML file does not change.
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN preferred BOOLEAN DEFAULT 0;");
+                    oldVersion = 10 << 16 | 6;
+                } catch (SQLException e) {
+                    // Original implementation for preferred apn feature
+                    // didn't include new version for database
+                    // Consequently we can have version 8 database with and
+                    // without preferred column
+                    // Hence, this operation can result in exception
+                    // (if column is already there)
+                    // Just log it
+                    Log.e(TAG, "Exception adding preferred column to database. ", e);
+                }
+            }
+            if (oldVersion < (11 << 16 | 6)) {
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN read_only BOOLEAN DEFAULT 0;");
+                    oldVersion = 11 << 16 | 6;
+                } catch (SQLException e) {
+                    Log.e(TAG, "Exception adding read_only column to database. ", e);
+                }
+            }
+            if (oldVersion < (12 << 16 | 6)) {
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN ppp_number TEXT DEFAULT '';");
+                    oldVersion = 12 << 16 | 6;
+                } catch (SQLException e) {
+                    Log.e(TAG, "Exception adding ppp_number column to database. ", e);
+                }
+            }
+            if (oldVersion < (13 << 16 | 6)) {
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN localized_name TEXT DEFAULT '';");
+                    oldVersion = 13 << 16 | 6;
+                } catch (SQLException e) {
+                    Log.e(TAG, "Exception adding localized_name column to database. ", e);
+                }
+            }
+            if (oldVersion < (14 << 16 | 6)) {
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN visit_area TEXT DEFAULT '';");
+                    oldVersion = 14 << 16 | 6;
+                } catch (SQLException e) {
+                    Log.e(TAG, "Exception adding visit_area column to database. ", e);
+                }
+            }
+            if (oldVersion < (15 << 16 | 6)) {
+                try {
+                    db.execSQL("ALTER TABLE " + CARRIERS_TABLE +
+                            " ADD COLUMN v_mccmnc TEXT DEFAULT '';");
+                    oldVersion = 15 << 16 | 6;
+                } catch (SQLException e) {
+                    Log.e(TAG, "Exception adding v_mccmnc column to database. ", e);
+                }
             }
         }
 
@@ -268,6 +380,11 @@ public class TelephonyProvider extends ContentProvider
             map.put(Telephony.Carriers.USER, parser.getAttributeValue(null, "user"));
             map.put(Telephony.Carriers.SERVER, parser.getAttributeValue(null, "server"));
             map.put(Telephony.Carriers.PASSWORD, parser.getAttributeValue(null, "password"));
+            map.put(mContext.getString(R.string.ppp_number),
+                             parser.getAttributeValue(null, "ppp_number"));
+            map.put(mContext.getString(R.string.localized_name),
+                    parser.getAttributeValue(null, "localized_name"));
+            map.put(VISIT_AREA, parser.getAttributeValue(null, "visit_area"));
 
             // do not add NULL to the map so that insert() will set the default value
             String proxy = parser.getAttributeValue(null, "proxy");
@@ -325,6 +442,21 @@ public class TelephonyProvider extends ContentProvider
                     map.put(Telephony.Carriers.MVNO_MATCH_DATA, mvno_match_data);
                 }
             }
+
+            String preferred = parser.getAttributeValue(null, "preferred");
+            if (preferred != null) {
+                map.put(Telephony.Carriers.PREFERRED,  Boolean.parseBoolean(preferred));
+            }
+
+            String readOnly = parser.getAttributeValue(null, "read_only");
+            if (readOnly != null) {
+                map.put(mContext.getString(R.string.read_only), Boolean.parseBoolean(readOnly));
+            }
+
+            String v_mccmnc = parser.getAttributeValue(null, "v_mccmnc");
+            if (v_mccmnc != null) {
+                map.put(mContext.getString(R.string.v_mccmnc), v_mccmnc);
+            }
             return map;
         }
 
@@ -367,10 +499,11 @@ public class TelephonyProvider extends ContentProvider
                 row.put(Telephony.Carriers.AUTH_TYPE, -1);
             }
             if (row.containsKey(Telephony.Carriers.PROTOCOL) == false) {
-                row.put(Telephony.Carriers.PROTOCOL, "IP");
+                row.put(Telephony.Carriers.PROTOCOL, mContext.getString(R.string.default_protocol));
             }
             if (row.containsKey(Telephony.Carriers.ROAMING_PROTOCOL) == false) {
-                row.put(Telephony.Carriers.ROAMING_PROTOCOL, "IP");
+                row.put(Telephony.Carriers.ROAMING_PROTOCOL,
+                        mContext.getString(R.string.default_protocol));
             }
             if (row.containsKey(Telephony.Carriers.CARRIER_ENABLED) == false) {
                 row.put(Telephony.Carriers.CARRIER_ENABLED, true);
@@ -384,6 +517,18 @@ public class TelephonyProvider extends ContentProvider
             if (row.containsKey(Telephony.Carriers.MVNO_MATCH_DATA) == false) {
                 row.put(Telephony.Carriers.MVNO_MATCH_DATA, "");
             }
+
+            if (row.containsKey(Telephony.Carriers.PREFERRED) == false) {
+                row.put(Telephony.Carriers.PREFERRED, false);
+            }
+
+            if (row.containsKey(mContext.getString(R.string.read_only)) == false) {
+                row.put(mContext.getString(R.string.read_only), false);
+            }
+
+            if (row.containsKey(mContext.getString(R.string.v_mccmnc)) == false) {
+                row.put(mContext.getString(R.string.v_mccmnc), "000000");
+            }
             db.insert(CARRIERS_TABLE, null, row);
         }
     }
@@ -391,19 +536,134 @@ public class TelephonyProvider extends ContentProvider
     @Override
     public boolean onCreate() {
         mOpenHelper = new DatabaseHelper(getContext());
+        sConfigDefaultApnEnabled = getContext().getResources()
+                .getBoolean(R.bool.config_enable_default_apn);
+        sConfigRoamingAreaApnRestrictionEnabled = getContext().getResources()
+                .getBoolean(R.bool.config_enable_roaming_area_apn_restriction);
         return true;
     }
 
-    private void setPreferredApnId(Long id) {
+    private String getColumnApnIdKey(int subId) {
+        String result = COLUMN_APN_ID;
+        // In case multi-sim is enabled,
+        // if subId is given, use column name "apn_id" + sub id;
+        // if subId is not given, use column name "apn_id" + preferred data sub id.
+        //
+        // In case multi-sim is not enabled,
+        // use column name "apn_id".
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            switch (subId) {
+            case MSimConstants.SUB1:
+            case MSimConstants.SUB2:
+                result += String.valueOf(subId);
+                break;
+            default:
+                result += String.valueOf(MSimTelephonyManager.getDefault()
+                        .getPreferredDataSubscription());
+                break;
+           }
+        }
+        Log.d(TAG, "Column apn id key is '" + result + "'");
+        return result;
+    }
+
+    private void setPreferredApnId(Long id, int subId) {
         SharedPreferences sp = getContext().getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
-        editor.putLong(COLUMN_APN_ID, id != null ? id.longValue() : -1);
+        editor.putLong(getColumnApnIdKey(subId), id != null ? id.longValue() : -1);
         editor.apply();
     }
 
-    private long getPreferredApnId() {
+    private void setPreferredApnId(Long id) {
+        setPreferredApnId(id, -1);
+    }
+
+    private String getOperatorNumeric(int subId) {
+        if (subId != MSimConstants.SUB1 && subId != MSimConstants.SUB2) {
+            subId = MSimTelephonyManager.getDefault().getDefaultSubscription();
+        }
+        String numeric = MSimTelephonyManager.getTelephonyProperty(
+                TelephonyProperties.PROPERTY_APN_SIM_OPERATOR_NUMERIC, subId, null);
+        if (numeric != null && numeric.length() > 0) {
+            return numeric;
+        } else {
+            return null;
+        }
+    }
+
+    private long getPreferredApnId(int subId) {
+        long apnId;
         SharedPreferences sp = getContext().getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE);
-        return sp.getLong(COLUMN_APN_ID, -1);
+        apnId = sp.getLong(getColumnApnIdKey(subId), -1);
+        if (apnId == -1) {
+            // Check if there is an initial preferred apn
+            String numeric = getOperatorNumeric(subId);
+            if (numeric != null) {
+                checkPermission();
+                try {
+                    SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+                    qb.setTables("carriers");
+
+                    String where;
+                    where = "numeric=\"" + numeric + "\"";
+                    where += " AND preferred = 1";
+
+                    SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+                    Cursor cursor = qb.query(db, new String[] {"_id"}, where,
+                            null, null, null, Telephony.Carriers.DEFAULT_SORT_ORDER);
+                    cursor.moveToFirst();
+                    if (!cursor.isAfterLast()) {
+                        final int ID_INDEX = 0;
+                        String key = cursor.getString(ID_INDEX);
+                        apnId = Long.valueOf(key);
+                        Log.d(TAG, "Found an inital preferred apn. id = " + apnId);
+                    } else {
+                        apnId = getDefaultPreferredApnId();
+                        if (apnId > -1) {
+                                setPreferredApnId(apnId);
+                        }
+                    }
+                } catch (SQLException e) {
+                    Log.e(TAG, "got exception while checking initial preferred apn: " + e);
+                }
+            }
+        }
+
+        return apnId;
+    }
+
+    private long getPreferredApnId() {
+        return getPreferredApnId(-1);
+    }
+
+    private long getDefaultPreferredApnId() {
+        long id = -1;
+        String configPref = getContext().getResources().getString(R.string.config_preferred_apn, "");
+        if (!TextUtils.isEmpty(configPref)) {
+            String[] s = configPref.split(",");
+            if (s.length == 3) {
+                Cursor c = mOpenHelper.getReadableDatabase().query("carriers", new String[] { "_id" },
+                        "apn='" + s[0] + "' AND mcc='" + s[1] + "' AND mnc='" + s[2] + "'",
+                        null, null, null, null);
+                if (c.moveToFirst()) {
+                    id = c.getLong(0);
+                }
+                c.close();
+            }
+        }
+        Log.d(TAG, "Preferred APN: " + id);
+        return id;
+    }
+
+    private int parseSubId(Uri url) {
+        int subId = -1;
+        try {
+            subId = Integer.parseInt(url.getLastPathSegment());
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "NumberFormatException: ", e);
+        }
+        Log.d(TAG, "SUB ID in the uri is" + subId);
+        return subId;
     }
 
     @Override
@@ -439,6 +699,11 @@ public class TelephonyProvider extends ContentProvider
                 break;
             }
 
+            case URL_PREFERAPN_W_SUB_ID: {
+                qb.appendWhere("_id = " + getPreferredApnId(parseSubId(url)));
+                break;
+            }
+
             default: {
                 return null;
             }
@@ -465,7 +730,44 @@ public class TelephonyProvider extends ContentProvider
         SQLiteDatabase db = mOpenHelper.getReadableDatabase();
         Cursor ret = null;
         try {
-            ret = qb.query(db, projectionIn, selection, selectionArgs, null, null, sort);
+            if (sConfigRoamingAreaApnRestrictionEnabled) {
+                // Replaces WHERE clause from
+                //  numeric = 'xxxxxx'
+                // to
+                //  (numeric = 'xxxxxx' and (v_mccmnc = '000000' or v_mccmnc = 'yyyyyy'))
+                String newSelection = null;
+                if (selection != null) {
+                    String operatorNumeric = null;
+                    if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                        operatorNumeric = MSimTelephonyManager.getDefault().getNetworkOperator(
+                                MSimTelephonyManager.getDefault().getPreferredDataSubscription());
+                    } else {
+                        operatorNumeric = TelephonyManager.getDefault().getNetworkOperator();
+                    }
+
+                    operatorNumeric = (operatorNumeric == null) ? "" : operatorNumeric;
+                    String replacement = NUMERIC_VMCCMNC_REGEX_PT1 + operatorNumeric
+                        + "'\\)\\)";
+                    newSelection = selection.replaceAll(NUMERIC_MATCH_REGEX,
+                            replacement);
+                    Log.d(TAG, "Selection has been replaced to: " + newSelection);
+                }
+                ret = qb.query(db, projectionIn, newSelection, selectionArgs, null, null, sort);
+            } else {
+                ret = qb.query(db, projectionIn, selection, selectionArgs, null, null, sort);
+            }
+
+            if (sConfigDefaultApnEnabled) {
+                // Additional query for default APNs.
+                if (ret != null && ret.getCount() == 0) {
+                    String newSelection = null;
+                    if (selection != null) {
+                        newSelection = selection.replaceAll(NUMERIC_MATCH_REGEX,
+                                NUMERIC_ADD_DEFAULT_REGEX);
+                    }
+                    ret = qb.query(db, projectionIn, newSelection, selectionArgs, null, null, sort);
+                }
+            }
         } catch (SQLException e) {
             Log.e(TAG, "got exception when querying: " + e);
         }
@@ -486,6 +788,7 @@ public class TelephonyProvider extends ContentProvider
 
         case URL_PREFERAPN:
         case URL_PREFERAPN_NO_UPDATE:
+        case URL_PREFERAPN_W_SUB_ID:
             return "vnd.android.cursor.item/telephony-carrier";
 
         default:
@@ -547,10 +850,12 @@ public class TelephonyProvider extends ContentProvider
                     values.put(Telephony.Carriers.AUTH_TYPE, -1);
                 }
                 if (!values.containsKey(Telephony.Carriers.PROTOCOL)) {
-                    values.put(Telephony.Carriers.PROTOCOL, "IP");
+                    values.put(Telephony.Carriers.PROTOCOL,
+                            getContext().getString(R.string.default_protocol));
                 }
                 if (!values.containsKey(Telephony.Carriers.ROAMING_PROTOCOL)) {
-                    values.put(Telephony.Carriers.ROAMING_PROTOCOL, "IP");
+                    values.put(Telephony.Carriers.ROAMING_PROTOCOL,
+                            getContext().getString(R.string.default_protocol));
                 }
                 if (!values.containsKey(Telephony.Carriers.CARRIER_ENABLED)) {
                     values.put(Telephony.Carriers.CARRIER_ENABLED, true);
@@ -563,6 +868,19 @@ public class TelephonyProvider extends ContentProvider
                 }
                 if (!values.containsKey(Telephony.Carriers.MVNO_MATCH_DATA)) {
                     values.put(Telephony.Carriers.MVNO_MATCH_DATA, "");
+                }
+                if (!values.containsKey(Telephony.Carriers.PREFERRED)) {
+                    values.put(Telephony.Carriers.PREFERRED, false);
+                }
+
+                if (!values.containsKey(getContext().getString(R.string.read_only))) {
+                    values.put(getContext().getString(R.string.read_only), false);
+                }
+                if (!values.containsKey(getContext().getString(R.string.localized_name))) {
+                    values.put(getContext().getString(R.string.localized_name), "");
+                }
+                if (!values.containsKey(getContext().getString(R.string.v_mccmnc))) {
+                    values.put(getContext().getString(R.string.v_mccmnc), "000000");
                 }
 
                 long rowID = db.insert(CARRIERS_TABLE, null, values);
@@ -604,6 +922,16 @@ public class TelephonyProvider extends ContentProvider
                 if (initialValues != null) {
                     if(initialValues.containsKey(COLUMN_APN_ID)) {
                         setPreferredApnId(initialValues.getAsLong(COLUMN_APN_ID));
+                    }
+                }
+                break;
+            }
+
+            case URL_PREFERAPN_W_SUB_ID:
+            {
+                if (initialValues != null) {
+                    if(initialValues.containsKey(COLUMN_APN_ID)) {
+                        setPreferredApnId(initialValues.getAsLong(COLUMN_APN_ID), parseSubId(url));
                     }
                 }
                 break;
@@ -658,6 +986,13 @@ public class TelephonyProvider extends ContentProvider
             {
                 setPreferredApnId((long)-1);
                 if (match == URL_PREFERAPN) count = 1;
+                break;
+            }
+
+            case URL_PREFERAPN_W_SUB_ID:
+            {
+                setPreferredApnId((long)-1, parseSubId(url));
+                count = 1;
                 break;
             }
 
@@ -719,6 +1054,17 @@ public class TelephonyProvider extends ContentProvider
                 break;
             }
 
+            case URL_PREFERAPN_W_SUB_ID:
+            {
+                if (values != null) {
+                    if (values.containsKey(COLUMN_APN_ID)) {
+                        setPreferredApnId(values.getAsLong(COLUMN_APN_ID), parseSubId(url));
+                        count = 1;
+                    }
+                }
+                break;
+            }
+
             default: {
                 throw new UnsupportedOperationException("Cannot update that URL: " + url);
             }
@@ -748,5 +1094,6 @@ public class TelephonyProvider extends ContentProvider
         }
         setPreferredApnId((long)-1);
         mOpenHelper.initDatabase(db);
+        setPreferredApnId(getDefaultPreferredApnId());
     }
 }

@@ -53,7 +53,8 @@
         <activity android:name="CellBroadcastListActivity"
                   android:label="@string/app_label"
                   android:configChanges="orientation|keyboardHidden"
-                  android:launchMode="singleTask">
+                  android:launchMode="singleTask"
+                  android:theme="@style/Theme.Main">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 <!-- Uncomment this category to show the Cell Broadcasts launcher icon.
@@ -73,7 +74,9 @@
         <activity android:name="CellBroadcastSettings"
                   android:label="@string/sms_cb_settings"
                   android:launchMode="singleTask"
-                  android:exported="true" />
+                  android:exported="true"
+                  android:configChanges="orientation|screenSize"
+                  android:theme="@style/Theme.Main" />
 
         <activity android:name="CellBroadcastAlertDialog"
                   android:theme="@android:style/Theme.Holo.Dialog"

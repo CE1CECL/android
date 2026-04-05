@@ -16,20 +16,29 @@
 
 package com.android.systemui.statusbar.policy;
 
+import android.app.ActivityManagerNative;
+import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.provider.AlarmClock;
+import android.provider.Settings;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.format.DateFormat;
 import android.text.style.CharacterStyle;
 import android.text.style.RelativeSizeSpan;
 import android.util.AttributeSet;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.widget.TextView;
 
 import com.android.systemui.DemoMode;
+
+import com.android.internal.R;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -41,8 +50,9 @@ import libcore.icu.LocaleData;
 /**
  * Digital clock for the status bar.
  */
-public class Clock extends TextView implements DemoMode {
+public class Clock extends TextView implements DemoMode, OnClickListener, OnLongClickListener {
     private boolean mAttached;
+    private boolean mReceiverRegistered;
     private Calendar mCalendar;
     private String mClockFormatString;
     private SimpleDateFormat mClockFormat;
@@ -64,14 +74,16 @@ public class Clock extends TextView implements DemoMode {
 
     public Clock(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+
+        if (isClickable()) {
+            setOnClickListener(this);
+            setOnLongClickListener(this);
+        }
     }
 
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-
-        if (!mAttached) {
-            mAttached = true;
+    private void updateReceiverState() {
+        boolean shouldBeRegistered = mAttached && getVisibility() != GONE;
+        if (shouldBeRegistered && !mReceiverRegistered) {
             IntentFilter filter = new IntentFilter();
 
             filter.addAction(Intent.ACTION_TIME_TICK);
@@ -81,7 +93,19 @@ public class Clock extends TextView implements DemoMode {
             filter.addAction(Intent.ACTION_USER_SWITCHED);
 
             getContext().registerReceiver(mIntentReceiver, filter, null, getHandler());
+            mReceiverRegistered = true;
+        } else if (!shouldBeRegistered && mReceiverRegistered) {
+            getContext().unregisterReceiver(mIntentReceiver);
+            mReceiverRegistered = false;
         }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+
+        mAttached = true;
+        updateReceiverState();
 
         // NOTE: It's safe to do these after registering the receiver since the receiver always runs
         // in the main thread, therefore the receiver can't run before this method returns.
@@ -96,9 +120,18 @@ public class Clock extends TextView implements DemoMode {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        if (mAttached) {
-            getContext().unregisterReceiver(mIntentReceiver);
-            mAttached = false;
+        mAttached = false;
+        updateReceiverState();
+    }
+
+    @Override
+    protected void onVisibilityChanged(View changedView, int visibility) {
+        super.onVisibilityChanged(changedView, visibility);
+        boolean wasRegistered = mReceiverRegistered;
+        updateReceiverState();
+        if (!wasRegistered && mReceiverRegistered) {
+            mCalendar = Calendar.getInstance(TimeZone.getDefault());
+            updateClock();
         }
     }
 
@@ -199,6 +232,45 @@ public class Clock extends TextView implements DemoMode {
 
         return result;
 
+    }
+
+    private void collapseStartActivity(Intent what) {
+        // don't do anything if the activity can't be resolved (e.g. app disabled)
+        if (getContext().getPackageManager().resolveActivity(what, 0) == null) {
+            return;
+        }
+
+        // collapse status bar
+        StatusBarManager statusBarManager = (StatusBarManager) getContext().getSystemService(
+                Context.STATUS_BAR_SERVICE);
+        statusBarManager.collapsePanels();
+
+        // dismiss keyguard in case it was active and no passcode set
+        try {
+            ActivityManagerNative.getDefault().dismissKeyguardOnNextActivity();
+        } catch (Exception ex) {
+            // no action needed here
+        }
+
+        // start activity
+        what.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        mContext.startActivity(what);
+    }
+
+    @Override
+    public void onClick(View v) {
+        Intent intent = new Intent(AlarmClock.ACTION_SHOW_ALARMS);
+        collapseStartActivity(intent);
+    }
+
+    @Override
+    public boolean onLongClick(View v) {
+        Intent intent = new Intent("android.settings.DATE_SETTINGS");
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        collapseStartActivity(intent);
+
+        // consume event
+        return true;
     }
 
     private boolean mDemoMode;

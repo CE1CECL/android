@@ -160,7 +160,9 @@ NuPlayer::NuPlayer()
       mNumFramesTotal(0ll),
       mNumFramesDropped(0ll),
       mVideoScalingMode(NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW),
-      mStarted(false) {
+      mStarted(false),
+      mSeeking(false),
+      isCodecSpecific(false) {
 }
 
 NuPlayer::~NuPlayer() {
@@ -214,6 +216,13 @@ void NuPlayer::setDataSourceAsync(
     size_t len = strlen(url);
 
     sp<AMessage> notify = new AMessage(kWhatSourceNotify, id());
+
+    if (headers) {
+        ssize_t index = headers->indexOfKey(String8("codecspecific"));
+        if (index >= 0) {
+            isCodecSpecific = true;
+        }
+    }
 
     sp<Source> source;
     if (IsHTTPLiveURL(url)) {
@@ -545,8 +554,15 @@ void NuPlayer::onMessageReceived(const sp<AMessage> &msg) {
                         audio, codecRequest);
 
                 if (err == -EWOULDBLOCK) {
-                    if (mSource->feedMoreTSData() == OK) {
+                    status_t result = mSource->feedMoreTSData();
+                    if (result == OK) {
                         msg->post(10000ll);
+                    } else if (result == (status_t)UNKNOWN_ERROR) {
+                        // The source has disconnected
+                        sp<AMessage> reply;
+                        CHECK(codecRequest->findMessage("reply", &reply));
+                        reply->setInt32("err", INFO_DISCONTINUITY);
+                        reply->post();
                     }
                 }
             } else if (what == ACodec::kWhatEOS) {
@@ -666,7 +682,9 @@ void NuPlayer::onMessageReceived(const sp<AMessage> &msg) {
 
                     // Take into account sample aspect ratio if necessary:
                     int32_t sarWidth, sarHeight;
-                    if (videoInputFormat->findInt32("sar-width", &sarWidth)
+                    if (videoInputFormat != NULL
+                            && videoInputFormat->findInt32(
+                                "sar-width", &sarWidth)
                             && videoInputFormat->findInt32(
                                 "sar-height", &sarHeight)) {
                         ALOGV("Sample aspect ratio %d : %d",
@@ -758,7 +776,10 @@ void NuPlayer::onMessageReceived(const sp<AMessage> &msg) {
                 if (mDriver != NULL) {
                     sp<NuPlayerDriver> driver = mDriver.promote();
                     if (driver != NULL) {
-                        driver->notifyPosition(positionUs);
+                        // Notify position while seeking will cause the process bar displayed incorrectly.
+                        if (!mSeeking) {
+                            driver->notifyPosition(positionUs);
+                        }
 
                         driver->notifyFrameStats(
                                 mNumFramesTotal, mNumFramesDropped);
@@ -836,6 +857,12 @@ void NuPlayer::onMessageReceived(const sp<AMessage> &msg) {
             break;
         }
 
+        case kWhatSeekDone:
+        {
+            mSeeking = false;
+            break;
+        }
+
         default:
             TRESPASS();
             break;
@@ -884,6 +911,10 @@ void NuPlayer::postScanSources() {
     mScanSourcesPending = true;
 }
 
+int32_t NuPlayer::getServerTimeoutMs() {
+    return mSource->getServerTimeoutMs();
+}
+
 status_t NuPlayer::instantiateDecoder(bool audio, sp<Decoder> *decoder) {
     if (*decoder != NULL) {
         return OK;
@@ -899,6 +930,8 @@ status_t NuPlayer::instantiateDecoder(bool audio, sp<Decoder> *decoder) {
         AString mime;
         CHECK(format->findString("mime", &mime));
         mVideoIsAVC = !strcasecmp(MEDIA_MIMETYPE_VIDEO_AVC, mime.c_str());
+        if(isCodecSpecific)
+            format->setInt32("hardwarecodecOnly", 1);
     }
 
     sp<AMessage> notify =
@@ -1052,6 +1085,12 @@ void NuPlayer::renderBuffer(bool audio, const sp<AMessage> &msg) {
     sp<AMessage> reply;
     CHECK(msg->findMessage("reply", &reply));
 
+    // While seeking, the obsolete frames shouldn't be rendered
+    if (mSeeking) {
+        reply->post();
+        return;
+    }
+
     if (IsFlushingState(audio ? mFlushingAudio : mFlushingVideo)) {
         // We're currently attempting to flush the decoder, in order
         // to complete this, the decoder wants all its buffers back,
@@ -1088,6 +1127,12 @@ void NuPlayer::renderBuffer(bool audio, const sp<AMessage> &msg) {
 
         skipUntilMediaTimeUs = -1;
     }
+
+#ifdef MTK_HARDWARE
+    int32_t flags;
+    CHECK(msg->findInt32("flags", &flags));
+    buffer->meta()->setInt32("flags", flags);
+#endif
 
     mRenderer->queueBuffer(audio, buffer, reply);
 }
@@ -1163,6 +1208,10 @@ sp<AMessage> NuPlayer::Source::getFormat(bool audio) {
         return msg;
     }
     return NULL;
+}
+
+int32_t NuPlayer::Source::getServerTimeoutMs() {
+    return 0;
 }
 
 status_t NuPlayer::setVideoScalingMode(int32_t mode) {
@@ -1248,6 +1297,9 @@ void NuPlayer::performSeek(int64_t seekTimeUs) {
     ALOGV("performSeek seekTimeUs=%lld us (%.2f secs)",
           seekTimeUs,
           seekTimeUs / 1E6);
+    if (mSource->setCbfForSeekDone(new AMessage(kWhatSeekDone, id()))) {
+        mSeeking = true;
+    }
 
     mSource->seekTo(seekTimeUs);
 
@@ -1336,6 +1388,7 @@ void NuPlayer::performReset() {
     }
 
     mStarted = false;
+    mSeeking = false;
 }
 
 void NuPlayer::performScanSources() {

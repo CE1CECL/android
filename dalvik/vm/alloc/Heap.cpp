@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2008 The Android Open Source Project
  *
@@ -28,14 +29,27 @@
 #include "alloc/HeapSource.h"
 #include "alloc/MarkSweep.h"
 #include "os/os.h"
-
 #include <sys/mman.h>
+#include "hprof/Hprof.h"
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <limits.h>
 #include <errno.h>
-
 #include <cutils/trace.h>
+#include <cutils/process_name.h>
+
+#ifdef HAVE_ANDROID_OS
+#include "cutils/properties.h"
+
+static int debugalloc()
+{
+    char value[PROPERTY_VALUE_MAX];
+    property_get("dalvik.vm.debug.alloc", value, "0");
+    return atoi(value);
+}
+#else
+inline static int debugalloc() { return 1; }
+#endif
 
 static const GcSpec kGcForMallocSpec = {
     true,  /* isPartial */
@@ -183,8 +197,13 @@ static void gcForMalloc(bool clearSoftReferences)
  */
 static void *tryMalloc(size_t size)
 {
+#ifdef HAVE_ANDROID_OS
+    char prop_value[PROPERTY_VALUE_MAX] = {'\0'};
+#endif
+    char* hprof_file = NULL;
     void *ptr;
-
+    int result = -1;
+    int debug_oom = 0;
 //TODO: figure out better heuristics
 //    There will be a lot of churn if someone allocates a bunch of
 //    big objects in a row, and we hit the frag case each time.
@@ -199,7 +218,6 @@ static void *tryMalloc(size_t size)
     if (ptr != NULL) {
         return ptr;
     }
-
     /*
      * The allocation failed.  If the GC is running, block until it
      * completes and retry.
@@ -233,12 +251,12 @@ static void *tryMalloc(size_t size)
 //TODO: may want to grow a little bit more so that the amount of free
 //      space is equal to the old free space + the utilization slop for
 //      the new allocation.
+        if (debugalloc())
         LOGI_HEAP("Grow heap (frag case) to "
                 "%zu.%03zuMB for %zu-byte allocation",
                 FRACTIONAL_MB(newHeapSize), size);
         return ptr;
     }
-
     /* Most allocations should have succeeded by now, so the heap
      * is really full, really fragmented, or the requested size is
      * really big.  Do another GC, collecting SoftReferences this
@@ -259,6 +277,46 @@ static void *tryMalloc(size_t size)
 //TODO: tell the HeapSource to dump its state
     dvmDumpThread(dvmThreadSelf(), false);
 
+#ifdef HAVE_ANDROID_OS
+    /* Read the property to check whether hprof should be generated or not */
+    property_get("dalvik.debug.oom",prop_value,"0");
+    debug_oom = atoi(prop_value);
+#endif
+    if(debug_oom == 1) {
+        LOGE_HEAP("Generating hprof for process: %s PID: %d",
+                    get_process_name(),getpid());
+        dvmUnlockHeap();
+
+        /* allocate memory for hprof file name. Allocate approx 30 bytes.
+         * 11 byte for directory path, 10 bytes for pid, 6 bytes for
+         * extension + "\0'.
+         */
+        hprof_file = (char*) malloc (sizeof(char) * 30);
+
+        /* creation of hprof will fail if /data/misc permission is not set
+         * to 0777.
+         */
+
+        if(hprof_file) {
+            snprintf(hprof_file,30,"/data/misc/%d.hprof",getpid());
+            LOGE_HEAP("Generating hprof in file: %s",hprof_file );
+
+            result = hprofDumpHeap(hprof_file, -1, false);
+            free(hprof_file);
+        } else {
+            LOGE_HEAP("Failed to allocate memory for file name."
+                      "Generating hprof in default file: /data/misc/app_oom.hprof");
+            result = hprofDumpHeap("/data/misc/app_oom.hprof", -1, false);
+        }
+        dvmLockMutex(&gDvm.gcHeapLock);
+
+        if (result != 0) {
+            /* ideally we'd throw something more specific based on actual failure */
+            dvmThrowRuntimeException(
+                "Failure during heap dump; check log output for details");
+            LOGE_HEAP(" hprofDumpHeap failed with result: %d ",result);
+        }
+    }
     return NULL;
 }
 
@@ -669,6 +727,7 @@ void dvmCollectGarbageInternal(const GcSpec* spec)
         u4 markSweepTime = dirtyEnd - rootStart;
         u4 gcTime = gcEnd - rootStart;
         bool isSmall = numBytesFreed > 0 && numBytesFreed < 1024;
+        if (debugalloc())
         ALOGD("%s freed %s%zdK, %d%% free %zdK/%zdK, paused %ums, total %ums",
              spec->reason,
              isSmall ? "<" : "",
@@ -681,6 +740,7 @@ void dvmCollectGarbageInternal(const GcSpec* spec)
         u4 dirtyTime = dirtyEnd - dirtyStart;
         u4 gcTime = gcEnd - rootStart;
         bool isSmall = numBytesFreed > 0 && numBytesFreed < 1024;
+        if (debugalloc())
         ALOGD("%s freed %s%zdK, %d%% free %zdK/%zdK, paused %ums+%ums, total %ums",
              spec->reason,
              isSmall ? "<" : "",
@@ -738,7 +798,7 @@ bool dvmWaitForConcurrentGcToComplete()
         dvmChangeStatus(self, oldStatus);
     }
     u4 end = dvmGetRelativeTimeMsec();
-    if (end - start > 0) {
+    if (end - start > 0 && debugalloc()) {
         ALOGD("WAIT_FOR_CONCURRENT_GC blocked %ums", end - start);
     }
     ATRACE_END();

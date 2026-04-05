@@ -26,9 +26,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.android.contacts.common.R;
+import com.android.contacts.common.SimContactsConstants;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountWithDataSet;
+import com.android.contacts.common.model.account.PhoneAccountType;
+import com.android.contacts.common.model.account.SimAccountType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +51,9 @@ public final class AccountsListAdapter extends BaseAdapter {
     public enum AccountListFilter {
         ALL_ACCOUNTS,                   // All read-only and writable accounts
         ACCOUNTS_CONTACT_WRITABLE,      // Only where the account type is contact writable
-        ACCOUNTS_GROUP_WRITABLE         // Only accounts where the account type is group writable
+        ACCOUNTS_GROUP_WRITABLE,        // Only accounts where the account type is group writable
+        ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM,
+        ACCOUNTS_CONTACT_WRITABLE_WITHOUT_PHONE
     }
 
     public AccountsListAdapter(Context context, AccountListFilter accountListFilter) {
@@ -64,21 +69,43 @@ public final class AccountsListAdapter extends BaseAdapter {
         mContext = context;
         mAccountTypes = AccountTypeManager.getInstance(context);
         mAccounts = getAccounts(accountListFilter);
+
         if (currentAccount != null
-                && !mAccounts.isEmpty()
-                && !mAccounts.get(0).equals(currentAccount)
-                && mAccounts.remove(currentAccount)) {
+                && !mAccounts.contains(currentAccount)) {
             mAccounts.add(0, currentAccount);
         }
+        if (!mAccounts.contains(AccountWithDataSet.LOCAL_PHONE_ACCOUNT)) {
+            // Add a virtual local storage account to allow user to store its contacts in the phone
+            mAccounts.add(0, AccountWithDataSet.LOCAL_PHONE_ACCOUNT);
+        }
+
         mInflater = LayoutInflater.from(context);
     }
 
     private List<AccountWithDataSet> getAccounts(AccountListFilter accountListFilter) {
         if (accountListFilter == AccountListFilter.ACCOUNTS_GROUP_WRITABLE) {
-            return new ArrayList<AccountWithDataSet>(mAccountTypes.getGroupWritableAccounts());
+            return new ArrayList<AccountWithDataSet>(mAccountTypes.getAccounts(true,
+                    AccountTypeManager.FLAG_ALL_ACCOUNTS));
         }
-        return new ArrayList<AccountWithDataSet>(mAccountTypes.getAccounts(
-                accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE));
+        final List<AccountWithDataSet> writableAccountList = mAccountTypes
+                .getAccounts(accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE
+                || accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM);
+        List<AccountWithDataSet> deletedList = new ArrayList<AccountWithDataSet>();
+
+        if (accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM) {
+            for (AccountWithDataSet account : writableAccountList) {
+                if (SimAccountType.ACCOUNT_TYPE.equals(account.type))
+                    deletedList.add(account);
+            }
+            writableAccountList.removeAll(deletedList);
+        } else if (accountListFilter == AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_PHONE) {
+            for (AccountWithDataSet account : writableAccountList) {
+                if (PhoneAccountType.ACCOUNT_TYPE.equals(account.type))
+                    deletedList.add(account);
+            }
+            writableAccountList.removeAll(deletedList);
+        }
+        return writableAccountList;
     }
 
     @Override
@@ -93,10 +120,16 @@ public final class AccountsListAdapter extends BaseAdapter {
         final AccountWithDataSet account = mAccounts.get(position);
         final AccountType accountType = mAccountTypes.getAccountType(account.type, account.dataSet);
 
-        text1.setText(accountType.getDisplayLabel(mContext));
+        text1.setText(accountType.getDisplayLabel(mContext, account.name));
 
         // For email addresses, we don't want to truncate at end, which might cut off the domain
         // name.
+        if (SimAccountType.ACCOUNT_TYPE.equals(account.type)
+                || PhoneAccountType.ACCOUNT_TYPE.equals(account.type)) {
+            text2.setVisibility(View.GONE);
+        } else {
+            text2.setVisibility(View.VISIBLE);
+        }
         text2.setText(account.name);
         text2.setEllipsize(TruncateAt.MIDDLE);
 

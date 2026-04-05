@@ -27,6 +27,7 @@ import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.StatFs;
+import android.os.storage.StorageVolume;
 import android.provider.Downloads;
 import android.text.TextUtils;
 import android.util.Log;
@@ -63,6 +64,9 @@ class StorageManager {
     /** see {@link Environment#getExternalStorageDirectory()} */
     private final File mExternalStorageDir;
 
+    /** list of secondary external storage paths */
+    private final List<String> mSecondaryStoragePaths;
+
     /** see {@link Environment#getDownloadCacheDirectory()} */
     private final File mSystemCacheDir;
 
@@ -83,6 +87,7 @@ class StorageManager {
         mDownloadDataDir = getDownloadDataDirectory(context);
         mExternalStorageDir = Environment.getExternalStorageDirectory();
         mSystemCacheDir = Environment.getDownloadCacheDirectory();
+        mSecondaryStoragePaths = getSecondaryStoragePaths(context);
         startThreadToCleanupDatabaseAndPurgeFileSystem();
     }
 
@@ -129,6 +134,7 @@ class StorageManager {
     void verifySpace(int destination, String path, long length) throws StopRequestException {
         resetBytesDownloadedSinceLastCheckOnSpace();
         File dir = null;
+        boolean isSecondaryStorage = false;
         if (Constants.LOGV) {
             Log.i(Constants.TAG, "in verifySpace, destination: " + destination +
                     ", path: " + path + ", length: " + length);
@@ -151,10 +157,23 @@ class StorageManager {
             case Downloads.Impl.DESTINATION_FILE_URI:
                 if (path.startsWith(mExternalStorageDir.getPath())) {
                     dir = mExternalStorageDir;
-                } else if (path.startsWith(mDownloadDataDir.getPath())) {
-                    dir = mDownloadDataDir;
-                } else if (path.startsWith(mSystemCacheDir.getPath())) {
-                    dir = mSystemCacheDir;
+                } else {
+                    for (String secondaryPath : mSecondaryStoragePaths) {
+                        if (path.startsWith(secondaryPath)) {
+                            isSecondaryStorage = true;
+                            dir = new File(secondaryPath);
+                            break;
+                        }
+                    }
+                }
+                // TODO - should only check external storage?
+                if (dir == null) {
+                    if (path.startsWith(mDownloadDataDir.getPath())) {
+                        dir = mDownloadDataDir;
+                    }
+                    else if (path.startsWith(mSystemCacheDir.getPath())) {
+                        dir = mSystemCacheDir;
+                    }
                 }
                 break;
          }
@@ -162,7 +181,7 @@ class StorageManager {
             throw new IllegalStateException("invalid combination of destination: " + destination +
                     ", path: " + path);
         }
-        findSpace(dir, length, destination);
+        findSpace(dir, length, destination, isSecondaryStorage);
     }
 
     /**
@@ -170,14 +189,18 @@ class StorageManager {
      * specified by the input param(targetBytes).
      * returns true if found. false otherwise.
      */
-    private synchronized void findSpace(File root, long targetBytes, int destination)
-            throws StopRequestException {
+    private synchronized void findSpace(File root, long targetBytes, int destination,
+            boolean isSecondaryStorage) throws StopRequestException {
         if (targetBytes == 0) {
             return;
         }
-        if (destination == Downloads.Impl.DESTINATION_FILE_URI ||
-                destination == Downloads.Impl.DESTINATION_EXTERNAL) {
+        if (root == mExternalStorageDir) {
             if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                throw new StopRequestException(Downloads.Impl.STATUS_DEVICE_NOT_FOUND_ERROR,
+                        "external media not mounted");
+            }
+        } else if (isSecondaryStorage) {
+            if (!Environment.getStorageState(root).equals(Environment.MEDIA_MOUNTED)) {
                 throw new StopRequestException(Downloads.Impl.STATUS_DEVICE_NOT_FOUND_ERROR,
                         "external media not mounted");
             }
@@ -469,4 +492,19 @@ class StorageManager {
     private synchronized void resetBytesDownloadedSinceLastCheckOnSpace() {
         mBytesDownloadedSinceLastCheckOnSpace = 0;
     }
+
+    public static List<String> getSecondaryStoragePaths(Context context) {
+        List<String> secondaryPaths = new ArrayList<String>();
+        android.os.storage.StorageManager storageManager =
+                (android.os.storage.StorageManager) context
+                        .getSystemService(Context.STORAGE_SERVICE);
+        StorageVolume[] volumes = storageManager.getVolumeList();
+        for (int i = 0; i < volumes.length; i++) {
+            if (!volumes[i].isPrimary()) {
+                secondaryPaths.add(volumes[i].getPath());
+            }
+        }
+        return secondaryPaths;
+    }
+
 }

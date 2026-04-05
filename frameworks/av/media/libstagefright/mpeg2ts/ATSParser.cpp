@@ -506,6 +506,11 @@ ATSParser::Stream::Stream(
                     ElementaryStreamQueue::PCM_AUDIO);
             break;
 
+        case STREAMTYPE_AC3_AUDIO:
+            mQueue = new ElementaryStreamQueue(
+                    ElementaryStreamQueue::AC3);
+            break;
+
         default:
             break;
     }
@@ -529,29 +534,6 @@ status_t ATSParser::Stream::parse(
     if (mQueue == NULL) {
         return OK;
     }
-
-    if (mExpectedContinuityCounter >= 0
-            && (unsigned)mExpectedContinuityCounter != continuity_counter) {
-        ALOGI("discontinuity on stream pid 0x%04x", mElementaryPID);
-
-        mPayloadStarted = false;
-        mBuffer->setRange(0, 0);
-        mExpectedContinuityCounter = -1;
-
-#if 0
-        // Uncomment this if you'd rather see no corruption whatsoever on
-        // screen and suspend updates until we come across another IDR frame.
-
-        if (mStreamType == STREAMTYPE_H264) {
-            ALOGI("clearing video queue");
-            mQueue->clear(true /* clearFormat */);
-        }
-#endif
-
-        return OK;
-    }
-
-    mExpectedContinuityCounter = (continuity_counter + 1) & 0x0f;
 
     if (payload_unit_start_indicator) {
         if (mPayloadStarted) {
@@ -614,6 +596,7 @@ bool ATSParser::Stream::isAudio() const {
         case STREAMTYPE_MPEG2_AUDIO:
         case STREAMTYPE_MPEG2_AUDIO_ADTS:
         case STREAMTYPE_PCM_AUDIO:
+        case STREAMTYPE_AC3_AUDIO:
             return true;
 
         default:

@@ -29,6 +29,7 @@ import java.io.IOException;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.provider.Telephony.Mms;
@@ -37,9 +38,12 @@ import android.provider.Telephony.Mms.Inbox;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.internal.util.HexDump;
+import com.android.mms.LogTag;
 import com.android.mms.MmsApp;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.MessageUtils;
 import com.android.mms.util.DownloadManager;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -139,9 +143,18 @@ public class NotificationTransaction extends Transaction implements Runnable {
         return autoDownload && !dataSuspended;
     }
 
+    public static boolean isMmsSizeTooLarge(NotificationInd nInd) {
+        int currentMmsSize = (int) nInd.getMessageSize();
+        int maxSize = MmsConfig.getMaxMessageSize();
+        return currentMmsSize > maxSize;
+    }
+
     public void run() {
         DownloadManager downloadManager = DownloadManager.getInstance();
         boolean autoDownload = allowAutoDownload();
+        boolean isMobileDataDisabled = MessageUtils.isMobileDataDisabled(mContext);
+        boolean isMemoryFull = MessageUtils.isMmsMemoryFull();
+        boolean isTooLarge = isMmsSizeTooLarge(mNotificationInd);
         try {
             if (LOCAL_LOGV) {
                 Log.v(TAG, "Notification transaction launched: " + this);
@@ -152,8 +165,14 @@ public class NotificationTransaction extends Transaction implements Runnable {
             // download a MM immediately.
             int status = STATUS_DEFERRED;
             // Don't try to download when data is suspended, as it will fail, so defer download
-            if (!autoDownload) {
+            if (!autoDownload || isMobileDataDisabled) {
                 downloadManager.markState(mUri, DownloadManager.STATE_UNSTARTED);
+                sendNotifyRespInd(status);
+                return;
+            }
+
+            if (isMemoryFull || isTooLarge) {
+                downloadManager.markState(mUri, DownloadManager.STATE_TRANSIENT_FAILURE);
                 sendNotifyRespInd(status);
                 return;
             }
@@ -174,6 +193,10 @@ public class NotificationTransaction extends Transaction implements Runnable {
             }
 
             if (retrieveConfData != null) {
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+                    Log.v(TAG, "NotificationTransaction: retrieve data=" +
+                            HexDump.dumpHexString(retrieveConfData));
+                }
                 GenericPdu pdu = new PduParser(retrieveConfData).parse();
                 if ((pdu == null) || (pdu.getMessageType() != MESSAGE_TYPE_RETRIEVE_CONF)) {
                     Log.e(TAG, "Invalid M-RETRIEVE.CONF PDU. " +
@@ -187,8 +210,24 @@ public class NotificationTransaction extends Transaction implements Runnable {
                             MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext), null);
 
                     // Use local time instead of PDU time
-                    ContentValues values = new ContentValues(1);
+                    ContentValues values = new ContentValues(3);
                     values.put(Mms.DATE, System.currentTimeMillis() / 1000L);
+                    // Update Message Size for Original MMS.
+                    values.put(Mms.MESSAGE_SIZE, mNotificationInd.getMessageSize());
+                    Cursor c = mContext.getContentResolver().query(mUri,
+                            null, null, null, null);
+                    if (c != null) {
+                        try {
+                            if (c.moveToFirst()) {
+                                int subId = c.getInt(c.getColumnIndex(Mms.SUB_ID));
+                                values.put(Mms.SUB_ID, subId);
+                            }
+                        } catch (Exception ex) {
+                            Log.e(TAG, "Exception:" + ex);
+                        } finally {
+                            c.close();
+                        }
+                    }
                     SqliteWrapper.update(mContext, mContext.getContentResolver(),
                             uri, values, null, null);
 
@@ -233,7 +272,7 @@ public class NotificationTransaction extends Transaction implements Runnable {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             mTransactionState.setContentUri(mUri);
-            if (!autoDownload) {
+            if (!autoDownload || isMemoryFull || isTooLarge || isMobileDataDisabled) {
                 // Always mark the transaction successful for deferred
                 // download since any error here doesn't make sense.
                 mTransactionState.setState(SUCCESS);
@@ -264,5 +303,9 @@ public class NotificationTransaction extends Transaction implements Runnable {
     @Override
     public int getType() {
         return NOTIFICATION_TRANSACTION;
+    }
+
+    public Uri getUri() {
+        return mUri;
     }
 }

@@ -34,6 +34,10 @@
 
 #include "SoftAVCEncoder.h"
 
+#ifndef INT32_MAX
+#define INT32_MAX   2147483647
+#endif
+
 namespace android {
 
 template<class T>
@@ -257,6 +261,10 @@ OMX_ERRORTYPE SoftAVCEncoder::initEncParams() {
     if (mVideoColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
         // Color conversion is needed.
         CHECK(mInputFrameData == NULL);
+        if (((uint64_t)mVideoWidth * mVideoHeight) > ((uint64_t)INT32_MAX / 3)) {
+            ALOGE("Buffer size is too big.");
+            return OMX_ErrorUndefined;
+        }
         mInputFrameData =
             (uint8_t *) malloc((mVideoWidth * mVideoHeight * 3 ) >> 1);
         CHECK(mInputFrameData != NULL);
@@ -278,6 +286,10 @@ OMX_ERRORTYPE SoftAVCEncoder::initEncParams() {
     int32_t nMacroBlocks = ((((mVideoWidth + 15) >> 4) << 4) *
             (((mVideoHeight + 15) >> 4) << 4)) >> 8;
     CHECK(mSliceGroup == NULL);
+    if ((size_t)nMacroBlocks > SIZE_MAX / sizeof(uint32_t)) {
+        ALOGE("requested memory size is too big.");
+        return OMX_ErrorUndefined;
+    }
     mSliceGroup = (uint32_t *) malloc(sizeof(uint32_t) * nMacroBlocks);
     CHECK(mSliceGroup != NULL);
     for (int ii = 0, idx = 0; ii < nMacroBlocks; ++ii) {
@@ -438,6 +450,10 @@ OMX_ERRORTYPE SoftAVCEncoder::internalGetParameter(
             OMX_VIDEO_PARAM_BITRATETYPE *bitRate =
                 (OMX_VIDEO_PARAM_BITRATETYPE *) params;
 
+            if (!isValidOMXParam(bitRate)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (bitRate->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
             }
@@ -481,6 +497,10 @@ OMX_ERRORTYPE SoftAVCEncoder::internalGetParameter(
         {
             OMX_VIDEO_PARAM_AVCTYPE *avcParams =
                 (OMX_VIDEO_PARAM_AVCTYPE *)params;
+
+            if (!isValidOMXParam(avcParams)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (avcParams->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
@@ -551,6 +571,10 @@ OMX_ERRORTYPE SoftAVCEncoder::internalSetParameter(
         {
             OMX_VIDEO_PARAM_BITRATETYPE *bitRate =
                 (OMX_VIDEO_PARAM_BITRATETYPE *) params;
+
+            if (!isValidOMXParam(bitRate)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (bitRate->nPortIndex != 1 ||
                 bitRate->eControlRate != OMX_Video_ControlRateVariable) {
@@ -653,6 +677,10 @@ OMX_ERRORTYPE SoftAVCEncoder::internalSetParameter(
             OMX_VIDEO_PARAM_AVCTYPE *avcType =
                 (OMX_VIDEO_PARAM_AVCTYPE *)params;
 
+            if (!isValidOMXParam(avcType)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (avcType->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
             }
@@ -698,6 +726,10 @@ OMX_ERRORTYPE SoftAVCEncoder::internalSetParameter(
             if (mStoreMetaDataInBuffers) {
                 mVideoColorFormat == OMX_COLOR_FormatYUV420SemiPlanar;
                 if (mInputFrameData == NULL) {
+                    if (((uint64_t)mVideoWidth * mVideoHeight) > ((uint64_t)INT32_MAX / 3)) {
+                        ALOGE("Buffer size is too big.");
+                        return OMX_ErrorUndefined;
+                    }
                     mInputFrameData =
                             (uint8_t *) malloc((mVideoWidth * mVideoHeight * 3 ) >> 1);
                 }

@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution, Apache license notifications and license are retained
+ * for attribution purposes only.
+ *
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +20,19 @@
 
 package com.android.incallui;
 
+import android.telephony.MSimTelephonyManager;
+
 import com.android.incallui.service.PhoneNumberService;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
 
 import com.android.services.telephony.common.Call;
 import com.android.services.telephony.common.Call.Capabilities;
+import com.android.services.telephony.common.CallDetails;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
@@ -55,6 +63,32 @@ public class InCallPresenter implements CallList.Listener {
     private InCallState mInCallState = InCallState.NO_CALLS;
     private ProximitySensor mProximitySensor;
     private boolean mServiceConnected = false;
+    private static String LOG_TAG = "InCallPresenter";
+    VideoCallManager mVideoCallManager;
+
+    /**
+     * This table is for deciding whether consent is
+     * required while upgrade/downgrade from one calltype
+     * to other
+     * Read calltype transition from row to column
+     * 1 => Consent of user is required
+     * 0 => No consent required
+     * eg. from VOLTE to VT-TX, consent is needed so
+     * row 0, col 1 is set to 1
+     *
+     * User consent is needed for all upgrades and not
+     * needed for downgrades
+     *
+     *         VOLTE     VT-TX      VT-RX      VT
+     * VOLTE |   0    |    1   |     1   |     1
+     * VT-TX |   0    |    0   |     1   |     1
+     * VT-RX |   0    |    1   |     0   |     1
+     * VT    |   0    |    0   |     0   |     0
+     */
+    private int[][] mVideoConsentTable = {{0, 1, 1, 1},
+                                          {0, 0, 1, 1},
+                                          {0, 1, 0, 1},
+                                          {0, 0, 0, 0}};
 
     /**
      * Is true when the activity has been previously started. Some code needs to know not just if
@@ -63,6 +97,10 @@ public class InCallPresenter implements CallList.Listener {
      * tear-down method.
      */
     private boolean mIsActivityPreviouslyStarted = false;
+
+    private boolean isImsMediaInitialized = false;
+
+    private Call.DisconnectCause mLastDisconnectCause = Call.DisconnectCause.UNKNOWN;
 
     public static synchronized InCallPresenter getInstance() {
         if (sInCallPresenter == null) {
@@ -111,6 +149,11 @@ public class InCallPresenter implements CallList.Listener {
         // will kick off an update and the whole process can start.
         mCallList.addListener(this);
 
+        mVideoCallManager = VideoCallManager.getInstance(mContext);
+        final VideoPauseController videoPause = mVideoCallManager.getVideoPauseController();
+        addListener(videoPause);
+        addIncomingCallListener(videoPause);
+
         Log.d(this, "Finished InCallPresenter.setUp");
     }
 
@@ -132,8 +175,80 @@ public class InCallPresenter implements CallList.Listener {
         final boolean doFinish = (mInCallActivity != null && isActivityStarted());
         Log.i(this, "Hide in call UI: " + doFinish);
 
+        if ((mCallList != null) && !(mCallList.existsLiveCall(mCallList.getActiveSubscription()))) {
+            Log.d(this, "Switch active sub. Last disc cause = " + mLastDisconnectCause);
+            boolean retainLch = (mLastDisconnectCause == Call.DisconnectCause.NORMAL)
+                    ? true: false;
+            if (mCallList.switchToOtherActiveSubscription(retainLch)) return;
+        }
+
         if (doFinish) {
             mInCallActivity.finish();
+        }
+    }
+
+    /**
+     * Sends modify call request to the other party.
+     *
+     * @param callId id of the call to modify.
+     * @param callType Proposed call type.
+     */
+    public void sendModifyCallRequest(int callId, int callType) {
+        log("VideoCall: Sending modify call request, callId=" + callId + " callType=" + callType);
+        Call call = CallList.getInstance().getCall(callId);
+        if (call != null && call.getCallModifyDetails() != null) {
+            CallDetails cd = call.getCallModifyDetails();
+            cd.setCallType(callType);
+            CallCommandClient.getInstance().modifyCallInitiate(callId, callType);
+        } else {
+            loge("VideoCall: Sending modify call request failed: call=" + call);
+        }
+    }
+
+    /**
+     * Accepts/Rejects modify call request.
+     *
+     * @param accept true if the proposed call type is accepted, false otherwise.
+     * @param call Call which call type change to be confirmed/rejected.
+     */
+    public void modifyCallConfirm(boolean accept, Call call) {
+        log("VideoCall: ModifyCallConfirm: accept=" + accept + " call=" + call);
+        CallCommandClient.getInstance().modifyCallConfirm(accept, call.getCallId());
+    }
+
+    /**
+     * Handles modify call request and shows dialog to user for accepting or
+     * rejecting the modify call
+     */
+    public void onModifyCallRequest(Call call) {
+        Preconditions.checkNotNull(call);
+        final int callId = call.getCallId();
+        final int currCallType = CallUtils.getCallType(call);
+        final int proposedCallType = CallUtils.getProposedCallType(call);
+        final boolean error = CallUtils.hasCallModifyFailed(call);
+
+        log("VideoCall onMoifyCallRequest: CallId =" + callId + " currCallType="
+                + currCallType
+                + " proposedCallType= " + proposedCallType + " error=" + error);
+        try {
+            if (isUserConsentRequired(proposedCallType, currCallType)) {
+                if (mInCallActivity != null) {
+                    mInCallActivity.displayModifyCallConsentDialog(call);
+                } else {
+                    Log.e(this, "VideoCall: onMoifyCallRequest: InCallActivity is null.");
+                }
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            Log.e(this, "VideoCall: onModifyCallRequest failed. ", e);
+        }
+    }
+
+    public void onAvpUpgradeFailure(String errorString) {
+        if (mInCallActivity != null) {
+            mInCallActivity.onAvpUpgradeFailure(errorString);
+        } else {
+            Log.e(this, "VideoCall: onAvpUpgradeFailure: InCallActivity is null.");
+            Log.e(this, "VideoCall: onAvpUpgradeFailure: error=" + errorString);
         }
     }
 
@@ -232,6 +347,8 @@ public class InCallPresenter implements CallList.Listener {
             CallCommandClient.getInstance().setSystemBarNavigationEnabled(true);
         }
 
+        onPhoneStateChange(newState, mInCallState);
+
         // Set the new state before announcing it to the world
         Log.i(this, "Phone switching state: " + mInCallState + " -> " + newState);
         mInCallState = newState;
@@ -243,6 +360,20 @@ public class InCallPresenter implements CallList.Listener {
         }
 
         if (isActivityStarted()) {
+            MSimTelephonyManager tm = MSimTelephonyManager.getDefault();
+
+            if (tm.getMultiSimConfiguration() == MSimTelephonyManager.MultiSimVariants.DSDA) {
+                mInCallActivity.updateDsdaTab();
+            }
+            if (newState != InCallState.DISCONNECTING) {
+                mInCallActivity.updateSystemBarTranslucency();
+            }
+        }
+
+        // Get the config whether we need to dismiss the keyguard screen, Google design is true.
+        boolean shouldDismissKeyguard = (mInCallActivity != null &&
+                mInCallActivity.getResources().getBoolean(R.bool.config_incall_dismiss_keyguard));
+        if (isActivityStarted() && shouldDismissKeyguard) {
             final boolean hasCall = callList.getActiveOrBackgroundCall() != null ||
                     callList.getOutgoingCall() != null;
             mInCallActivity.dismissKeyguard(hasCall);
@@ -258,6 +389,8 @@ public class InCallPresenter implements CallList.Listener {
     public void onIncomingCall(Call call) {
         InCallState newState = startOrFinishUi(InCallState.INCOMING);
 
+        onPhoneStateChange(newState, mInCallState);
+
         Log.i(this, "Phone switching state: " + mInCallState + " -> " + newState);
         mInCallState = newState;
 
@@ -269,6 +402,11 @@ public class InCallPresenter implements CallList.Listener {
         for (IncomingCallListener listener : mIncomingCallListeners) {
             listener.onIncomingCall(mInCallState, call);
         }
+
+        if (MSimTelephonyManager.getDefault().getMultiSimConfiguration()
+                == MSimTelephonyManager.MultiSimVariants.DSDA && (mInCallActivity != null)) {
+            mInCallActivity.updateDsdaTab();
+        }
     }
 
     /**
@@ -277,13 +415,18 @@ public class InCallPresenter implements CallList.Listener {
      */
     @Override
     public void onDisconnect(Call call) {
+        mLastDisconnectCause = (call != null ) ? call.getDisconnectCause():
+                Call.DisconnectCause.UNKNOWN;
         hideDialpadForDisconnect();
         maybeShowErrorDialogOnDisconnect(call);
 
         // We need to do the run the same code as onCallListChange.
         onCallListChange(CallList.getInstance());
 
-        if (isActivityStarted()) {
+        // Get the config whether we need to dismiss the keyguard screen, Google design is true.
+        boolean shouldDismissKeyguard = (mInCallActivity != null &&
+                mInCallActivity.getResources().getBoolean(R.bool.config_incall_dismiss_keyguard));
+        if (isActivityStarted() && shouldDismissKeyguard) {
             mInCallActivity.dismissKeyguard(false);
         }
     }
@@ -303,10 +446,11 @@ public class InCallPresenter implements CallList.Listener {
         } else if (callList.getOutgoingCall() != null) {
             newState = InCallState.OUTGOING;
         } else if (callList.getActiveCall() != null ||
-                callList.getBackgroundCall() != null ||
-                callList.getDisconnectedCall() != null ||
-                callList.getDisconnectingCall() != null) {
+                callList.getBackgroundCall() != null) {
             newState = InCallState.INCALL;
+        } else if (callList.getDisconnectedCall() != null ||
+                callList.getDisconnectingCall() != null) {
+            newState = InCallState.DISCONNECTING;
         }
 
         return newState;
@@ -408,6 +552,8 @@ public class InCallPresenter implements CallList.Listener {
         if (showing) {
             mIsActivityPreviouslyStarted = true;
         }
+
+        mVideoCallManager.getVideoPauseController().onUiShowing(showing);
     }
 
     /**
@@ -528,7 +674,7 @@ public class InCallPresenter implements CallList.Listener {
     private void maybeShowErrorDialogOnDisconnect(Call call) {
         // For newly disconnected calls, we may want to show a dialog on specific error conditions
         if (isActivityStarted() && call.getState() == Call.State.DISCONNECTED) {
-            mInCallActivity.maybeShowErrorDialogOnDisconnect(call.getDisconnectCause());
+            mInCallActivity.maybeShowErrorDialogOnDisconnect(call);
         }
     }
 
@@ -541,6 +687,21 @@ public class InCallPresenter implements CallList.Listener {
         }
     }
 
+    private void switchActiveSubIfNeed() {
+        Log.d(this, "startOrFinishUi call list:" + mCallList);
+        if (mCallList != null) {
+            int activeSub = mCallList.getActiveSubscription();
+            boolean hasActiveCall = mCallList.existsConnectedCall(activeSub);
+            Log.d(this, "startOrFinishUi active sub : " + activeSub);
+            Log.d(this, "has connected call in active sub:" + hasActiveCall);
+            if (!hasActiveCall) {
+                Log.d(this, "switch sub in non-dsda, cause " + mLastDisconnectCause);
+                boolean retainLch = mLastDisconnectCause == Call.DisconnectCause.NORMAL;
+                mCallList.switchToOtherActiveSubscription(retainLch);
+            }
+        }
+    }
+
     /**
      * When the state of in-call changes, this is the first method to get called. It determines if
      * the UI needs to be started or finished depending on the new state and does it.
@@ -548,6 +709,12 @@ public class InCallPresenter implements CallList.Listener {
     private InCallState startOrFinishUi(InCallState newState) {
         Log.d(this, "startOrFinishUi: " + mInCallState + " -> " + newState);
 
+        // If there is a CS call in sub2, and there is a SIP call in sub1
+        // disconnected, INCALL state will be got in non-dsda, so need switch
+        // active sub
+        if (newState == InCallState.INCALL) {
+            switchActiveSubIfNeed();
+        }
         // TODO: Consider a proper state machine implementation
 
         // If the state isn't changing, we have already done any starting/stopping of
@@ -635,7 +802,14 @@ public class InCallPresenter implements CallList.Listener {
         // for the call waiting case, we finish() the current activity and start a new one.
         // There should be no jank from this since the screen is already off and will remain so
         // until our new activity is up.
-        if (mProximitySensor.isScreenReallyOff() && isCallWaiting) {
+
+        // In addition to call waiting scenario, we need to force finish() in case of DSDA when
+        // we get an incoming call on one sub and there is a live call in other sub and screen
+        // is off.
+        boolean anyOtherSubActive = (incomingCall != null && mCallList.isAnyOtherSubActive(
+                mCallList.getActiveSubscription()));
+
+        if (mProximitySensor.isScreenReallyOff() && (isCallWaiting || anyOtherSubActive)) {
             if (isActivityStarted()) {
                 mInCallActivity.finish();
             }
@@ -701,12 +875,43 @@ public class InCallPresenter implements CallList.Listener {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                 | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
                 | Intent.FLAG_ACTIVITY_NO_USER_ACTION);
-        intent.setClass(mContext, InCallActivity.class);
+        if (MSimTelephonyManager.getDefault().getMultiSimConfiguration()
+                == MSimTelephonyManager.MultiSimVariants.DSDA) {
+            intent.setClass(mContext, MSimInCallActivity.class);
+        } else {
+            intent.setClass(mContext, InCallActivity.class);
+        }
         if (showDialpad) {
             intent.putExtra(InCallActivity.SHOW_DIALPAD_EXTRA, true);
         }
 
         return intent;
+    }
+
+    public void sendAddParticipantIntent() {
+        Intent intent = new Intent(Intent.ACTION_DIAL);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        // when we request the dialer come up, we also want to inform
+        // it that we're going through the "add participant" option from the
+        // InCallScreen.
+        intent.putExtra(InCallApp.ADD_CALL_MODE_KEY, true);
+        intent.putExtra(InCallApp.ADD_PARTICIPANT_KEY, true);
+        try {
+            mContext.startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            // This is rather rare but possible.
+            // Note: this method is used even when the phone is encrypted. At
+            // that moment
+            // the system may not find any Activity which can accept this Intent
+            Log.e(LOG_TAG, "Activity for adding calls isn't found.");
+        }
+    }
+
+    public void onSuppServiceFailed(int service) {
+        if (mInCallActivity != null) {
+            mInCallActivity.onSuppServiceFailed(service);
+        }
     }
 
     /**
@@ -727,6 +932,9 @@ public class InCallPresenter implements CallList.Listener {
 
         // In-call experience is showing
         INCALL,
+
+        // Like in-call, but without a connected call
+        DISCONNECTING,
 
         // User is dialing out
         OUTGOING;
@@ -752,5 +960,37 @@ public class InCallPresenter implements CallList.Listener {
 
     public interface IncomingCallListener {
         public void onIncomingCall(InCallState state, Call call);
+    }
+
+    private void onPhoneStateChange(InCallState newState, InCallState oldState) {
+        if ( newState != oldState) {
+            initMediaHandler(newState);
+        }
+    }
+
+    private void initMediaHandler(InCallState newState) {
+        boolean hasImsCall = CallUtils.hasImsCall(CallList.getInstance());
+        Log.i(this, "initMediaHandler: hasImsCall: " + hasImsCall + " isImsMediaInitialized: " +
+                isImsMediaInitialized);
+
+        if (hasImsCall && !isImsMediaInitialized) {
+            isImsMediaInitialized = true;
+            VideoCallManager.getInstance(mContext).onMediaRequest(isImsMediaInitialized);
+        } else if (isImsMediaInitialized && !hasImsCall) {
+            isImsMediaInitialized = false;
+            VideoCallManager.getInstance(mContext).onMediaRequest(isImsMediaInitialized);
+        }
+    }
+
+    private boolean isUserConsentRequired(int callType, int prevCallType) {
+        return mVideoConsentTable[prevCallType][callType] == 1;
+    }
+
+    private void log(String msg) {
+        Log.d(this, msg);
+    }
+
+    private void loge(String msg) {
+        Log.e(this, msg);
     }
 }

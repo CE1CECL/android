@@ -25,6 +25,10 @@
 #include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/MediaDefs.h>
 
+#ifndef INT32_MAX
+#define INT32_MAX   2147483647
+#endif
+
 namespace android {
 
 
@@ -300,6 +304,10 @@ status_t SoftVPXEncoder::initEncoder() {
 
     if (mColorFormat == OMX_COLOR_FormatYUV420SemiPlanar || mInputDataIsMeta) {
         if (mConversionBuffer == NULL) {
+            if (((uint64_t)mWidth * mHeight) > ((uint64_t)INT32_MAX / 3)) {
+                ALOGE("b/25812794, Buffer size is too big.");
+                return UNKNOWN_ERROR;
+            }
             mConversionBuffer = (uint8_t *)malloc(mWidth * mHeight * 3 / 2);
             if (mConversionBuffer == NULL) {
                 ALOGE("Allocating conversion buffer failed.");
@@ -379,20 +387,24 @@ OMX_ERRORTYPE SoftVPXEncoder::internalGetParameter(OMX_INDEXTYPE index,
             OMX_VIDEO_PARAM_BITRATETYPE *bitrate =
                 (OMX_VIDEO_PARAM_BITRATETYPE *)param;
 
-                if (bitrate->nPortIndex != kOutputPortIndex) {
-                    return OMX_ErrorUnsupportedIndex;
-                }
+            if (!isValidOMXParam(bitrate)) {
+                return OMX_ErrorBadParameter;
+            }
 
-                bitrate->nTargetBitrate = mBitrate;
+            if (bitrate->nPortIndex != kOutputPortIndex) {
+                return OMX_ErrorUnsupportedIndex;
+            }
 
-                if (mBitrateControlMode == VPX_VBR) {
-                    bitrate->eControlRate = OMX_Video_ControlRateVariable;
-                } else if (mBitrateControlMode == VPX_CBR) {
-                    bitrate->eControlRate = OMX_Video_ControlRateConstant;
-                } else {
-                    return OMX_ErrorUnsupportedSetting;
-                }
-                return OMX_ErrorNone;
+            bitrate->nTargetBitrate = mBitrate;
+
+            if (mBitrateControlMode == VPX_VBR) {
+                bitrate->eControlRate = OMX_Video_ControlRateVariable;
+            } else if (mBitrateControlMode == VPX_CBR) {
+                bitrate->eControlRate = OMX_Video_ControlRateConstant;
+            } else {
+                return OMX_ErrorUnsupportedSetting;
+            }
+            return OMX_ErrorNone;
         }
 
         // VP8 specific parameters that use extension headers
@@ -400,20 +412,28 @@ OMX_ERRORTYPE SoftVPXEncoder::internalGetParameter(OMX_INDEXTYPE index,
             OMX_VIDEO_PARAM_VP8TYPE *vp8Params =
                 (OMX_VIDEO_PARAM_VP8TYPE *)param;
 
-                if (vp8Params->nPortIndex != kOutputPortIndex) {
-                    return OMX_ErrorUnsupportedIndex;
-                }
+            if (!isValidOMXParam(vp8Params)) {
+                return OMX_ErrorBadParameter;
+            }
 
-                vp8Params->eProfile = OMX_VIDEO_VP8ProfileMain;
-                vp8Params->eLevel = mLevel;
-                vp8Params->nDCTPartitions = mDCTPartitions;
-                vp8Params->bErrorResilientMode = mErrorResilience;
-                return OMX_ErrorNone;
+            if (vp8Params->nPortIndex != kOutputPortIndex) {
+                return OMX_ErrorUnsupportedIndex;
+            }
+
+            vp8Params->eProfile = OMX_VIDEO_VP8ProfileMain;
+            vp8Params->eLevel = mLevel;
+            vp8Params->nDCTPartitions = mDCTPartitions;
+            vp8Params->bErrorResilientMode = mErrorResilience;
+            return OMX_ErrorNone;
         }
 
         case OMX_IndexParamVideoProfileLevelQuerySupported: {
             OMX_VIDEO_PARAM_PROFILELEVELTYPE *profileAndLevel =
                 (OMX_VIDEO_PARAM_PROFILELEVELTYPE *)param;
+
+            if (!isValidOMXParam(profileAndLevel)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (profileAndLevel->nPortIndex != kOutputPortIndex) {
                 return OMX_ErrorUnsupportedIndex;
@@ -448,6 +468,10 @@ OMX_ERRORTYPE SoftVPXEncoder::internalGetParameter(OMX_INDEXTYPE index,
             OMX_VIDEO_PARAM_PROFILELEVELTYPE *profileAndLevel =
                 (OMX_VIDEO_PARAM_PROFILELEVELTYPE *)param;
 
+            if (!isValidOMXParam(profileAndLevel)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (profileAndLevel->nPortIndex != kOutputPortIndex) {
                 return OMX_ErrorUnsupportedIndex;
             }
@@ -469,18 +493,37 @@ OMX_ERRORTYPE SoftVPXEncoder::internalSetParameter(OMX_INDEXTYPE index,
     const int32_t indexFull = index;
 
     switch (indexFull) {
-        case OMX_IndexParamStandardComponentRole:
-            return internalSetRoleParams(
-                (const OMX_PARAM_COMPONENTROLETYPE *)param);
+        case OMX_IndexParamStandardComponentRole: {
+            const OMX_PARAM_COMPONENTROLETYPE *role =
+                (const OMX_PARAM_COMPONENTROLETYPE*) param;
 
-        case OMX_IndexParamVideoBitrate:
-            return internalSetBitrateParams(
-                (const OMX_VIDEO_PARAM_BITRATETYPE *)param);
+            if (!isValidOMXParam(role)) {
+                return OMX_ErrorBadParameter;
+            }
+            return internalSetRoleParams(role);
+        }
+
+        case OMX_IndexParamVideoBitrate: {
+            const OMX_VIDEO_PARAM_BITRATETYPE *bitRate =
+                (const OMX_VIDEO_PARAM_BITRATETYPE*) param;
+
+            if (!isValidOMXParam(bitRate)) {
+                return OMX_ErrorBadParameter;
+            }
+
+            return internalSetBitrateParams(bitRate);
+        }
 
         case OMX_IndexParamPortDefinition:
         {
-            OMX_ERRORTYPE err = internalSetPortParams(
-                (const OMX_PARAM_PORTDEFINITIONTYPE *)param);
+            const OMX_PARAM_PORTDEFINITIONTYPE *portDefinition =
+                (const OMX_PARAM_PORTDEFINITIONTYPE*) param;
+
+            if (!isValidOMXParam(portDefinition)) {
+                return OMX_ErrorBadParameter;
+            }
+
+            OMX_ERRORTYPE err = internalSetPortParams(portDefinition);
 
             if (err != OMX_ErrorNone) {
                 return err;
@@ -489,23 +532,47 @@ OMX_ERRORTYPE SoftVPXEncoder::internalSetParameter(OMX_INDEXTYPE index,
             return SimpleSoftOMXComponent::internalSetParameter(index, param);
         }
 
-        case OMX_IndexParamVideoPortFormat:
-            return internalSetFormatParams(
-                (const OMX_VIDEO_PARAM_PORTFORMATTYPE *)param);
+        case OMX_IndexParamVideoPortFormat: {
+            const OMX_VIDEO_PARAM_PORTFORMATTYPE *portFormatType =
+                (const OMX_VIDEO_PARAM_PORTFORMATTYPE*) param;
 
-        case OMX_IndexParamVideoVp8:
-            return internalSetVp8Params(
-                (const OMX_VIDEO_PARAM_VP8TYPE *)param);
+            if (!isValidOMXParam(portFormatType)) {
+                return OMX_ErrorBadParameter;
+            }
+            return internalSetFormatParams(portFormatType);
+        }
 
-        case OMX_IndexParamVideoProfileLevelCurrent:
-            return internalSetProfileLevel(
-                (const OMX_VIDEO_PARAM_PROFILELEVELTYPE *)param);
+        case OMX_IndexParamVideoVp8: {
+            const OMX_VIDEO_PARAM_VP8TYPE *vp8Params =
+                (const OMX_VIDEO_PARAM_VP8TYPE*) param;
+
+            if (!isValidOMXParam(vp8Params)) {
+                return OMX_ErrorBadParameter;
+            }
+
+            return internalSetVp8Params(vp8Params);
+        }
+
+        case OMX_IndexParamVideoProfileLevelCurrent: {
+            const OMX_VIDEO_PARAM_PROFILELEVELTYPE *vp8Params =
+                (const OMX_VIDEO_PARAM_PROFILELEVELTYPE*) param;
+
+            if (!isValidOMXParam(vp8Params)) {
+                return OMX_ErrorBadParameter;
+            }
+
+            return internalSetProfileLevel(vp8Params);
+        }
 
         case OMX_IndexVendorStartUnused:
         {
             // storeMetaDataInBuffers
             const StoreMetaDataInBuffersParams *storeParam =
                 (const StoreMetaDataInBuffersParams *)param;
+
+            if (!isValidOMXParam(storeParam)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (storeParam->nPortIndex != kInputPortIndex) {
                 return OMX_ErrorBadPortIndex;
@@ -529,6 +596,10 @@ OMX_ERRORTYPE SoftVPXEncoder::setConfig(
             OMX_CONFIG_INTRAREFRESHVOPTYPE *params =
                 (OMX_CONFIG_INTRAREFRESHVOPTYPE *)_params;
 
+            if (!isValidOMXParam(params)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (params->nPortIndex != kOutputPortIndex) {
                 return OMX_ErrorBadPortIndex;
             }
@@ -541,6 +612,10 @@ OMX_ERRORTYPE SoftVPXEncoder::setConfig(
         {
             OMX_VIDEO_CONFIG_BITRATETYPE *params =
                 (OMX_VIDEO_CONFIG_BITRATETYPE *)_params;
+
+            if (!isValidOMXParam(params)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (params->nPortIndex != kOutputPortIndex) {
                 return OMX_ErrorBadPortIndex;
@@ -749,6 +824,7 @@ void SoftVPXEncoder::onQueueFilled(OMX_U32 portIndex) {
         uint8_t *source =
             inputBufferHeader->pBuffer + inputBufferHeader->nOffset;
 
+        size_t frameSize = mWidth * mHeight * 3 / 2;
         if (mInputDataIsMeta) {
             CHECK_GE(inputBufferHeader->nFilledLen,
                      4 + sizeof(buffer_handle_t));
@@ -780,11 +856,21 @@ void SoftVPXEncoder::onQueueFilled(OMX_U32 portIndex) {
             source = mConversionBuffer;
 
             CHECK_EQ(0, grmodule->unlock(grmodule, handle));
-        } else if (mColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
-            ConvertSemiPlanarToPlanar(
-                    source, mConversionBuffer, mWidth, mHeight);
+        } else {
+            if (inputBufferHeader->nFilledLen < frameSize) {
+                android_errorWriteLog(0x534e4554, "27569635");
+                notify(OMX_EventError, OMX_ErrorUndefined, 0, 0);
+                return;
+            } else if (inputBufferHeader->nFilledLen > frameSize) {
+                ALOGW("Input buffer contains too many pixels");
+            }
 
-            source = mConversionBuffer;
+            if (mColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
+                ConvertSemiPlanarToPlanar(
+                        source, mConversionBuffer, mWidth, mHeight);
+
+                source = mConversionBuffer;
+            }
         }
         vpx_image_t raw_frame;
         vpx_img_wrap(&raw_frame, VPX_IMG_FMT_I420, mWidth, mHeight,
@@ -836,9 +922,14 @@ void SoftVPXEncoder::onQueueFilled(OMX_U32 portIndex) {
                 outputBufferHeader->nTimeStamp = encoded_packet->data.frame.pts;
                 outputBufferHeader->nFlags = 0;
                 if (encoded_packet->data.frame.flags & VPX_FRAME_IS_KEY)
-                  outputBufferHeader->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
+                    outputBufferHeader->nFlags |= OMX_BUFFERFLAG_SYNCFRAME;
                 outputBufferHeader->nOffset = 0;
                 outputBufferHeader->nFilledLen = encoded_packet->data.frame.sz;
+                if (outputBufferHeader->nFilledLen > outputBufferHeader->nAllocLen) {
+                    android_errorWriteLog(0x534e4554, "27569635");
+                    notify(OMX_EventError, OMX_ErrorUndefined, 0, 0);
+                    return;
+                }
                 memcpy(outputBufferHeader->pBuffer,
                        encoded_packet->data.frame.buf,
                        encoded_packet->data.frame.sz);

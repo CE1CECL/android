@@ -81,7 +81,7 @@ allow domain system_data_file:file { getattr read };
 allow domain system_data_file:lnk_file read;
 
 # Read apk files under /data/app.
-allow domain apk_data_file:dir search;
+allow domain apk_data_file:dir { getattr search };
 allow domain apk_data_file:file r_file_perms;
 
 # Read /data/dalvik-cache.
@@ -110,6 +110,7 @@ allow domain sysfs_writable:file rw_file_perms;
 # Read access to pseudo filesystems.
 r_dir_file(domain, proc)
 r_dir_file(domain, sysfs)
+r_dir_file(domain, sysfs_devices_system_cpu)
 r_dir_file(domain, inotify)
 r_dir_file(domain, cgroup)
 
@@ -120,6 +121,10 @@ allow domain debugfs:file w_file_perms;
 # security files
 allow domain security_file:dir { search getattr };
 allow domain security_file:file getattr;
+
+# World readable asec image contents
+allow domain asec_public_file:file r_file_perms;
+allow domain { asec_public_file asec_apk_file }:dir r_dir_perms;
 
 ######## Backwards compatibility - Unlabeled files ############
 
@@ -142,3 +147,6 @@ neverallow { domain -relabeltodomain } *:dir_file_class_set relabelto;
 
 # Only init should be able to load SELinux policies
 neverallow { domain -init } kernel:security load_policy;
+
+# Ensure that all entrypoint executables are in exec_type.
+neverallow domain { file_type -exec_type }:file entrypoint;

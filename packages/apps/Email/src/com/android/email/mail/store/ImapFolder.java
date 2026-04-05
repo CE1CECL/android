@@ -46,6 +46,7 @@ import com.android.emailcommon.mail.MessagingException;
 import com.android.emailcommon.mail.Part;
 import com.android.emailcommon.provider.Mailbox;
 import com.android.emailcommon.service.SearchParams;
+import com.android.emailcommon.service.SyncSize;
 import com.android.emailcommon.utility.CountingOutputStream;
 import com.android.emailcommon.utility.EOLConvertingOutputStream;
 import com.android.emailcommon.utility.Utility;
@@ -552,7 +553,8 @@ class ImapFolder extends Folder {
     public Message[] getMessages(long startDate, long endDate, MessageRetrievalListener listener)
             throws MessagingException {
         String [] uids = null;
-        String command = generateDateRangeCommand(startDate, endDate, false);
+        String command = generateDateRangeCommand(startDate, endDate, false)
+                + " NOT DELETED";
         LogUtils.d(Logging.LOG_TAG, "getMessages dateRange " + command.toString());
 
         try {
@@ -565,7 +567,8 @@ class ImapFolder extends Folder {
             // See b/11183568
             LogUtils.d(Logging.LOG_TAG, e, "query failed %s, trying alternate",
                     command.toString());
-            command = generateDateRangeCommand(startDate, endDate, true);
+            command = generateDateRangeCommand(startDate, endDate, true)
+                    + " NOT DELETED";
             try {
                 uids = searchForUids(command, true);
             } catch (ImapException e2) {
@@ -633,6 +636,9 @@ class ImapFolder extends Folder {
          * BODY_SANE - UID FETCH (BODY.PEEK[]<0.N>) where N = max bytes returned
          * BODY      - UID FETCH (BODY.PEEK[])
          * Part      - UID FETCH (BODY.PEEK[ID]) where ID = mime part ID
+         * Part_SANE - UID FETCH (BODY.PEEK[ID]<0.N>) where ID = mime part ID
+         *                        and N = max bytes returned
+         *           - this is add for sync size.
          */
 
         final LinkedHashSet<String> fetchFields = new LinkedHashSet<String>();
@@ -665,8 +671,12 @@ class ImapFolder extends Folder {
             // TODO Why can a single part have more than one Id? And why should we only fetch
             // the first id if there are more than one?
             if (partIds != null) {
-                fetchFields.add(ImapConstants.FETCH_FIELD_BODY_PEEK_BARE
-                        + "[" + partIds[0] + "]");
+                String fetchFieldCommand = ImapConstants.FETCH_FIELD_BODY_PEEK_BARE
+                        + "[" + partIds[0] + "]";
+                if (fp.getAllowSyncSize() != SyncSize.SYNC_SIZE_ENTIRE_MAIL) {
+                    fetchFieldCommand = fetchFieldCommand + "<0." + fp.getAllowSyncSize() + ">";
+                }
+                fetchFields.add(fetchFieldCommand);
             }
         }
 
@@ -853,6 +863,7 @@ class ImapFolder extends Folder {
              * This is a multipart/*
              */
             MimeMultipart mp = new MimeMultipart();
+            int textplainIndex = -1;
             for (int i = 0, count = bs.size(); i < count; i++) {
                 ImapElement e = bs.getElementOrNone(i);
                 if (e.isList()) {
@@ -867,8 +878,17 @@ class ImapFolder extends Folder {
                     } else {
                         parseBodyStructure(bs.getListOrEmpty(i), bp, id + "." + (i + 1));
                     }
-                    mp.addBodyPart(bp);
+                    /**
+                     * If the MimeMultipart has the TEXT/HTML content and TEXT/PLAIN content,
+                     * we could only download the TEXT/HTML content to save data traffic.
+                     */
+                    if (bp.getMimeType().equals("text/plain")) {
+                        textplainIndex = i;
+                    } else if (textplainIndex != -1 && bp.getMimeType().equals("text/html")) {
+                        mp.removeBodyPart(textplainIndex);
+                    }
 
+                    mp.addBodyPart(bp);
                 } else {
                     if (e.isString()) {
                         mp.setSubType(bs.getStringOrEmpty(i).getString().toLowerCase(Locale.US));
@@ -891,6 +911,7 @@ class ImapFolder extends Folder {
              body description
              body encoding
              body size
+             body line
              */
 
             final ImapString type = bs.getStringOrEmpty(0);

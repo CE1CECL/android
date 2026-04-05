@@ -51,7 +51,7 @@ endif
 
 LOCAL_SHARED_LIBRARIES += libdl libcutils liblog libgccdemangle
 
-LOCAL_CFLAGS += -std=gnu99 
+LOCAL_CFLAGS += -std=gnu99  -Wno-unused-parameter
 LOCAL_MODULE := libcorkscrew
 LOCAL_MODULE_TAGS := optional
 

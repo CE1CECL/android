@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,7 +74,7 @@ class SipCommandInterface extends BaseCommands implements CommandsInterface {
     }
 
     @Override
-    public void supplyNetworkDepersonalization(String netpin, Message result) {
+    public void supplyDepersonalization(String netpin, String type,  Message result) {
     }
 
     @Override
@@ -555,4 +557,23 @@ class SipCommandInterface extends BaseCommands implements CommandsInterface {
     public void setInitialAttachApn(String apn, String protocol, int authType, String username,
             String password, Message result) {
     }
+
+    @Override
+    public void iccExchangeApdu(int cla, int command, int channel, int p1,
+            int p2, int p3, String data, Message response) {
+    }
+
+    @Override
+    public void iccOpenChannel(String aid, Message response) {
+    }
+
+    @Override
+    public void iccCloseChannel(int channel, Message response) {
+    }
+
+    @Override
+    public void iccGetAtr(Message response) {
+    }
+
+    public boolean needsOldRilFeature(String feature) { return false; }
 }

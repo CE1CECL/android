@@ -16,6 +16,7 @@
 
 package com.android.settings.deviceinfo;
 
+import android.app.ActionBar;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -42,6 +43,7 @@ import android.telephony.PhoneStateListener;
 import android.telephony.ServiceState;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.view.MenuItem;
 
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
@@ -49,6 +51,8 @@ import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.PhoneStateIntentReceiver;
 import com.android.settings.R;
 import com.android.settings.Utils;
+
+import org.cyanogenmod.hardware.SerialNumber;
 
 import java.lang.ref.WeakReference;
 
@@ -90,6 +94,7 @@ public class Status extends PreferenceActivity {
     private static final String KEY_SERIAL_NUMBER = "serial_number";
     private static final String KEY_ICC_ID = "icc_id";
     private static final String KEY_WIMAX_MAC_ADDRESS = "wimax_mac_address";
+
     private static final String[] PHONE_RELATED_ENTRIES = {
         KEY_DATA_STATE,
         KEY_SERVICE_STATE,
@@ -211,6 +216,11 @@ public class Status extends PreferenceActivity {
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
+        ActionBar mActionBar = getActionBar();
+        if (mActionBar != null) {
+            mActionBar.setDisplayHomeAsUpEnabled(true);
+        }
+
         mHandler = new MyHandler(this);
 
         mTelephonyManager = (TelephonyManager)getSystemService(TELEPHONY_SERVICE);
@@ -296,12 +306,21 @@ public class Status extends PreferenceActivity {
         setBtStatus();
         setIpAddressStatus();
 
-        String serial = Build.SERIAL;
+        String serial = getSerialNumber();
         if (serial != null && !serial.equals("")) {
             setSummaryText(KEY_SERIAL_NUMBER, serial);
         } else {
             removePreferenceFromScreen(KEY_SERIAL_NUMBER);
         }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -379,6 +398,20 @@ public class Status extends PreferenceActivity {
              }
     }
 
+    private String getServiceStateString(int state) {
+        switch (state) {
+            case ServiceState.STATE_IN_SERVICE:
+                return mRes.getString(R.string.radioInfo_service_in);
+            case ServiceState.STATE_OUT_OF_SERVICE:
+            case ServiceState.STATE_EMERGENCY_ONLY:
+                return mRes.getString(R.string.radioInfo_service_out);
+            case ServiceState.STATE_POWER_OFF:
+                return mRes.getString(R.string.radioInfo_service_off);
+            default:
+                return mRes.getString(R.string.radioInfo_unknown);
+        }
+    }
+
     private void updateNetworkType() {
         // Whether EDGE, UMTS, etc...
         String networktype = null;
@@ -411,23 +444,15 @@ public class Status extends PreferenceActivity {
     }
 
     private void updateServiceState(ServiceState serviceState) {
-        int state = serviceState.getState();
-        String display = mRes.getString(R.string.radioInfo_unknown);
+        int voiceState = serviceState.getState();
+        int dataState = serviceState.getDataRegState();
 
-        switch (state) {
-            case ServiceState.STATE_IN_SERVICE:
-                display = mRes.getString(R.string.radioInfo_service_in);
-                break;
-            case ServiceState.STATE_OUT_OF_SERVICE:
-            case ServiceState.STATE_EMERGENCY_ONLY:
-                display = mRes.getString(R.string.radioInfo_service_out);
-                break;
-            case ServiceState.STATE_POWER_OFF:
-                display = mRes.getString(R.string.radioInfo_service_off);
-                break;
+        if (voiceState == dataState) {
+            setSummaryText(KEY_SERVICE_STATE, getServiceStateString(voiceState));
+        } else {
+            setSummaryText(KEY_SERVICE_STATE, mRes.getString(R.string.phone_service_state,
+                        getServiceStateString(voiceState), getServiceStateString(dataState)));
         }
-
-        setSummaryText(KEY_SERVICE_STATE, display);
 
         if (serviceState.getRoaming()) {
             setSummaryText(KEY_ROAMING_STATE, mRes.getString(R.string.radioInfo_roaming_in));
@@ -548,5 +573,25 @@ public class Status extends PreferenceActivity {
         int h = (int)((t / 3600));
 
         return h + ":" + pad(m) + ":" + pad(s);
+    }
+
+    private String getSerialNumber() {
+        try {
+            if (SerialNumber.isSupported()) {
+                return SerialNumber.getSerialNumber();
+            }
+        } catch (NoClassDefFoundError e) {
+            // Hardware abstraction framework not installed; fall through
+        }
+
+        return Build.SERIAL;
+    }
+
+    public static String getSarValues(Resources res) {
+        String headLevel = String.format(res.getString(R.string.maximum_head_level,
+                res.getString(R.string.sar_head_level)));
+        String bodyLevel = String.format(res.getString(R.string.maximum_body_level,
+                res.getString(R.string.sar_body_level)));
+        return headLevel + "\n" + bodyLevel;
     }
 }

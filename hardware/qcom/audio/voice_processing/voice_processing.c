@@ -559,7 +559,9 @@ static int fx_command(effect_handle_t  self,
             if (pCmdData == NULL ||
                     cmdSize < (int)sizeof(effect_param_t) ||
                     pReplyData == NULL ||
-                    *replySize < (int)sizeof(effect_param_t)) {
+                    *replySize < (int)sizeof(effect_param_t) ||
+                    // constrain memcpy below
+                    ((effect_param_t *)pCmdData)->psize > *replySize - sizeof(effect_param_t)) {
                 ALOGV("fx_command() EFFECT_CMD_GET_PARAM invalid args");
                 return -EINVAL;
             }
@@ -747,11 +749,11 @@ static int lib_get_descriptor(const effect_uuid_t *uuid,
 // This is the only symbol that needs to be exported
 __attribute__ ((visibility ("default")))
 audio_effect_library_t AUDIO_EFFECT_LIBRARY_INFO_SYM = {
-    tag : AUDIO_EFFECT_LIBRARY_TAG,
-    version : EFFECT_LIBRARY_API_VERSION,
-    name : "MSM8960 Audio Preprocessing Library",
-    implementor : "The Android Open Source Project",
-    create_effect : lib_create,
-    release_effect : lib_release,
-    get_descriptor : lib_get_descriptor
+    .tag = AUDIO_EFFECT_LIBRARY_TAG,
+    .version = EFFECT_LIBRARY_API_VERSION,
+    .name = "MSM8960 Audio Preprocessing Library",
+    .implementor = "The Android Open Source Project",
+    .create_effect = lib_create,
+    .release_effect = lib_release,
+    .get_descriptor = lib_get_descriptor
 };

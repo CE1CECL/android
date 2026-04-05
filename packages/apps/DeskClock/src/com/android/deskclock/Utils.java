@@ -28,6 +28,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
@@ -37,6 +38,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -54,13 +56,22 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.TextClock;
 import android.widget.TextView;
 
+import com.android.deskclock.provider.Alarm;
 import com.android.deskclock.stopwatch.Stopwatches;
 import com.android.deskclock.timer.Timers;
 import com.android.deskclock.worldclock.CityObj;
+import com.android.deskclock.worldclock.db.DbCities;
+import com.android.deskclock.worldclock.db.DbCity;
 
+import java.io.File;
+import java.text.Collator;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -533,7 +544,10 @@ public class Utils {
     }
 
     public static CityObj[] loadCitiesFromXml(Context c) {
+        final Collator collator = Collator.getInstance();
         Resources r = c.getResources();
+
+        // Get list of cities defined by the app (App-defined has the prefix C)
         // Read strings array of name,timezone, id
         // make sure the list are the same length
         String[] cities = r.getStringArray(R.array.cities_names);
@@ -544,11 +558,22 @@ public class Utils {
             minLength = Math.min(cities.length, Math.min(timezones.length, ids.length));
             Log.e("City lists sizes are not the same, trancating");
         }
-        CityObj[] tempList = new CityObj[minLength];
-        for (int i = 0; i < cities.length; i++) {
-            tempList[i] = new CityObj(cities[i], timezones[i], ids[i]);
+
+        List<CityObj> tempList = new ArrayList<CityObj>(minLength);
+        for (int i = 0; i < minLength; i++) {
+            tempList.add(new CityObj(cities[i], timezones[i], ids[i]));
         }
-        return tempList;
+
+        // Get the list of user-defined cities (User-defined has the prefix UD)
+        List<DbCity> dbcities = DbCities.getCities(c.getContentResolver());
+        for (int i = 0; i < dbcities.size(); i++) {
+            DbCity dbCity = dbcities.get(i);
+            CityObj city = new CityObj(dbCity.name, dbCity.tz, "UD" + dbCity.id);
+            city.mUserDefined = true;
+            tempList.add(city);
+        }
+
+        return tempList.toArray(new CityObj[tempList.size()]);
     }
 
     /**
@@ -579,5 +604,35 @@ public class Utils {
 
     public static String getCityName(CityObj city, CityObj dbCity) {
         return (city.mCityId == null || dbCity == null) ? city.mCityName : dbCity.mCityName;
+    }
+
+    public static boolean isRingToneUriValid(Context context, Uri uri) {
+        if(uri == null)
+            return false;
+        if (uri.equals(AlarmMediaPlayer.RANDOM_URI) || uri.equals(Alarm.NO_RINGTONE_URI)) {
+            return true;
+        } else if (uri.getScheme().contentEquals("file")) {
+            File f = new File(uri.getPath());
+            if (f.exists()) {
+                return true;
+            }
+        } else if (uri.getScheme().contentEquals("content")) {
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query(uri,
+                        new String[] {MediaStore.Audio.Media.TITLE}, null, null, null);
+                if (cursor != null && cursor.getCount() > 0) {
+                    return true;
+                }
+            } catch (Exception e) {
+                Log.e("Get ringtone uri Exception: e.toString=" + e.toString());
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+
+        return false;
     }
 }

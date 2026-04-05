@@ -1,5 +1,8 @@
 /* pcm.c
 **
+** Copyright (c) 2013, The Linux Foundation. All rights reserved.
+** Not a contribution.
+**
 ** Copyright 2011, The Android Open Source Project
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -195,7 +198,7 @@ static int oops(struct pcm *pcm, int e, const char *fmt, ...)
     if (errno)
         snprintf(pcm->error + sz, PCM_ERROR_MAX - sz,
                  ": %s", strerror(e));
-    return -1;
+    return -errno;
 }
 
 static unsigned int pcm_format_to_alsa(enum pcm_format format)
@@ -1038,4 +1041,16 @@ int pcm_mmap_read(struct pcm *pcm, void *data, unsigned int count)
         return -ENOSYS;
 
     return pcm_mmap_transfer(pcm, data, count);
+}
+
+int pcm_ioctl(struct pcm *pcm, int request, ...)
+{
+    va_list ap;
+    void * arg;
+
+    va_start(ap, request);
+    arg = va_arg(ap, void *);
+    va_end(ap);
+
+    return ioctl(pcm->fd, request, arg);
 }

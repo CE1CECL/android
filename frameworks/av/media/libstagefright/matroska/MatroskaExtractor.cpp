@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2010 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +26,7 @@
 #include "mkvparser.hpp"
 
 #include <media/stagefright/foundation/ADebug.h>
+#include <media/stagefright/foundation/AUtils.h>
 #include <media/stagefright/foundation/hexdump.h>
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/MediaBuffer.h>
@@ -32,8 +36,25 @@
 #include <media/stagefright/MetaData.h>
 #include <media/stagefright/Utils.h>
 #include <utils/String8.h>
+#include <media/stagefright/foundation/ABitReader.h>
+
+#include <cutils/properties.h>
 
 namespace android {
+
+typedef struct {
+    uint32_t biSize;
+    uint32_t biWidth;
+    uint32_t biHeight;
+    uint16_t biPlanes;
+    uint16_t biBitCount;
+    uint32_t biCompression;
+    uint32_t biSizeImage;
+    uint32_t biXPelsPerMeter;
+    uint32_t biYPelsPerMeter;
+    uint32_t biClrUsed;
+    uint32_t biClrImportant;
+} BITMAPINFOHEADER;
 
 struct DataSourceReader : public mkvparser::IMkvReader {
     DataSourceReader(const sp<DataSource> &source)
@@ -134,6 +155,11 @@ private:
     enum Type {
         AVC,
         AAC,
+        MP3,
+        AC3,
+        EAC3,
+        DTS,
+        MPEG4,
         OTHER
     };
 
@@ -186,6 +212,16 @@ MatroskaSource::MatroskaSource(
         ALOGV("mNALSizeLen = %d", mNALSizeLen);
     } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
         mType = AAC;
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AC3)) {
+        mType = AC3;
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_EAC3)) {
+        mType = EAC3;
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)) {
+        mType = MP3;
+    } else if (!strcasecmp (mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
+        mType = MPEG4;
+    } else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_DTS)) {
+        mType = DTS;
     }
 }
 
@@ -386,7 +422,10 @@ void BlockIterator::seek(
     // Always *search* based on the video track, but finalize based on mTrackNum
     const mkvparser::CuePoint::TrackPosition* pTP;
     if (pTrack && pTrack->GetType() == 1) {
-        pCues->Find(seekTimeNs, pTrack, pCP, pTP);
+        if (!pCues->Find(seekTimeNs, pTrack, pCP, pTP)) {
+            ALOGE("Did not find cue-point for video track at %lld", seekTimeUs);
+            return;
+        }
     } else {
         ALOGE("Did not locate the video track for seeking");
         return;
@@ -463,8 +502,9 @@ status_t MatroskaSource::readBlock() {
     const mkvparser::Block *block = mBlockIter.block();
 
     int64_t timeUs = mBlockIter.blockTimeUs();
+    int frameCount = block->GetFrameCount();
 
-    for (int i = 0; i < block->GetFrameCount(); ++i) {
+    for (int i = 0; i < frameCount; ++i) {
         const mkvparser::Block::Frame &frame = block->GetFrame(i);
 
         MediaBuffer *mbuf = new MediaBuffer(frame.len);
@@ -483,6 +523,27 @@ status_t MatroskaSource::readBlock() {
     }
 
     mBlockIter.advance();
+
+    if (!mBlockIter.eos() && frameCount > 1) {
+        // For files with lacing enabled, we need to amend they kKeyTime of
+        // each frame so that their kKeyTime are advanced accordingly (instead
+        // of being set to the same value). To do this, we need to find out
+        // the duration of the block using the start time of the next block.
+        int64_t duration = mBlockIter.blockTimeUs() - timeUs;
+        int64_t durationPerFrame = duration / frameCount;
+        int64_t durationRemainder = duration % frameCount;
+
+        // We split duration to each of the frame, distributing the remainder (if any)
+        // to the later frames. The later frames are processed first due to the
+        // use of the iterator for the doubly linked list
+        List<MediaBuffer *>::iterator it = mPendingFrames.end();
+        for (int i = frameCount - 1; i >= 0; --i) {
+            --it;
+            int64_t frameRemainder = durationRemainder >= frameCount - i ? 1 : 0;
+            int64_t frameTimeUs = timeUs + durationPerFrame * i + frameRemainder;
+            (*it)->meta_data()->setInt64(kKeyTime, frameTimeUs);
+        }
+    }
 
     return OK;
 }
@@ -563,7 +624,12 @@ status_t MatroskaSource::read(
                     TRESPASS();
             }
 
-            if (srcOffset + mNALSizeLen + NALsize > srcSize) {
+            if (srcOffset + mNALSizeLen + NALsize <= srcOffset + mNALSizeLen) {
+                frame->release();
+                frame = NULL;
+
+                return ERROR_MALFORMED;
+            } else if (srcOffset + mNALSizeLen + NALsize > srcSize) {
                 break;
             }
 
@@ -657,9 +723,30 @@ MatroskaExtractor::MatroskaExtractor(const sp<DataSource> &source)
     ret = mSegment->ParseHeaders();
     CHECK_EQ(ret, 0);
 
+    const mkvparser::SegmentInfo *info = mSegment->GetInfo();
+
+    const char* muxingAppInfo = info->GetMuxingAppAsUTF8();
+    const char* writingApp    = info->GetWritingAppAsUTF8();
+
+    char property_value[PROPERTY_VALUE_MAX] = {0};
+    int parser_flags = 0;
+    property_get("mm.enable.qcom_parser", property_value, "0");
+    parser_flags = atoi(property_value);
+
+    //if divx parsing is disabled and clip has divx hint, bailout
+    //flag 0x00100000 is for DivX and 0x00200000 is for DivxHD
+    if(!(0x00300000 & parser_flags) &&
+       ((!strncasecmp(muxingAppInfo, "libDivX", 7)) ||
+       (!strncasecmp(writingApp, "DivX", 4)))) {
+        ALOGW("format found is not supported -- Bailing out --");
+        delete mSegment;
+        mSegment = NULL;
+        return;
+    }
+
     long len;
     ret = mSegment->LoadCluster(pos, len);
-    CHECK_EQ(ret, 0);
+    // CHECK_EQ(ret, 0);
 
     if (ret < 0) {
         delete mSegment;
@@ -747,6 +834,19 @@ static void addESDSFromCodecPrivate(
         const sp<MetaData> &meta,
         bool isAudio, const void *priv, size_t privSize) {
 
+    if(isAudio) {
+        ABitReader br((const uint8_t *)priv, privSize);
+        uint32_t objectType = br.getBits(5);
+
+        if (objectType == 31) {  // AAC-ELD => additional 6 bits
+            objectType = 32 + br.getBits(6);
+        }
+
+        if(objectType == 1) { //AAC Main profile
+            ALOGV("Found AAC mainprofile in Matroska Extractor");
+        }
+        meta->setInt32(kKeyAACAOT, objectType);
+    }
     int privSizeBytesRequired = bytesForSize(privSize);
     int esdsSize2 = 14 + privSizeBytesRequired + privSize;
     int esdsSize2BytesRequired = bytesForSize(esdsSize2);
@@ -799,25 +899,38 @@ status_t addVorbisCodecInfo(
     size_t offset = 1;
     size_t len1 = 0;
     while (offset < codecPrivateSize && codecPrivate[offset] == 0xff) {
+        if (len1 > (SIZE_MAX - 0xff)) {
+            return ERROR_MALFORMED; // would overflow
+        }
         len1 += 0xff;
         ++offset;
     }
     if (offset >= codecPrivateSize) {
         return ERROR_MALFORMED;
     }
+    if (len1 > (SIZE_MAX - codecPrivate[offset])) {
+        return ERROR_MALFORMED; // would overflow
+    }
     len1 += codecPrivate[offset++];
 
     size_t len2 = 0;
     while (offset < codecPrivateSize && codecPrivate[offset] == 0xff) {
+        if (len2 > (SIZE_MAX - 0xff)) {
+            return ERROR_MALFORMED; // would overflow
+        }
         len2 += 0xff;
         ++offset;
     }
     if (offset >= codecPrivateSize) {
         return ERROR_MALFORMED;
     }
+    if (len2 > (SIZE_MAX - codecPrivate[offset])) {
+        return ERROR_MALFORMED; // would overflow
+    }
     len2 += codecPrivate[offset++];
 
-    if (codecPrivateSize < offset + len1 + len2) {
+    if (len1 > SIZE_MAX - len2 || offset > SIZE_MAX - (len1 + len2) ||
+            codecPrivateSize < offset + len1 + len2) {
         return ERROR_MALFORMED;
     }
 
@@ -878,21 +991,65 @@ void MatroskaExtractor::addTracks() {
                 if (!strcmp("V_MPEG4/ISO/AVC", codecID)) {
                     meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_AVC);
                     meta->setData(kKeyAVCC, 0, codecPrivate, codecPrivateSize);
-                } else if (!strcmp("V_MPEG4/ISO/ASP", codecID)) {
+                } else if (!strcmp("V_MPEG4/ISO/SP", codecID)
+                        || !strcmp("V_MPEG4/ISO/ASP", codecID)
+                        || !strcmp("V_MPEG4/ISO/AP", codecID)) {
+                    meta->setCString(
+                            kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
                     if (codecPrivateSize > 0) {
-                        meta->setCString(
-                                kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
                         addESDSFromCodecPrivate(
                                 meta, false, codecPrivate, codecPrivateSize);
                     } else {
                         ALOGW("%s is detected, but does not have configuration.",
                                 codecID);
-                        continue;
                     }
                 } else if (!strcmp("V_VP8", codecID)) {
                     meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP8);
                 } else if (!strcmp("V_VP9", codecID)) {
                     meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP9);
+                } else if (!strcmp("V_MS/VFW/FOURCC", codecID)) {
+                    if (codecPrivateSize >= sizeof(BITMAPINFOHEADER)) {
+                        char *fourcc = (char *) &((BITMAPINFOHEADER *) codecPrivate)->biCompression;
+
+                        switch (FOURCC(fourcc[0], fourcc[1], fourcc[2], fourcc[3])) {
+                        case 'XVID':
+                        case 'xvid':
+                        case 'FMP4':
+                        case 'fmp4':
+                        case 'MP4V':
+                        case 'mp4v':
+                            meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
+                            break;
+                        case 'H263':
+                        case 'h263':
+                            meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_H263);
+                            break;
+                        case 'DIV3':
+                        case 'div3':
+                        case 'DIV4':
+                        case 'div4':
+                            ALOGW("DivX 3.11 codec not supported");
+                            continue;
+                        case 'DIVX':
+                        case 'divx':
+                            ALOGW("DivX 4 codec not supported");
+                            continue;
+                        case 'DX50':
+                        case 'dx50':
+                            ALOGW("DivX 5 codec not supported");
+                            continue;
+                        case 'MP42':
+                        default:
+                            ALOGW("fourcc id: %hhX%hhX%hhX%hhX is not supported\n",
+                                    fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
+                            continue;
+                        }
+
+                        ALOGV("fourcc id: %.4s", fourcc);
+                    } else {
+                        ALOGW("fourcc size: %d is not supported\n", codecPrivateSize);
+                        continue;
+                    }
                 } else {
                     ALOGW("%s is not supported.", codecID);
                     continue;
@@ -921,6 +1078,12 @@ void MatroskaExtractor::addTracks() {
                             meta, codecPrivate, codecPrivateSize);
                 } else if (!strcmp("A_MPEG/L3", codecID)) {
                     meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_MPEG);
+                } else if (!strcmp("A_AC3", codecID)) {
+                    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_AC3);
+                } else if (!strcmp("A_EAC3", codecID)) {
+                    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_EAC3);
+                } else if (!strcmp("A_DTS", codecID)) {
+                    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_DTS);
                 } else {
                     ALOGW("%s is not supported.", codecID);
                     continue;

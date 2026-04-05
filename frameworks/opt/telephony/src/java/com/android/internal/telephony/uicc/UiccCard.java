@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2006, 2012 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,18 +62,19 @@ public class UiccCard {
     protected static final boolean DBG = true;
 
     private final Object mLock = new Object();
-    private CardState mCardState;
+    protected CardState mCardState;
     private PinState mUniversalPinState;
     private int mGsmUmtsSubscriptionAppIndex;
     private int mCdmaSubscriptionAppIndex;
     private int mImsSubscriptionAppIndex;
-    private UiccCardApplication[] mUiccApplications =
+    protected UiccCardApplication[] mUiccApplications =
             new UiccCardApplication[IccCardStatus.CARD_MAX_APPS];
-    private Context mContext;
-    private CommandsInterface mCi;
-    private CatService mCatService;
+    protected Context mContext;
+    protected CommandsInterface mCi;
+    protected CatService mCatService;
     private boolean mDestroyed = false; //set to true once this card is commanded to be disposed of.
     private RadioState mLastRadioState =  RadioState.RADIO_UNAVAILABLE;
+    private UICCConfig mUICCConfig = null;
 
     private RegistrantList mAbsentRegistrants = new RegistrantList();
 
@@ -82,6 +85,9 @@ public class UiccCard {
         if (DBG) log("Creating");
         mCardState = ics.mCardState;
         update(c, ci, ics);
+    }
+
+    protected UiccCard() {
     }
 
     public void dispose() {
@@ -95,6 +101,7 @@ public class UiccCard {
             }
             mCatService = null;
             mUiccApplications = null;
+            mUICCConfig = null;
         }
     }
 
@@ -113,6 +120,8 @@ public class UiccCard {
             mContext = c;
             mCi = ci;
             //update applications
+            if (mUICCConfig == null)
+                mUICCConfig = new UICCConfig();
             if (DBG) log(ics.mApplications.length + " applications");
             for ( int i = 0; i < mUiccApplications.length; i++) {
                 if (mUiccApplications[i] == null) {
@@ -131,18 +140,7 @@ public class UiccCard {
                 }
             }
 
-            if (mUiccApplications.length > 0 && mUiccApplications[0] != null) {
-                // Initialize or Reinitialize CatService
-                mCatService = CatService.getInstance(mCi,
-                                                     mContext,
-                                                     this);
-            } else {
-                if (mCatService != null) {
-                    mCatService.dispose();
-                }
-                mCatService = null;
-            }
-
+            createAndUpdateCatService();
             sanitizeApplicationIndexes();
 
             RadioState radioState = mCi.getRadioState();
@@ -162,6 +160,19 @@ public class UiccCard {
                 }
             }
             mLastRadioState = radioState;
+        }
+    }
+
+    protected void createAndUpdateCatService() {
+        if (mUiccApplications.length > 0 && mUiccApplications[0] != null) {
+            // Initialize or Reinitialize CatService
+            mCatService = CatService.getInstance(mCi,
+                    mContext, this);
+        } else {
+            if (mCatService != null) {
+                mCatService.dispose();
+            }
+            mCatService = null;
         }
     }
 
@@ -228,6 +239,15 @@ public class UiccCard {
     }
 
     private void onIccSwap(boolean isAdded) {
+
+        boolean isHotSwapSupported = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_hotswapCapable);
+
+        if(isHotSwapSupported) {
+            //no need to prompt the user to reboot the device
+            return;
+        }
+
         synchronized (mLock) {
             // TODO: Here we assume the device can't handle SIM hot-swap
             //      and has to reboot. We may want to add a property,
@@ -347,7 +367,31 @@ public class UiccCard {
         }
     }
 
-    private void log(String msg) {
+    /* Returns number of applications on this card */
+    public int getNumApplications() {
+        int count = 0;
+        for (UiccCardApplication a : mUiccApplications) {
+            if (a != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public UICCConfig getUICCConfig() {
+        return mUICCConfig;
+    }
+
+    void onRefresh(IccRefreshResponse refreshResponse){
+        for ( int i = 0; i < mUiccApplications.length; i++) {
+            if (mUiccApplications[i] != null) {
+                // Let the app know that the refresh occurred
+                mUiccApplications[i].onRefresh(refreshResponse);
+            }
+        }
+    }
+
+    protected void log(String msg) {
         Rlog.d(LOG_TAG, msg);
     }
 

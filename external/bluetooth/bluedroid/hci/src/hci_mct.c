@@ -1,5 +1,8 @@
 /******************************************************************************
  *
+ *  Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *  Not a Contribution.
+ *
  *  Copyright (C) 2009-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -83,6 +86,7 @@
 #define HCI_COMMAND_STATUS_EVT      0x0F
 #define HCI_READ_BUFFER_SIZE        0x1005
 #define HCI_LE_READ_BUFFER_SIZE     0x2002
+#define L2CAP_MAX_DATA_SIZE         0x8000
 
 /******************************************************************************
 **  Local type definitions
@@ -149,7 +153,8 @@ void lpm_tx_done(uint8_t is_tx_done);
 ******************************************************************************/
 
 /* Num of allowed outstanding HCI CMD packets */
-volatile int num_hci_cmd_pkts = 1;
+extern int num_hci_cmd_pkts ;
+extern tUSERIAL_IF *p_userial_if;
 
 /******************************************************************************
 **  Static variables
@@ -172,7 +177,7 @@ static tHCI_MCT_CB       mct_cb;
 ** Returns          None
 **
 *******************************************************************************/
-void get_acl_data_length_cback(void *p_mem)
+void get_acl_data_length_cback_mct(void *p_mem)
 {
     uint8_t     *p, status;
     uint16_t    opcode, len=0;
@@ -200,7 +205,7 @@ void get_acl_data_length_cback(void *p_mem)
         *p = 0;
 
         if ((status = hci_mct_send_int_cmd(HCI_LE_READ_BUFFER_SIZE, p_buf, \
-                                           get_acl_data_length_cback)) == FALSE)
+                                           get_acl_data_length_cback_mct)) == FALSE)
         {
             bt_hc_cbacks->dealloc((TRANSAC) p_buf, (char *) (p_buf + 1));
             bt_hc_cbacks->postload_cb(NULL, BT_HC_POSTLOAD_SUCCESS);
@@ -223,7 +228,7 @@ void get_acl_data_length_cback(void *p_mem)
 
 /*******************************************************************************
 **
-** Function         internal_event_intercept
+** Function         internal_event_intercept_mct
 **
 ** Description      This function is called to parse received HCI event and
 **                  - update the Num_HCI_Command_Packets
@@ -234,7 +239,7 @@ void get_acl_data_length_cback(void *p_mem)
 **                  FALSE : send this event to core stack
 **
 *******************************************************************************/
-uint8_t internal_event_intercept(void)
+uint8_t internal_event_intercept_mct(void)
 {
     uint8_t     *p;
     uint8_t     event_code;
@@ -380,6 +385,20 @@ static HC_BT_HDR *acl_rx_frame_buffer_alloc (void)
             }
             p_return_buf = NULL;
         }
+        /* check for invalid hci length */
+        if(hci_len < L2CAP_HEADER_SIZE)
+        {
+            ALOGE("Invalid HCI length of L2CAP packet: return NULL");
+            return NULL;
+        }
+
+        /* check for invalid l2cap payload length */
+        if ((total_len < (hci_len - L2CAP_HEADER_SIZE)) || ((total_len + HCI_ACL_PREAMBLE_SIZE + \
+                L2CAP_HEADER_SIZE + BT_HC_HDR_SIZE) > L2CAP_MAX_DATA_SIZE))
+        {
+            ALOGE("Invalid L2CAP payload length: return NULL");
+            return NULL;
+        }
 
         /* Allocate a buffer for message */
         if (bt_hc_cbacks)
@@ -415,9 +434,15 @@ static HC_BT_HDR *acl_rx_frame_buffer_alloc (void)
         {
             /* Packet continuation and found the original rx buffer */
             uint8_t *p_f = p = (uint8_t *)(p_return_buf + 1) + 2;
-
+            uint16_t tot_l2c_len;
             STREAM_TO_UINT16 (total_len, p);
+            STREAM_TO_UINT16 (tot_l2c_len, p);
 
+            if((tot_l2c_len - (total_len - L2CAP_HEADER_SIZE)) < hci_len)
+            {
+                ALOGE("Invalid L2CAP Con't Packet: return NULL ");
+                return NULL;
+            }
             /* Update HCI header of first segment (base buffer) with new len */
             total_len += hci_len;
             UINT16_TO_STREAM (p_f, total_len);
@@ -622,7 +647,7 @@ void hci_mct_send_msg(HC_BT_HDR *p_msg)
         {
             p = ((uint8_t *)(p_msg + 1)) + p_msg->offset;
 
-            userial_write(event, (uint8_t *) p, acl_pkt_size);
+            p_userial_if->write(event, (uint8_t *) p, acl_pkt_size);
 
             /* generate snoop trace message */
             btsnoop_capture(p_msg, FALSE);
@@ -683,7 +708,7 @@ void hci_mct_send_msg(HC_BT_HDR *p_msg)
         STREAM_TO_UINT16(lay_spec, p_tmp);
     }
 
-    userial_write(event, (uint8_t *) p, p_msg->len);
+    p_userial_if->write(event, (uint8_t *) p, p_msg->len);
 
 
     /* generate snoop trace message */
@@ -728,23 +753,61 @@ uint16_t hci_mct_receive_evt_msg(void)
     uint8_t     msg_received;
     tHCI_RCV_CB  *p_cb=&mct_cb.rcv_evt;
     uint8_t     continue_fetch_looping = TRUE;
+#ifdef QCOM_WCN_SSR
+    uint8_t     dev_ssr_event[3] = { 0x10, 0x01, 0x0A };
+    uint8_t     reset;
+#endif
 
     while (continue_fetch_looping)
     {
         /* Read one byte to see if there is anything waiting to be read */
-        if (userial_read(MSG_HC_TO_STACK_HCI_EVT, &byte, 1) == 0)
+        if (p_userial_if->read(MSG_HC_TO_STACK_HCI_EVT, &byte, 1) == 0)
         {
             break;
         }
-
-        bytes_read++;
-        msg_received = FALSE;
-
-        switch (p_cb->rcv_state)
+#ifdef QCOM_WCN_SSR
+        reset = userial_dev_inreset();
+        if (reset)
         {
-        case MCT_RX_NEWMSG_ST:
-            /* Start of new message */
-            /* Initialize rx parameters */
+           /* Allocate a buffer for sending H/w error message */
+           if (bt_hc_cbacks)
+           {
+                len = 3 + BT_HC_HDR_SIZE;
+                p_cb->p_rcv_msg = \
+                  (HC_BT_HDR *) bt_hc_cbacks->alloc(len);
+           }
+           ALOGE("sending H/w error event to stack\n ");
+           p_cb->p_rcv_msg->offset = 0;
+           p_cb->p_rcv_msg->layer_specific = 0;
+           p_cb->p_rcv_msg->event = MSG_HC_TO_STACK_HCI_EVT;
+           p_cb->p_rcv_msg->len = 3;
+           memcpy((uint8_t *)(p_cb->p_rcv_msg + 1),&dev_ssr_event, 3);
+           msg_received = TRUE;
+           /* Next, wait for next message */
+           p_cb->rcv_state = MCT_RX_NEWMSG_ST;
+           continue_fetch_looping = FALSE;
+
+           /*set the SSR flag */
+           if(property_set("bluetooth.isSSR", "1") < 0)
+           {
+               ALOGE("SSR: hci_mct.c:SSR case : error in setting up property\n ");
+           }
+           else
+           {
+               ALOGE("SSR: hci_mct.c:setting the SSR property to 1 DONE New\n ");
+           }
+        }
+        else
+#endif
+        {
+          bytes_read++;
+          msg_received = FALSE;
+
+          switch (p_cb->rcv_state)
+          {
+            case MCT_RX_NEWMSG_ST:
+             /* Start of new message */
+               /* Initialize rx parameters */
             memset(p_cb->preload_buffer, 0 , 6);
             p_cb->preload_buffer[0] = byte;
             p_cb->preload_count = 1;
@@ -832,7 +895,7 @@ uint16_t hci_mct_receive_evt_msg(void)
             if (p_cb->rcv_len > 0)
             {
                 /* Read in the rest of the message */
-                len = userial_read(MSG_HC_TO_STACK_HCI_EVT, \
+                len = p_userial_if->read(MSG_HC_TO_STACK_HCI_EVT, \
                       ((uint8_t *)(p_cb->p_rcv_msg+1) + p_cb->p_rcv_msg->len), \
                       p_cb->rcv_len);
                 p_cb->p_rcv_msg->len += len;
@@ -866,6 +929,7 @@ uint16_t hci_mct_receive_evt_msg(void)
             break;
         }
 
+       }
 
         /* If we received entire message, then send it to the task */
         if (msg_received)
@@ -875,7 +939,7 @@ uint16_t hci_mct_receive_evt_msg(void)
             /* generate snoop trace message */
             btsnoop_capture(p_cb->p_rcv_msg, TRUE);
 
-            intercepted = internal_event_intercept();
+            intercepted = internal_event_intercept_mct();
 
             if ((bt_hc_cbacks) && (intercepted == FALSE))
             {
@@ -912,7 +976,7 @@ uint16_t hci_mct_receive_acl_msg(void)
     while (continue_fetch_looping)
     {
         /* Read one byte to see if there is anything waiting to be read */
-        if (userial_read(MSG_HC_TO_STACK_HCI_ACL, &byte, 1) == 0)
+        if (p_userial_if->read(MSG_HC_TO_STACK_HCI_ACL, &byte, 1) == 0)
         {
             break;
         }
@@ -944,7 +1008,15 @@ uint16_t hci_mct_receive_acl_msg(void)
                 /* ACL data lengths are 16-bits */
                 msg_len = p_cb->preload_buffer[3];
                 msg_len = (msg_len << 8) + p_cb->preload_buffer[2];
-
+                if(msg_len == 0) {
+                    p_cb->rcv_state = MCT_RX_NEWMSG_ST;
+                    continue_fetch_looping = FALSE;
+                    break;
+                } else if (msg_len <= 2) {
+                    p_cb->rcv_len = msg_len;
+                    p_cb->rcv_state = MCT_RX_IGNORE_ST;
+                    break;
+                }
                 if (msg_len && (p_cb->preload_count == 4))
                 {
                     /* Check if this is a start packet */
@@ -1020,7 +1092,7 @@ uint16_t hci_mct_receive_acl_msg(void)
             if (p_cb->rcv_len > 0)
             {
                 /* Read in the rest of the message */
-                len = userial_read(MSG_HC_TO_STACK_HCI_ACL, \
+                len = p_userial_if->read(MSG_HC_TO_STACK_HCI_ACL, \
                       ((uint8_t *)(p_cb->p_rcv_msg+1) + p_cb->p_rcv_msg->len), \
                       p_cb->rcv_len);
                 p_cb->p_rcv_msg->len += len;
@@ -1145,7 +1217,7 @@ void hci_mct_get_acl_data_length(void)
         *p = 0;
 
         if ((ret = hci_mct_send_int_cmd(HCI_READ_BUFFER_SIZE, p_buf, \
-                                       get_acl_data_length_cback)) == FALSE)
+                                       get_acl_data_length_cback_mct)) == FALSE)
         {
             bt_hc_cbacks->dealloc((TRANSAC) p_buf, (char *) (p_buf + 1));
         }
@@ -1173,7 +1245,8 @@ const tHCI_IF hci_mct_func_table =
     hci_mct_send_int_cmd,
     hci_mct_get_acl_data_length,
     hci_mct_receive_evt_msg,
-    hci_mct_receive_acl_msg
+    hci_mct_receive_acl_msg,
+    NULL
 };
 
 

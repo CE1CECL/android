@@ -51,6 +51,14 @@ static tAVRC_STS avrc_pars_vendor_cmd(tAVRC_MSG_VENDOR *p_msg, tAVRC_COMMAND *p_
     tAVRC_APP_SETTING       *p_app_set;
     UINT16  size_needed;
 
+    /* NULL check for p_vendor_data */
+    if (p == NULL)
+    {
+        status = AVRC_STS_INTERNAL_ERR;
+        AVRC_TRACE_ERROR0("avrc_pars_vendor_cmd() detects NULL vendor data!");
+        return status;
+    }
+
     p_result->pdu = *p++;
     AVRC_TRACE_DEBUG1("avrc_pars_vendor_cmd() pdu:0x%x", p_result->pdu);
     if (!AVRC_IsValidAvcType (p_result->pdu, p_msg->hdr.ctype))
@@ -243,7 +251,9 @@ static tAVRC_STS avrc_pars_vendor_cmd(tAVRC_MSG_VENDOR *p_msg, tAVRC_COMMAND *p_
 
     case AVRC_PDU_REGISTER_NOTIFICATION:    /* 0x31 */
         if (len != 5)
+        {
             status = AVRC_STS_INTERNAL_ERR;
+        }
         else
         {
             BE_STREAM_TO_UINT8 (p_result->reg_notif.event_id, p);
@@ -260,6 +270,14 @@ static tAVRC_STS avrc_pars_vendor_cmd(tAVRC_MSG_VENDOR *p_msg, tAVRC_COMMAND *p_
 
     /* case AVRC_PDU_REQUEST_CONTINUATION_RSP: 0x40 */
     /* case AVRC_PDU_ABORT_CONTINUATION_RSP:   0x41 */
+    case AVRC_PDU_SET_ADDRESSED_PLAYER:
+        if (len != 2)
+        {
+           status = AVRC_STS_INTERNAL_ERR;
+           return status ;
+        }
+        BE_STREAM_TO_UINT16 (p_result->addr_player.player_id, p);
+        break;
 
     default:
         status = AVRC_STS_BAD_CMD;
@@ -307,7 +325,8 @@ tAVRC_STS AVRC_ParsCommand (tAVRC_MSG *p_msg, tAVRC_COMMAND *p_result, UINT8 *p_
         p_result->cmd.opcode = p_msg->hdr.opcode;
         p_result->cmd.status = status;
     }
-    AVRC_TRACE_DEBUG1("AVRC_ParsCommand() return status:0x%x", status);
+    BTIF_TRACE_IMP2("AVRC_ParsCommand() return status:0x%x",
+            __FUNCTION__, status);
     return status;
 }
 

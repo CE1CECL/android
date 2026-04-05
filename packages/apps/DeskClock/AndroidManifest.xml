@@ -13,6 +13,12 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.DEVICE_POWER" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.android.deskclock.worldclock.permissions.WRITE_DATABASE" />
+
     <uses-sdk android:minSdkVersion="17" android:targetSdkVersion="17" ></uses-sdk>
 
     <application android:label="@string/app_label"
@@ -23,6 +29,11 @@
         <provider android:name=".provider.ClockProvider"
                 android:authorities="com.android.deskclock"
                 android:exported="false" />
+
+        <provider android:name="com.android.deskclock.worldclock.db.DbCityProvider"
+                android:authorities="com.android.deskclock.worldclock.db"
+                android:exported="true"
+                android:writePermission="com.android.deskclock.worldclock.permissions.WRITE_DATABASE" />
 
         <activity android:name="DeskClock"
                 android:label="@string/app_label"
@@ -52,6 +63,14 @@
                 <category android:name="android.intent.category.DESK_DOCK" />
             </intent-filter>
         </activity-alias>
+
+        <activity-alias android:name="AlarmClock"
+                android:targetActivity="DeskClock"
+                android:exported="true" />
+
+        <activity-alias android:name="com.android.alarmclock.AlarmClock"
+                android:targetActivity="com.android.deskclock.AlarmClock"
+                android:exported="true" />
 
         <activity android:name="SettingsActivity"
                 android:label="@string/settings"
@@ -122,7 +141,7 @@
 
 
         <receiver android:name="AlarmInitReceiver">
-            <intent-filter>
+            <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />

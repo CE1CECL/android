@@ -271,6 +271,23 @@ eap_pwd_perform_commit_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 	BIGNUM *mask = NULL, *x = NULL, *y = NULL, *cofactor = NULL;
 	u16 offset;
 	u8 *ptr, *scalar = NULL, *element = NULL;
+	size_t prime_len, order_len;
+
+	if (data->state != PWD_Commit_Req) {
+		ret->ignore = TRUE;
+		goto fin;
+	}
+
+	prime_len = BN_num_bytes(data->grp->prime);
+	order_len = BN_num_bytes(data->grp->order);
+
+	if (payload_len != 2 * prime_len + order_len) {
+		wpa_printf(MSG_INFO,
+			   "EAP-pwd: Unexpected Commit payload length %u (expected %u)",
+			   (unsigned int) payload_len,
+			   (unsigned int) (2 * prime_len + order_len));
+		goto fin;
+	}
 
 	if (((data->private_value = BN_new()) == NULL) ||
 	    ((data->my_element = EC_POINT_new(data->grp->group)) == NULL) ||
@@ -466,6 +483,18 @@ eap_pwd_perform_confirm_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 	u8 conf[SHA256_MAC_LEN], *cruft = NULL, *ptr;
 	int offset;
 
+	if (data->state != PWD_Confirm_Req) {
+		ret->ignore = TRUE;
+		goto fin;
+	}
+
+	if (payload_len != SHA256_MAC_LEN) {
+		wpa_printf(MSG_INFO,
+			   "EAP-pwd: Unexpected Confirm payload length %u (expected %u)",
+			   (unsigned int) payload_len, SHA256_MAC_LEN);
+		goto fin;
+	}
+
 	/*
 	 * first build up the ciphersuite which is group | random_function |
 	 *	prf
@@ -650,7 +679,8 @@ eap_pwd_perform_confirm_exchange(struct eap_sm *sm, struct eap_pwd_data *data,
 	wpabuf_put_data(data->outbuf, conf, SHA256_MAC_LEN);
 
 fin:
-	os_free(cruft);
+	if (data->grp)
+		os_free(cruft);
 	BN_free(x);
 	BN_free(y);
 	ret->methodState = METHOD_DONE;
@@ -745,9 +775,21 @@ eap_pwd_process(struct eap_sm *sm, void *priv, struct eap_method_ret *ret,
 	 * if it's the first fragment there'll be a length field
 	 */
 	if (EAP_PWD_GET_LENGTH_BIT(lm_exch)) {
+		if (len < 2) {
+			wpa_printf(MSG_DEBUG,
+				   "EAP-pwd: Frame too short to contain Total-Length field");
+			ret->ignore = TRUE;
+			return NULL;
+		}
 		tot_len = WPA_GET_BE16(pos);
 		wpa_printf(MSG_DEBUG, "EAP-pwd: Incoming fragments whose "
 			   "total length = %d", tot_len);
+		if (data->inbuf) {
+			wpa_printf(MSG_DEBUG,
+				   "EAP-pwd: Unexpected new fragment start when previous fragment is still in use");
+			ret->ignore = TRUE;
+			return NULL;
+		}
 		data->inbuf = wpabuf_alloc(tot_len);
 		if (data->inbuf == NULL) {
 			wpa_printf(MSG_INFO, "Out of memory to buffer "
@@ -760,7 +802,7 @@ eap_pwd_process(struct eap_sm *sm, void *priv, struct eap_method_ret *ret,
 	/*
 	 * buffer and ACK the fragment
 	 */
-	if (EAP_PWD_GET_MORE_BIT(lm_exch)) {
+	if (EAP_PWD_GET_MORE_BIT(lm_exch) || data->in_frag_pos) {
 		data->in_frag_pos += len;
 		if (data->in_frag_pos > wpabuf_size(data->inbuf)) {
 			wpa_printf(MSG_INFO, "EAP-pwd: Buffer overflow attack "
@@ -772,7 +814,8 @@ eap_pwd_process(struct eap_sm *sm, void *priv, struct eap_method_ret *ret,
 			return NULL;
 		}
 		wpabuf_put_data(data->inbuf, pos, len);
-
+	}
+	if (EAP_PWD_GET_MORE_BIT(lm_exch)) {
 		resp = eap_msg_alloc(EAP_VENDOR_IETF, EAP_TYPE_PWD,
 				     EAP_PWD_HDR_SIZE,
 				     EAP_CODE_RESPONSE, eap_get_id(reqData));
@@ -786,10 +829,8 @@ eap_pwd_process(struct eap_sm *sm, void *priv, struct eap_method_ret *ret,
 	 * we're buffering and this is the last fragment
 	 */
 	if (data->in_frag_pos) {
-		wpabuf_put_data(data->inbuf, pos, len);
 		wpa_printf(MSG_DEBUG, "EAP-pwd: Last fragment, %d bytes",
 			   (int) len);
-		data->in_frag_pos += len;
 		pos = wpabuf_head_u8(data->inbuf);
 		len = data->in_frag_pos;
 	}
@@ -828,6 +869,7 @@ eap_pwd_process(struct eap_sm *sm, void *priv, struct eap_method_ret *ret,
 	/*
 	 * we have output! Do we need to fragment it?
 	 */
+	lm_exch = EAP_PWD_GET_EXCHANGE(lm_exch);
 	len = wpabuf_len(data->outbuf);
 	if ((len + EAP_PWD_HDR_SIZE) > data->mtu) {
 		resp = eap_msg_alloc(EAP_VENDOR_IETF, EAP_TYPE_PWD, data->mtu,

@@ -34,6 +34,7 @@ import android.os.RemoteException;
 import android.text.TextUtils;
 
 import com.android.emailcommon.provider.EmailContent.AccountColumns;
+import com.android.emailcommon.service.SyncSize;
 import com.android.emailcommon.utility.Utility;
 import com.android.mail.utils.LogUtils;
 
@@ -113,6 +114,10 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     public static final int CHECK_INTERVAL_NEVER = -1;
     public static final int CHECK_INTERVAL_PUSH = -2;
 
+    public static final int AUTO_FETCH_ATTACHMENT_NEVER = 0;
+    public static final int AUTO_FETCH_ATTACHMENT_WIFI = 1;
+    public static final int AUTO_FETCH_ATTACHMENT_ALWAYS = 2;
+
     public static Uri CONTENT_URI;
     public static Uri RESET_NEW_MESSAGE_COUNT_URI;
     public static Uri NOTIFIER_URI;
@@ -142,11 +147,16 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     public String mSignature;
     public long mPolicyKey;
     public long mPingDuration;
+    public int mAutoFetchAttachments;
 
     // Convenience for creating/working with an account
     public transient HostAuth mHostAuthRecv;
     public transient HostAuth mHostAuthSend;
     public transient Policy mPolicy;
+
+    // To save the sync size of this account.
+    public int mSetSyncSizeEnabled;
+    public int mSyncSize;
 
     public static final int CONTENT_ID_COLUMN = 0;
     public static final int CONTENT_DISPLAY_NAME_COLUMN = 1;
@@ -167,6 +177,9 @@ public final class Account extends EmailContent implements AccountColumns, Parce
     public static final int CONTENT_POLICY_KEY_COLUMN = 16;
     public static final int CONTENT_PING_DURATION_COLUMN = 17;
     public static final int CONTENT_MAX_ATTACHMENT_SIZE_COLUMN = 18;
+    public static final int CONTENT_AUTO_FETCH_ATTACHMENTS_COLUMN = 19;
+    public static final int CONTENT_SET_SYNC_SIZE_ENABLED_COLUMN = 20;
+    public static final int CONTENT_SYNC_SIZE_COLUMN = 21;
 
     public static final String[] CONTENT_PROJECTION = new String[] {
         RECORD_ID, AccountColumns.DISPLAY_NAME,
@@ -177,7 +190,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         AccountColumns.RINGTONE_URI, AccountColumns.PROTOCOL_VERSION,
         AccountColumns.NEW_MESSAGE_COUNT, AccountColumns.SECURITY_SYNC_KEY,
         AccountColumns.SIGNATURE, AccountColumns.POLICY_KEY, AccountColumns.PING_DURATION,
-        AccountColumns.MAX_ATTACHMENT_SIZE
+        AccountColumns.MAX_ATTACHMENT_SIZE, AccountColumns.AUTO_FETCH_ATTACHMENTS,
+        AccountColumns.SET_SYNC_SIZE_ENABLED, AccountColumns.SYNC_SIZE
     };
 
     public static final int CONTENT_MAILBOX_TYPE_COLUMN = 1;
@@ -221,6 +235,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mSyncLookback = -1;
         mFlags = 0;
         mCompatibilityUuid = UUID.randomUUID().toString();
+        mSyncSize = SyncSize.SYNC_SIZE_ENTIRE_MAIL;
     }
 
     public static Account restoreAccountWithId(Context context, long id) {
@@ -274,7 +289,10 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mSecuritySyncKey = cursor.getString(CONTENT_SECURITY_SYNC_KEY_COLUMN);
         mSignature = cursor.getString(CONTENT_SIGNATURE_COLUMN);
         mPolicyKey = cursor.getLong(CONTENT_POLICY_KEY_COLUMN);
-        mPingDuration = cursor.getLong(CONTENT_PING_DURATION_COLUMN);
+        mPingDuration = cursor.getInt(CONTENT_PING_DURATION_COLUMN);
+        mAutoFetchAttachments = cursor.getInt(CONTENT_AUTO_FETCH_ATTACHMENTS_COLUMN);
+        mSetSyncSizeEnabled = cursor.getInt(CONTENT_SET_SYNC_SIZE_ENABLED_COLUMN);
+        mSyncSize = cursor.getInt(CONTENT_SYNC_SIZE_COLUMN);
     }
 
     private static long getId(Uri u) {
@@ -385,6 +403,38 @@ public final class Account extends EmailContent implements AccountColumns, Parce
      */
     public void setPingDuration(long value) {
         mPingDuration = value;
+    }
+
+    /**
+     * @return the current auto fetch attachment value.
+     */
+    public int getAutoFetchAttachments() {
+        return mAutoFetchAttachments;
+    }
+
+    /**
+     * Set the auto fetch attachment value. Be sure to call save() to commit to database.
+     */
+    public void setAutoFetchAttachments(int value) {
+        mAutoFetchAttachments = value;
+    }
+
+    /**
+     * @return The max size per mail will be sync from service
+     * TODO define the values for "all", "20KB", "100KB", etc. See arrays.xml
+     */
+    public int getSyncSize() {
+        return mSyncSize;
+    }
+
+    /**
+     * Set the max size per mail will be sync from service. Be sure to call save() to
+     * commit to database.
+     * TODO define the values for "all", "20KB", "100KB", etc. See arrays.xml
+     * @param size the max size per mail would be sync from service.
+     */
+    public void setSyncSize(int size) {
+        mSyncSize = size;
     }
 
     /**
@@ -823,6 +873,9 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         values.put(AccountColumns.SIGNATURE, mSignature);
         values.put(AccountColumns.POLICY_KEY, mPolicyKey);
         values.put(AccountColumns.PING_DURATION, mPingDuration);
+        values.put(AccountColumns.AUTO_FETCH_ATTACHMENTS, mAutoFetchAttachments);
+        values.put(AccountColumns.SET_SYNC_SIZE_ENABLED, mSetSyncSizeEnabled);
+        values.put(AccountColumns.SYNC_SIZE, mSyncSize);
         return values;
     }
 
@@ -873,6 +926,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         dest.writeString(mSecuritySyncKey);
         dest.writeString(mSignature);
         dest.writeLong(mPolicyKey);
+        dest.writeInt(mSetSyncSizeEnabled);
+        dest.writeInt(mSyncSize);
 
         if (mHostAuthRecv != null) {
             dest.writeByte((byte)1);
@@ -887,6 +942,7 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         } else {
             dest.writeByte((byte)0);
         }
+        dest.writeInt(mAutoFetchAttachments);
     }
 
     /**
@@ -911,6 +967,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         mSecuritySyncKey = in.readString();
         mSignature = in.readString();
         mPolicyKey = in.readLong();
+        mSetSyncSizeEnabled = in.readInt();
+        mSyncSize = in.readInt();
 
         mHostAuthRecv = null;
         if (in.readByte() == 1) {
@@ -921,6 +979,8 @@ public final class Account extends EmailContent implements AccountColumns, Parce
         if (in.readByte() == 1) {
             mHostAuthSend = new HostAuth(in);
         }
+
+        mAutoFetchAttachments = in.readInt();
     }
 
     /**

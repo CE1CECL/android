@@ -791,6 +791,7 @@
     <string name="system_update_settings_list_item_title" msgid="3342887311059985961">"تحديثات النظام"</string>
     <string name="system_update_settings_list_item_summary" msgid="3853057315907710747"></string>
     <string name="firmware_version" msgid="4801135784886859972">"‏إصدار Android"</string>
+    <string name="security_patch" msgid="8438384045870296634">"‏مستوى رمز تصحيح أمان Android"</string>
     <string name="model_number" msgid="3765737700545384794">"رقم الطراز"</string>
     <string name="fcc_equipment_id" msgid="149114368246356737">"معرّف الجهاز"</string>
     <string name="baseband_version" msgid="1848990160763524801">"إصدار النطاق الأساسي"</string>
@@ -1807,8 +1808,8 @@
     <string name="enable_opengl_traces_title" msgid="6790444011053219871">"‏تمكين عمليات تتبع OpenGL"</string>
     <string name="debug_layout" msgid="5981361776594526155">"عرض حدود المخطط"</string>
     <string name="debug_layout_summary" msgid="2001775315258637682">"عرض حدود وهوامش المقطع وما إلى ذلك."</string>
-    <string name="force_rtl_layout_all_locales" msgid="2259906643093138978">"فرض اتجاه التنسيق ليكون من اليمين إلى اليسار"</string>
-    <string name="force_rtl_layout_all_locales_summary" msgid="9192797796616132534">"فرض اتجاه تنسيق الشاشة ليكون من اليمين إلى اليسار لجميع اللغات"</string>
+    <string name="force_rtl_layout_all_locales" msgid="2259906643093138978">"إرغام اتجاه نشر من اليسار إلى اليمين"</string>
+    <string name="force_rtl_layout_all_locales_summary" msgid="9192797796616132534">"إرغام اتجاه نشر الشاشة من اليسار إلى اليمين"</string>
     <string name="show_cpu_usage" msgid="2389212910758076024">"‏عرض استخدام CPU"</string>
     <string name="show_cpu_usage_summary" msgid="2113341923988958266">"‏عرض تراكب الشاشة لاستخدام CPU الحالي"</string>
     <string name="force_hw_ui" msgid="6426383462520888732">"‏فرض عرض رسومات GPU"</string>

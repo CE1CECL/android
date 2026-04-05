@@ -1,5 +1,8 @@
 /*
+ * Copyright (c) 2012-2013 The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +19,14 @@
 
 package android.app;
 
+import android.content.res.IThemeService;
+import android.content.res.ThemeManager;
 import android.os.Build;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.util.Preconditions;
 
+import android.accounts.AccountManager;
+import android.accounts.IAccountManager;
 import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -27,9 +34,9 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.IContentProvider;
+import android.content.IIntentReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.IIntentReceiver;
 import android.content.IntentSender;
 import android.content.ReceiverCallNotAllowedException;
 import android.content.ServiceConnection;
@@ -73,7 +80,10 @@ import android.net.wifi.IWifiManager;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.IWifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wimax.WimaxHelper;
+import android.net.wimax.WimaxManagerConstants;
 import android.nfc.NfcManager;
+import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
@@ -96,6 +106,7 @@ import android.os.storage.IMountService;
 import android.os.storage.StorageManager;
 import android.print.IPrintManager;
 import android.print.PrintManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.TelephonyManager;
 import android.content.ClipboardManager;
 import android.util.AndroidRuntimeException;
@@ -510,6 +521,11 @@ class ContextImpl extends Context {
                     return new TelephonyManager(ctx.getOuterContext());
                 }});
 
+        registerService(MSIM_TELEPHONY_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    return new MSimTelephonyManager(ctx.getOuterContext());
+                }});
+
         registerService(UI_MODE_SERVICE, new ServiceFetcher() {
                 public Object createService(ContextImpl ctx) {
                     return new UiModeManager();
@@ -595,6 +611,32 @@ class ContextImpl extends Context {
             public Object createService(ContextImpl ctx) {
                 return new ConsumerIrManager(ctx);
             }});
+
+        registerService(PROFILE_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    final Context outerContext = ctx.getOuterContext();
+                    return new ProfileManager (outerContext, ctx.mMainThread.getHandler());
+                }});
+
+        registerService(WimaxManagerConstants.WIMAX_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    return WimaxHelper.createWimaxService(ctx, ctx.mMainThread.getHandler());
+                }});
+
+        registerService(BATTERY_SERVICE, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    IBinder b = ServiceManager.getService(BATTERY_SERVICE);
+                    IBatteryService service = IBatteryService.Stub.asInterface(b);
+                    return new BatteryManager(service, ctx);
+                }});
+
+        registerService(THEME_SERVICE, new ServiceFetcher() {
+            public Object createService(ContextImpl ctx) {
+                IBinder b = ServiceManager.getService(THEME_SERVICE);
+                IThemeService service = IThemeService.Stub.asInterface(b);
+                return new ThemeManager(ctx.getOuterContext(),
+                        service);
+            }});
     }
 
     static ContextImpl getImpl(Context context) {
@@ -619,6 +661,20 @@ class ContextImpl extends Context {
     @Override
     public Resources getResources() {
         return mResources;
+    }
+
+    /**
+     * Refresh resources object which may have been changed by a theme
+     * configuration change.
+     */
+    /* package */ void refreshResourcesIfNecessary() {
+        if (mResources == Resources.getSystem()) {
+            return;
+        }
+
+        if (mPackageInfo.getCompatibilityInfo().isThemeable) {
+            mTheme = null;
+        }
     }
 
     @Override
@@ -1879,24 +1935,30 @@ class ContextImpl extends Context {
     @Override
     public Context createPackageContext(String packageName, int flags)
             throws NameNotFoundException {
-        return createPackageContextAsUser(packageName, flags,
+        return createPackageContextAsUser(packageName, null, flags,
                 mUser != null ? mUser : Process.myUserHandle());
     }
 
     @Override
     public Context createPackageContextAsUser(String packageName, int flags, UserHandle user)
             throws NameNotFoundException {
+        return createPackageContextAsUser(packageName, null, flags, user);
+    }
+
+    @Override
+    public Context createPackageContextAsUser(String packageName, String themePackageName,
+            int flags, UserHandle user) throws NameNotFoundException {
         final boolean restricted = (flags & CONTEXT_RESTRICTED) == CONTEXT_RESTRICTED;
         if (packageName.equals("system") || packageName.equals("android")) {
             return new ContextImpl(this, mMainThread, mPackageInfo, mActivityToken,
-                    user, restricted, mDisplay, mOverrideConfiguration);
+                    user, restricted, mDisplay, mOverrideConfiguration, themePackageName);
         }
 
         LoadedApk pi = mMainThread.getPackageInfo(packageName, mResources.getCompatibilityInfo(),
                 flags, user.getIdentifier());
         if (pi != null) {
             ContextImpl c = new ContextImpl(this, mMainThread, pi, mActivityToken,
-                    user, restricted, mDisplay, mOverrideConfiguration);
+                    user, restricted, mDisplay, mOverrideConfiguration, themePackageName);
             if (c.mResources != null) {
                 return c;
             }
@@ -1968,7 +2030,7 @@ class ContextImpl extends Context {
     static ContextImpl createSystemContext(ActivityThread mainThread) {
         LoadedApk packageInfo = new LoadedApk(mainThread);
         ContextImpl context = new ContextImpl(null, mainThread,
-                packageInfo, null, null, false, null, null);
+                packageInfo, null, null, false, null, null, null);
         context.mResources.updateConfiguration(context.mResourcesManager.getConfiguration(),
                 context.mResourcesManager.getDisplayMetricsLocked(Display.DEFAULT_DISPLAY));
         return context;
@@ -1977,7 +2039,7 @@ class ContextImpl extends Context {
     static ContextImpl createAppContext(ActivityThread mainThread, LoadedApk packageInfo) {
         if (packageInfo == null) throw new IllegalArgumentException("packageInfo");
         return new ContextImpl(null, mainThread,
-                packageInfo, null, null, false, null, null);
+                packageInfo, null, null, false, null, null, null);
     }
 
     static ContextImpl createActivityContext(ActivityThread mainThread,
@@ -1985,12 +2047,19 @@ class ContextImpl extends Context {
         if (packageInfo == null) throw new IllegalArgumentException("packageInfo");
         if (activityToken == null) throw new IllegalArgumentException("activityInfo");
         return new ContextImpl(null, mainThread,
-                packageInfo, activityToken, null, false, null, null);
+                packageInfo, activityToken, null, false, null, null, null);
     }
 
     private ContextImpl(ContextImpl container, ActivityThread mainThread,
             LoadedApk packageInfo, IBinder activityToken, UserHandle user, boolean restricted,
             Display display, Configuration overrideConfiguration) {
+        this(container, mainThread, packageInfo, activityToken, user, restricted, display,
+                overrideConfiguration, null);
+    }
+
+    private ContextImpl(ContextImpl container, ActivityThread mainThread,
+            LoadedApk packageInfo, IBinder activityToken, UserHandle user, boolean restricted,
+            Display display, Configuration overrideConfiguration, String themePackageName) {
         mOuterContext = this;
 
         mMainThread = mainThread;
@@ -2021,14 +2090,16 @@ class ContextImpl extends Context {
 
         Resources resources = packageInfo.getResources(mainThread);
         if (resources != null) {
-            if (activityToken != null
+            if (activityToken != null || themePackageName != null
                     || displayId != Display.DEFAULT_DISPLAY
                     || overrideConfiguration != null
                     || (compatInfo != null && compatInfo.applicationScale
                             != resources.getCompatibilityInfo().applicationScale)) {
-                resources = mResourcesManager.getTopLevelResources(
-                        packageInfo.getResDir(), displayId,
-                        overrideConfiguration, compatInfo, activityToken);
+                resources = themePackageName == null ? mResourcesManager.getTopLevelResources(
+                        packageInfo.getResDir(), packageInfo.getOverlayDirs(), displayId,
+                        packageInfo.getAppDir(), overrideConfiguration, compatInfo, activityToken, mOuterContext) :
+                mResourcesManager.getTopLevelThemedResources(packageInfo.getResDir(), displayId,
+                        packageInfo.getPackageName(), themePackageName, compatInfo ,activityToken);
             }
         }
         mResources = resources;
@@ -2137,9 +2208,12 @@ class ContextImpl extends Context {
      * unable to create, they are filtered by replacing with {@code null}.
      */
     private File[] ensureDirsExistOrFilter(File[] dirs) {
-        File[] result = new File[dirs.length];
+        ArrayList<File> result = new ArrayList<File>(dirs.length);
         for (int i = 0; i < dirs.length; i++) {
             File dir = dirs[i];
+            if (Environment.MEDIA_REMOVED.equals(Environment.getStorageState(dir))) {
+                continue;
+            }
             if (!dir.exists()) {
                 if (!dir.mkdirs()) {
                     // recheck existence in case of cross-process race
@@ -2160,9 +2234,9 @@ class ContextImpl extends Context {
                     }
                 }
             }
-            result[i] = dir;
+            result.add(dir);
         }
-        return result;
+        return result.toArray(new File[result.size()]);
     }
 
     // ----------------------------------------------------------------------

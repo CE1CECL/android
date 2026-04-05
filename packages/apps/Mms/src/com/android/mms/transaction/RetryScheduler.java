@@ -32,8 +32,11 @@ import android.net.Uri;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
+import android.telephony.MSimTelephonyManager;
+import android.database.DatabaseUtils;
 import android.util.Log;
 
+import com.android.mms.util.MultiSimUtility;
 import com.android.mms.LogTag;
 import com.android.mms.R;
 import com.android.mms.util.DownloadManager;
@@ -69,8 +72,9 @@ public class RetryScheduler implements Observer {
     }
 
     public void update(Observable observable) {
+        Transaction t = (Transaction) observable;
+        TransactionState state = t.getState();
         try {
-            Transaction t = (Transaction) observable;
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "[RetryScheduler] update " + observable);
@@ -83,11 +87,10 @@ public class RetryScheduler implements Observer {
                     || (t instanceof ReadRecTransaction)
                     || (t instanceof SendTransaction)) {
                 try {
-                    TransactionState state = t.getState();
                     if (state.getState() == TransactionState.FAILED) {
                         Uri uri = state.getContentUri();
                         if (uri != null) {
-                            scheduleRetry(uri);
+                            scheduleRetry(mContext, uri);
                         }
                     }
                 } finally {
@@ -95,20 +98,20 @@ public class RetryScheduler implements Observer {
                 }
             }
         } finally {
-            if (isConnected()) {
+            if (state.getState() == TransactionState.FAILED) {
                 setRetryAlarm(mContext);
             }
         }
     }
 
-    private void scheduleRetry(Uri uri) {
+    public static void scheduleRetry(Context context, Uri uri) {
         long msgId = ContentUris.parseId(uri);
 
         Uri.Builder uriBuilder = PendingMessages.CONTENT_URI.buildUpon();
         uriBuilder.appendQueryParameter("protocol", "mms");
         uriBuilder.appendQueryParameter("message", String.valueOf(msgId));
 
-        Cursor cursor = SqliteWrapper.query(mContext, mContentResolver,
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
                 uriBuilder.build(), null, null, null, null);
 
         if (cursor != null) {
@@ -123,14 +126,14 @@ public class RetryScheduler implements Observer {
                     // TODO Should exactly understand what was happened.
                     int errorType = MmsSms.ERR_TYPE_GENERIC;
 
-                    DefaultRetryScheme scheme = new DefaultRetryScheme(mContext, retryIndex);
+                    DefaultRetryScheme scheme = new DefaultRetryScheme(context, retryIndex);
 
                     ContentValues values = new ContentValues(4);
                     long current = System.currentTimeMillis();
                     boolean isRetryDownloading =
                             (msgType == PduHeaders.MESSAGE_TYPE_NOTIFICATION_IND);
                     boolean retry = true;
-                    int respStatus = getResponseStatus(msgId);
+                    int respStatus = getResponseStatus(context, msgId);
                     int errorString = 0;
                     if (!isRetryDownloading) {
                         // Send Transaction case
@@ -157,12 +160,12 @@ public class RetryScheduler implements Observer {
                     } else {
                         // apply R880 IOT issue (Conformance 11.6 Retrieve Invalid Message)
                         // Notification Transaction case
-                        respStatus = getRetrieveStatus(msgId);
+                        respStatus = getRetrieveStatus(context, msgId);
                         if (respStatus ==
                                 PduHeaders.RESPONSE_STATUS_ERROR_PERMANENT_MESSAGE_NOT_FOUND) {
                             DownloadManager.getInstance().showErrorCodeToast(
                                     R.string.service_message_not_found);
-                            SqliteWrapper.delete(mContext, mContext.getContentResolver(), uri,
+                            SqliteWrapper.delete(context, context.getContentResolver(), uri,
                                     null, null);
                             retry = false;
                             return;
@@ -186,7 +189,7 @@ public class RetryScheduler implements Observer {
                     } else {
                         errorType = MmsSms.ERR_TYPE_GENERIC_PERMANENT;
                         if (isRetryDownloading) {
-                            Cursor c = SqliteWrapper.query(mContext, mContext.getContentResolver(), uri,
+                            Cursor c = SqliteWrapper.query(context, context.getContentResolver(), uri,
                                     new String[] { Mms.THREAD_ID }, null, null, null);
 
                             long threadId = -1;
@@ -202,7 +205,7 @@ public class RetryScheduler implements Observer {
 
                             if (threadId != -1) {
                                 // Downloading process is permanently failed.
-                                MessagingNotification.notifyDownloadFailed(mContext, threadId);
+                                MessagingNotification.notifyDownloadFailed(context, threadId);
                             }
 
                             DownloadManager.getInstance().markState(
@@ -211,9 +214,9 @@ public class RetryScheduler implements Observer {
                             // Mark the failed message as unread.
                             ContentValues readValues = new ContentValues(1);
                             readValues.put(Mms.READ, 0);
-                            SqliteWrapper.update(mContext, mContext.getContentResolver(),
+                            SqliteWrapper.update(context, context.getContentResolver(),
                                     uri, readValues, null, null);
-                            MessagingNotification.notifySendFailed(mContext, true);
+                            MessagingNotification.notifySendFailed(context, true);
                         }
                     }
 
@@ -224,7 +227,7 @@ public class RetryScheduler implements Observer {
                     int columnIndex = cursor.getColumnIndexOrThrow(
                             PendingMessages._ID);
                     long id = cursor.getLong(columnIndex);
-                    SqliteWrapper.update(mContext, mContentResolver,
+                    SqliteWrapper.update(context, context.getContentResolver(),
                             PendingMessages.CONTENT_URI,
                             values, PendingMessages._ID + "=" + id, null);
                 } else if (LOCAL_LOGV) {
@@ -236,9 +239,9 @@ public class RetryScheduler implements Observer {
         }
     }
 
-    private int getResponseStatus(long msgID) {
+    private static int getResponseStatus(Context context, long msgID) {
         int respStatus = 0;
-        Cursor cursor = SqliteWrapper.query(mContext, mContentResolver,
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
                 Mms.Outbox.CONTENT_URI, null, Mms._ID + "=" + msgID, null, null);
         try {
             if (cursor.moveToFirst()) {
@@ -254,9 +257,9 @@ public class RetryScheduler implements Observer {
     }
 
     // apply R880 IOT issue (Conformance 11.6 Retrieve Invalid Message)
-    private int getRetrieveStatus(long msgID) {
+    private static int getRetrieveStatus(Context context, long msgID) {
         int retrieveStatus = 0;
-        Cursor cursor = SqliteWrapper.query(mContext, mContentResolver,
+        Cursor cursor = SqliteWrapper.query(context, context.getContentResolver(),
                 Mms.Inbox.CONTENT_URI, null, Mms._ID + "=" + msgID, null, null);
         try {
             if (cursor.moveToFirst()) {
@@ -283,9 +286,25 @@ public class RetryScheduler implements Observer {
                     // The result of getPendingMessages() is order by due time.
                     long retryAt = cursor.getLong(cursor.getColumnIndexOrThrow(
                             PendingMessages.DUE_TIME));
+                    int columnIndexOfMsgId = cursor.getColumnIndexOrThrow(PendingMessages.MSG_ID);
+                    Uri uri = ContentUris.withAppendedId(
+                            Mms.CONTENT_URI,
+                            cursor.getLong(columnIndexOfMsgId));
+                    int destSubId = getSubIdFromDb(uri, context);
 
-                    Intent service = new Intent(TransactionService.ACTION_ONALARM,
+
+                    Intent service;
+                    if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                        service = new Intent(TransactionService.ACTION_ONALARM,
+                                        null, context,
+                                        com.android.mms.ui.SelectMmsSubscription.class);
+                        service.putExtra(Mms.SUB_ID, destSubId); //destination sub id
+                        service.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                                MultiSimUtility.getDefaultDataSubscription(context));
+                    } else {
+                        service = new Intent(TransactionService.ACTION_ONALARM,
                                         null, context, TransactionService.class);
+                    }
                     PendingIntent operation = PendingIntent.getService(
                             context, 0, service, PendingIntent.FLAG_ONE_SHOT);
                     AlarmManager am = (AlarmManager) context.getSystemService(
@@ -301,5 +320,24 @@ public class RetryScheduler implements Observer {
                 cursor.close();
             }
         }
+    }
+
+    public static int getSubIdFromDb(Uri uri, Context context) {
+        int subId = 0;
+        Cursor c = context.getContentResolver().query(uri,
+                null, null, null, null);
+        Log.d(TAG, "Cursor= "+DatabaseUtils.dumpCursorToString(c));
+        if (c != null) {
+            try {
+                if (c.moveToFirst()) {
+                    subId = c.getInt(c.getColumnIndex(Mms.SUB_ID));
+                    Log.d(TAG, "subId in db="+subId );
+                    return subId;
+                }
+            } finally {
+               c.close();
+           }
+        }
+        return subId;
     }
 }

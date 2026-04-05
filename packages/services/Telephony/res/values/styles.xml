@@ -158,12 +158,15 @@
          tablets as well as regular phone devices.) -->
     <style name="Theme.Settings" parent="@android:style/Theme.Holo.DialogWhenLarge">
         <item name="android:windowCloseOnTouchOutside">true</item>
+        <item name="android:actionBarStyle">@android:style/Widget.Holo.ActionBar.Solid</item>
     </style>
 
     <style name="SettingsLight" parent="@android:style/Theme.Holo.Light">
         <item name="android:windowBackground">@color/phone_settings_background_color</item>
         <item name="android:actionBarStyle">@style/DialtactsActionBarStyle</item>
         <item name="android:actionOverflowButtonStyle">@style/DialtactsActionBarOverflow</item>
+        <item name="android:actionMenuTextColor">@color/phone_settings_actionbar_text_color</item>
+        <item name="android:actionBarDivider">@*android:drawable/list_divider_holo_dark</item>
         <item name="android:homeAsUpIndicator">@drawable/ic_back_arrow</item>
     </style>
 
@@ -230,6 +233,7 @@
     <!-- Style for the call settings action bar.  Should be kept in sync with Dialer. -->
     <style name="DialtactsActionBarStyle" parent="android:Widget.Holo.ActionBar">
         <item name="android:background">@drawable/actionbar_background</item>
+        <item name="android:backgroundSplit">@drawable/actionbar_background</item>
         <item name="android:backgroundStacked">#ffffff</item>
         <item name="android:titleTextStyle">@style/DialtactsActionBarTitleText</item>
         <!-- Empty icon -->

@@ -60,6 +60,38 @@ static void Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapUtilization(
 }
 
 /*
+ * native void nativeSetTargetHeapMinFree()
+ *
+ * Sets the current MIN_FREE, represented as a number
+ * for byte size.  Returns the old MIN_FREE.
+ *
+ * Note that this is NOT static.
+ */
+static void Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapMinFree(
+    const u4* args, JValue* pResult)
+{
+    dvmSetTargetHeapMinFree(args[1]);
+
+    RETURN_INT(dvmGetTargetHeapMinFree());
+}
+
+/*
+ * native void nativeSetTargetHeapConcurrentStart()
+ *
+ * Sets the current concurrentStart, represented as a number
+ * for byte size.  Returns the old concurrentStart.
+ *
+ * Note that this is NOT static.
+ */
+static void Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapConcurrentStart(
+    const u4* args, JValue* pResult)
+{
+    dvmSetTargetHeapConcurrentStart(args[1]);
+
+    RETURN_INT(dvmGetTargetHeapConcurrentStart());
+}
+
+/*
  * public native void startJitCompilation()
  *
  * Callback function from the framework to indicate that an app has gone
@@ -104,11 +136,11 @@ static void Dalvik_dalvik_system_VMRuntime_newNonMovableArray(const u4* args,
 
     if (elementClass == NULL) {
         dvmThrowNullPointerException("elementClass == null");
-        RETURN_VOID();
+        RETURN_PTR(NULL);
     }
     if (length < 0) {
         dvmThrowNegativeArraySizeException(length);
-        RETURN_VOID();
+        RETURN_PTR(NULL);
     }
 
     // TODO: right now, we don't have a copying collector, so there's no need
@@ -120,7 +152,7 @@ static void Dalvik_dalvik_system_VMRuntime_newNonMovableArray(const u4* args,
                                                  ALLOC_NON_MOVING);
     if (newArray == NULL) {
         assert(dvmCheckException(dvmThreadSelf()));
-        RETURN_VOID();
+        RETURN_PTR(NULL);
     }
     dvmReleaseTrackedAlloc((Object*) newArray, NULL);
 
@@ -564,6 +596,10 @@ const DalvikNativeMethod dvm_dalvik_system_VMRuntime[] = {
         Dalvik_dalvik_system_VMRuntime_getTargetHeapUtilization },
     { "nativeSetTargetHeapUtilization", "(F)V",
         Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapUtilization },
+    { "nativeSetTargetHeapMinFree", "(I)I",
+        Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapMinFree },
+    { "nativeSetTargetHeapConcurrentStart", "(I)I",
+        Dalvik_dalvik_system_VMRuntime_nativeSetTargetHeapConcurrentStart },
     { "newNonMovableArray", "(Ljava/lang/Class;I)Ljava/lang/Object;",
         Dalvik_dalvik_system_VMRuntime_newNonMovableArray },
     { "properties", "()[Ljava/lang/String;",

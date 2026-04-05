@@ -281,7 +281,9 @@ void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 			}
 		}
 
-		if (!p2p_channels_includes(&intersection, p2p->op_reg_class,
+		/* Reselect the channel only for the case of the GO */
+		if (go &&
+		    !p2p_channels_includes(&intersection, p2p->op_reg_class,
 					   p2p->op_channel)) {
 			p2p_dbg(p2p, "Initially selected channel (op_class %d channel %d) not in channel intersection - try to reselect",
 				p2p->op_reg_class, p2p->op_channel);
@@ -296,7 +298,7 @@ void p2p_process_invitation_req(struct p2p_data *p2p, const u8 *sa,
 				status = P2P_SC_FAIL_NO_COMMON_CHANNELS;
 				goto fail;
 			}
-		} else if (!(dev->flags & P2P_DEV_FORCE_FREQ) &&
+		} else if (go && !(dev->flags & P2P_DEV_FORCE_FREQ) &&
 			   !p2p->cfg->cfg_op_channel) {
 			p2p_dbg(p2p, "Try to reselect channel selection with peer information received; previously selected op_class %u channel %u",
 				p2p->op_reg_class, p2p->op_channel);
@@ -428,9 +430,25 @@ void p2p_process_invitation_resp(struct p2p_data *p2p, const u8 *sa,
 		channels = &intersection;
 	}
 
-	if (p2p->cfg->invitation_result)
+	if (p2p->cfg->invitation_result) {
+		int peer_oper_freq = 0;
+		int freq = p2p_channel_to_freq(p2p->op_reg_class,
+					       p2p->op_channel);
+		if (freq < 0)
+			freq = 0;
+
+		if (msg.operating_channel) {
+			peer_oper_freq = p2p_channel_to_freq(
+				msg.operating_channel[3],
+				msg.operating_channel[4]);
+			if (peer_oper_freq < 0)
+				peer_oper_freq = 0;
+		}
+
 		p2p->cfg->invitation_result(p2p->cfg->cb_ctx, *msg.status,
-					    msg.group_bssid, channels, sa);
+					    msg.group_bssid, channels, sa,
+					    freq, peer_oper_freq);
+	}
 
 	p2p_parse_free(&msg);
 
@@ -466,7 +484,7 @@ int p2p_invite_send(struct p2p_data *p2p, struct p2p_device *dev,
 	dev->invitation_reqs++;
 	if (p2p_send_action(p2p, freq, dev->info.p2p_device_addr,
 			    p2p->cfg->dev_addr, dev->info.p2p_device_addr,
-			    wpabuf_head(req), wpabuf_len(req), 200) < 0) {
+			    wpabuf_head(req), wpabuf_len(req), 500) < 0) {
 		p2p_dbg(p2p, "Failed to send Action frame");
 		/* Use P2P find to recover and retry */
 		p2p_set_timeout(p2p, 0, 0);
@@ -492,7 +510,8 @@ void p2p_invitation_req_cb(struct p2p_data *p2p, int success)
 	 * channel.
 	 */
 	p2p_set_state(p2p, P2P_INVITE);
-	p2p_set_timeout(p2p, 0, success ? 350000 : 100000);
+
+	p2p_set_timeout(p2p, 0, success ? 500000 : 100000);
 }
 
 

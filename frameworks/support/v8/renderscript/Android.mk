@@ -28,7 +28,8 @@ LOCAL_SRC_FILES := $(call all-java-files-under, java/src)
 include $(BUILD_STATIC_JAVA_LIBRARY)
 
 # TODO: Build the tests as an APK here
-
+ifneq ($(WITH_GMS),true)
 include $(call all-makefiles-under, $(LOCAL_PATH))
+endif
 
 endif

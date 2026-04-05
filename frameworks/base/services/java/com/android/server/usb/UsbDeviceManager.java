@@ -30,6 +30,7 @@ import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
+import android.os.Build;
 import android.os.FileUtils;
 import android.os.Handler;
 import android.os.Looper;
@@ -132,7 +133,8 @@ public class UsbDeviceManager {
         @Override
         public void onChange(boolean selfChange) {
             boolean enable = (Settings.Global.getInt(mContentResolver,
-                    Settings.Global.ADB_ENABLED, 0) > 0);
+                    Settings.Global.ADB_ENABLED,
+                    "eng".equals(Build.TYPE) ? 1 : 0) > 0);
             mHandler.sendMessage(MSG_ENABLE_ADB, enable);
         }
     }
@@ -155,6 +157,13 @@ public class UsbDeviceManager {
             }
         }
     };
+
+    // Dummy constructor to use when extending class
+    public UsbDeviceManager() {
+        mContext = null;
+        mContentResolver = null;
+        mHasUsbAccessory = false;
+    }
 
     public UsbDeviceManager(Context context) {
         mContext = context;
@@ -197,13 +206,25 @@ public class UsbDeviceManager {
         mNotificationManager = (NotificationManager)
                 mContext.getSystemService(Context.NOTIFICATION_SERVICE);
 
-        // We do not show the USB notification if the primary volume supports mass storage.
-        // The legacy mass storage UI will be used instead.
+        // We do not show the USB notification if the primary volume supports mass storage, unless
+        // persist.sys.usb.config is set to mtp,adb. This will allow the USB notification to show
+        // on devices with mtp as default and mass storage enabled on primary, so the user can choose
+        // between mtp, ptp, and mass storage. The legacy mass storage UI will be used otherwise.
         boolean massStorageSupported = false;
         final StorageManager storageManager = StorageManager.from(mContext);
         final StorageVolume primary = storageManager.getPrimaryVolume();
-        massStorageSupported = primary != null && primary.allowMassStorage();
-        mUseUsbNotification = !massStorageSupported;
+
+        if (Settings.Secure.getInt(mContentResolver, Settings.Secure.USB_MASS_STORAGE_ENABLED, 0 ) == 1 ) {
+                massStorageSupported = primary != null && primary.allowMassStorage();
+        } else {
+                massStorageSupported = false;
+        }
+
+        if ("mtp,adb".equals(SystemProperties.get("persist.sys.usb.config"))) {
+            mUseUsbNotification = true;
+        } else {
+            mUseUsbNotification = !massStorageSupported;
+        }
 
         // make sure the ADB_ENABLED setting value matches the current state
         Settings.Global.putInt(mContentResolver, Settings.Global.ADB_ENABLED, mAdbEnabled ? 1 : 0);
@@ -314,7 +335,7 @@ public class UsbDeviceManager {
         private String mDefaultFunctions;
         private UsbAccessory mCurrentAccessory;
         private int mUsbNotificationId;
-        private boolean mAdbNotificationShown;
+        private int mAdbNotificationId;
         private int mCurrentUser = UserHandle.USER_NULL;
 
         private final BroadcastReceiver mBootCompletedReceiver = new BroadcastReceiver() {
@@ -372,6 +393,19 @@ public class UsbDeviceManager {
                 mContentResolver.registerContentObserver(
                         Settings.Global.getUriFor(Settings.Global.ADB_ENABLED),
                                 false, new AdbSettingsObserver());
+
+                ContentObserver adbNotificationObserver = new ContentObserver(null) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        updateAdbNotification();
+                    }
+                };
+                mContentResolver.registerContentObserver(
+                        Settings.Secure.getUriFor(Settings.Secure.ADB_PORT),
+                                false, adbNotificationObserver);
+                mContentResolver.registerContentObserver(
+                        Settings.Secure.getUriFor(Settings.Secure.ADB_NOTIFY),
+                                false, adbNotificationObserver);
 
                 // Watch for USB configuration changes
                 mUEventObserver.startObserving(USB_STATE_MATCH);
@@ -727,18 +761,38 @@ public class UsbDeviceManager {
             }
         }
 
+
         private void updateAdbNotification() {
             if (mNotificationManager == null) return;
-            final int id = com.android.internal.R.string.adb_active_notification_title;
-            if (mAdbEnabled && mConnected) {
-                if ("0".equals(SystemProperties.get("persist.adb.notify"))) return;
+            boolean usbAdbActive = mAdbEnabled && mConnected;
+            boolean netAdbActive = mAdbEnabled &&
+                    Settings.Secure.getInt(mContentResolver, Settings.Secure.ADB_PORT, -1) > 0;
+            final int id;
 
-                if (!mAdbNotificationShown) {
+            if ("0".equals(SystemProperties.get("persist.adb.notify"))) {
+                id = 0;
+            } else if (Settings.Secure.getInt(mContentResolver,
+                    Settings.Secure.ADB_NOTIFY, 1) == 0) {
+                id = 0;
+            } else if (usbAdbActive && netAdbActive) {
+                id = com.android.internal.R.string.adb_both_active_notification_title;
+            } else if (usbAdbActive) {
+                id = com.android.internal.R.string.adb_active_notification_title;
+            } else if (netAdbActive) {
+                id = com.android.internal.R.string.adb_net_active_notification_title;
+            } else {
+                id = 0;
+            }
+
+            if (id != mAdbNotificationId) {
+                if (mAdbNotificationId != 0) {
+                    mNotificationManager.cancelAsUser(null, mAdbNotificationId, UserHandle.ALL);
+                }
+                if (id != 0) {
                     Resources r = mContext.getResources();
                     CharSequence title = r.getText(id);
                     CharSequence message = r.getText(
-                            com.android.internal.R.string.adb_active_notification_message);
-
+                            com.android.internal.R.string.adb_active_generic_notification_message);
                     Notification notification = new Notification();
                     notification.icon = com.android.internal.R.drawable.stat_sys_adb;
                     notification.when = 0;
@@ -755,13 +809,9 @@ public class UsbDeviceManager {
                     PendingIntent pi = PendingIntent.getActivityAsUser(mContext, 0,
                             intent, 0, null, UserHandle.CURRENT);
                     notification.setLatestEventInfo(mContext, title, message, pi);
-                    mAdbNotificationShown = true;
-                    mNotificationManager.notifyAsUser(null, id, notification,
-                            UserHandle.ALL);
+                    mNotificationManager.notifyAsUser(null, id, notification, UserHandle.ALL);
                 }
-            } else if (mAdbNotificationShown) {
-                mAdbNotificationShown = false;
-                mNotificationManager.cancelAsUser(null, id, UserHandle.ALL);
+                mAdbNotificationId = id;
             }
         }
 

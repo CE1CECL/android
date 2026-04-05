@@ -1,6 +1,7 @@
 package SQLite.JDBC2z;
 
 import java.sql.*;
+import java.util.Map;
 import java.math.BigDecimal;
 
 public class JDBCResultSet implements java.sql.ResultSet {
@@ -667,17 +668,6 @@ public class JDBCResultSet implements java.sql.ResultSet {
     public Object getObject(String columnName) throws SQLException {
 	int col = findColumn(columnName);
 	return getObject(col);
-    }
-
-    public Object getObject(int columnIndex, java.util.Map map) 
-	throws SQLException {
-	throw new SQLFeatureNotSupportedException();
-    }
-
-    public Object getObject(String columnName, java.util.Map map)
-	throws SQLException {
-	int col = findColumn(columnName);
-	return getObject(col, map);
     }
 
     public java.sql.Ref getRef(int columnIndex) throws SQLException {
@@ -1597,8 +1587,28 @@ public class JDBCResultSet implements java.sql.ResultSet {
 	throw new SQLException("unsupported");
     }
 
-    public boolean isWrapperFor(java.lang.Class iface) throws SQLException {
-	return false;
-    }
+	public boolean isWrapperFor(Class<?> iface) throws SQLException {
+		return false;
+	}
+
+	public Object getObject(int columnIndex, Map<String, Class<?>> map)
+			throws SQLException {
+		throw new UnsupportedOperationException();
+	}
+
+	public Object getObject(String columnLabel, Map<String, Class<?>> map)
+			throws SQLException {
+		int col = findColumn(columnLabel);
+		return getObject(col, map);
+	}
+
+	public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
+		throw new SQLFeatureNotSupportedException();
+	}
+
+	public <T> T getObject(String columnLabel, Class<T> type)
+			throws SQLException {
+		throw new UnsupportedOperationException();
+	}
 
 }

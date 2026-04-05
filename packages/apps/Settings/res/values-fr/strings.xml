@@ -791,6 +791,7 @@
     <string name="system_update_settings_list_item_title" msgid="3342887311059985961">"Mises à jour du système"</string>
     <string name="system_update_settings_list_item_summary" msgid="3853057315907710747"></string>
     <string name="firmware_version" msgid="4801135784886859972">"Version d\'Android"</string>
+    <string name="security_patch" msgid="8438384045870296634">"Niveau du correctif de sécurité Android"</string>
     <string name="model_number" msgid="3765737700545384794">"Numéro du modèle"</string>
     <string name="fcc_equipment_id" msgid="149114368246356737">"ID de l\'équipement"</string>
     <string name="baseband_version" msgid="1848990160763524801">"Version de bande de base"</string>
@@ -1326,6 +1327,9 @@
     <string name="clear_adb_keys" msgid="4038889221503122743">"Annuler autorisations pour débog. USB"</string>
     <string name="bugreport_in_power" msgid="4548816486587403971">"Rapports de bug menu démarra."</string>
     <string name="bugreport_in_power_summary" msgid="5764234382355067053">"Inclure une option permettant d\'établir un rapport de bug dans le menu de démarrage"</string>
+    <string name="adb_over_network">ADB sur TCP/IP</string>
+    <string name="adb_over_network_summary">"Activer le débogage sur toutes les interfaces réseau (Wifi, Usb net)"</string>
+    <string name="adb_over_network_warning">"ATTENTION: Lorsque cette fonction est activée, votre téléphone est ouvert aux intrusions sur toutes les interfaces réseau, y compris via le réseau GSM (data) !\n\nIl est fortement conseillé de désactiver le réseau mobile avant d\'activer cette fonction.\n\nContinuer ?"</string>
     <string name="keep_screen_on" msgid="1146389631208760344">"Rester activé"</string>
     <string name="keep_screen_on_summary" msgid="2173114350754293009">"L\'écran ne se met jamais en veille lors du chargement."</string>
     <string name="bt_hci_snoop_log" msgid="3340699311158865670">"Activer journaux HCI Bluetooth"</string>

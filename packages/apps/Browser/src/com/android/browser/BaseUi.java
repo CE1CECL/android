@@ -778,6 +778,13 @@ public abstract class BaseUi implements UI {
         win.setAttributes(winParams);
     }
 
+    public boolean isFullscreen() {
+        Window win = mActivity.getWindow();
+        WindowManager.LayoutParams winParams = win.getAttributes();
+        final int bits = WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        return (winParams.flags & bits) == bits;
+    }
+
     public Drawable getFaviconDrawable(Bitmap icon) {
         Drawable[] array = new Drawable[3];
         array[0] = new PaintDrawable(Color.BLACK);

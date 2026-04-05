@@ -28,7 +28,7 @@ struct ALooper;
 struct PageCache;
 
 struct NuCachedSource2 : public DataSource {
-    NuCachedSource2(
+    static sp<NuCachedSource2> Create(
             const sp<DataSource> &source,
             const char *cacheConfig = NULL,
             bool disconnectAtHighwatermark = false);
@@ -64,11 +64,22 @@ struct NuCachedSource2 : public DataSource {
             String8 *cacheConfig,
             bool *disconnectAtHighwatermark);
 
+    virtual ssize_t readAtInternal(off64_t offset, void *data, size_t size, int32_t isNonBlocking);
+
+    virtual void enableNonBlockingRead(bool flag);
+    virtual status_t disconnectWhileSuspend();
+    virtual status_t connectWhileResume();
+
 protected:
     virtual ~NuCachedSource2();
 
 private:
     friend struct AHandlerReflector<NuCachedSource2>;
+
+    NuCachedSource2(
+            const sp<DataSource> &source,
+            const char *cacheConfig,
+            bool disconnectAtHighwatermark);
 
     enum {
         kPageSize                       = 65536,
@@ -88,6 +99,9 @@ private:
     enum {
         kMaxNumRetries = 10,
     };
+
+    //3 second timeout for readAt function call
+    static const int64_t kReadSourceTimeoutNs = 3000000000LL;
 
     sp<DataSource> mSource;
     sp<AHandlerReflector<NuCachedSource2> > mReflector;
@@ -110,10 +124,16 @@ private:
     size_t mHighwaterThresholdBytes;
     size_t mLowwaterThresholdBytes;
 
+    bool mSuspended;
+
     // If the keep-alive interval is 0, keep-alives are disabled.
     int64_t mKeepAliveIntervalUs;
 
     bool mDisconnectAtHighwatermark;
+
+    bool mIsNonBlockingMode;
+
+    int32_t mCheckGeneration;
 
     void onMessageReceived(const sp<AMessage> &msg);
     void onFetch();

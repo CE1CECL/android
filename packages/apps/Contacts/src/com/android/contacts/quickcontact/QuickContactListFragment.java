@@ -17,6 +17,9 @@
 package com.android.contacts.quickcontact;
 
 import android.app.Fragment;
+import android.content.ClipboardManager;
+import android.content.ClipData;
+import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
@@ -25,17 +28,21 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.contacts.common.ContactPresenceIconUtil;
 import com.android.contacts.R;
 
 import java.util.List;
+
+import android.os.SystemProperties;
 
 /** A fragment that shows the list of resolve items below a tab */
 public class QuickContactListFragment extends Fragment {
@@ -44,6 +51,8 @@ public class QuickContactListFragment extends Fragment {
     private RelativeLayout mFragmentContainer;
     private Listener mListener;
     private String mMimeType;
+    private ClipboardManager mClipBoard;
+    private Toast longPressToast;
 
     public QuickContactListFragment(String mimeType) {
         setRetainInstance(true);
@@ -58,6 +67,9 @@ public class QuickContactListFragment extends Fragment {
         mListView.setItemsCanFocus(true);
 
         mFragmentContainer.setOnClickListener(mOutsideClickListener);
+        mClipBoard = (ClipboardManager) getActivity().getSystemService(Context.CLIPBOARD_SERVICE);
+        longPressToast = Toast.makeText(getActivity(), R.string.quick_contact_copied_toast, Toast.LENGTH_SHORT);
+
         configureAdapter();
         return mFragmentContainer;
     }
@@ -116,20 +128,55 @@ public class QuickContactListFragment extends Fragment {
                         R.id.actions_view_container);
                 final ImageView alternateActionButton = (ImageView) resultView.findViewById(
                         R.id.secondary_action_button);
+                final ImageView alternateActionButton1 = (ImageView) resultView.findViewById(
+                        R.id.third_action_button);
                 final View alternateActionDivider = resultView.findViewById(R.id.vertical_divider);
+                final View primaryIndicator =
+                        actionsContainer.findViewById(R.id.primary_indicator);
+                final View securityIndicator =
+                        actionsContainer.findViewById(R.id.security_indicator);
                 final ImageView presenceIconView =
                         (ImageView) resultView.findViewById(R.id.presence_icon);
 
-                actionsContainer.setOnClickListener(mPrimaryActionClickListener);
-                actionsContainer.setTag(action);
+                if(QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType)){
+                    actionsContainer.setOnClickListener(mThirdActionClickListener);
+                    actionsContainer.setTag(action);
+                } else {
+                    actionsContainer.setOnClickListener(mPrimaryActionClickListener);
+                    actionsContainer.setOnLongClickListener(mPrimaryActionLongClickListener);
+                    actionsContainer.setTag(action);
+                }
                 alternateActionButton.setOnClickListener(mSecondaryActionClickListener);
                 alternateActionButton.setTag(action);
+                alternateActionButton1.setOnClickListener(mThirdActionClickListener);//add for cavt
+                alternateActionButton1.setTag(action);
 
-                final boolean hasAlternateAction = action.getAlternateIntent() != null;
-                alternateActionDivider.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+                final boolean isVTTab = QuickContactActivity.VTCALL_ITEM_TYPE.equals(mimeType);
+                final boolean hasAlternateAction = isVTTab ? false
+                        : action.getAlternateIntent() != null;
+                final boolean hasAlternateAction1 = !isVTTab ? false
+                        : action.get2AlternateIntent() != null;
+
+                alternateActionDivider.setVisibility(hasAlternateAction
+                                || hasAlternateAction1 ? View.VISIBLE : View.GONE);
                 alternateActionButton.setImageDrawable(action.getAlternateIcon());
                 alternateActionButton.setContentDescription(action.getAlternateIconDescription());
                 alternateActionButton.setVisibility(hasAlternateAction ? View.VISIBLE : View.GONE);
+
+                alternateActionButton1.setImageDrawable(action.get2AlternateIcon());//csvt
+                alternateActionButton1.setContentDescription(action.get2AlternateIconDescription());
+                alternateActionButton1.setVisibility(hasAlternateAction1
+                                && isVTSupported() ? View.VISIBLE : View.GONE);
+
+                // Set the default contact method
+                if (primaryIndicator != null) {
+                    primaryIndicator.setVisibility(action.isPrimary() ? View.VISIBLE : View.GONE);
+                }
+
+                // Show secure contact method
+                if (securityIndicator != null) {
+                    securityIndicator.setVisibility(action.isSecure() ? View.VISIBLE : View.GONE);
+                }
 
                 if (mimeType.equals(Phone.CONTENT_ITEM_TYPE)) {
                     // Force LTR text direction for phone numbers
@@ -141,6 +188,10 @@ public class QuickContactListFragment extends Fragment {
                     if (hasAlternateAction) {
                         alternateActionButton.setContentDescription(getActivity()
                                 .getString(R.string.description_send_message, action.getBody()));
+                    }
+                    if (hasAlternateAction1) {
+                        alternateActionButton1.setContentDescription(getActivity()
+                                .getString(R.string.description_dial_vt, action.getBody()));
                     }
                 }
 
@@ -176,12 +227,33 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
+    /** A data item was long clicked */
+    protected final OnLongClickListener mPrimaryActionLongClickListener = new OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            final Action action = (Action) v.getTag();
+            ClipData clip = android.content.ClipData.newPlainText(action.getSubtitle(), action.getBody());
+            mClipBoard.setPrimaryClip(clip);
+            longPressToast.show();
+            return true;
+        }
+    };
+
     /** A secondary action (SMS) was clicked */
     protected final OnClickListener mSecondaryActionClickListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
             final Action action = (Action) v.getTag();
             if (mListener != null) mListener.onItemClicked(action, true);
+        }
+    };
+
+    /** A third action (VT) was clicked */
+    protected final OnClickListener mThirdActionClickListener = new OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final Action action = (Action) v.getTag();
+            if (mListener != null) mListener.on2ItemClicked(action, true);
         }
     };
 
@@ -192,8 +264,15 @@ public class QuickContactListFragment extends Fragment {
         }
     };
 
+    private boolean isVTSupported(){
+            return SystemProperties.getBoolean(
+                    "persist.radio.csvt.enabled"
+           /* TelephonyProperties.PROPERTY_CSVT_ENABLED*/, false);
+    }
+
     public interface Listener {
         void onOutsideClick();
         void onItemClicked(Action action, boolean alternate);
+        void on2ItemClicked(Action action, boolean alternate);
     }
 }

@@ -221,7 +221,7 @@ extern "C" int EffectCreate(const effect_uuid_t *uuid,
         pContext->pBundledContext->bBassTempDisabled        = LVM_FALSE;
         pContext->pBundledContext->bVirtualizerEnabled      = LVM_FALSE;
         pContext->pBundledContext->bVirtualizerTempDisabled = LVM_FALSE;
-        pContext->pBundledContext->NumberEffectsEnabled     = 0;
+        pContext->pBundledContext->EffectsBitMap            = 0;
         pContext->pBundledContext->NumberEffectsCalled      = 0;
         pContext->pBundledContext->firstVolume              = LVM_TRUE;
         pContext->pBundledContext->volume                   = 0;
@@ -361,28 +361,28 @@ extern "C" int EffectRelease(effect_handle_t handle){
         ALOGV("\tEffectRelease LVM_BASS_BOOST Clearing global intstantiated flag");
         pSessionContext->bBassInstantiated = LVM_FALSE;
         if(pContext->pBundledContext->SamplesToExitCountBb > 0){
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_BASS_BOOST);
         }
         pContext->pBundledContext->SamplesToExitCountBb = 0;
     } else if(pContext->EffectType == LVM_VIRTUALIZER) {
         ALOGV("\tEffectRelease LVM_VIRTUALIZER Clearing global intstantiated flag");
         pSessionContext->bVirtualizerInstantiated = LVM_FALSE;
         if(pContext->pBundledContext->SamplesToExitCountVirt > 0){
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VIRTUALIZER);
         }
         pContext->pBundledContext->SamplesToExitCountVirt = 0;
     } else if(pContext->EffectType == LVM_EQUALIZER) {
         ALOGV("\tEffectRelease LVM_EQUALIZER Clearing global intstantiated flag");
         pSessionContext->bEqualizerInstantiated =LVM_FALSE;
         if(pContext->pBundledContext->SamplesToExitCountEq > 0){
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_EQUALIZER);
         }
         pContext->pBundledContext->SamplesToExitCountEq = 0;
     } else if(pContext->EffectType == LVM_VOLUME) {
         ALOGV("\tEffectRelease LVM_VOLUME Clearing global intstantiated flag");
         pSessionContext->bVolumeInstantiated = LVM_FALSE;
         if (pContext->pBundledContext->bVolumeEnabled == LVM_TRUE){
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VOLUME);
         }
     } else {
         ALOGV("\tLVM_ERROR : EffectRelease : Unsupported effect\n\n\n\n\n\n\n");
@@ -2471,7 +2471,7 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                      return -EINVAL;
                 }
                 if(pContext->pBundledContext->SamplesToExitCountBb <= 0){
-                    pContext->pBundledContext->NumberEffectsEnabled++;
+                    pContext->pBundledContext->EffectsBitMap |= (1 << LVM_BASS_BOOST);
                 }
                 pContext->pBundledContext->SamplesToExitCountBb =
                      (LVM_INT32)(pContext->pBundledContext->SamplesPerSecond*0.1);
@@ -2484,7 +2484,7 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     return -EINVAL;
                 }
                 if(pContext->pBundledContext->SamplesToExitCountEq <= 0){
-                    pContext->pBundledContext->NumberEffectsEnabled++;
+                    pContext->pBundledContext->EffectsBitMap |= (1 << LVM_EQUALIZER);
                 }
                 pContext->pBundledContext->SamplesToExitCountEq =
                      (LVM_INT32)(pContext->pBundledContext->SamplesPerSecond*0.1);
@@ -2496,7 +2496,7 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     return -EINVAL;
                 }
                 if(pContext->pBundledContext->SamplesToExitCountVirt <= 0){
-                    pContext->pBundledContext->NumberEffectsEnabled++;
+                    pContext->pBundledContext->EffectsBitMap |= (1 << LVM_VIRTUALIZER);
                 }
                 pContext->pBundledContext->SamplesToExitCountVirt =
                      (LVM_INT32)(pContext->pBundledContext->SamplesPerSecond*0.1);
@@ -2508,7 +2508,7 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     ALOGV("\tEffect_setEnabled() LVM_VOLUME is already enabled");
                     return -EINVAL;
                 }
-                pContext->pBundledContext->NumberEffectsEnabled++;
+                pContext->pBundledContext->EffectsBitMap |= (1 << LVM_VOLUME);
                 pContext->pBundledContext->bVolumeEnabled = LVM_TRUE;
                 break;
             default:
@@ -2525,12 +2525,18 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     ALOGV("\tEffect_setEnabled() LVM_BASS_BOOST is already disabled");
                     return -EINVAL;
                 }
+                if(pContext->pBundledContext->SamplesToExitCountBb <= 0) {
+                    pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_BASS_BOOST);
+                }
                 pContext->pBundledContext->bBassEnabled = LVM_FALSE;
                 break;
             case LVM_EQUALIZER:
                 if (pContext->pBundledContext->bEqualizerEnabled == LVM_FALSE) {
                     ALOGV("\tEffect_setEnabled() LVM_EQUALIZER is already disabled");
                     return -EINVAL;
+                }
+                if(pContext->pBundledContext->SamplesToExitCountEq <= 0) {
+                    pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_EQUALIZER);
                 }
                 pContext->pBundledContext->bEqualizerEnabled = LVM_FALSE;
                 break;
@@ -2539,6 +2545,9 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     ALOGV("\tEffect_setEnabled() LVM_VIRTUALIZER is already disabled");
                     return -EINVAL;
                 }
+                if(pContext->pBundledContext->SamplesToExitCountVirt <= 0) {
+                    pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VIRTUALIZER);
+                }
                 pContext->pBundledContext->bVirtualizerEnabled = LVM_FALSE;
                 break;
             case LVM_VOLUME:
@@ -2546,6 +2555,7 @@ int Effect_setEnabled(EffectContext *pContext, bool enabled)
                     ALOGV("\tEffect_setEnabled() LVM_VOLUME is already disabled");
                     return -EINVAL;
                 }
+                pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VOLUME);
                 pContext->pBundledContext->bVolumeEnabled = LVM_FALSE;
                 break;
             default:
@@ -2595,7 +2605,7 @@ int Effect_process(effect_handle_t     self,
     LVM_INT16   *out = (LVM_INT16 *)outBuffer->raw;
 
 //ALOGV("\tEffect_process Start : Enabled = %d     Called = %d (%8d %8d %8d)",
-//pContext->pBundledContext->NumberEffectsEnabled,pContext->pBundledContext->NumberEffectsCalled,
+//popcount(pContext->pBundledContext->EffectsBitMap), pContext->pBundledContext->NumberEffectsCalled,
 //    pContext->pBundledContext->SamplesToExitCountBb,
 //    pContext->pBundledContext->SamplesToExitCountVirt,
 //    pContext->pBundledContext->SamplesToExitCountEq);
@@ -2629,7 +2639,7 @@ int Effect_process(effect_handle_t     self,
         }
         if(pContext->pBundledContext->SamplesToExitCountBb <= 0) {
             status = -ENODATA;
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_BASS_BOOST);
             ALOGV("\tEffect_process() this is the last frame for LVM_BASS_BOOST");
         }
     }
@@ -2637,7 +2647,7 @@ int Effect_process(effect_handle_t     self,
         (pContext->EffectType == LVM_VOLUME)){
         //ALOGV("\tEffect_process() LVM_VOLUME Effect is not enabled");
         status = -ENODATA;
-        pContext->pBundledContext->NumberEffectsEnabled--;
+        pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VOLUME);
     }
     if ((pContext->pBundledContext->bEqualizerEnabled == LVM_FALSE)&&
         (pContext->EffectType == LVM_EQUALIZER)){
@@ -2649,7 +2659,7 @@ int Effect_process(effect_handle_t     self,
         }
         if(pContext->pBundledContext->SamplesToExitCountEq <= 0) {
             status = -ENODATA;
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_EQUALIZER);
             ALOGV("\tEffect_process() this is the last frame for LVM_EQUALIZER");
         }
     }
@@ -2663,7 +2673,7 @@ int Effect_process(effect_handle_t     self,
         }
         if(pContext->pBundledContext->SamplesToExitCountVirt <= 0) {
             status = -ENODATA;
-            pContext->pBundledContext->NumberEffectsEnabled--;
+            pContext->pBundledContext->EffectsBitMap &= ~(1 << LVM_VIRTUALIZER);
             ALOGV("\tEffect_process() this is the last frame for LVM_VIRTUALIZER");
         }
     }
@@ -2673,9 +2683,9 @@ int Effect_process(effect_handle_t     self,
     }
 
     if(pContext->pBundledContext->NumberEffectsCalled ==
-       pContext->pBundledContext->NumberEffectsEnabled){
+       popcount(pContext->pBundledContext->EffectsBitMap)){
         //ALOGV("\tEffect_process     Calling process with %d effects enabled, %d called: Effect %d",
-        //pContext->pBundledContext->NumberEffectsEnabled,
+        //popcount(pContext->pBundledContext->EffectsBitMap),
         //pContext->pBundledContext->NumberEffectsCalled, pContext->EffectType);
 
         if(status == -ENODATA){
@@ -2694,7 +2704,7 @@ int Effect_process(effect_handle_t     self,
         }
     } else {
         //ALOGV("\tEffect_process Not Calling process with %d effects enabled, %d called: Effect %d",
-        //pContext->pBundledContext->NumberEffectsEnabled,
+        //popcount(pContext->pBundledContext->EffectsBitMap),
         //pContext->pBundledContext->NumberEffectsCalled, pContext->EffectType);
         // 2 is for stereo input
         if (pContext->config.outputCfg.accessMode == EFFECT_BUFFER_ACCESS_ACCUMULATE) {
@@ -2746,13 +2756,13 @@ int Effect_command(effect_handle_t  self,
     // called the number of effect called could be greater
     // pContext->pBundledContext->NumberEffectsCalled = 0;
 
-    //ALOGV("\tEffect_command NumberEffectsCalled = %d, NumberEffectsEnabled = %d",
-    //        pContext->pBundledContext->NumberEffectsCalled,
-    //        pContext->pBundledContext->NumberEffectsEnabled);
+    //ALOGV("\tEffect_command: Enabled = %d     Called = %d",
+    //        popcount(pContext->pBundledContext->EffectsBitMap),
+    //        pContext->pBundledContext->NumberEffectsCalled);
 
     switch (cmdCode){
         case EFFECT_CMD_INIT:
-            if (pReplyData == NULL || *replySize != sizeof(int)){
+            if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)){
                 ALOGV("\tLVM_ERROR, EFFECT_CMD_INIT: ERROR for effect type %d",
                         pContext->EffectType);
                 return -EINVAL;
@@ -2779,10 +2789,8 @@ int Effect_command(effect_handle_t  self,
 
         case EFFECT_CMD_SET_CONFIG:
             //ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_SET_CONFIG start");
-            if (pCmdData    == NULL||
-                cmdSize     != sizeof(effect_config_t)||
-                pReplyData  == NULL||
-                *replySize  != sizeof(int)){
+            if (pCmdData    == NULL || cmdSize     != sizeof(effect_config_t) ||
+                    pReplyData  == NULL || replySize == NULL || *replySize  != sizeof(int)) {
                 ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: "
                         "EFFECT_CMD_SET_CONFIG: ERROR");
                 return -EINVAL;
@@ -2792,8 +2800,7 @@ int Effect_command(effect_handle_t  self,
             break;
 
         case EFFECT_CMD_GET_CONFIG:
-            if (pReplyData == NULL ||
-                *replySize != sizeof(effect_config_t)) {
+            if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(effect_config_t)) {
                 ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: "
                         "EFFECT_CMD_GET_CONFIG: ERROR");
                 return -EINVAL;
@@ -2811,30 +2818,30 @@ int Effect_command(effect_handle_t  self,
         case EFFECT_CMD_GET_PARAM:{
             //ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_GET_PARAM start");
 
+            effect_param_t *p = (effect_param_t *)pCmdData;
+            if (SIZE_MAX - sizeof(effect_param_t) < (size_t)p->psize) {
+                android_errorWriteLog(0x534e4554, "26347509");
+                return -EINVAL;
+            }
+            if (pCmdData == NULL || cmdSize < sizeof(effect_param_t) ||
+                    cmdSize < (sizeof(effect_param_t) + p->psize) ||
+                    pReplyData == NULL || replySize == NULL ||
+                    *replySize < (sizeof(effect_param_t) + p->psize)) {
+                ALOGV("\tLVM_ERROR : EFFECT_CMD_GET_PARAM: ERROR");
+                return -EINVAL;
+            }
+
+            memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + p->psize);
+
+            p = (effect_param_t *)pReplyData;
+
+            int voffset = ((p->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
+
             if(pContext->EffectType == LVM_BASS_BOOST){
-                if (pCmdData == NULL ||
-                        cmdSize < (int)(sizeof(effect_param_t) + sizeof(int32_t)) ||
-                        pReplyData == NULL ||
-                        *replySize < (int) (sizeof(effect_param_t) + sizeof(int32_t))){
-                    ALOGV("\tLVM_ERROR : BassBoost_command cmdCode Case: "
-                            "EFFECT_CMD_GET_PARAM: ERROR");
-                    return -EINVAL;
-                }
-                effect_param_t *p = (effect_param_t *)pCmdData;
-
-                memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + p->psize);
-
-                p = (effect_param_t *)pReplyData;
-
-                int voffset = ((p->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
-
                 p->status = android::BassBoost_getParameter(pContext,
                                                             p->data,
                                                             (size_t  *)&p->vsize,
                                                             p->data + voffset);
-
-                *replySize = sizeof(effect_param_t) + voffset + p->vsize;
-
                 //ALOGV("\tBassBoost_command EFFECT_CMD_GET_PARAM "
                 //        "*pCmdData %d, *replySize %d, *pReplyData %d ",
                 //        *(int32_t *)((char *)pCmdData + sizeof(effect_param_t)),
@@ -2843,28 +2850,10 @@ int Effect_command(effect_handle_t  self,
             }
 
             if(pContext->EffectType == LVM_VIRTUALIZER){
-                if (pCmdData == NULL ||
-                        cmdSize < (int)(sizeof(effect_param_t) + sizeof(int32_t)) ||
-                        pReplyData == NULL ||
-                        *replySize < (int) (sizeof(effect_param_t) + sizeof(int32_t))){
-                    ALOGV("\tLVM_ERROR : Virtualizer_command cmdCode Case: "
-                            "EFFECT_CMD_GET_PARAM: ERROR");
-                    return -EINVAL;
-                }
-                effect_param_t *p = (effect_param_t *)pCmdData;
-
-                memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + p->psize);
-
-                p = (effect_param_t *)pReplyData;
-
-                int voffset = ((p->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
-
                 p->status = android::Virtualizer_getParameter(pContext,
                                                              (void *)p->data,
                                                              (size_t  *)&p->vsize,
                                                               p->data + voffset);
-
-                *replySize = sizeof(effect_param_t) + voffset + p->vsize;
 
                 //ALOGV("\tVirtualizer_command EFFECT_CMD_GET_PARAM "
                 //        "*pCmdData %d, *replySize %d, *pReplyData %d ",
@@ -2875,28 +2864,10 @@ int Effect_command(effect_handle_t  self,
             if(pContext->EffectType == LVM_EQUALIZER){
                 //ALOGV("\tEqualizer_command cmdCode Case: "
                 //        "EFFECT_CMD_GET_PARAM start");
-                if (pCmdData == NULL ||
-                    cmdSize < (int)(sizeof(effect_param_t) + sizeof(int32_t)) ||
-                    pReplyData == NULL ||
-                    *replySize < (int) (sizeof(effect_param_t) + sizeof(int32_t))) {
-                    ALOGV("\tLVM_ERROR : Equalizer_command cmdCode Case: "
-                            "EFFECT_CMD_GET_PARAM");
-                    return -EINVAL;
-                }
-                effect_param_t *p = (effect_param_t *)pCmdData;
-
-                memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + p->psize);
-
-                p = (effect_param_t *)pReplyData;
-
-                int voffset = ((p->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
-
                 p->status = android::Equalizer_getParameter(pContext,
                                                             p->data,
                                                             &p->vsize,
                                                             p->data + voffset);
-
-                *replySize = sizeof(effect_param_t) + voffset + p->vsize;
 
                 //ALOGV("\tEqualizer_command EFFECT_CMD_GET_PARAM *pCmdData %d, *replySize %d, "
                 //       "*pReplyData %08x %08x",
@@ -2907,28 +2878,10 @@ int Effect_command(effect_handle_t  self,
             }
             if(pContext->EffectType == LVM_VOLUME){
                 //ALOGV("\tVolume_command cmdCode Case: EFFECT_CMD_GET_PARAM start");
-                if (pCmdData == NULL ||
-                        cmdSize < (int)(sizeof(effect_param_t) + sizeof(int32_t)) ||
-                        pReplyData == NULL ||
-                        *replySize < (int) (sizeof(effect_param_t) + sizeof(int32_t))){
-                    ALOGV("\tLVM_ERROR : Volume_command cmdCode Case: "
-                            "EFFECT_CMD_GET_PARAM: ERROR");
-                    return -EINVAL;
-                }
-                effect_param_t *p = (effect_param_t *)pCmdData;
-
-                memcpy(pReplyData, pCmdData, sizeof(effect_param_t) + p->psize);
-
-                p = (effect_param_t *)pReplyData;
-
-                int voffset = ((p->psize - 1) / sizeof(int32_t) + 1) * sizeof(int32_t);
-
                 p->status = android::Volume_getParameter(pContext,
                                                          (void *)p->data,
                                                          (size_t  *)&p->vsize,
                                                          p->data + voffset);
-
-                *replySize = sizeof(effect_param_t) + voffset + p->vsize;
 
                 //ALOGV("\tVolume_command EFFECT_CMD_GET_PARAM "
                 //        "*pCmdData %d, *replySize %d, *pReplyData %d ",
@@ -2936,6 +2889,8 @@ int Effect_command(effect_handle_t  self,
                 //        *replySize,
                 //        *(int16_t *)((char *)pReplyData + sizeof(effect_param_t) + voffset));
             }
+            *replySize = sizeof(effect_param_t) + voffset + p->vsize;
+
             //ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_GET_PARAM end");
         } break;
         case EFFECT_CMD_SET_PARAM:{
@@ -2946,10 +2901,9 @@ int Effect_command(effect_handle_t  self,
                 //       *replySize,
                 //       *(int16_t *)((char *)pCmdData + sizeof(effect_param_t) + sizeof(int32_t)));
 
-                if (pCmdData   == NULL||
-                    cmdSize    != (int)(sizeof(effect_param_t) + sizeof(int32_t) +sizeof(int16_t))||
-                    pReplyData == NULL||
-                    *replySize != sizeof(int32_t)){
+                if (pCmdData   == NULL ||
+                        cmdSize    != (sizeof(effect_param_t) + sizeof(int32_t) +sizeof(int16_t)) ||
+                        pReplyData == NULL || replySize == NULL || *replySize != sizeof(int32_t)) {
                     ALOGV("\tLVM_ERROR : BassBoost_command cmdCode Case: "
                             "EFFECT_CMD_SET_PARAM: ERROR");
                     return -EINVAL;
@@ -2979,10 +2933,11 @@ int Effect_command(effect_handle_t  self,
               //        *replySize,
               //        *(int16_t *)((char *)pCmdData + sizeof(effect_param_t) + sizeof(int32_t)));
 
-                if (pCmdData   == NULL||
-                    cmdSize    != (int)(sizeof(effect_param_t) + sizeof(int32_t) +sizeof(int16_t))||
-                    pReplyData == NULL||
-                    *replySize != sizeof(int32_t)){
+                if (pCmdData   == NULL ||
+                        // legal parameters are int16_t or int32_t
+                        cmdSize    > (sizeof(effect_param_t) + sizeof(int32_t) +sizeof(int32_t)) ||
+                        cmdSize    < (sizeof(effect_param_t) + sizeof(int32_t) +sizeof(int16_t)) ||
+                        pReplyData == NULL || replySize == NULL || *replySize != sizeof(int32_t)) {
                     ALOGV("\tLVM_ERROR : Virtualizer_command cmdCode Case: "
                             "EFFECT_CMD_SET_PARAM: ERROR");
                     return -EINVAL;
@@ -3014,8 +2969,8 @@ int Effect_command(effect_handle_t  self,
                //        *replySize,
                //        *(int16_t *)((char *)pCmdData + sizeof(effect_param_t) + sizeof(int32_t)));
 
-                if (pCmdData == NULL || cmdSize < (int)(sizeof(effect_param_t) + sizeof(int32_t)) ||
-                    pReplyData == NULL || *replySize != sizeof(int32_t)) {
+                if (pCmdData == NULL || cmdSize < (sizeof(effect_param_t) + sizeof(int32_t)) ||
+                        pReplyData == NULL || replySize == NULL || *replySize != sizeof(int32_t)) {
                     ALOGV("\tLVM_ERROR : Equalizer_command cmdCode Case: "
                             "EFFECT_CMD_SET_PARAM: ERROR");
                     return -EINVAL;
@@ -3033,10 +2988,10 @@ int Effect_command(effect_handle_t  self,
                 //        *replySize,
                 //        *(int16_t *)((char *)pCmdData + sizeof(effect_param_t) +sizeof(int32_t)));
 
-                if (    pCmdData   == NULL||
-                        cmdSize    < (int)(sizeof(effect_param_t) + sizeof(int32_t))||
-                        pReplyData == NULL||
-                        *replySize != sizeof(int32_t)){
+                if (pCmdData   == NULL ||
+                        cmdSize    < (sizeof(effect_param_t) + sizeof(int32_t)) ||
+                        pReplyData == NULL || replySize == NULL ||
+                        *replySize != sizeof(int32_t)) {
                     ALOGV("\tLVM_ERROR : Volume_command cmdCode Case: "
                             "EFFECT_CMD_SET_PARAM: ERROR");
                     return -EINVAL;
@@ -3052,7 +3007,7 @@ int Effect_command(effect_handle_t  self,
 
         case EFFECT_CMD_ENABLE:
             ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_ENABLE start");
-            if (pReplyData == NULL || *replySize != sizeof(int)){
+            if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
                 ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: EFFECT_CMD_ENABLE: ERROR");
                 return -EINVAL;
             }
@@ -3062,7 +3017,7 @@ int Effect_command(effect_handle_t  self,
 
         case EFFECT_CMD_DISABLE:
             //ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_DISABLE start");
-            if (pReplyData == NULL || *replySize != sizeof(int)){
+            if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
                 ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: EFFECT_CMD_DISABLE: ERROR");
                 return -EINVAL;
             }
@@ -3072,6 +3027,11 @@ int Effect_command(effect_handle_t  self,
         case EFFECT_CMD_SET_DEVICE:
         {
             ALOGV("\tEffect_command cmdCode Case: EFFECT_CMD_SET_DEVICE start");
+            if (pCmdData   == NULL){
+                ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: EFFECT_CMD_SET_DEVICE: ERROR");
+                return -EINVAL;
+            }
+
             uint32_t device = *(uint32_t *)pCmdData;
 
             if (pContext->EffectType == LVM_BASS_BOOST) {
@@ -3080,7 +3040,7 @@ int Effect_command(effect_handle_t  self,
                         (device == AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER)){
                     ALOGV("\tEFFECT_CMD_SET_DEVICE device is invalid for LVM_BASS_BOOST %d",
                           *(int32_t *)pCmdData);
-                    ALOGV("\tEFFECT_CMD_SET_DEVICE temporary disable LVM_BAS_BOOST");
+                    ALOGV("\tEFFECT_CMD_SET_DEVICE temporary disable LVM_BASS_BOOST");
 
                     // If a device doesnt support bassboost the effect must be temporarily disabled
                     // the effect must still report its original state as this can only be changed
@@ -3158,8 +3118,8 @@ int Effect_command(effect_handle_t  self,
                 break;
             }
 
-            if (pCmdData == NULL ||
-                cmdSize != 2 * sizeof(uint32_t)) {
+            if (pCmdData == NULL || cmdSize != 2 * sizeof(uint32_t) || pReplyData == NULL ||
+                    replySize == NULL || *replySize < 2*sizeof(int32_t)) {
                 ALOGV("\tLVM_ERROR : Effect_command cmdCode Case: "
                         "EFFECT_CMD_SET_VOLUME: ERROR");
                 return -EINVAL;

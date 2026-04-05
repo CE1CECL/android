@@ -188,6 +188,7 @@ private:
     bool mSentFormat;
     bool mIsEncoder;
     bool mUseMetadataOnEncoderOutput;
+    bool mFatalError;
     bool mShutdownInProgress;
     bool mIsConfiguredForAdaptivePlayback;
 
@@ -200,6 +201,9 @@ private:
 
     bool mChannelMaskPresent;
     int32_t mChannelMask;
+#ifdef QCOM_HARDWARE
+    bool mInSmoothStreamingMode;
+#endif
     unsigned mDequeueCounter;
     bool mStoreMetaDataInOutputBuffers;
     int32_t mMetaDataBuffersToSubmit;
@@ -219,6 +223,9 @@ private:
     status_t submitOutputMetaDataBuffer();
     void signalSubmitOutputMetaDataBufferIfEOS_workaround();
     status_t allocateOutputBuffersFromNativeWindow();
+#ifdef USE_SAMSUNG_COLORFORMAT
+    void setNativeWindowColorFormat(OMX_COLOR_FORMATTYPE &eNativeColorFormat);
+#endif
     status_t cancelBufferToNativeWindow(BufferInfo *info);
     status_t freeOutputBuffersNotOwnedByComponent();
     BufferInfo *dequeueBufferFromNativeWindow();

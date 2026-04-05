@@ -349,6 +349,15 @@ public:
 
     SK_DEFINE_FLATTENABLE_TYPE(SkShader)
 
+    enum SkShaderIds {
+        kSkBitmapProcShader_Class = 0x1,
+        kSkShader_OtherClass      = 0x2,
+    };
+
+    virtual void beginRect(int x, int y, int width);
+    virtual void endRect();
+    virtual SkShaderIds getID() { return kSkShader_OtherClass; }
+
 protected:
     enum MatrixClass {
         kLinear_MatrixClass,            // no perspective

@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,11 +92,39 @@ public class SmsMessage {
      */
     public static final String FORMAT_3GPP2 = "3gpp2";
 
+    /**
+     * Indicates a synthetic SMS message.
+     * @hide
+     */
+    public static final String FORMAT_SYNTHETIC = "synthetic";
+
     /** Contains actual SmsMessage. Only public for debugging and for framework layer.
      *
      * @hide
      */
     public SmsMessageBase mWrappedSmsMessage;
+
+    /** Indicates the subId
+     *
+     * @hide
+     */
+    private int mSubId = 0;
+
+    /** set Subscription information
+     *
+     * @hide
+     */
+    public void setSubId(int subId) {
+        mSubId = subId;
+    }
+
+    /** get Subscription information
+     *
+     * @hide
+     */
+    public int getSubId() {
+        return mSubId;
+    }
 
     public static class SubmitPdu {
 
@@ -143,6 +173,9 @@ public class SmsMessage {
         int activePhone = TelephonyManager.getDefault().getCurrentPhoneType();
         String format = (PHONE_TYPE_CDMA == activePhone) ?
                 SmsConstants.FORMAT_3GPP2 : SmsConstants.FORMAT_3GPP;
+        if (com.android.internal.telephony.SyntheticSmsMessage.isSyntheticPdu(pdu)) {
+            format = FORMAT_SYNTHETIC;
+        }
         message = createFromPdu(pdu, format);
 
         if (null == message || null == message.mWrappedSmsMessage) {
@@ -171,6 +204,8 @@ public class SmsMessage {
             wrappedMessage = com.android.internal.telephony.cdma.SmsMessage.createFromPdu(pdu);
         } else if (SmsConstants.FORMAT_3GPP.equals(format)) {
             wrappedMessage = com.android.internal.telephony.gsm.SmsMessage.createFromPdu(pdu);
+        } else if (FORMAT_SYNTHETIC.equals(format)) {
+            wrappedMessage = com.android.internal.telephony.SyntheticSmsMessage.createFromPdu(pdu);
         } else {
             Rlog.e(LOG_TAG, "createFromPdu(): unsupported message format " + format);
             return null;
@@ -219,6 +254,31 @@ public class SmsMessage {
         SmsMessageBase wrappedMessage;
 
         if (isCdmaVoice()) {
+            wrappedMessage = com.android.internal.telephony.cdma.SmsMessage.createFromEfRecord(
+                    index, data);
+        } else {
+            wrappedMessage = com.android.internal.telephony.gsm.SmsMessage.createFromEfRecord(
+                    index, data);
+        }
+
+        return wrappedMessage != null ? new SmsMessage(wrappedMessage) : null;
+    }
+
+    /**
+     * Create an SmsMessage from an SMS EF record.
+     *
+     * @param index Index of SMS record. This should be index in ArrayList
+     *              returned by SmsManager.getAllMessagesFromSim + 1.
+     * @param data Record data.
+     * @param sub Subscription index of the SMS
+     * @return An SmsMessage representing the record.
+     *
+     * @hide
+     */
+    public static SmsMessage createFromEfRecord(int index, byte[] data, int sub) {
+        SmsMessageBase wrappedMessage;
+
+        if (isCdmaVoice(sub)) {
             wrappedMessage = com.android.internal.telephony.cdma.SmsMessage.createFromEfRecord(
                     index, data);
         } else {
@@ -422,6 +482,33 @@ public class SmsMessage {
     }
 
     /**
+     * Get an SMS-SUBMIT PDU for a destination address and a message.
+     * This method will not attempt to use any GSM national language 7 bit encodings.
+     *
+     * @param scAddress Service Centre address.  Null means use default.
+     * @param sub Subscription of the message
+     * @return a <code>SubmitPdu</code> containing the encoded SC
+     *         address, if applicable, and the encoded message.
+     *         Returns null on encode error.
+     *
+     * @hide
+     */
+    public static SubmitPdu getSubmitPdu(String scAddress,
+            String destinationAddress, String message, boolean statusReportRequested, int sub) {
+        SubmitPduBase spb;
+
+        if (useCdmaFormatForMoSms(sub)) {
+            spb = com.android.internal.telephony.cdma.SmsMessage.getSubmitPdu(scAddress,
+                    destinationAddress, message, statusReportRequested, null);
+        } else {
+            spb = com.android.internal.telephony.gsm.SmsMessage.getSubmitPdu(scAddress,
+                    destinationAddress, message, statusReportRequested);
+        }
+
+        return new SubmitPdu(spb);
+    }
+
+    /**
      * Get an SMS-SUBMIT PDU for a data message to a destination address &amp; port.
      * This method will not attempt to use any GSM national language 7 bit encodings.
      *
@@ -463,7 +550,7 @@ public class SmsMessage {
      * form or null if unavailable
      */
     public String getOriginatingAddress() {
-        return mWrappedSmsMessage.getOriginatingAddress();
+        return mWrappedSmsMessage != null ? mWrappedSmsMessage.getOriginatingAddress() : null;
     }
 
     /**
@@ -712,6 +799,26 @@ public class SmsMessage {
     }
 
     /**
+     * Determines whether or not to use CDMA format for MO SMS.
+     * If SMS over IMS is supported, then format is based on IMS SMS format,
+     * otherwise format is based on current phone type.
+     *
+     * @param sub Subscription for which phone type is returned.
+     *
+     * @return true if Cdma format should be used for MO SMS, false otherwise.
+     *
+     * @hide
+     */
+    private static boolean useCdmaFormatForMoSms(int sub) {
+        if (!MSimSmsManager.getDefault().isImsSmsSupported(sub)) {
+            // use Voice technology to determine SMS format.
+            return isCdmaVoice(sub);
+        }
+        // IMS is registered with SMS support, check the SMS format supported
+        return (SmsConstants.FORMAT_3GPP2.equals(MSimSmsManager.getDefault().getImsSmsFormat(sub)));
+    }
+
+    /**
      * Determines whether or not to current phone type is cdma.
      *
      * @return true if current phone type is cdma, false otherwise.
@@ -719,5 +826,27 @@ public class SmsMessage {
     private static boolean isCdmaVoice() {
         int activePhone = TelephonyManager.getDefault().getCurrentPhoneType();
         return (PHONE_TYPE_CDMA == activePhone);
+    }
+
+    /**
+     * Determines whether or not to current phone type is cdma for given susbcription.
+     *
+     * @param subscription Subscription for which phone type is returned
+     * @return true if current phone type is cdma, false otherwise.
+     *
+     * @hide
+     */
+    private static boolean isCdmaVoice(int subscription) {
+        int activePhone = MSimTelephonyManager.getDefault().getCurrentPhoneType(subscription);
+        return (PHONE_TYPE_CDMA == activePhone);
+    }
+
+    /**
+     * {@hide}
+     * Returns the recipient address(receiver) of this SMS message in String form or null if
+     * unavailable.
+     */
+    public String getRecipientAddress() {
+        return mWrappedSmsMessage.getRecipientAddress();
     }
 }

@@ -24,6 +24,7 @@
 #include <time.h>
 #include <math.h>
 #include <audio_effects/effect_visualizer.h>
+#include <cutils/log.h>
 
 
 extern "C" {
@@ -422,21 +423,21 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
 
     switch (cmdCode) {
     case EFFECT_CMD_INIT:
-        if (pReplyData == NULL || *replySize != sizeof(int)) {
+        if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         *(int *) pReplyData = Visualizer_init(pContext);
         break;
     case EFFECT_CMD_SET_CONFIG:
         if (pCmdData == NULL || cmdSize != sizeof(effect_config_t)
-                || pReplyData == NULL || *replySize != sizeof(int)) {
+                || pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         *(int *) pReplyData = Visualizer_setConfig(pContext,
                 (effect_config_t *) pCmdData);
         break;
     case EFFECT_CMD_GET_CONFIG:
-        if (pReplyData == NULL ||
+        if (pReplyData == NULL || replySize == NULL ||
             *replySize != sizeof(effect_config_t)) {
             return -EINVAL;
         }
@@ -446,7 +447,7 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         Visualizer_reset(pContext);
         break;
     case EFFECT_CMD_ENABLE:
-        if (pReplyData == NULL || *replySize != sizeof(int)) {
+        if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         if (pContext->mState != VISUALIZER_STATE_INITIALIZED) {
@@ -457,7 +458,7 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         *(int *)pReplyData = 0;
         break;
     case EFFECT_CMD_DISABLE:
-        if (pReplyData == NULL || *replySize != sizeof(int)) {
+        if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         if (pContext->mState != VISUALIZER_STATE_ACTIVE) {
@@ -470,7 +471,7 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
     case EFFECT_CMD_GET_PARAM: {
         if (pCmdData == NULL ||
             cmdSize != (int)(sizeof(effect_param_t) + sizeof(uint32_t)) ||
-            pReplyData == NULL ||
+            pReplyData == NULL || replySize == NULL ||
             *replySize < (int)(sizeof(effect_param_t) + sizeof(uint32_t) + sizeof(uint32_t))) {
             return -EINVAL;
         }
@@ -508,7 +509,7 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
     case EFFECT_CMD_SET_PARAM: {
         if (pCmdData == NULL ||
             cmdSize != (int)(sizeof(effect_param_t) + sizeof(uint32_t) + sizeof(uint32_t)) ||
-            pReplyData == NULL || *replySize != sizeof(int32_t)) {
+            pReplyData == NULL || replySize == NULL || *replySize != sizeof(int32_t)) {
             return -EINVAL;
         }
         *(int32_t *)pReplyData = 0;
@@ -544,10 +545,11 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         break;
 
 
-    case VISUALIZER_CMD_CAPTURE:
-        if (pReplyData == NULL || *replySize != pContext->mCaptureSize) {
-            ALOGV("VISUALIZER_CMD_CAPTURE() error *replySize %d pContext->mCaptureSize %d",
-                    *replySize, pContext->mCaptureSize);
+    case VISUALIZER_CMD_CAPTURE: {
+        uint32_t captureSize = pContext->mCaptureSize;
+        if (pReplyData == NULL || replySize == NULL || *replySize != captureSize) {
+            ALOGV("VISUALIZER_CMD_CAPTURE() error *replySize %" PRIu32 " captureSize %" PRIu32,
+                    *replySize, captureSize);
             return -EINVAL;
         }
         if (pContext->mState == VISUALIZER_STATE_ACTIVE) {
@@ -592,10 +594,18 @@ int Visualizer_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         } else {
             memset(pReplyData, 0x80, pContext->mCaptureSize);
         }
-
+        }
         break;
 
     case VISUALIZER_CMD_MEASURE: {
+        if (pReplyData == NULL || replySize == NULL ||
+                *replySize < (sizeof(int32_t) * MEASUREMENT_COUNT)) {
+            ALOGV("VISUALIZER_CMD_MEASURE() error *replySize %" PRIu32
+                    " < (sizeof(int32_t) * MEASUREMENT_COUNT) %" PRIu32, *replySize,
+                    sizeof(int32_t) * MEASUREMENT_COUNT);
+            android_errorWriteLog(0x534e4554, "30229821");
+            return -EINVAL;
+        }
         uint16_t peakU16 = 0;
         float sumRmsSquared = 0.0f;
         uint8_t nbValidMeasurements = 0;

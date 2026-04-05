@@ -29,6 +29,7 @@ import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.provider.SearchRecentSuggestions;
 import android.telephony.TelephonyManager;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.data.Contact;
@@ -42,6 +43,7 @@ import com.android.mms.util.DownloadManager;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.PduLoaderManager;
 import com.android.mms.util.RateController;
+import com.android.mms.util.SmileyParser;
 import com.android.mms.util.ThumbnailManager;
 
 public class MmsApp extends Application {
@@ -49,6 +51,7 @@ public class MmsApp extends Application {
 
     private SearchRecentSuggestions mRecentSuggestions;
     private TelephonyManager mTelephonyManager;
+    private MSimTelephonyManager mSimTelephonyManager;
     private CountryDetector mCountryDetector;
     private CountryListener mCountryListener;
     private String mCountryIso;
@@ -95,6 +98,7 @@ public class MmsApp extends Application {
         DownloadManager.init(this);
         RateController.init(this);
         LayoutManager.init(this);
+        SmileyParser.init(this);
         MessagingNotification.init(this);
 
         activePendingMessages();
@@ -154,6 +158,13 @@ public class MmsApp extends Application {
                     .getSystemService(Context.TELEPHONY_SERVICE);
         }
         return mTelephonyManager;
+    }
+    public MSimTelephonyManager getMSimTelephonyManager() {
+        if (mSimTelephonyManager == null) {
+            mSimTelephonyManager = (MSimTelephonyManager)getApplicationContext()
+                    .getSystemService(Context.MSIM_TELEPHONY_SERVICE);
+        }
+        return mSimTelephonyManager;
     }
 
     /**

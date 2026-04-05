@@ -47,10 +47,12 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
     private MediaModel mImage;
     private MediaModel mAudio;
     private MediaModel mVideo;
+    private MediaModel mVcard;
 
     private boolean mCanAddImage = true;
     private boolean mCanAddAudio = true;
     private boolean mCanAddVideo = true;
+    private boolean mCanAddVcard = true;
 
     private int mDuration;
     private boolean mVisible = true;
@@ -90,7 +92,15 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             }
         }
 
-        updateDuration(maxDur);
+        // Since support set Duration function,so don't direct set maxDur.
+        updateDuration(getDuration(maxDur));
+    }
+
+    private int getDuration(int defaultVal) {
+       if (mDuration != defaultVal && mDuration > 0) {
+           return mDuration;
+       }
+       return defaultVal;
     }
 
     private void internalAdd(MediaModel media) throws IllegalStateException {
@@ -133,9 +143,19 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 mVideo = media;
                 mCanAddImage = false;
                 mCanAddAudio = false;
+                mCanAddVcard = false;
             } else {
                 Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
                     " - can't add video in this state");
+            }
+        } else if (media.isVcard()) {
+            if (mCanAddVcard) {
+                internalAddOrReplace(mVcard, media);
+                mVcard = media;
+                mCanAddVideo = false;
+            } else {
+                Log.w(TAG, "[SlideModel] content type " + media.getContentType() +
+                        " - can't add vcard in this state");
             }
         }
     }
@@ -144,7 +164,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         // If the media is resizable, at this point consider it to be zero length.
         // Just before we send the slideshow, we take the remaining space in the
         // slideshow and equally allocate it to all the resizeable media items and resize them.
-        int addSize = media.getMediaResizable() ? 0 : media.getMediaSize();
+        int addSize = media.getMediaSize();
         int removeSize;
         if (old == null) {
             if (null != mParent) {
@@ -154,7 +174,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             increaseSlideSize(addSize);
             increaseMessageSize(addSize);
         } else {
-            removeSize = old.getMediaResizable() ? 0 : old.getMediaSize();
+            removeSize = old.getMediaSize();
             if (addSize > removeSize) {
                 if (null != mParent) {
                     mParent.checkMessageSize(addSize - removeSize);
@@ -188,16 +208,20 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
                 mVideo = null;
                 mCanAddImage = true;
                 mCanAddAudio = true;
+                mCanAddVcard = true;
+            } else if (object instanceof VcardModel) {
+                mVcard = null;
+                mCanAddVideo = true;
             }
             // If the media is resizable, at this point consider it to be zero length.
             // Just before we send the slideshow, we take the remaining space in the
             // slideshow and equally allocate it to all the resizeable media items and resize them.
-            int decreaseSize = ((MediaModel) object).getMediaResizable() ? 0
-                                        : ((MediaModel) object).getMediaSize();
+            MediaModel mediaMode = ((MediaModel) object);
+            int decreaseSize = mediaMode.getMediaSize();
             decreaseSlideSize(decreaseSize);
             decreaseMessageSize(decreaseSize);
 
-            ((Model) object).unregisterAllModelChangedObservers();
+            mediaMode.unregisterAllModelChangedObservers();
 
             return true;
         }
@@ -307,6 +331,7 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
             mCanAddImage = true;
             mCanAddAudio = true;
             mCanAddVideo = true;
+            mCanAddVcard = true;
 
             notifyModelChanged(true);
         }
@@ -492,6 +517,10 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         return mVideo != null;
     }
 
+    public boolean hasVcard() {
+        return mVcard != null;
+    }
+
     public boolean removeText() {
         return remove(mText);
     }
@@ -512,6 +541,12 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
         return result;
     }
 
+    public boolean removeVcard() {
+        boolean result = remove(mVcard);
+        resetDuration();
+        return result;
+    }
+
     public TextModel getText() {
         return (TextModel) mText;
     }
@@ -526,6 +561,10 @@ public class SlideModel extends Model implements List<MediaModel>, EventListener
 
     public VideoModel getVideo() {
         return (VideoModel) mVideo;
+    }
+
+    public VcardModel getVcard() {
+        return (VcardModel) mVcard;
     }
 
     public void resetDuration() {

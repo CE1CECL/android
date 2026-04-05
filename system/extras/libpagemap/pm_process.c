@@ -107,8 +107,15 @@ int pm_process_pagemap_range(pm_process_t *proc,
     off_t off;
     int error;
 
-    if (!proc || (low >= high) || !range_out || !len)
+    if (!proc || (low > high) || !range_out || !len)
         return -1;
+
+    if(low == high) {
+        // a 0 page mapping??
+        *len = 0;
+        *range_out = NULL;
+        return 0;
+    }
 
     firstpage = low / proc->ker->pagesize;
     numpages = (high - low) / proc->ker->pagesize;
@@ -207,9 +214,14 @@ int pm_process_workingset(pm_process_t *proc,
 }
 
 int pm_process_destroy(pm_process_t *proc) {
+    int i;
+
     if (!proc)
         return -1;
 
+    for (i = 0; i < proc->num_maps; i++) {
+        pm_map_destroy(proc->maps[i]);
+    }
     free(proc->maps);
     close(proc->pagemap_fd);
     free(proc);

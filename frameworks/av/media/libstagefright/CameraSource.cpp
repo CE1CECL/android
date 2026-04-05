@@ -25,11 +25,26 @@
 #include <media/stagefright/MediaDefs.h>
 #include <media/stagefright/MediaErrors.h>
 #include <media/stagefright/MetaData.h>
+#include <media/hardware/HardwareAPI.h>
 #include <camera/Camera.h>
 #include <camera/CameraParameters.h>
+#include <camera/ICameraRecordingProxy.h>
 #include <gui/Surface.h>
 #include <utils/String8.h>
 #include <cutils/properties.h>
+#ifdef QCOM_HARDWARE
+#include "include/ExtendedUtils.h"
+#endif
+
+#ifdef USE_TI_CUSTOM_DOMX
+#include <OMX_TI_IVCommon.h>
+#endif
+
+#ifdef MTK_HARDWARE
+#include <bufferallocator/CameraSourceHandler.h>
+#endif
+
+#include "include/ExtendedUtils.h"
 
 namespace android {
 
@@ -87,20 +102,42 @@ void CameraSourceListener::postDataTimestamp(
 }
 
 static int32_t getColorFormat(const char* colorFormat) {
+#ifdef MTK_HARDWARE
+    ALOGD("getColorFormat(%s)", colorFormat);
+
+    if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420P)) {
+        // YV12
+        return OMX_MTK_COLOR_FormatYV12;
+    }
+
+    if (!strcmp(colorFormat, "yuv420i-yyuvyy-3plane" /*MtkCameraParameters::PIXEL_FORMAT_YUV420I)*/)) {
+        // i420
+        return OMX_COLOR_FormatYUV420Planar;
+    }
+#else
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420P)) {
        return OMX_COLOR_FormatYUV420Planar;
     }
-
+#endif
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV422SP)) {
        return OMX_COLOR_FormatYUV422SemiPlanar;
     }
 
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV420SP)) {
+#ifdef USE_SAMSUNG_COLORFORMAT
+        static const int OMX_SEC_COLOR_FormatNV12LPhysicalAddress = 0x7F000002;
+        return OMX_SEC_COLOR_FormatNV12LPhysicalAddress;
+#else
         return OMX_COLOR_FormatYUV420SemiPlanar;
+#endif
     }
 
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_YUV422I)) {
+#if defined(TARGET_OMAP3) && defined(OMAP_ENHANCEMENT)
+        return OMX_COLOR_FormatCbYCrY;
+#else
         return OMX_COLOR_FormatYCbYCr;
+#endif
     }
 
     if (!strcmp(colorFormat, CameraParameters::PIXEL_FORMAT_RGB565)) {
@@ -172,10 +209,17 @@ CameraSource::CameraSource(
       mFirstFrameTimeUs(0),
       mNumFramesDropped(0),
       mNumGlitches(0),
+      mRecPause(false),
+      mPauseAdjTimeUs(0),
+      mPauseStartTimeUs(0),
+      mPauseEndTimeUs(0),
       mGlitchDurationThresholdUs(200000),
       mCollectStats(false) {
     mVideoSize.width  = -1;
     mVideoSize.height = -1;
+#ifdef MTK_HARDWARE
+    mMtkCameraSourceHandler = new CameraSourceHandler;
+#endif
 
     mInitCheck = init(camera, proxy, cameraId,
                     clientName, clientUid,
@@ -345,7 +389,6 @@ status_t CameraSource::configureCamera(
                 frameRate, supportedFrameRates);
             return BAD_VALUE;
         }
-
         // The frame rate is supported, set the camera to the requested value.
         params->setPreviewFrameRate(frameRate);
         isCameraParamChanged = true;
@@ -563,6 +606,14 @@ status_t CameraSource::initWithCameraAccess(
     mMeta->setInt32(kKeyStride,      mVideoSize.width);
     mMeta->setInt32(kKeySliceHeight, mVideoSize.height);
     mMeta->setInt32(kKeyFrameRate,   mVideoFrameRate);
+
+#ifdef QCOM_HARDWARE
+    ExtendedUtils::HFR::setHFRIfEnabled(params, mMeta);
+#endif
+
+#ifdef MTK_HARDWARE
+    mMtkCameraSourceHandler->init(&mCamera, &mMeta);
+#endif
     return OK;
 }
 
@@ -575,6 +626,10 @@ CameraSource::~CameraSource() {
         // Camera's lock is released in this case.
         releaseCamera();
     }
+#ifdef MTK_HARDWARE
+    delete mMtkCameraSourceHandler;
+    mMtkCameraSourceHandler = NULL;
+#endif
 }
 
 void CameraSource::startCameraRecording() {
@@ -610,6 +665,13 @@ void CameraSource::startCameraRecording() {
 
 status_t CameraSource::start(MetaData *meta) {
     ALOGV("start");
+    if(mRecPause) {
+        mRecPause = false;
+        mPauseAdjTimeUs = mPauseEndTimeUs - mPauseStartTimeUs;
+        ALOGV("resume : mPause Adj / End / Start : %lld / %lld / %lld us",
+            mPauseAdjTimeUs, mPauseEndTimeUs, mPauseStartTimeUs);
+        return OK;
+    }
     CHECK(!mStarted);
     if (mInitCheck != OK) {
         ALOGE("CameraSource is not initialized yet");
@@ -623,6 +685,10 @@ status_t CameraSource::start(MetaData *meta) {
     }
 
     mStartTimeUs = 0;
+    mRecPause = false;
+    mPauseAdjTimeUs = 0;
+    mPauseStartTimeUs = 0;
+    mPauseEndTimeUs = 0;
     mNumInputBuffers = 0;
     if (meta) {
         int64_t startTimeUs;
@@ -640,6 +706,14 @@ status_t CameraSource::start(MetaData *meta) {
     startCameraRecording();
 
     mStarted = true;
+    return OK;
+}
+
+status_t CameraSource::pause() {
+    mRecPause = true;
+    mPauseStartTimeUs = mLastFrameTimestampUs;
+    ALOGV("pause : mPauseStart %lld us, #Queued Frames : %d",
+        mPauseStartTimeUs, mFramesReceived.size());
     return OK;
 }
 
@@ -731,6 +805,8 @@ void CameraSource::releaseQueuedFrames() {
     List<sp<IMemory> >::iterator it;
     while (!mFramesReceived.empty()) {
         it = mFramesReceived.begin();
+        // b/28466701
+        adjustOutgoingANWBuffer(it->get());
         releaseRecordingFrame(*it);
         mFramesReceived.erase(it);
         ++mNumFramesDropped;
@@ -751,6 +827,9 @@ void CameraSource::signalBufferReturned(MediaBuffer *buffer) {
     for (List<sp<IMemory> >::iterator it = mFramesBeingEncoded.begin();
          it != mFramesBeingEncoded.end(); ++it) {
         if ((*it)->pointer() ==  buffer->data()) {
+            // b/28466701
+            adjustOutgoingANWBuffer(it->get());
+
             releaseOneRecordingFrame((*it));
             mFramesBeingEncoded.erase(it);
             ++mNumFramesEncoded;
@@ -813,6 +892,10 @@ status_t CameraSource::read(
 void CameraSource::dataCallbackTimestamp(int64_t timestampUs,
         int32_t msgType, const sp<IMemory> &data) {
     ALOGV("dataCallbackTimestamp: timestamp %lld us", timestampUs);
+    if (!mStarted) {
+       ALOGD("Stop recording issued. Return here.");
+       return;
+    }
     Mutex::Autolock autoLock(mLock);
     if (!mStarted || (mNumFramesReceived == 0 && timestampUs < mStartTimeUs)) {
         ALOGV("Drop frame at %lld/%lld us", timestampUs, mStartTimeUs);
@@ -820,6 +903,18 @@ void CameraSource::dataCallbackTimestamp(int64_t timestampUs,
         return;
     }
 
+    if (mRecPause == true) {
+        if(!mFramesReceived.empty()) {
+            ALOGV("releaseQueuedFrames - #Queued Frames : %d", mFramesReceived.size());
+            releaseQueuedFrames();
+        }
+        ALOGV("release One Video Frame for Pause : %lld us", timestampUs);
+        releaseOneRecordingFrame(data);
+        mPauseEndTimeUs = timestampUs;
+        return;
+    }
+    timestampUs -= mPauseAdjTimeUs;
+    ALOGV("dataCallbackTimestamp: AdjTimestamp %lld us", timestampUs);
     if (mNumFramesReceived > 0) {
         CHECK(timestampUs > mLastFrameTimestampUs);
         if (timestampUs - mLastFrameTimestampUs > mGlitchDurationThresholdUs) {
@@ -851,6 +946,10 @@ void CameraSource::dataCallbackTimestamp(int64_t timestampUs,
     ++mNumFramesReceived;
 
     CHECK(data != NULL && data->size() > 0);
+
+    // b/28466701
+    adjustIncomingANWBuffer(data.get());
+
     mFramesReceived.push_back(data);
     int64_t timeUs = mStartTimeUs + (timestampUs - mFirstFrameTimeUs);
     mFrameTimes.push_back(timeUs);
@@ -862,6 +961,26 @@ void CameraSource::dataCallbackTimestamp(int64_t timestampUs,
 bool CameraSource::isMetaDataStoredInVideoBuffers() const {
     ALOGV("isMetaDataStoredInVideoBuffers");
     return mIsMetaDataStoredInVideoBuffers;
+}
+
+void CameraSource::adjustIncomingANWBuffer(IMemory* data) {
+    uint8_t *payload =
+            reinterpret_cast<uint8_t*>(data->pointer());
+    if (*(uint32_t*)payload == kMetadataBufferTypeGrallocSource) {
+        buffer_handle_t* pBuffer = (buffer_handle_t*)(payload + 4);
+        *pBuffer = (buffer_handle_t)((uint8_t*)(*pBuffer) +
+                ICameraRecordingProxy::getCommonBaseAddress());
+    }
+}
+
+void CameraSource::adjustOutgoingANWBuffer(IMemory* data) {
+    uint8_t *payload =
+            reinterpret_cast<uint8_t*>(data->pointer());
+    if (*(uint32_t*)payload == kMetadataBufferTypeGrallocSource) {
+        buffer_handle_t* pBuffer = (buffer_handle_t*)(payload + 4);
+        *pBuffer = (buffer_handle_t)((uint8_t*)(*pBuffer) -
+                ICameraRecordingProxy::getCommonBaseAddress());
+    }
 }
 
 CameraSource::ProxyListener::ProxyListener(const sp<CameraSource>& source) {

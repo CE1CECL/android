@@ -772,7 +772,7 @@ bool mzReadZipEntry(const ZipArchive* pArchive, const ZipEntry* pEntry,
 static bool writeProcessFunction(const unsigned char *data, int dataLen,
                                  void *cookie)
 {
-    int fd = (int)cookie;
+    int fd = (int)(intptr_t)cookie;
 
     ssize_t soFar = 0;
     while (true) {
@@ -802,7 +802,7 @@ bool mzExtractZipEntryToFile(const ZipArchive *pArchive,
     const ZipEntry *pEntry, int fd)
 {
     bool ret = mzProcessZipEntryContents(pArchive, pEntry, writeProcessFunction,
-                                         (void*)fd);
+                                         (void*)(intptr_t)fd);
     if (!ret) {
         LOGE("Can't extract entry to file.\n");
         return false;
@@ -985,7 +985,6 @@ bool mzExtractRecursive(const ZipArchive *pArchive,
     unsigned int i;
     bool seenMatch = false;
     int ok = true;
-    int extractCount = 0;
     for (i = 0; i < pArchive->numEntries; i++) {
         ZipEntry *pEntry = pArchive->pEntries + i;
         if (pEntry->fileNameLen < zipDirLen) {
@@ -1151,15 +1150,12 @@ bool mzExtractRecursive(const ZipArchive *pArchive,
                     break;
                 }
 
-                LOGV("Extracted file \"%s\"\n", targetFile);
-                ++extractCount;
+                LOGD("Extracted file \"%s\"\n", targetFile);
             }
         }
 
         if (callback != NULL) callback(targetFile, cookie);
     }
-
-    LOGD("Extracted %d file(s)\n", extractCount);
 
     free(helper.buf);
     free(zpath);

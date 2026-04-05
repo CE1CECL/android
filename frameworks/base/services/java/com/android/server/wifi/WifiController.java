@@ -30,6 +30,8 @@ import android.net.wifi.WifiManager;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL;
 import static android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF;
 import static android.net.wifi.WifiManager.WIFI_MODE_SCAN_ONLY;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLED;
+import static android.net.wifi.WifiManager.WIFI_STATE_ENABLING;
 import android.net.wifi.WifiStateMachine;
 import android.os.Handler;
 import android.os.Looper;
@@ -122,6 +124,7 @@ class WifiController extends StateMachine {
     private StaDisabledWithScanState mStaDisabledWithScanState = new StaDisabledWithScanState();
     private ApEnabledState mApEnabledState = new ApEnabledState();
     private DeviceActiveState mDeviceActiveState = new DeviceActiveState();
+    private DeviceActiveHighPerfState mDeviceActiveHighPerfState = new DeviceActiveHighPerfState();
     private DeviceInactiveState mDeviceInactiveState = new DeviceInactiveState();
     private ScanOnlyLockHeldState mScanOnlyLockHeldState = new ScanOnlyLockHeldState();
     private FullLockHeldState mFullLockHeldState = new FullLockHeldState();
@@ -144,6 +147,7 @@ class WifiController extends StateMachine {
             addState(mApStaDisabledState, mDefaultState);
             addState(mStaEnabledState, mDefaultState);
                 addState(mDeviceActiveState, mStaEnabledState);
+                    addState(mDeviceActiveHighPerfState, mDeviceActiveState);
                 addState(mDeviceInactiveState, mStaEnabledState);
                     addState(mScanOnlyLockHeldState, mDeviceInactiveState);
                     addState(mFullLockHeldState, mDeviceInactiveState);
@@ -415,7 +419,7 @@ class WifiController extends StateMachine {
                             break;
                         }
                         if (mDeviceIdle == false) {
-                            transitionTo(mDeviceActiveState);
+                            checkLocksAndTransitionWhenDeviceActive();
                         } else {
                             checkLocksAndTransitionWhenDeviceIdle();
                         }
@@ -475,12 +479,20 @@ class WifiController extends StateMachine {
         public boolean processMessage(Message msg) {
             switch (msg.what) {
                 case CMD_WIFI_TOGGLED:
+                    int mWifiState = mWifiStateMachine.syncGetWifiState();
                     if (! mSettingsStore.isWifiToggleEnabled()) {
                         if (mSettingsStore.isScanAlwaysAvailable()) {
                             transitionTo(mStaDisabledWithScanState);
                         } else {
                             transitionTo(mApStaDisabledState);
                         }
+                    }
+                    if ((mWifiState != WIFI_STATE_ENABLING) &&
+                        (mWifiState != WIFI_STATE_ENABLED)) {
+                        if (DBG) {
+                            Slog.d(TAG, "Mismatch in the state " + mWifiState);
+                        }
+                        mWifiStateMachine.setSupplicantRunning(true);
                     }
                     break;
                 case CMD_AIRPLANE_TOGGLED:
@@ -534,7 +546,7 @@ class WifiController extends StateMachine {
                             break;
                         }
                         if (mDeviceIdle == false) {
-                            transitionTo(mDeviceActiveState);
+                            checkLocksAndTransitionWhenDeviceActive();
                         } else {
                             checkLocksAndTransitionWhenDeviceIdle();
                         }
@@ -624,7 +636,7 @@ class WifiController extends StateMachine {
             if (msg.what == CMD_EMERGENCY_MODE_CHANGED && msg.arg1 == 0) {
                 if (mSettingsStore.isWifiToggleEnabled()) {
                     if (mDeviceIdle == false) {
-                        transitionTo(mDeviceActiveState);
+                        checkLocksAndTransitionWhenDeviceActive();
                     } else {
                         checkLocksAndTransitionWhenDeviceIdle();
                     }
@@ -654,6 +666,9 @@ class WifiController extends StateMachine {
             if (msg.what == CMD_DEVICE_IDLE) {
                 checkLocksAndTransitionWhenDeviceIdle();
                 // We let default state handle the rest of work
+            } else if (msg.what == CMD_LOCKS_CHANGED) {
+                checkLocksAndTransitionWhenDeviceActive();
+                return HANDLED;
             } else if (msg.what == CMD_USER_PRESENT) {
                 // TLS networks can't connect until user unlocks keystore. KeyStore
                 // unlocks when the user punches PIN after the reboot. So use this
@@ -668,6 +683,16 @@ class WifiController extends StateMachine {
         }
     }
 
+    /* Parent: DeviceActiveState. Device is active, and an app is holding a high perf lock. */
+    class DeviceActiveHighPerfState extends State {
+        @Override
+        public void enter() {
+            mWifiStateMachine.setOperationalMode(WifiStateMachine.CONNECT_MODE);
+            mWifiStateMachine.setDriverStart(true);
+            mWifiStateMachine.setHighPerfModeEnabled(true);
+        }
+    }
+
     /* Parent: StaEnabledState */
     class DeviceInactiveState extends State {
         @Override
@@ -678,7 +703,7 @@ class WifiController extends StateMachine {
                     updateBatteryWorkSource();
                     return HANDLED;
                 case CMD_SCREEN_ON:
-                    transitionTo(mDeviceActiveState);
+                    checkLocksAndTransitionWhenDeviceActive();
                     // More work in default state
                     return NOT_HANDLED;
                 default:
@@ -721,6 +746,17 @@ class WifiController extends StateMachine {
         @Override
         public void enter() {
             mWifiStateMachine.setDriverStart(false);
+        }
+    }
+
+    private void checkLocksAndTransitionWhenDeviceActive() {
+        if (mLocks.hasLocks() && mLocks.getStrongestLockMode() == WIFI_MODE_FULL_HIGH_PERF) {
+            // It is possible for the screen to be off while the device is
+            // is active (mIdleMillis), so we need the high-perf mode
+            // otherwise powersaving mode will be turned on.
+            transitionTo(mDeviceActiveHighPerfState);
+        } else {
+            transitionTo(mDeviceActiveState);
         }
     }
 

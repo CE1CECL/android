@@ -72,6 +72,7 @@ typedef UINT8   tBTM_BLE_AFP;
 /* scanning filter policy */
 #define SP_ADV_ALL     0x00     /* accept adv pakt from all, directed adv pkt not directed to me is ignored */
 #define SP_ADV_WL      0x01     /* accept adv pakt from device in white list, directed adv pkt not directed to me is ignored */
+#define SP_ADV_WL_AD  0x80     /* accept adv pakt from device in Advertisting Data-White List */
 typedef UINT8   tBTM_BLE_SFP;
 
 #ifndef BTM_BLE_DEFAULT_SFP
@@ -93,7 +94,6 @@ typedef UINT8   tBTM_BLE_SFP;
 #define BTM_BLE_CONN_SUP_TOUT_MIN       0x000A
 #define BTM_BLE_CONN_SUP_TOUT_MAX       0x0C80
 #define BTM_BLE_CONN_PARAM_UNDEF        0xffff      /* use this value when a specific value not to be overwritten */
-#define BTM_BLE_CONN_SUP_TOUT_DEF       700
 
 /* default connection parameters if not configured, use GAP recommend value for auto/selective connection */
 /* default scan interval */
@@ -150,12 +150,20 @@ typedef UINT8   tBTM_BLE_SFP;
 typedef UINT8 BLE_SIGNATURE[BTM_BLE_AUTH_SIGN_LEN];         /* Device address */
 
 #ifndef BTM_BLE_HOST_SUPPORT
-#define BTM_BLE_HOST_SUPPORT		0x01
+#define BTM_BLE_HOST_SUPPORT          0x01
 #endif
 
 #ifndef BTM_BLE_SIMULTANEOUS_HOST
-#define BTM_BLE_SIMULTANEOUS_HOST	0x01
+#define BTM_BLE_SIMULTANEOUS_HOST    0x01
 #endif
+
+#define WRITE_RSSI_MONITOR_THRESHOLD      0xF2
+#define READ_RSSI_MONITOR_THRESHOLD       0xF3
+#define ENABLE_RSSI_MONITOR               0xF4
+#define AD_WHITE_LIST_SUBCMD_READ_SIZE    0xF7
+#define AD_WHITE_LIST_SUBCMD_CLEAR        0xF8
+#define AD_WHITE_LIST_SUBCMD_ADD          0xF9
+#define AD_WHITE_LIST_SUBCMD_REMOVE       0xFA
 
 /* Structure returned with Rand/Encrypt complete callback */
 typedef struct
@@ -206,10 +214,10 @@ typedef struct
 #define BTM_BLE_AD_BIT_SIGN_DATA       (0x0001 << 9)
 #define BTM_BLE_AD_BIT_SERVICE_128SOL  (0x0001 << 10)
 #define BTM_BLE_AD_BIT_APPEARANCE      (0x0001 << 11)
-#define BTM_BLE_AD_BIT_PUBLIC_ADDR      (0x0001 << 12)
-#define BTM_BLE_AD_BIT_RANDOM_ADDR      (0x0001 << 13)
+#define BTM_BLE_AD_BIT_PUBLIC_ADDR     (0x0001 << 12)
+#define BTM_BLE_AD_BIT_RANDOM_ADDR     (0x0001 << 13)
 
-#define BTM_BLE_AD_BIT_PROPRIETARY     (0x0001 << 15)
+#define BTM_BLE_AD_BIT_VS_DATA         (0x0001 << 15)
 
 typedef  UINT16  tBTM_BLE_AD_MASK;
 
@@ -254,6 +262,13 @@ typedef struct
 
 typedef struct
 {
+    UINT8       adv_type;
+    UINT8       len;
+    UINT8       *p_val;     /* number of len byte */
+}tBTM_BLE_SERVICE_DATA;
+
+typedef struct
+{
     UINT8       len;
     UINT8      *p_val;
 }tBTM_BLE_MANU;
@@ -269,17 +284,38 @@ typedef struct
 {
     UINT8                   num_elem;
     tBTM_BLE_PROP_ELEM      *p_elem;
-}tBTM_BLE_PROPRIETARY;
+}tBTM_BLE_VS_DATA;
 
 typedef struct
 {
-    tBTM_BLE_MANU           manu;			/* manufactuer data */
+    tBTM_BLE_MANU           manu;           /* manufactuer data */
     tBTM_BLE_INT_RANGE      int_range;      /* slave prefered conn interval range */
     tBTM_BLE_SERVICE        services;       /* services */
+    tBTM_BLE_SERVICE_DATA   service_data;
     UINT8                   flag;
     UINT16                  appearance;
-    tBTM_BLE_PROPRIETARY    *p_proprietary;
+    tBTM_BLE_VS_DATA        *vs_data;
 }tBTM_BLE_ADV_DATA;
+
+/* LE scan filters*/
+#define NONE_FILTER       0x00
+#define DEV_ADDR_FILTER   0x01       /* Device address filter */
+#define ADV_DATA_FILTER   0x02       /* Advertising data based filter */
+typedef UINT8 tLeScanFilterType;
+typedef struct{
+    tLeScanFilterType type;
+    union{
+        struct{
+            UINT8 addr_type;
+            BD_ADDR address;
+        }addr;
+        struct{
+            UINT8 len;
+            tBTM_BLE_AD_TYPE adtype;
+            UINT8 content[16]; /* For now, only supports service uuid filter whose length is at most 16 bytes */
+        }ad_data;
+    }filter;
+}tBTA_DM_BLE_SCAN_FILTER;
 
 /* These are the fields returned in each device adv packet.  It
 ** is returned in the results callback if registered.
@@ -302,6 +338,15 @@ enum
     BTM_BLE_CONN_SELECTIVE
 };
 typedef UINT8   tBTM_BLE_CONN_TYPE;
+#if BLE_INCLUDED
+enum
+{
+    BTM_BLE_ADV_MASK,      /*Mask for advertisements*/
+    BTM_BLE_SCAN_RESP_MASK /* Mask for the scan response data*/
+};
+typedef UINT8 tBTM_BLE_ADV_MASK;
+#endif
+
 
 typedef BOOLEAN (tBTM_BLE_SEL_CBACK)(BD_ADDR random_bda,     UINT8 *p_remote_name);
 
@@ -312,6 +357,8 @@ typedef void (tBTM_BLE_VERIFY_CBACK)(void *p_ref_data, BOOLEAN match);
 typedef void (tBTM_BLE_RANDOM_SET_CBACK) (BD_ADDR random_bda);
 
 typedef void (tBTM_BLE_SCAN_REQ_CBACK)(BD_ADDR remote_bda, tBLE_ADDR_TYPE addr_type, UINT8 adv_evt);
+
+typedef void (tBTM_BLE_ADV_ENABLE_CBACK)(UINT8 event, UINT8 advenable, UINT8 islimited);
 
 /*****************************************************************************
 **  EXTERNAL FUNCTION DECLARATIONS
@@ -370,6 +417,35 @@ BTM_API extern BOOLEAN BTM_SecAddBleKey (BD_ADDR bd_addr, tBTM_LE_KEY_VALUE *p_l
 BTM_API extern tBTM_STATUS BTM_BleSetAdvParams(UINT16 adv_int_min, UINT16 adv_int_max,
                                 tBLE_BD_ADDR *p_dir_bda, tBTM_BLE_ADV_CHNL_MAP chnl_map);
 
+
+/*******************************************************************************
+**
+** Function         BTM_SetAdvDataMask
+**
+** Description      This function is called to set advertising mask.
+**
+** Parameters:       dmask.
+**
+** Returns          void
+**
+*******************************************************************************/
+BTM_API extern void BTM_SetAdvDataMask(UINT16 dmask);
+
+
+/*******************************************************************************
+**
+** Function         BTM_SetScanRespMask
+**
+** Description      This function is called to set scan resp mask.
+**
+** Parameters:       dmask.
+**
+** Returns          void
+**
+*******************************************************************************/
+BTM_API extern void BTM_SetScanRespMask(UINT16 dmask);
+
+#if BLE_INCLUDED == TRUE
 /*******************************************************************************
 **
 ** Function         BTM_BleWriteAdvData
@@ -383,6 +459,57 @@ BTM_API extern tBTM_STATUS BTM_BleSetAdvParams(UINT16 adv_int_min, UINT16 adv_in
 *******************************************************************************/
 BTM_API extern tBTM_STATUS BTM_BleWriteAdvData(tBTM_BLE_AD_MASK  data_mask,
                                                tBTM_BLE_ADV_DATA *p_data);
+#endif
+
+/*******************************************************************************
+**
+** Function         BTM_SetManuData
+**
+** Description      This function is called to set Manufacturer specific data
+**
+** Parameters       data, length
+**
+** Returns          null
+**
+*******************************************************************************/
+
+BTM_API extern void BTM_SetManuData(UINT8 *p_buff, INT8 length);
+
+
+/*******************************************************************************
+**
+** Function         BTM_SetServiceData
+**
+** Description      This function is called to set service data
+**
+** Parameters       data, length
+**
+** Returns          null
+**
+*******************************************************************************/
+
+BTM_API extern void BTM_SetServiceData(UINT8 *p_buff, INT8 length);
+
+
+
+
+/*******************************************************************************
+**
+** Function         BTM_SetAdvServices
+**
+** Description      This function is called to set the advertised uuids
+**
+** Parameters       uuids buffer, length
+**
+** Returns          null
+**
+*******************************************************************************/
+
+BTM_API extern void BTM_SetAdvServices(UINT16 *p_uuids, UINT16 length);
+
+
+BTM_API extern void btm_ble_set_visibility(UINT16 conn_mode, UINT16 disc_mode, tBTM_BLE_ADV_ENABLE_CBACK *p_cb);
+
 
 /*******************************************************************************
 **
@@ -460,7 +587,16 @@ BTM_API extern void BTM_BleReset(void);
 BTM_API extern tBTM_STATUS BTM_BleObserve(BOOLEAN start, UINT8 duration,
                            tBTM_INQ_RESULTS_CB *p_results_cb, tBTM_CMPL_CB *p_cmpl_cb);
 
+BTM_API extern tBTM_STATUS BTM_BleObserve_With_Filter(BOOLEAN start, UINT8 duration, tBTA_DM_BLE_SCAN_FILTER filters[], int entries,
+                                                      tBTM_BLE_SFP scan_policy, tBTM_INQ_RESULTS_CB *p_results_cb, tBTM_CMPL_CB *p_cmpl_cb);
 
+BTM_API extern tBTM_STATUS BTM_Read_AD_White_List_Size (void *cmpl_callback);
+
+BTM_API extern BOOLEAN BTM_Clear_AD_White_List (void *cmpl_callback);
+
+BTM_API extern BOOLEAN BTM_Add_2_AD_White_List (UINT8 ad_type, UINT8 data_len, UINT8 *ad_content, void *cmpl_callback);
+
+BTM_API extern BOOLEAN BTM_Remove_From_AD_White_List (UINT8 ad_type, UINT8 data_len, UINT8 *ad_content, void *cmpl_callback);
 /*******************************************************************************
 **
 ** Function         BTM_GetDeviceIDRoot

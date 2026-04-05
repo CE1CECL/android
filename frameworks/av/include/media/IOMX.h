@@ -27,6 +27,10 @@
 #include <OMX_Core.h>
 #include <OMX_Video.h>
 
+#ifdef MTK_HARDWARE
+#include <binder/IMemory.h>
+#endif
+
 namespace android {
 
 class IMemory;
@@ -95,7 +99,7 @@ public:
 
     virtual status_t useBuffer(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-            buffer_id *buffer) = 0;
+            buffer_id *buffer, OMX_BOOL crossProcess = OMX_FALSE) = 0;
 
     virtual status_t useGraphicBuffer(
             node_id node, OMX_U32 port_index,
@@ -121,7 +125,7 @@ public:
 
     virtual status_t allocateBufferWithBackup(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-            buffer_id *buffer) = 0;
+            buffer_id *buffer, OMX_BOOL crossProcess = OMX_FALSE) = 0;
 
     virtual status_t freeBuffer(
             node_id node, OMX_U32 port_index, buffer_id buffer) = 0;
@@ -150,6 +154,26 @@ public:
             InternalOptionType type,
             const void *data,
             size_t size) = 0;
+#ifdef MTK_HARDWARE
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size,
+            buffer_id *buffer) = 0;
+
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size, OMX_U32 offset,
+            buffer_id *buffer) = 0;
+
+    virtual status_t registerBuffer(
+            node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &heap) = 0;
+
+    virtual status_t registerBuffer2(
+            node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &HeapBase) = 0;
+
+    virtual status_t useIonBuffer(
+            node_id node, OMX_U32 port_index,
+            unsigned char* virAddr, OMX_S32 fd, size_t size, buffer_id *buffer) = 0;
+#endif
+
 };
 
 struct omx_message {
@@ -203,6 +227,12 @@ public:
     virtual status_t onTransact(
             uint32_t code, const Parcel &data, Parcel *reply,
             uint32_t flags = 0);
+
+protected:
+    // check if the codec is secure.
+    virtual bool isSecure(IOMX::node_id node) {
+        return false;
+    }
 };
 
 class BnOMXObserver : public BnInterface<IOMXObserver> {

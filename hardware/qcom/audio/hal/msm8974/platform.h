@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,6 +54,15 @@ enum {
     SND_DEVICE_OUT_VOICE_TTY_FULL_HEADPHONES,
     SND_DEVICE_OUT_VOICE_TTY_VCO_HEADPHONES,
     SND_DEVICE_OUT_VOICE_TTY_HCO_HANDSET,
+    SND_DEVICE_OUT_AFE_PROXY,
+    SND_DEVICE_OUT_USB_HEADSET,
+    SND_DEVICE_OUT_SPEAKER_AND_USB_HEADSET,
+    SND_DEVICE_OUT_ANC_HEADSET,
+    SND_DEVICE_OUT_ANC_FB_HEADSET,
+    SND_DEVICE_OUT_VOICE_ANC_HEADSET,
+    SND_DEVICE_OUT_VOICE_ANC_FB_HEADSET,
+    SND_DEVICE_OUT_SPEAKER_AND_ANC_HEADSET,
+    SND_DEVICE_OUT_ANC_HANDSET,
     SND_DEVICE_OUT_END,
 
     /*
@@ -83,6 +95,8 @@ enum {
     SND_DEVICE_IN_VOICE_REC_DMIC_BS,
     SND_DEVICE_IN_VOICE_REC_DMIC_EF_FLUENCE,
     SND_DEVICE_IN_VOICE_REC_DMIC_BS_FLUENCE,
+    SND_DEVICE_IN_USB_HEADSET_MIC,
+    SND_DEVICE_IN_AANC_HANDSET_MIC,
     SND_DEVICE_IN_END,
 
     SND_DEVICE_MAX = SND_DEVICE_IN_END,
@@ -100,6 +114,7 @@ enum {
 #define VOLUME_SET 0
 #define MUTE_SET 1
 #define VOLUME_CTL_PARAM_NUM 3
+#define MIXER_PATH_MAX_LENGTH 100
 
 /*
  * tinyAlsa library interprets period size as number of frames
@@ -110,7 +125,7 @@ enum {
  * the buffer size of an input/output stream
  */
 #define DEEP_BUFFER_OUTPUT_PERIOD_SIZE 960
-#define DEEP_BUFFER_OUTPUT_PERIOD_COUNT 8
+#define DEEP_BUFFER_OUTPUT_PERIOD_COUNT 4
 #define LOW_LATENCY_OUTPUT_PERIOD_SIZE 240
 #define LOW_LATENCY_OUTPUT_PERIOD_COUNT 2
 

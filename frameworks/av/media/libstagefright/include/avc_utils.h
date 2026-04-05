@@ -41,7 +41,6 @@ void FindAVCDimensions(
         const sp<ABuffer> &seqParamSet,
         int32_t *width, int32_t *height,
         int32_t *sarWidth = NULL, int32_t *sarHeight = NULL);
-
 unsigned parseUE(ABitReader *br);
 
 status_t getNextNALUnit(

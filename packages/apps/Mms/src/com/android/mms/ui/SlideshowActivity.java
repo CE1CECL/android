@@ -18,6 +18,7 @@
 package com.android.mms.ui;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
@@ -29,6 +30,7 @@ import org.w3c.dom.smil.SMILDocument;
 import org.w3c.dom.smil.SMILElement;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.net.Uri;
@@ -36,6 +38,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -53,7 +57,9 @@ import com.android.mms.model.LayoutModel;
 import com.android.mms.model.RegionModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.SmilHelper;
+import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
+import com.google.android.mms.pdu.PduPersister;
 
 /**
  * Plays the given slideshow in full-screen mode with a common controller.
@@ -62,9 +68,12 @@ public class SlideshowActivity extends Activity implements EventListener {
     private static final String TAG = "SlideshowActivity";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = false;
+    private static final int MENU_NORMALSHOW = 1;
 
     private MediaController mMediaController;
     private SmilPlayer mSmilPlayer;
+
+    private SmilPlayerController mSmilPlayerController;
 
     private Handler mHandler;
 
@@ -185,8 +194,8 @@ public class SlideshowActivity extends Activity implements EventListener {
 
             public void run() {
                 mSmilPlayer = SmilPlayer.getPlayer();
-                if (mSlideCount > 1) {
-                    // Only show the slideshow controller if we have more than a single slide.
+                if (mSlideCount >= 1) {
+                    // Only show the slideshow controller if we have slides.
                     // Otherwise, when we play a sound on a single slide, it appears like
                     // the slide controller should control the sound (seeking, ff'ing, etc).
                     initMediaController();
@@ -231,26 +240,33 @@ public class SlideshowActivity extends Activity implements EventListener {
                 mSmilPlayer.init(mSmilDoc);
                 if (isRotating()) {
                     mSmilPlayer.reload();
-                } else {
-                    mSmilPlayer.play();
                 }
+                // Play or replay in the after of reloaded
+                mSmilPlayer.play();
             }
         });
     }
 
     private void initMediaController() {
         mMediaController = new MediaController(SlideshowActivity.this, false);
-        mMediaController.setMediaPlayer(new SmilPlayerController(mSmilPlayer));
+        mSmilPlayerController = new SmilPlayerController(mSmilPlayer);
+        mMediaController.setMediaPlayer(mSmilPlayerController);
         mMediaController.setAnchorView(findViewById(R.id.slide_view));
         mMediaController.setPrevNextListeners(
             new OnClickListener() {
               public void onClick(View v) {
                   mSmilPlayer.next();
+                  if (mMediaController != null) {
+                      mMediaController.show();
+                  }
               }
             },
             new OnClickListener() {
               public void onClick(View v) {
                   mSmilPlayer.prev();
+                  if (mMediaController != null) {
+                      mMediaController.show();
+                  }
               }
             });
     }
@@ -264,14 +280,28 @@ public class SlideshowActivity extends Activity implements EventListener {
     }
 
     @Override
+    protected void onResume() {
+
+        // we need add this eventListener.Because this listener is been remove in method onPause()
+        if (null != mSmilDoc) {
+            ((EventTarget) mSmilDoc).addEventListener(SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT,
+                    this, false);
+        }
+        super.onResume();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
         if (mSmilDoc != null) {
             ((EventTarget) mSmilDoc).removeEventListener(
                     SmilDocumentImpl.SMIL_DOCUMENT_END_EVENT, this, false);
         }
+        // mSmilPlayer will be paused by mSmilPlayerController
         if (mSmilPlayer != null) {
-            mSmilPlayer.pause();
+            // Make the SmilPlayer execute pause, and set the field named
+            // mCachedIsPlaying to false so that the UI can change to pause too.
+            mSmilPlayerController.pause();
         }
     }
 
@@ -281,7 +311,7 @@ public class SlideshowActivity extends Activity implements EventListener {
         if ((null != mSmilPlayer)) {
             if (isFinishing()) {
                 mSmilPlayer.stop();
-            } else {
+                //only delete the element while this activity finish.
                 mSmilPlayer.stopWhenReload();
             }
             if (mMediaController != null) {
@@ -316,9 +346,9 @@ public class SlideshowActivity extends Activity implements EventListener {
             case KeyEvent.KEYCODE_DPAD_DOWN:
             case KeyEvent.KEYCODE_DPAD_LEFT:
             case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_MENU:
                 break;
             case KeyEvent.KEYCODE_BACK:
-            case KeyEvent.KEYCODE_MENU:
                 if ((mSmilPlayer != null) &&
                         (mSmilPlayer.isPausedState()
                         || mSmilPlayer.isPlayingState()

@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2009 The Android Open Source Project
  *
@@ -81,7 +82,27 @@ struct MuxOMX : public IOMX {
 
     virtual status_t useBuffer(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
+            buffer_id *buffer, OMX_BOOL crossProcess);
+
+#ifdef MTK_HARDWARE
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size,
             buffer_id *buffer);
+
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size, OMX_U32 offset,
+            buffer_id *buffer);
+
+    virtual status_t registerBuffer(
+            node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &heap);
+
+    virtual status_t registerBuffer2(
+        node_id node, OMX_U32 port_index,  const sp<IMemoryHeap> &HeapBase);
+
+    virtual status_t useIonBuffer(
+            node_id node, OMX_U32 port_index,
+            unsigned char* virAddr, OMX_S32 fd, size_t size, buffer_id *buffer);
+#endif
 
     virtual status_t useGraphicBuffer(
             node_id node, OMX_U32 port_index,
@@ -103,7 +124,7 @@ struct MuxOMX : public IOMX {
 
     virtual status_t allocateBufferWithBackup(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-            buffer_id *buffer);
+            buffer_id *buffer, OMX_BOOL crossProcess);
 
     virtual status_t freeBuffer(
             node_id node, OMX_U32 port_index, buffer_id buffer);
@@ -165,7 +186,7 @@ bool MuxOMX::isLocalNode_l(node_id node) const {
 
 // static
 bool MuxOMX::IsSoftwareComponent(const char *name) {
-    return !strncasecmp(name, "OMX.google.", 11);
+    return !strncasecmp(name, "OMX.google.", 11) || !strncasecmp(name, "OMX.ffmpeg.", 11);
 }
 
 const sp<IOMX> &MuxOMX::getOMX(node_id node) const {
@@ -291,9 +312,39 @@ status_t MuxOMX::getGraphicBufferUsage(
 
 status_t MuxOMX::useBuffer(
         node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-        buffer_id *buffer) {
-    return getOMX(node)->useBuffer(node, port_index, params, buffer);
+        buffer_id *buffer, OMX_BOOL /* crossProcess */) {
+    return getOMX(node)->useBuffer(
+            node, port_index, params, buffer, OMX_FALSE /* crossProcess */);
 }
+
+#ifdef MTK_HARDWARE
+status_t MuxOMX::useBuffer(
+        node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size,
+        buffer_id *buffer) {
+    return getOMX(node)->useBuffer(node, port_index, virAddr, size, buffer);
+}
+
+status_t MuxOMX::useBuffer(
+        node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size, OMX_U32 offset,
+        buffer_id *buffer) {
+    return getOMX(node)->useBuffer(node, port_index, virAddr, size, offset, buffer);
+}
+
+status_t MuxOMX::registerBuffer(
+        node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &heap) {
+    return getOMX(node)->registerBuffer(node, port_index, heap);
+}
+
+status_t MuxOMX::registerBuffer2(
+        node_id node, OMX_U32 port_index,  const sp<IMemoryHeap> &HeapBase) {
+    return getOMX(node)->registerBuffer2(node, port_index, HeapBase);
+}
+
+status_t MuxOMX::useIonBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, OMX_S32 fd, size_t size, buffer_id *buffer) {
+    return getOMX(node)->useIonBuffer(node, port_index, virAddr, fd, size, buffer);
+}
+#endif
 
 status_t MuxOMX::useGraphicBuffer(
         node_id node, OMX_U32 port_index,
@@ -330,9 +381,9 @@ status_t MuxOMX::allocateBuffer(
 
 status_t MuxOMX::allocateBufferWithBackup(
         node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-        buffer_id *buffer) {
+        buffer_id *buffer, OMX_BOOL /* crossProcess */) {
     return getOMX(node)->allocateBufferWithBackup(
-            node, port_index, params, buffer);
+            node, port_index, params, buffer, OMX_FALSE /* crossProcess */);
 }
 
 status_t MuxOMX::freeBuffer(

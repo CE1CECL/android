@@ -21,6 +21,7 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Handler;
+import android.provider.Telephony;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.ForegroundColorSpan;
@@ -39,6 +40,7 @@ import com.android.mms.R;
 import com.android.mms.data.Contact;
 import com.android.mms.data.ContactList;
 import com.android.mms.data.Conversation;
+import com.android.mms.util.SmileyParser;
 
 /**
  * This class manages the view for given conversation.
@@ -103,9 +105,15 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
 
     private CharSequence formatMessage() {
         final int color = android.R.styleable.Theme_textColorSecondary;
+        SpannableStringBuilder buf = null;
         String from = mConversation.getRecipients().formatNames(", ");
-
-        SpannableStringBuilder buf = new SpannableStringBuilder(from);
+        if (MessageUtils.isWapPushNumber(from)) {
+            String[] mAddresses = from.split(":");
+            buf = new SpannableStringBuilder(mAddresses[mContext.getResources().getInteger(
+                    R.integer.wap_push_address_index)]);
+        } else {
+            buf = new SpannableStringBuilder(from);
+        }
 
         if (mConversation.getMessageCount() > 1) {
             int before = buf.length();
@@ -145,7 +153,15 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
             if (contact.existsInDatabase()) {
                 mAvatarView.assignContactUri(contact.getUri());
             } else {
-                mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+                // identify it is phone number or email address,handle it respectively
+                if (Telephony.Mms.isEmailAddress(contact.getNumber())) {
+                    mAvatarView.assignContactFromEmail(contact.getNumber(), true);
+                } else if (MessageUtils.isWapPushNumber(contact.getNumber())) {
+                    mAvatarView.assignContactFromPhone(
+                            MessageUtils.getWapPushNumber(contact.getNumber()), true);
+                } else {
+                    mAvatarView.assignContactFromPhone(contact.getNumber(), true);
+               }
             }
         } else {
             // TODO get a multiple recipients asset (or do something else)
@@ -208,7 +224,8 @@ public class ConversationListItem extends RelativeLayout implements Contact.Upda
         Contact.addListener(this);
 
         // Subject
-        mSubjectView.setText(conversation.getSnippet());
+        SmileyParser parser = SmileyParser.getInstance();
+        mSubjectView.setText(parser.addSmileySpans(conversation.getSnippet()));
         LayoutParams subjectLayout = (LayoutParams)mSubjectView.getLayoutParams();
         // We have to make the subject left of whatever optional items are shown on the right.
         subjectLayout.addRule(RelativeLayout.LEFT_OF, hasAttachment ? R.id.attachment :

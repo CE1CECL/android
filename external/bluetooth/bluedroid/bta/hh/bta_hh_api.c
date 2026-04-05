@@ -351,7 +351,7 @@ void BTA_HhGetDscpInfo(UINT8 dev_handle)
 **
 *******************************************************************************/
 void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
-                  UINT8 app_id, tBTA_HH_DEV_DSCP_INFO dscp_info)
+                  UINT8 app_id, tBTA_HH_DEV_DSCP_INFO dscp_info, INT16 priority)
 {
     tBTA_HH_MAINT_DEV    *p_buf;
     UINT16  len = sizeof(tBTA_HH_MAINT_DEV) + dscp_info.descriptor.dl_len;
@@ -369,6 +369,7 @@ void BTA_HhAddDev(BD_ADDR bda, tBTA_HH_ATTR_MASK attr_mask, UINT8 sub_class,
         p_buf->attr_mask            = (UINT16) attr_mask;
         p_buf->sub_class            = sub_class;
         p_buf->app_id               = app_id;
+        p_buf->priority             = priority;
         bdcpy(p_buf->bda, bda);
 
         memcpy(&p_buf->dscp_info, &dscp_info, sizeof(tBTA_HH_DEV_DSCP_INFO));
@@ -488,6 +489,35 @@ void BTA_HhParseBootRpt(tBTA_HH_BOOT_RPT *p_data, UINT8 *p_report,
     }
 
     return;
+}
+
+/*******************************************************************************
+**
+** Function         BTA_HhSdpCmplAfterBonding
+**
+** Description      Inform BTA layer that sdp is finished after bonding, so that in case incoming
+**                      connection from unknown device is present, SDP can be started again.
+**
+** Returns          void
+**
+*******************************************************************************/
+void BTA_HhSdpCmplAfterBonding(BD_ADDR bd_addr)
+{
+    tBTA_HH_SDP_CMP_AFTER_BONDING *p_buf;
+
+    p_buf = (tBTA_HH_SDP_CMP_AFTER_BONDING *)GKI_getbuf((UINT16)sizeof(tBTA_HH_SDP_CMP_AFTER_BONDING));
+
+    if (p_buf!= NULL)
+    {
+        memset((void *)p_buf, 0, sizeof(tBTA_HH_SDP_CMP_AFTER_BONDING));
+        p_buf->hdr.event            = BTA_HH_SDP_CMPL_AFTER_BONDING_EVT;
+        memcpy(p_buf->bd_addr, bd_addr, 6);
+        bta_sys_sendmsg((void *)p_buf);
+    }
+    else
+    {
+        APPL_TRACE_ERROR0("No resource to send SDP finished after bonding request.");
+    }
 }
 
 #endif /* BTA_HH_INCLUDED */

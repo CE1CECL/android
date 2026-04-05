@@ -24,16 +24,24 @@ L_CFLAGS += -DVERSION_STR_POSTFIX=\"-$(PLATFORM_VERSION)\"
 # Set Android log name
 L_CFLAGS += -DANDROID_LOG_NAME=\"hostapd\"
 
-ifeq ($(BOARD_WLAN_DEVICE), bcmdhd)
-L_CFLAGS += -DANDROID_P2P
+ifeq ($(BOARD_LEGACY_NL80211_STA_EVENTS),true)
+L_CFLAGS += -DLEGACY_STA_EVENTS
 endif
 
-ifeq ($(BOARD_WLAN_DEVICE), qcwcn)
-L_CFLAGS += -DANDROID_P2P
+ifeq ($(BOARD_NO_APSME_ATTR),true)
+L_CFLAGS += -DNO_APSME_ATTR
 endif
 
-ifeq ($(BOARD_WLAN_DEVICE), mrvl)
+# Set Android extended P2P functionality
+ifneq ($(USES_TI_MAC80211),true)
 L_CFLAGS += -DANDROID_P2P
+ifeq ($(BOARD_HOSTAPD_PRIVATE_LIB),)
+L_CFLAGS += -DANDROID_P2P_STUB
+endif
+endif
+
+ifeq ($(BOARD_WIFI_SKIP_CAPABILITIES), true)
+L_CFLAGS += -DBOARD_WIFI_SKIP_CAPABILITIES
 endif
 
 # Use Android specific directory for control interface sockets

@@ -931,6 +931,7 @@ public class AlertService extends Service {
             String tickerText, boolean defaultVibrate, String reminderRingtone,
             boolean showLights) {
         Notification notification = nw.mNotification;
+
         if (showLights) {
             notification.flags |= Notification.FLAG_SHOW_LIGHTS;
             notification.defaults |= Notification.DEFAULT_LIGHTS;

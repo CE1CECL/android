@@ -210,6 +210,16 @@ interface IWindowManager
             int maxHeight, boolean force565);
 
     /**
+     * Get the current x offset for the wallpaper
+     */
+    int getLastWallpaperX();
+
+    /**
+     * Get the current y offset for the wallpaper
+     */
+    int getLastWallpaperY();
+
+    /**
      * Called by the status bar to notify Views of changes to System UI visiblity.
      */
     oneway void statusBarVisibilityChanged(int visibility);
@@ -224,6 +234,16 @@ interface IWindowManager
      * Device has a software navigation bar (separate from the status bar).
      */
     boolean hasNavigationBar();
+
+    /**
+     * Device needs a software navigation bar (because it has no hardware keys).
+     */
+    boolean needsNavigationBar();
+
+    /**
+     * Device can generate KEY_ACTION_MENU keypress
+     */
+    boolean hasMenuKeyEnabled();
 
     /**
      * Lock the device immediately with the specified options (can be null).

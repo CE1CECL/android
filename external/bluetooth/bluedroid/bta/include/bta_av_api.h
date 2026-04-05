@@ -249,8 +249,13 @@ typedef UINT8 tBTA_AV_ERR;
 #define BTA_AV_META_MSG_EVT     17      /* metadata messages */
 #define BTA_AV_REJECT_EVT       18      /* incoming connection rejected */
 #define BTA_AV_RC_FEAT_EVT      19      /* remote control channel peer supported features update */
+#define BTA_AV_BROWSE_MSG_EVT   20      /* Browse MSG EVT */
+#define BTA_AV_MEDIA_SINK_CFG_EVT    21      /* sending command to Media Task */
+#define BTA_AV_MEDIA_DATA_EVT   22      /* sending command to Media Task */
+#define BTA_AV_SM_PRIORITY_EVT  23       /* if priority of device is 0 then move back to idle */
+
 /* Max BTA event */
-#define BTA_AV_MAX_EVT          20
+#define BTA_AV_MAX_EVT          24
 
 typedef UINT8 tBTA_AV_EVT;
 
@@ -282,6 +287,7 @@ typedef struct
     tBTA_AV_STATUS  status;
     BOOLEAN         starting;
     tBTA_AV_EDR     edr;        /* 0, if peer device does not support EDR */
+    UINT8           sep;        /*  sep type of peer device */
 } tBTA_AV_OPEN;
 
 /* data associated with BTA_AV_CLOSE_EVT */
@@ -407,6 +413,15 @@ typedef struct
     tAVRC_MSG       *p_msg;
 } tBTA_AV_META_MSG;
 
+/*data associated with BTA_AV_BROWSE_MSG_EVT */
+typedef struct
+{
+    UINT8           rc_handle;
+    UINT16          len;
+    UINT8           label;
+    tAVRC_MSG       *p_msg;
+}tBTA_AV_BROWSE_MSG;
+
 /* data associated with BTA_AV_PENDING_EVT */
 typedef struct
 {
@@ -442,9 +457,17 @@ typedef union
     tBTA_AV_SUSPEND     suspend;
     tBTA_AV_PEND        pend;
     tBTA_AV_META_MSG    meta_msg;
+    tBTA_AV_BROWSE_MSG  browse_msg;
     tBTA_AV_REJECT      reject;
     tBTA_AV_RC_FEAT     rc_feat;
 } tBTA_AV;
+
+/* union of data associated with AV Media callback */
+typedef union
+{
+    BT_HDR     *p_data;
+    UINT8      *codec_info;
+} tBTA_AV_MEDIA;
 
 
 #define BTA_AVC_PACKET_LEN                  AVRC_PACKET_LEN
@@ -464,6 +487,7 @@ typedef union
 
 /* AV callback */
 typedef void (tBTA_AV_CBACK)(tBTA_AV_EVT event, tBTA_AV *p_data);
+typedef void (tBTA_AV_DATA_CBACK)(tBTA_AV_EVT event, tBTA_AV_MEDIA *p_data);
 
 /* type for stream state machine action functions */
 typedef void (*tBTA_AV_ACT)(void *p_cb, void *p_data);
@@ -548,7 +572,7 @@ BTA_API void BTA_AvDisable(void);
 **
 *******************************************************************************/
 BTA_API void BTA_AvRegister(tBTA_AV_CHNL chnl, const char *p_service_name,
-                            UINT8 app_id);
+                            UINT8 app_id, tBTA_AV_DATA_CBACK  *p_data_cback);
 
 /*******************************************************************************
 **

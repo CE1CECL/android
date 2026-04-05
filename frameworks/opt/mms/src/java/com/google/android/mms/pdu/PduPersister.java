@@ -73,6 +73,7 @@ public class PduPersister {
     private static final boolean LOCAL_LOGV = false;
 
     private static final long DUMMY_THREAD_ID = Long.MAX_VALUE;
+    private static final int DEFAULT_SUBSCRIPTION = 0;
 
     /**
      * The uri of temporary drm objects.
@@ -1176,7 +1177,8 @@ public class PduPersister {
             for (int i = 0; i < partsNum; i++) {
                 PduPart part = body.getPart(i);
                 Uri partUri = part.getDataUri();
-                if ((partUri == null) || !partUri.getAuthority().startsWith("mms")) {
+                if ((partUri == null) || TextUtils.isEmpty(partUri.getAuthority())
+                        || !partUri.getAuthority().startsWith("mms")) {
                     toBeCreated.add(part);
                 } else {
                     toBeUpdated.put(partUri, part);
@@ -1233,6 +1235,13 @@ public class PduPersister {
 
     public Uri persist(GenericPdu pdu, Uri uri, boolean createThreadId, boolean groupMmsEnabled,
             HashMap<Uri, InputStream> preOpenedFiles)
+            throws MmsException {
+        return persist(pdu, uri, createThreadId, groupMmsEnabled, preOpenedFiles,
+                DEFAULT_SUBSCRIPTION);
+    }
+
+    public Uri persist(GenericPdu pdu, Uri uri, boolean createThreadId, boolean groupMmsEnabled,
+            HashMap<Uri, InputStream> preOpenedFiles, int subscription)
             throws MmsException {
         if (uri == null) {
             throw new MmsException("Uri may not be null.");
@@ -1343,10 +1352,11 @@ public class PduPersister {
                     // message with the thread composed of all the recipients -- all but our own
                     // number, that is. This includes the person who sent the
                     // message or the FROM field (above) in addition to the other people the message
-                    // was addressed to or the TO field. Our own number is in that TO field and
-                    // we have to ignore it in loadRecipients.
+                    // was addressed to or the TO & CC fields. Our own number is in that TO field
+                    // and we have to ignore it in loadRecipients.
                     if (groupMmsEnabled) {
                         loadRecipients(PduHeaders.TO, recipients, addressMap, true);
+                        loadRecipients(PduHeaders.CC, recipients, addressMap, true);
                     }
                     break;
                 case PduHeaders.MESSAGE_TYPE_SEND_REQ:
@@ -1399,6 +1409,9 @@ public class PduPersister {
         // Record whether this mms message is a simple plain text or not. This is a hint for the
         // UI.
         values.put(Mms.TEXT_ONLY, textOnly ? 1 : 0);
+
+        // Update subscription for MMS message
+        values.put(Mms.SUB_ID, subscription);
 
         Uri res = null;
         if (existingUri) {

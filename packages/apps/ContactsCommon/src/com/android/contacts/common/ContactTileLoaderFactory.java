@@ -23,6 +23,10 @@ import android.net.Uri;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
+import android.provider.ContactsContract.RawContacts;
+import android.text.TextUtils;
+
+import com.android.contacts.common.list.DefaultContactListAdapter;
 
 /**
  * Used to create {@link CursorLoader}s to load different groups of
@@ -37,6 +41,7 @@ public final class ContactTileLoaderFactory {
     public final static int LOOKUP_KEY = 4;
     public final static int CONTACT_PRESENCE = 5;
     public final static int CONTACT_STATUS = 6;
+    public final static int PHOTO_ID  = 7;
 
     // Only used for StrequentPhoneOnlyLoader
     public final static int PHONE_NUMBER = 5;
@@ -57,6 +62,7 @@ public final class ContactTileLoaderFactory {
         Contacts.LOOKUP_KEY, // ...................................4
         Contacts.CONTACT_PRESENCE, // .............................5
         Contacts.CONTACT_STATUS, // ...............................6
+        Contacts.PHOTO_ID, // .....................................7
     };
 
     /**
@@ -88,10 +94,16 @@ public final class ContactTileLoaderFactory {
     }
 
     public static CursorLoader createStrequentPhoneOnlyLoader(Context context) {
-        Uri uri = Contacts.CONTENT_STREQUENT_URI.buildUpon()
-                .appendQueryParameter(ContactsContract.STREQUENT_PHONE_ONLY, "true").build();
-
-        return new CursorLoader(context, uri, COLUMNS_PHONE_ONLY, null, null, null);
+        Uri.Builder builder = Contacts.CONTENT_STREQUENT_URI.buildUpon();
+                builder.appendQueryParameter(ContactsContract.STREQUENT_PHONE_ONLY, "true");
+        // Do not show contacts in disabled SIM card
+        String disabledSimFilter = MoreContactUtils.getDisabledSimFilter();
+        if (!TextUtils.isEmpty(disabledSimFilter)) {
+            builder.appendQueryParameter(RawContacts.ACCOUNT_NAME, disabledSimFilter);
+            builder.appendQueryParameter(DefaultContactListAdapter
+                    .WITHOUT_SIM_FLAG, "true");
+        }
+        return new CursorLoader(context, builder.build(), COLUMNS_PHONE_ONLY, null, null, null);
     }
 
     public static CursorLoader createStarredLoader(Context context) {

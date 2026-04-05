@@ -1,5 +1,6 @@
 /*
-**
+** Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+** Not a Contribution.
 ** Copyright 2007, The Android Open Source Project
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,6 +75,13 @@ enum {
     GET_PRIMARY_OUTPUT_SAMPLING_RATE,
     GET_PRIMARY_OUTPUT_FRAME_COUNT,
     SET_LOW_RAM_DEVICE,
+#ifdef QCOM_DIRECTTRACK
+    CREATE_DIRECT_TRACK,
+#endif
+#ifdef MTK_HARDWARE
+	SET_AUDIO_DATA,
+	GET_AUDIO_DATA,
+#endif
 };
 
 class BpAudioFlinger : public BpInterface<IAudioFlinger>
@@ -144,6 +152,49 @@ public:
         }
         return track;
     }
+
+#ifdef QCOM_DIRECTTRACK
+    virtual sp<IDirectTrack> createDirectTrack(
+                                pid_t pid,
+                                uint32_t sampleRate,
+                                audio_channel_mask_t channelMask,
+                                audio_io_handle_t output,
+                                int *sessionId,
+                                IDirectTrackClient* client,
+                                audio_stream_type_t streamType,
+                                status_t *status)
+    {
+        Parcel data, reply;
+        sp<IDirectTrack> track;
+        data.writeInterfaceToken(IAudioFlinger::getInterfaceDescriptor());
+        data.writeInt32(pid);
+        data.writeInt32(sampleRate);
+        data.writeInt32(channelMask);
+        data.writeInt32((int32_t)output);
+        int lSessionId = 0;
+        if (sessionId != NULL) {
+            lSessionId = *sessionId;
+        }
+        data.writeInt32(lSessionId);
+        data.write(client, sizeof(IDirectTrackClient));
+        data.writeInt32((int32_t) streamType);
+        status_t lStatus = remote()->transact(CREATE_DIRECT_TRACK, data, &reply);
+        if (lStatus != NO_ERROR) {
+            ALOGE("createDirectTrack error: %s", strerror(-lStatus));
+        } else {
+            lSessionId = reply.readInt32();
+            if (sessionId != NULL) {
+                *sessionId = lSessionId;
+            }
+            lStatus = reply.readInt32();
+            track = interface_cast<IDirectTrack>(reply.readStrongBinder());
+        }
+        if (status) {
+            *status = lStatus;
+        }
+        return track;
+    }
+#endif
 
     virtual sp<IAudioRecord> openRecord(
                                 audio_io_handle_t input,
@@ -738,6 +789,31 @@ public:
         return reply.readInt32();
     }
 
+#ifdef MTK_HARDWARE
+    virtual status_t SetAudioData(int par1, size_t len,void *ptr)
+    {
+        Parcel data, reply;
+        data.writeInterfaceToken(IAudioFlinger::getInterfaceDescriptor());
+        data.writeInt32(par1);
+        data.writeInt32(len);
+        data.write(ptr,len);
+        remote()->transact(SET_AUDIO_DATA, data, &reply);
+        reply.read(ptr, len);
+        return OK;
+    }
+    virtual status_t GetAudioData(int par1, size_t len,void *ptr)
+    {
+        Parcel data, reply;
+        data.writeInterfaceToken(IAudioFlinger::getInterfaceDescriptor());
+        data.writeInt32(par1);
+        data.writeInt32(len);
+        data.write(ptr,len);
+        remote()->transact(GET_AUDIO_DATA, data, &reply);
+        reply.read(ptr, len);
+        return OK;
+    }
+#endif
+
 };
 
 IMPLEMENT_META_INTERFACE(AudioFlinger, "android.media.IAudioFlinger");
@@ -766,7 +842,7 @@ status_t BnAudioFlinger::onTransact(
             int sessionId = data.readInt32();
             int clientUid = data.readInt32();
             String8 name;
-            status_t status;
+            status_t status = NO_ERROR;
             sp<IAudioTrack> track;
             if ((haveSharedBuffer && (buffer == 0)) ||
                     ((buffer != 0) && (buffer->pointer() == NULL))) {
@@ -785,6 +861,26 @@ status_t BnAudioFlinger::onTransact(
             reply->writeStrongBinder(track->asBinder());
             return NO_ERROR;
         } break;
+#ifdef QCOM_DIRECTTRACK
+        case CREATE_DIRECT_TRACK: {
+            CHECK_INTERFACE(IAudioFlinger, data, reply);
+            pid_t pid = data.readInt32();
+            uint32_t sampleRate = data.readInt32();
+            audio_channel_mask_t channelMask = data.readInt32();
+            audio_io_handle_t output = (audio_io_handle_t) data.readInt32();
+            int sessionId = data.readInt32();
+            IDirectTrackClient* client;
+            data.read(client,sizeof(IDirectTrackClient));
+            int streamType = data.readInt32();
+            status_t status;
+            sp<IDirectTrack> track = createDirectTrack(pid,
+                    sampleRate, channelMask, output, &sessionId, client,(audio_stream_type_t) streamType, &status);
+            reply->writeInt32(sessionId);
+            reply->writeInt32(status);
+            reply->writeStrongBinder(track->asBinder());
+            return NO_ERROR;
+        } break;
+#endif
         case OPEN_RECORD: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
             audio_io_handle_t input = (audio_io_handle_t) data.readInt32();
@@ -795,7 +891,7 @@ status_t BnAudioFlinger::onTransact(
             track_flags_t flags = (track_flags_t) data.readInt32();
             pid_t tid = (pid_t) data.readInt32();
             int sessionId = data.readInt32();
-            status_t status;
+            status_t status = NO_ERROR;
             sp<IAudioRecord> record = openRecord(input,
                     sampleRate, format, channelMask, frameCount, &flags, tid, &sessionId, &status);
             LOG_ALWAYS_FATAL_IF((record != 0) != (status == NO_ERROR));
@@ -1013,8 +1109,8 @@ status_t BnAudioFlinger::onTransact(
         case GET_RENDER_POSITION: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
             audio_io_handle_t output = (audio_io_handle_t) data.readInt32();
-            size_t halFrames;
-            size_t dspFrames;
+            size_t halFrames = 0;
+            size_t dspFrames = 0;
             status_t status = getRenderPosition(&halFrames, &dspFrames, output);
             reply->writeInt32(status);
             if (status == NO_ERROR) {
@@ -1048,7 +1144,7 @@ status_t BnAudioFlinger::onTransact(
         } break;
         case QUERY_NUM_EFFECTS: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
-            uint32_t numEffects;
+            uint32_t numEffects = 0;
             status_t status = queryNumberEffects(&numEffects);
             reply->writeInt32(status);
             if (status == NO_ERROR) {
@@ -1058,7 +1154,7 @@ status_t BnAudioFlinger::onTransact(
         }
         case QUERY_EFFECT: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
-            effect_descriptor_t desc;
+            effect_descriptor_t desc = {};
             status_t status = queryEffect(data.readInt32(), &desc);
             reply->writeInt32(status);
             if (status == NO_ERROR) {
@@ -1070,7 +1166,7 @@ status_t BnAudioFlinger::onTransact(
             CHECK_INTERFACE(IAudioFlinger, data, reply);
             effect_uuid_t uuid;
             data.read(&uuid, sizeof(effect_uuid_t));
-            effect_descriptor_t desc;
+            effect_descriptor_t desc = {};
             status_t status = getEffectDescriptor(&uuid, &desc);
             reply->writeInt32(status);
             if (status == NO_ERROR) {
@@ -1080,15 +1176,17 @@ status_t BnAudioFlinger::onTransact(
         }
         case CREATE_EFFECT: {
             CHECK_INTERFACE(IAudioFlinger, data, reply);
-            effect_descriptor_t desc;
-            data.read(&desc, sizeof(effect_descriptor_t));
+            effect_descriptor_t desc = {};
+            if (data.read(&desc, sizeof(effect_descriptor_t)) != NO_ERROR) {
+                ALOGE("b/23905951");
+            }
             sp<IEffectClient> client = interface_cast<IEffectClient>(data.readStrongBinder());
             int32_t priority = data.readInt32();
             audio_io_handle_t output = (audio_io_handle_t) data.readInt32();
             int sessionId = data.readInt32();
-            status_t status;
-            int id;
-            int enabled;
+            status_t status = NO_ERROR;
+            int id = 0;
+            int enabled = 0;
 
             sp<IEffect> effect = createEffect(&desc, client, priority, output, sessionId,
                     &status, &id, &enabled);
@@ -1128,6 +1226,32 @@ status_t BnAudioFlinger::onTransact(
             reply->writeInt32(setLowRamDevice(isLowRamDevice));
             return NO_ERROR;
         } break;
+#ifdef MTK_HARDWARE
+        case SET_AUDIO_DATA:
+        {
+            CHECK_INTERFACE(IAudioFlinger, data, reply);
+            size_t command = data.readInt32();
+            size_t buf_size = data.readInt32();
+            void *params = malloc(buf_size);
+            data.read(params, buf_size);
+            status_t err = SetAudioData(command,buf_size,params);
+            reply->write(params,buf_size);
+            free(params);
+            return NO_ERROR;
+        }break;
+        case GET_AUDIO_DATA:
+        {
+            CHECK_INTERFACE(IAudioFlinger, data, reply);
+            size_t command = data.readInt32();
+            size_t buf_size = data.readInt32();
+            void *params = malloc(buf_size);
+            data.read(params, buf_size);
+            status_t err = GetAudioData(command,buf_size,params);
+            reply->write(params,buf_size);
+            free(params);
+            return NO_ERROR;
+        }break;
+#endif
         default:
             return BBinder::onTransact(code, data, reply, flags);
     }

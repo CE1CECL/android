@@ -8374,10 +8374,11 @@ diff -burN android-openssl-lhash2/patches/neon_runtime.patch android-openssl/pat
 + static uint64_t
 + mul32x32_64(uint32_t a, uint32_t b)
 + 	{
-+@@ -207,6 +218,14 @@ void CRYPTO_poly1305_init(poly1305_state *statep, const unsigned char key[32])
++@@ -207,6 +218,16 @@ void CRYPTO_poly1305_init(poly1305_state *statep, const unsigned char key[32])
 + 	struct poly1305_state_st *state = (struct poly1305_state_st*) statep;
 + 	uint32_t t0,t1,t2,t3;
 + 
+++#if 0 /* Disabled because of crbug.com/341598 */
 ++#if __arm__
 ++	if (CRYPTO_is_NEON_capable())
 ++		{
@@ -8385,14 +8386,16 @@ diff -burN android-openssl-lhash2/patches/neon_runtime.patch android-openssl/pat
 ++		return;
 ++		}
 ++#endif
+++#endif
 ++
 + 	t0 = U8TO32_LE(key+0);
 + 	t1 = U8TO32_LE(key+4);
 + 	t2 = U8TO32_LE(key+8);
-+@@ -241,6 +260,14 @@ void CRYPTO_poly1305_update(poly1305_state *statep, const unsigned char *in,
++@@ -241,6 +260,16 @@ void CRYPTO_poly1305_update(poly1305_state *statep, const unsigned char *in,
 + 	unsigned int i;
 + 	struct poly1305_state_st *state = (struct poly1305_state_st*) statep;
 + 
+++#if 0 /* Disabled because of crbug.com/341598 */
 ++#if __arm__
 ++	if (CRYPTO_is_NEON_capable())
 ++		{
@@ -8400,20 +8403,23 @@ diff -burN android-openssl-lhash2/patches/neon_runtime.patch android-openssl/pat
 ++		return;
 ++		}
 ++#endif
+++#endif
 ++
 + 	if (state->buf_used)
 + 		{
 + 		unsigned int todo = 16 - state->buf_used;
-+@@ -282,6 +309,14 @@ void CRYPTO_poly1305_finish(poly1305_state *statep, unsigned char mac[16])
++@@ -282,6 +309,16 @@ void CRYPTO_poly1305_finish(poly1305_state *statep, unsigned char mac[16])
 + 	uint32_t g0,g1,g2,g3,g4;
 + 	uint32_t b, nb;
 + 
+++#if 0 /* Disabled because of crbug.com/341598 */
 ++#if __arm__
 ++	if (CRYPTO_is_NEON_capable())
 ++		{
 ++		CRYPTO_poly1305_finish_neon(statep, mac);
 ++		return;
 ++		}
+++#endif
 ++#endif
 ++
 + 	if (state->buf_used)

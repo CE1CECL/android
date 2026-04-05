@@ -16,6 +16,7 @@
 
 package com.android.phone;
 
+import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.Phone;
@@ -200,8 +201,7 @@ public class EmergencyCallHelper extends Handler {
 
         // Once we reach either STATE_IN_SERVICE or STATE_EMERGENCY_ONLY,
         // it's finally OK to place the emergency call.
-        boolean okToCall = (state.getState() == ServiceState.STATE_IN_SERVICE)
-                || (state.getState() == ServiceState.STATE_EMERGENCY_ONLY);
+        boolean okToCall = (state.getState() != ServiceState.STATE_POWER_OFF);
 
         if (okToCall) {
             // Woo hoo!  It's OK to actually place the call.
@@ -265,6 +265,7 @@ public class EmergencyCallHelper extends Handler {
     private void onRetryTimeout() {
         PhoneConstants.State phoneState = mCM.getState();
         int serviceState = mCM.getDefaultPhone().getServiceState().getState();
+        Call.State callState = mCM.getActiveFgCallState();
         if (DBG) log("onRetryTimeout():  phone state " + phoneState
                      + ", service state " + serviceState
                      + ", mNumRetriesSoFar = " + mNumRetriesSoFar);
@@ -278,8 +279,10 @@ public class EmergencyCallHelper extends Handler {
         // - If the radio is still powered off, try powering it on again.
 
         if (phoneState == PhoneConstants.State.OFFHOOK) {
-            if (DBG) log("- onRetryTimeout: Call is active!  Cleaning up...");
-            cleanup();
+            if (callState != Call.State.DIALING) {
+                if (DBG) log("- onRetryTimeout: Call is active!  Cleaning up...");
+                cleanup();
+            }
             return;
         }
 
@@ -362,10 +365,12 @@ public class EmergencyCallHelper extends Handler {
         // airplane mode" sequence from the beginning again!)
 
         registerForDisconnect();  // Get notified when this call disconnects
+        int sub = mApp.getVoiceSubscriptionInService();
+        Phone phone = mApp.getPhone(sub);
 
         if (DBG) log("- placing call to '" + mNumber + "'...");
         int callStatus = PhoneUtils.placeCall(mApp,
-                                              mCM.getDefaultPhone(),
+                                              phone,
                                               mNumber,
                                               null,  // contactUri
                                               true); // isEmergencyCall

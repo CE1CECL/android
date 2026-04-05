@@ -41,7 +41,7 @@ import libcore.io.IoUtils;
  * Intercept all download clicks to provide special behavior. For example,
  * PackageInstaller really wants raw file paths.
  */
-public class TrampolineActivity extends Activity {
+public class TrampolineActivity extends Activity implements DialogDismissListener {
     private static final String TAG_PAUSED = "paused";
     private static final String TAG_FAILED = "failed";
 
@@ -77,14 +77,27 @@ public class TrampolineActivity extends Activity {
         Log.d(Constants.TAG, "Found " + id + " with status " + status + ", reason " + reason);
         switch (status) {
             case DownloadManager.STATUS_PENDING:
-            case DownloadManager.STATUS_RUNNING:
                 sendRunningDownloadClickedBroadcast(id);
+                finish();
+                break;
+
+            case DownloadManager.STATUS_RUNNING:
+                // Add for carrier feature - pause and resume download by manual.
+                dm.pauseDownload(id);
                 finish();
                 break;
 
             case DownloadManager.STATUS_PAUSED:
                 if (reason == DownloadManager.PAUSED_QUEUED_FOR_WIFI) {
                     PausedDialogFragment.show(getFragmentManager(), id);
+                } else if (reason == DownloadManager.PAUSED_BY_MANUAL) {
+                    // Add for carrier feature - pause and resume download by manual.
+                    dm.resumeDownload(id);
+                    Intent intent = new Intent(Constants.ACTION_RESUME);
+                    intent.setClassName("com.android.providers.downloads",
+                            "com.android.providers.downloads.DownloadReceiver");
+                    sendBroadcast(intent);
+                    finish();
                 } else {
                     sendRunningDownloadClickedBroadcast(id);
                     finish();
@@ -112,7 +125,14 @@ public class TrampolineActivity extends Activity {
         sendBroadcast(intent);
     }
 
+    @Override
+    public void onDialogDismiss() {
+        finish();
+    }
+
     public static class PausedDialogFragment extends DialogFragment {
+        private DialogDismissListener mListener;
+
         public static void show(FragmentManager fm, long id) {
             final PausedDialogFragment dialog = new PausedDialogFragment();
             final Bundle args = new Bundle();
@@ -122,8 +142,15 @@ public class TrampolineActivity extends Activity {
         }
 
         @Override
+        public void onDetach() {
+            super.onDetach();
+            mListener = null;
+        }
+
+        @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Context context = getActivity();
+            mListener = (DialogDismissListener) getActivity();
 
             final DownloadManager dm = (DownloadManager) context.getSystemService(
                     Context.DOWNLOAD_SERVICE);
@@ -152,11 +179,15 @@ public class TrampolineActivity extends Activity {
         @Override
         public void onDismiss(DialogInterface dialog) {
             super.onDismiss(dialog);
-            getActivity().finish();
+            if (mListener != null) {
+                mListener.onDialogDismiss();
+            }
         }
     }
 
     public static class FailedDialogFragment extends DialogFragment {
+        private DialogDismissListener mListener;
+
         public static void show(FragmentManager fm, long id, int reason) {
             final FailedDialogFragment dialog = new FailedDialogFragment();
             final Bundle args = new Bundle();
@@ -167,8 +198,15 @@ public class TrampolineActivity extends Activity {
         }
 
         @Override
+        public void onDetach() {
+            super.onDetach();
+            mListener = null;
+        }
+
+        @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Context context = getActivity();
+            mListener = (DialogDismissListener) getActivity();
 
             final DownloadManager dm = (DownloadManager) context.getSystemService(
                     Context.DOWNLOAD_SERVICE);
@@ -221,7 +259,9 @@ public class TrampolineActivity extends Activity {
         @Override
         public void onDismiss(DialogInterface dialog) {
             super.onDismiss(dialog);
-            getActivity().finish();
+            if (mListener != null) {
+                mListener.onDialogDismiss();
+            }
         }
     }
 }

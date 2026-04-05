@@ -24,12 +24,23 @@ import com.android.services.telephony.common.Call;
  * TODO: Move this out of opt/telephony and into opt/call or similar. This interface
  *       makes sense even without the telephony layer (think VOIP).
  */
-oneway interface ICallCommandService {
+interface ICallCommandService {
 
     /**
      * Answer a ringing call.
      */
     void answerCall(int callId);
+
+    /**
+     * Answer a ringing call.
+     */
+    void answerCallWithCallType(int callId, int callType);
+
+    void deflectCall(int callId, String number);
+
+    void modifyCallInitiate(int callId, int callType);
+
+    void modifyCallConfirm(boolean responseType, int callId);
 
     /**
      * Reject a ringing call.
@@ -74,6 +85,11 @@ oneway interface ICallCommandService {
     void mute(boolean onOff);
 
     /**
+     * Mute the phone on add call.
+     */
+    void muteInternal(boolean onOff);
+
+    /**
      * Turn on or off speaker.
      * TODO(klp): Remove in favor of setAudioMode
      */
@@ -106,4 +122,40 @@ oneway interface ICallCommandService {
      * device has soft navigation buttons.
      */
     void setSystemBarNavigationEnabled(boolean enable);
+
+    /**
+     * Add the call's number to the Blacklist and hangs up the call.
+     */
+    void blacklistAndHangup(int callId);
+
+    /**
+     * Hangup call with error message / hangup reason
+     */
+    void hangupWithReason(int callId, String userUri,
+           boolean mpty, int failCause, String errorInfo);
+
+    /**
+     * Get the current active subscription.
+     */
+    int getActiveSubscription();
+
+    /**
+     * Sets the subscriptionId as new active subscription.
+     */
+    void setActiveSubscription(int subscriptionId);
+
+    /**
+     * Sets the subscriptionId as new conversation subscription.
+     */
+    void setSubInConversation(int subscriptionId);
+
+    /**
+     * Sets the subscriptionId as new active subscription and conversation subscription.
+     */
+    void setActiveAndConversationSub(int subscriptionId);
+
+    /**
+     * Update connection mute state accordingly.
+     */
+    void updateMuteState(int subscriptionId, boolean muted);
 }

@@ -17,6 +17,7 @@
 package android.os;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 /**
@@ -290,6 +291,43 @@ public final class PowerManager {
      */
     public static final int GO_TO_SLEEP_REASON_TIMEOUT = 2;
 
+    /**
+     * The value to pass as the 'reason' argument to reboot() to
+     * reboot into recovery mode (for applying system updates, doing
+     * factory resets, etc.).
+     * <p>
+     * Requires the {@link android.Manifest.permission#RECOVERY}
+     * permission (in addition to
+     * {@link android.Manifest.permission#REBOOT}).
+     * </p>
+     */
+    public static final String REBOOT_RECOVERY = "recovery";
+    
+    /**
+     * Power save profile
+     * @hide
+     */
+    public static final String PROFILE_POWER_SAVE = "0";
+
+    /**
+     * Balanced power profile
+     * @hide
+     */
+    public static final String PROFILE_BALANCED = "1";
+
+    /**
+     * High-performance profile
+     * @hide
+     */
+    public static final String PROFILE_HIGH_PERFORMANCE = "2";
+
+    /**
+     * Broadcast sent when profile is changed
+     * @hide
+     */
+    public static final String POWER_PROFILE_CHANGED =
+            "com.cyanogenmod.power.PROFILE_CHANGED";
+
     final Context mContext;
     final IPowerManager mService;
     final Handler mHandler;
@@ -335,21 +373,34 @@ public final class PowerManager {
     }
 
     /**
-     * Returns true if the screen auto-brightness adjustment setting should
-     * be available in the UI.  This setting is experimental and disabled by default.
+     * Gets the minimum screen brightness.
+     * This is the lowest possible screen brightness; the screen will
+     * never become dimmer than that.
      * @hide
      */
-    public static boolean useScreenAutoBrightnessAdjustmentFeature() {
-        return SystemProperties.getBoolean("persist.power.useautobrightadj", false);
+    public int getMinimumAbsoluteScreenBrightness() {
+        int minSetting = getMinimumScreenBrightnessSetting();
+        int dimSetting = mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_screenBrightnessDim);
+        return Math.min(minSetting, dimSetting);
     }
 
     /**
-     * Returns true if the twilight service should be used to adjust screen brightness
-     * policy.  This setting is experimental and disabled by default.
+     * Returns true if the screen auto-brightness adjustment setting should
+     * be available in the UI.
+     * @hide
+     */
+    public static boolean useScreenAutoBrightnessAdjustmentFeature() {
+        return true;
+    }
+
+    /**
+     * Returns true if the twilight service should be used to adjust
+     * screen brightness policy.
      * @hide
      */
     public static boolean useTwilightAdjustmentFeature() {
-        return SystemProperties.getBoolean("persist.power.usetwilightadj", false);
+        return true;
     }
 
     /**
@@ -508,6 +559,19 @@ public final class PowerManager {
     }
 
     /**
+     * Forces the device to wake up from sleep only if
+     * nothing is blocking the proximity sensor
+     * @see #wakeUp
+     * @hide
+     */
+    public void wakeUpWithProximityCheck(long time) {
+        try {
+            mService.wakeUpWithProximityCheck(time);
+        } catch (RemoteException e) {
+        }
+    }
+
+    /**
      * Forces the device to start napping.
      * <p>
      * If the device is currently awake, starts dreaming, otherwise does nothing.
@@ -603,6 +667,87 @@ public final class PowerManager {
             mService.reboot(false, reason, true);
         } catch (RemoteException e) {
         }
+    }
+
+    /**
+     * Boost the CPU. Boosts the cpu for the given duration in microseconds.
+     * Requires the {@link android.Manifest.permission#CPU_BOOST} permission.
+     *
+     * @param duration in microseconds to boost the CPU
+     *
+     * @hide
+     */
+    public void cpuBoost(int duration)
+    {
+        try {
+            if (mService != null) {
+                mService.cpuBoost(duration);
+            }
+        } catch (RemoteException e) {
+        }
+    }
+
+    /**
+     * True if the system supports power profiles
+     *
+     * @hide
+     */
+    public boolean hasPowerProfiles() {
+        return !TextUtils.isEmpty(getDefaultPowerProfile()) &&
+               !TextUtils.isEmpty(mContext.getResources().getString(
+                       com.android.internal.R.string.config_perf_profile_prop));
+    }
+
+    /**
+     * Gets the default power profile for the device.
+     *
+     * Returns null if not enabled.
+     *
+     * @hide
+     */
+    public String getDefaultPowerProfile() {
+        return mContext.getResources().getString(
+                com.android.internal.R.string.config_perf_profile_default_entry);
+    }
+
+    /**
+     * Set the system power profile
+     *
+     * @throws IllegalArgumentException if invalid
+     * @hide
+     */
+    public void setPowerProfile(String profile) {
+        if (!hasPowerProfiles()) {
+            throw new IllegalArgumentException("Power profiles not enabled on this system!");
+        }
+
+        try {
+            if (mService != null) {
+                mService.setPowerProfile(profile);
+            }
+        } catch (RemoteException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    /**
+     * Gets the current power profile
+     *
+     * Returns null if power profiles are not enabled
+     * @hide
+     */
+    public String getPowerProfile() {
+        String ret = null;
+        if (hasPowerProfiles()) {
+            try {
+                if (mService != null) {
+                    ret = mService.getPowerProfile();
+                }
+            } catch (RemoteException e) {
+                // nothing
+            }
+        }
+        return ret;
     }
 
     /**
@@ -825,5 +970,52 @@ public final class PowerManager {
                     + " held=" + mHeld + ", refCount=" + mCount + "}";
             }
         }
+    }
+
+    /**
+     * @hide
+     */
+    public void setKeyboardVisibility(boolean visible)
+    {
+        try {
+            if (mService != null) {
+                mService.setKeyboardVisibility(visible);
+            }
+        } catch (RemoteException e) {
+        }
+    }
+
+    /**
+     * sets the keyboard LED state
+     *
+     * @param on boolean state
+     * @param key 1 for caps, 2 for fn
+     *
+     * {@hide}
+     */
+    public void setKeyboardLight(boolean on, int key)
+    {
+        try {
+            mService.setKeyboardLight(on, key);
+        } catch (RemoteException e) {
+        }
+    }
+
+    /**
+     * Gets the default button brightness value.
+     * @hide
+     */
+    public int getDefaultButtonBrightness() {
+        return mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_buttonBrightnessSettingDefault);
+    }
+
+    /**
+     * Gets the default keyboard brightness value.
+     * @hide
+     */
+    public int getDefaultKeyboardBrightness() {
+        return mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_keyboardBrightnessSettingDefault);
     }
 }

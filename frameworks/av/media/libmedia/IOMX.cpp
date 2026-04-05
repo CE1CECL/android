@@ -18,6 +18,8 @@
 #define LOG_TAG "IOMX"
 #include <utils/Log.h>
 
+#include <sys/mman.h>
+
 #include <binder/IMemory.h>
 #include <binder/Parcel.h>
 #include <media/IOMX.h>
@@ -54,6 +56,13 @@ enum {
     GET_GRAPHIC_BUFFER_USAGE,
     SET_INTERNAL_OPTION,
     UPDATE_GRAPHIC_BUFFER_IN_META,
+#ifdef MTK_HARDWARE
+    USE_BUFFER2,
+    USE_BUFFER3,
+    REGISTER_BUFFER,
+    REGISTER_BUFFER2,
+    USE_ION_BUFFER,
+#endif
 };
 
 class BpOMX : public BpInterface<IOMX> {
@@ -242,7 +251,7 @@ public:
 
     virtual status_t useBuffer(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-            buffer_id *buffer) {
+            buffer_id *buffer, OMX_BOOL /* crossProcess */) {
         Parcel data, reply;
         data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
         data.writeIntPtr((intptr_t)node);
@@ -352,6 +361,105 @@ public:
         return err;
     }
 
+#ifdef MTK_HARDWARE
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size,
+            buffer_id *buffer) {
+
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        data.writeIntPtr((intptr_t)node);
+        data.writeInt32(port_index);
+        data.writeInt32((OMX_U32)virAddr);
+        data.writeInt32(size);
+        remote()->transact(USE_BUFFER2, data, &reply);
+
+        status_t err = reply.readInt32();
+        if (err != OK) {
+            *buffer = 0;
+
+            return err;
+        }
+
+        *buffer = (void*)reply.readIntPtr();
+
+        return err;
+    }
+
+    virtual status_t useBuffer(
+            node_id node, OMX_U32 port_index, unsigned char* virAddr, size_t size, OMX_U32 offset,
+            buffer_id *buffer) {
+
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        data.writeIntPtr((intptr_t)node);
+        data.writeInt32(port_index);
+        data.writeInt32((OMX_U32)virAddr);
+        data.writeInt32(size);
+        data.writeInt32(offset);
+        remote()->transact(USE_BUFFER3, data, &reply);
+
+        status_t err = reply.readInt32();
+        if (err != OK) {
+            *buffer = 0;
+
+            return err;
+        }
+
+        *buffer = (void*)reply.readIntPtr();
+
+        return err;
+    }
+
+    virtual status_t registerBuffer(
+            node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &heap) {
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        data.writeIntPtr((intptr_t)node);
+        data.writeInt32(port_index);
+        data.writeStrongBinder(heap->asBinder());
+        remote()->transact(REGISTER_BUFFER, data, &reply);
+
+        return reply.readInt32();
+    }
+
+    virtual status_t registerBuffer2(
+            node_id node, OMX_U32 port_index, const sp<IMemoryHeap> &HeapBase) {
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        data.writeIntPtr((intptr_t)node);
+        data.writeInt32(port_index);
+        data.writeStrongBinder(HeapBase->asBinder());
+        remote()->transact(REGISTER_BUFFER2, data, &reply);
+
+        return reply.readInt32();
+    }
+    virtual status_t useIonBuffer(
+            node_id node, OMX_U32 port_index,
+            unsigned char* virAddr, OMX_S32 fd, size_t size, buffer_id *buffer) {
+        Parcel data, reply;
+        data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
+        data.writeIntPtr((intptr_t)node);
+        data.writeInt32(port_index);
+        data.writeInt32((OMX_U32)virAddr);
+        data.writeFileDescriptor((OMX_S32)fd);
+        data.writeInt32(size);
+        ALOGV("useIonBuffer writeFileDescriptor %x, %x, %x, %x, %x", node, port_index, virAddr, fd, size);
+        remote()->transact(USE_ION_BUFFER, data, &reply);
+
+        status_t err = reply.readInt32();
+        if (err != OK) {
+            *buffer = 0;
+
+            return err;
+        }
+
+        *buffer = (void*)reply.readIntPtr();
+
+        return err;
+    }
+#endif
+
     virtual status_t prepareForAdaptivePlayback(
             node_id node, OMX_U32 port_index, OMX_BOOL enable,
             OMX_U32 max_width, OMX_U32 max_height) {
@@ -393,7 +501,7 @@ public:
 
     virtual status_t allocateBufferWithBackup(
             node_id node, OMX_U32 port_index, const sp<IMemory> &params,
-            buffer_id *buffer) {
+            buffer_id *buffer, OMX_BOOL /* crossProcess */) {
         Parcel data, reply;
         data.writeInterfaceToken(IOMX::getInterfaceDescriptor());
         data.writeIntPtr((intptr_t)node);
@@ -598,34 +706,78 @@ status_t BnOMX::onTransact(
 
             size_t size = data.readInt32();
 
-            void *params = malloc(size);
-            data.read(params, size);
-
-            status_t err;
-            switch (code) {
-                case GET_PARAMETER:
-                    err = getParameter(node, index, params, size);
-                    break;
-                case SET_PARAMETER:
-                    err = setParameter(node, index, params, size);
-                    break;
-                case GET_CONFIG:
-                    err = getConfig(node, index, params, size);
-                    break;
-                case SET_CONFIG:
-                    err = setConfig(node, index, params, size);
-                    break;
-                case SET_INTERNAL_OPTION:
-                {
-                    InternalOptionType type =
-                        (InternalOptionType)data.readInt32();
-
-                    err = setInternalOption(node, index, type, params, size);
-                    break;
+            status_t err = NOT_ENOUGH_DATA;
+            void *params = NULL;
+            size_t pageSize = 0;
+            size_t allocSize = 0;
+            // this only applies to a subset of devices, and was obsoleted in M
+            bool mightBeThumbnailMode = (code == SET_CONFIG && size == sizeof(OMX_BOOL));
+            if (!mightBeThumbnailMode && (code != SET_INTERNAL_OPTION && size < 8)) {
+                // we expect the structure to contain at least the size and
+                // version, 8 bytes total
+                ALOGE("b/27207275 (%zu)", size);
+                android_errorWriteLog(0x534e4554, "27207275");
+            } else {
+                err = NO_MEMORY;
+                pageSize = (size_t) sysconf(_SC_PAGE_SIZE);
+                if (size > SIZE_MAX - (pageSize * 2)) {
+                    ALOGE("requested param size too big");
+                } else {
+                    allocSize = (size + pageSize * 2) & ~(pageSize - 1);
+                    params = mmap(NULL, allocSize, PROT_READ | PROT_WRITE,
+                            MAP_PRIVATE | MAP_ANONYMOUS, -1 /* fd */, 0 /* offset */);
                 }
+                if (params != MAP_FAILED) {
+                    err = data.read(params, size);
+                    if (err != OK) {
+                        android_errorWriteLog(0x534e4554, "26914474");
+                    } else {
+                        err = NOT_ENOUGH_DATA;
+                        OMX_U32 declaredSize = *(OMX_U32*)params;
+                        if (!mightBeThumbnailMode &&
+                                code != SET_INTERNAL_OPTION && declaredSize > size) {
+                            // the buffer says it's bigger than it actually is
+                            ALOGE("b/27207275 (%u/%zu)", declaredSize, size);
+                            android_errorWriteLog(0x534e4554, "27207275");
+                        } else {
+                            // mark the last page as inaccessible, to avoid exploitation
+                            // of codecs that access past the end of the allocation because
+                            // they didn't check the size
+                            if (mprotect((char*)params + allocSize - pageSize, pageSize,
+                                    PROT_NONE) != 0) {
+                                ALOGE("mprotect failed: %s", strerror(errno));
+                            } else {
+                                switch (code) {
+                                    case GET_PARAMETER:
+                                        err = getParameter(node, index, params, size);
+                                        break;
+                                    case SET_PARAMETER:
+                                        err = setParameter(node, index, params, size);
+                                        break;
+                                    case GET_CONFIG:
+                                        err = getConfig(node, index, params, size);
+                                        break;
+                                    case SET_CONFIG:
+                                        err = setConfig(node, index, params, size);
+                                        break;
+                                    case SET_INTERNAL_OPTION:
+                                    {
+                                        InternalOptionType type =
+                                            (InternalOptionType)data.readInt32();
 
-                default:
-                    TRESPASS();
+                                        err = setInternalOption(node, index, type, params, size);
+                                        break;
+                                    }
+
+                                    default:
+                                        TRESPASS();
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ALOGE("couldn't map: %s", strerror(errno));
+                }
             }
 
             reply->writeInt32(err);
@@ -634,7 +786,9 @@ status_t BnOMX::onTransact(
                 reply->write(params, size);
             }
 
-            free(params);
+            if (params) {
+                munmap(params, allocSize);
+            }
             params = NULL;
 
             return NO_ERROR;
@@ -693,7 +847,8 @@ status_t BnOMX::onTransact(
                 interface_cast<IMemory>(data.readStrongBinder());
 
             buffer_id buffer;
-            status_t err = useBuffer(node, port_index, params, &buffer);
+            status_t err = useBuffer(
+                    node, port_index, params, &buffer, OMX_TRUE /* crossProcess */);
             reply->writeInt32(err);
 
             if (err == OK) {
@@ -781,12 +936,105 @@ status_t BnOMX::onTransact(
             OMX_U32 port_index = data.readInt32();
             OMX_BOOL enable = (OMX_BOOL)data.readInt32();
 
-            status_t err = storeMetaDataInBuffers(node, port_index, enable);
+            status_t err =
+                // only control output metadata via Binder
+                port_index != 1 /* kOutputPortIndex */ ? BAD_VALUE :
+                storeMetaDataInBuffers(node, port_index, enable);
             reply->writeInt32(err);
 
             return NO_ERROR;
         }
 
+#ifdef MTK_HARDWARE
+        case USE_BUFFER2:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+
+            node_id node = (void*)data.readIntPtr();
+            OMX_U32 port_index = data.readInt32();
+            unsigned char* virAddr = (unsigned char*)data.readInt32();
+            size_t size = data.readInt32();
+            buffer_id buffer;
+            status_t err = useBuffer(node, port_index, virAddr, size, &buffer);
+            reply->writeInt32(err);
+
+            if (err == OK) {
+                reply->writeIntPtr((intptr_t)buffer);
+            }
+
+            return NO_ERROR;
+        }
+
+        case USE_BUFFER3:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+
+            node_id node = (void*)data.readIntPtr();
+            OMX_U32 port_index = data.readInt32();
+            unsigned char* virAddr = (unsigned char*)data.readInt32();
+            size_t size = data.readInt32();
+            OMX_U32 offset = data.readInt32();
+            buffer_id buffer;
+            status_t err = useBuffer(node, port_index, virAddr, size, offset, &buffer);
+            reply->writeInt32(err);
+
+            if (err == OK) {
+                reply->writeIntPtr((intptr_t)buffer);
+            }
+
+            return NO_ERROR;
+        }
+
+        case REGISTER_BUFFER:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+
+            node_id node = (void*)data.readIntPtr();
+            OMX_U32 port_index = data.readInt32();
+            sp<IMemoryHeap> heap =
+                interface_cast<IMemoryHeap>(data.readStrongBinder());
+
+            status_t err = registerBuffer(node, port_index, heap);
+            reply->writeInt32(err);
+
+            return NO_ERROR;
+        }
+
+    case REGISTER_BUFFER2:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+
+            node_id node = (void*)data.readIntPtr();
+            OMX_U32 port_index = data.readInt32();
+            sp<IMemoryHeap> HeapBase =
+                interface_cast<IMemoryHeap>(data.readStrongBinder());
+
+            status_t err = registerBuffer2(node, port_index, HeapBase);
+            reply->writeInt32(err);
+
+            return NO_ERROR;
+        }
+        case USE_ION_BUFFER:
+        {
+            CHECK_OMX_INTERFACE(IOMX, data, reply);
+            node_id node = (void*)data.readIntPtr();
+            OMX_U32 port_index = data.readInt32();
+            unsigned char* virAddr = (unsigned char*)data.readInt32();
+            OMX_S32 fd = dup(data.readFileDescriptor());
+            size_t size = data.readInt32();
+            ALOGV("useIonBuffer readFileDescriptor %x, %x, %x, %x, %x", node, port_index, virAddr, fd, size);
+            buffer_id buffer;
+            status_t err = useIonBuffer(
+                    node, port_index, virAddr, fd, size, &buffer);
+            reply->writeInt32(err);
+
+            if (err == OK) {
+                reply->writeIntPtr((intptr_t)buffer);
+            }
+
+            return NO_ERROR;
+        }
+#endif
         case PREPARE_FOR_ADAPTIVE_PLAYBACK:
         {
             CHECK_OMX_INTERFACE(IOMX, data, reply);
@@ -810,6 +1058,12 @@ status_t BnOMX::onTransact(
 
             node_id node = (void*)data.readIntPtr();
             OMX_U32 port_index = data.readInt32();
+            if (!isSecure(node) || port_index != 0 /* kPortIndexInput */) {
+                ALOGE("b/24310423");
+                reply->writeInt32(INVALID_OPERATION);
+                return NO_ERROR;
+            }
+
             size_t size = data.readInt32();
 
             buffer_id buffer;
@@ -837,7 +1091,7 @@ status_t BnOMX::onTransact(
 
             buffer_id buffer;
             status_t err = allocateBufferWithBackup(
-                    node, port_index, params, &buffer);
+                    node, port_index, params, &buffer, OMX_TRUE /* crossProcess */);
 
             reply->writeInt32(err);
 

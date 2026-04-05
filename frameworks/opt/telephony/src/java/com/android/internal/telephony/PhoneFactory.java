@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.net.LocalServerSocket;
 import android.os.Looper;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
@@ -32,23 +33,26 @@ import com.android.internal.telephony.sip.SipPhone;
 import com.android.internal.telephony.sip.SipPhoneFactory;
 import com.android.internal.telephony.uicc.UiccController;
 
+import java.lang.reflect.Constructor;
+
 /**
  * {@hide}
  */
 public class PhoneFactory {
     static final String LOG_TAG = "PhoneFactory";
-    static final int SOCKET_OPEN_RETRY_MILLIS = 2 * 1000;
-    static final int SOCKET_OPEN_MAX_RETRY = 3;
+    static protected final int SOCKET_OPEN_RETRY_MILLIS = 2 * 1000;
+    static protected final int SOCKET_OPEN_MAX_RETRY = 3;
+    protected static final String PHONE_PACKAGE_NAME = "com.android.phone";
 
     //***** Class Variables
 
-    static private Phone sProxyPhone = null;
-    static private CommandsInterface sCommandsInterface = null;
+    static protected Phone sProxyPhone = null;
+    static protected CommandsInterface sCommandsInterface = null;
 
-    static private boolean sMadeDefaults = false;
-    static private PhoneNotifier sPhoneNotifier;
-    static private Looper sLooper;
-    static private Context sContext;
+    static protected boolean sMadeDefaults = false;
+    static protected PhoneNotifier sPhoneNotifier;
+    static protected Looper sLooper;
+    static protected Context sContext;
 
     //***** Class Methods
 
@@ -103,6 +107,9 @@ public class PhoneFactory {
                 if (TelephonyManager.getLteOnCdmaModeStatic() == PhoneConstants.LTE_ON_CDMA_TRUE) {
                     preferredNetworkMode = Phone.NT_MODE_GLOBAL;
                 }
+                if (TelephonyManager.getLteOnGsmModeStatic() != 0) {
+                    preferredNetworkMode = Phone.NT_MODE_LTE_GSM_WCDMA;
+                }
                 int networkMode = Settings.Global.getInt(context.getContentResolver(),
                         Settings.Global.PREFERRED_NETWORK_MODE, preferredNetworkMode);
                 Rlog.i(LOG_TAG, "Network Mode set to " + Integer.toString(networkMode));
@@ -111,7 +118,23 @@ public class PhoneFactory {
                 Rlog.i(LOG_TAG, "Cdma Subscription set to " + cdmaSubscription);
 
                 //reads the system properties and makes commandsinterface
-                sCommandsInterface = new RIL(context, networkMode, cdmaSubscription);
+                String sRILClassname = SystemProperties.get("ro.telephony.ril_class", "RIL").trim();
+                Rlog.i(LOG_TAG, "RILClassname is " + sRILClassname);
+
+                // Use reflection to construct the RIL class (defaults to RIL)
+                try {
+                    sCommandsInterface = instantiateCustomRIL(
+                                            sRILClassname, context, networkMode, cdmaSubscription);
+                } catch (Exception e) {
+                    // 6 different types of exceptions are thrown here that it's
+                    // easier to just catch Exception as our "error handling" is the same.
+                    // Yes, we're blocking the whole thing and making the radio unusable. That's by design.
+                    // The log message should make it clear why the radio is broken
+                    while (true) {
+                        Rlog.e(LOG_TAG, "Unable to construct custom RIL class", e);
+                        try {Thread.sleep(10000);} catch (InterruptedException ie) {}
+                    }
+                }
 
                 // Instantiate UiccController so that all other classes can just call getInstance()
                 UiccController.make(context, sCommandsInterface);
@@ -155,6 +178,14 @@ public class PhoneFactory {
         }
     }
 
+    private static <T> T instantiateCustomRIL(
+                      String sRILClassname, Context context, int networkMode, int cdmaSubscription)
+                      throws Exception {
+        Class<?> clazz = Class.forName("com.android.internal.telephony." + sRILClassname);
+        Constructor<?> constructor = clazz.getConstructor(Context.class, int.class, int.class);
+        return (T) clazz.cast(constructor.newInstance(context, networkMode, cdmaSubscription));
+    }
+
     public static Phone getDefaultPhone() {
         if (sLooper != Looper.myLooper()) {
             throw new RuntimeException(
@@ -191,6 +222,10 @@ public class PhoneFactory {
             Phone phone = new GSMPhone(sContext, sCommandsInterface, sPhoneNotifier);
             return phone;
         }
+    }
+
+    public static Context getContext() {
+        return sContext;
     }
 
     /**

@@ -49,6 +49,9 @@
 #include "VolumeManager.h"
 #include "VoldUtil.h"
 #include "crypto_scrypt.h"
+#ifdef CONFIG_HW_DISK_ENCRYPTION
+#include "cryptfs_hw.h"
+#endif
 
 #define DM_CRYPT_BUF_SIZE 4096
 #define DATA_MNT_POINT "/data"
@@ -239,7 +242,7 @@ static int get_crypt_ftr_info(char **metadata_fname, off64_t *off)
 static int put_crypt_ftr_and_key(struct crypt_mnt_ftr *crypt_ftr)
 {
   int fd;
-  unsigned int nr_sec, cnt;
+  unsigned int cnt;
   /* starting_off is set to the SEEK_SET offset
    * where the crypto structure starts
    */
@@ -276,7 +279,7 @@ static int put_crypt_ftr_and_key(struct crypt_mnt_ftr *crypt_ftr)
   /* If the keys are kept on a raw block device, do not try to truncate it. */
   if (S_ISREG(statbuf.st_mode)) {
     if (ftruncate(fd, 0x4000)) {
-      SLOGE("Cannot set footer file size\n", fname);
+      SLOGE("Cannot set footer file (%s) size\n", fname);
       goto errout;
     }
   }
@@ -369,19 +372,14 @@ static void upgrade_crypt_ftr(int fd, struct crypt_mnt_ftr *crypt_ftr, off64_t o
 }
 
 
-static int get_crypt_ftr_and_key(struct crypt_mnt_ftr *crypt_ftr)
+static int get_crypt_ftr_and_key_from(struct crypt_mnt_ftr *crypt_ftr,
+        char* fname, off64_t starting_off)
 {
   int fd;
-  unsigned int nr_sec, cnt;
-  off64_t starting_off;
+  unsigned int cnt;
   int rc = -1;
-  char *fname = NULL;
   struct stat statbuf;
 
-  if (get_crypt_ftr_info(&fname, &starting_off)) {
-    SLOGE("Unable to get crypt_ftr_info\n");
-    return -1;
-  }
   if (fname[0] != '/') {
     SLOGE("Unexpected value for crypto key location\n");
     return -1;
@@ -438,6 +436,79 @@ static int get_crypt_ftr_and_key(struct crypt_mnt_ftr *crypt_ftr)
 errout:
   close(fd);
   return rc;
+}
+
+#ifdef CRYPTFS_MIGRATE
+static int maybe_move_crypt_ftr()
+{
+    static int migrate_done = 0;
+    struct crypt_mnt_ftr crypt_ftr;
+    unsigned int nr_sec;
+    off64_t offset = 0;
+    int fd = -1;
+    int ret = -1;
+
+    if (migrate_done) {
+        return -1;
+    }
+
+    struct fstab_rec* old_part = fs_mgr_get_entry_for_mount_point(fstab, "/data");
+    if (old_part == NULL) {
+        SLOGE("can't get userdata partition!");
+        goto errout;
+    }
+    char* real_blkdev = old_part->blk_device;
+
+    if ((fd = open(real_blkdev, O_RDWR)) < 0) {
+        SLOGE("can't open %s", real_blkdev);
+        goto errout;
+    }
+    if ((nr_sec = get_blkdev_size(fd)) == 0) {
+        SLOGE("zero block size!");
+        goto errout;
+    }
+    offset = ((off64_t)nr_sec * 512) - CRYPT_FOOTER_OFFSET;
+    if (get_crypt_ftr_and_key_from(&crypt_ftr, real_blkdev, offset)) {
+        SLOGE("can't get footer from %s at %lu", real_blkdev, offset);
+        goto errout;
+    }
+    if (put_crypt_ftr_and_key(&crypt_ftr)) {
+        goto errout;
+    }
+
+    /* Success! */
+    ret = 0;
+
+errout:
+    if (fd > 0) {
+        close(fd);
+    }
+    migrate_done = 1;
+    return ret;
+}
+#endif
+
+static int get_crypt_ftr_and_key(struct crypt_mnt_ftr *crypt_ftr)
+{
+    off64_t starting_off;
+    char *fname = NULL;
+
+    if (get_crypt_ftr_info(&fname, &starting_off)) {
+        SLOGE("Unable to get crypt_ftr_info\n");
+        return -1;
+    }
+
+    int rc = get_crypt_ftr_and_key_from(crypt_ftr, fname, starting_off);
+#ifdef CRYPTFS_MIGRATE
+    if (rc) {
+
+        if (maybe_move_crypt_ftr()) {
+            return rc;
+        }
+        rc = get_crypt_ftr_and_key_from(crypt_ftr, fname, starting_off);
+    }
+#endif
+    return rc;
 }
 
 static int validate_persistent_data_storage(struct crypt_mnt_ftr *crypt_ftr)
@@ -564,7 +635,6 @@ static int save_persistent_data(void)
     char *fname;
     off64_t write_offset;
     off64_t erase_offset;
-    int found = 0;
     int fd;
     int ret;
 
@@ -705,7 +775,15 @@ static int load_crypto_mapping_table(struct crypt_mnt_ftr *crypt_ftr, unsigned c
   tgt->status = 0;
   tgt->sector_start = 0;
   tgt->length = crypt_ftr->fs_size;
+
+#ifdef CONFIG_HW_DISK_ENCRYPTION
+  if(is_hw_disk_encryption((char*)crypt_ftr->crypto_type_name))
+    strlcpy(tgt->target_type, "req-crypt",DM_MAX_TYPE_NAME);
+  else
+    strlcpy(tgt->target_type, "crypt", DM_MAX_TYPE_NAME);
+#else
   strcpy(tgt->target_type, "crypt");
+#endif
 
   crypt_params = buffer + sizeof(struct dm_ioctl) + sizeof(struct dm_target_spec);
   convert_key_to_hex_ascii(master_key, crypt_ftr->keysize, master_key_ascii);
@@ -736,7 +814,6 @@ static int get_dm_crypt_version(int fd, const char *name,  int *version)
     char buffer[DM_CRYPT_BUF_SIZE];
     struct dm_ioctl *io;
     struct dm_target_versions *v;
-    int i;
 
     io = (struct dm_ioctl *) buffer;
 
@@ -751,7 +828,11 @@ static int get_dm_crypt_version(int fd, const char *name,  int *version)
      */
     v = (struct dm_target_versions *) &buffer[sizeof(struct dm_ioctl)];
     while (v->next) {
+#ifdef CONFIG_HW_DISK_ENCRYPTION
+        if(!strcmp(v->name, "crypt") || !strcmp(v->name, "req-crypt")) {
+#else
         if (! strcmp(v->name, "crypt")) {
+#endif
             /* We found the crypt driver, return the version, and get out */
             version[0] = v->version[0];
             version[1] = v->version[1];
@@ -768,13 +849,9 @@ static int create_crypto_blk_dev(struct crypt_mnt_ftr *crypt_ftr, unsigned char 
                                     char *real_blk_name, char *crypto_blk_name, const char *name)
 {
   char buffer[DM_CRYPT_BUF_SIZE];
-  char master_key_ascii[129]; /* Large enough to hold 512 bit key and null */
-  char *crypt_params;
   struct dm_ioctl *io;
-  struct dm_target_spec *tgt;
   unsigned int minor;
-  int fd;
-  int i;
+  int fd=0;
   int retval = -1;
   int version[3];
   char *extra_params;
@@ -990,8 +1067,6 @@ static int create_encrypted_random_key(char *passwd, unsigned char *master_key, 
         struct crypt_mnt_ftr *crypt_ftr) {
     int fd;
     unsigned char key_buf[KEY_LEN_BYTES];
-    EVP_CIPHER_CTX e_ctx;
-    int encrypted_len, final_len;
 
     /* Get some random bits for a key */
     fd = open("/dev/urandom", O_RDONLY);
@@ -1068,13 +1143,8 @@ static int prep_data_fs(void)
 
 int cryptfs_restart(void)
 {
-    char fs_type[32];
-    char real_blkdev[MAXPATHLEN];
     char crypto_blkdev[MAXPATHLEN];
-    char fs_options[256];
-    unsigned long mnt_flags;
-    struct stat statbuf;
-    int rc = -1, i;
+    int rc = -1;
     static int restart_successful = 0;
 
     /* Validate that it's OK to call this routine */
@@ -1202,8 +1272,6 @@ static int test_mount_encrypted_fs(char *passwd, char *mount_point, char *label)
   unsigned int orig_failed_decrypt_count;
   char encrypted_state[PROPERTY_VALUE_MAX];
   int rc;
-  kdf_func kdf;
-  void *kdf_params;
 
   property_get("ro.crypto.state", encrypted_state, "");
   if ( master_key_saved || strcmp(encrypted_state, "encrypted") ) {
@@ -1227,6 +1295,11 @@ static int test_mount_encrypted_fs(char *passwd, char *mount_point, char *label)
       return -1;
     }
   }
+
+#ifdef CONFIG_HW_DISK_ENCRYPTION
+  if(!set_hw_device_encryption_key(passwd, (char*) crypt_ftr.crypto_type_name))
+    return -1;
+#endif
 
   if (create_crypto_blk_dev(&crypt_ftr, decrypted_master_key,
                                real_blkdev, crypto_blkdev, label)) {
@@ -1442,7 +1515,7 @@ static int cryptfs_enable_wipe(char *crypto_blkdev, off64_t size, int type)
     int rc = -1;
 
     if (type == EXT4_FS) {
-        args[0] = "/system/bin/make_ext4fs";
+        args[0] = HELPER_PATH "make_ext4fs";
         args[1] = "-a";
         args[2] = "/data";
         args[3] = "-l";
@@ -1453,7 +1526,7 @@ static int cryptfs_enable_wipe(char *crypto_blkdev, off64_t size, int type)
         SLOGI("Making empty filesystem with command %s %s %s %s %s %s\n",
               args[0], args[1], args[2], args[3], args[4], args[5]);
     } else if (type== FAT_FS) {
-        args[0] = "/system/bin/newfs_msdos";
+        args[0] = HELPER_PATH "newfs_msdos";
         args[1] = "-F";
         args[2] = "32";
         args[3] = "-O";
@@ -1587,19 +1660,17 @@ static inline int should_encrypt(struct volume_info *volume)
 int cryptfs_enable(char *howarg, char *passwd)
 {
     int how = 0;
-    char crypto_blkdev[MAXPATHLEN], real_blkdev[MAXPATHLEN], sd_crypto_blkdev[MAXPATHLEN];
+    char crypto_blkdev[MAXPATHLEN], real_blkdev[MAXPATHLEN];
     unsigned long nr_sec;
     unsigned char decrypted_master_key[KEY_LEN_BYTES];
     int rc=-1, fd, i, ret;
-    struct crypt_mnt_ftr crypt_ftr, sd_crypt_ftr;;
+    struct crypt_mnt_ftr crypt_ftr;
     struct crypt_persist_data *pdata;
-    char tmpfs_options[PROPERTY_VALUE_MAX];
     char encrypted_state[PROPERTY_VALUE_MAX];
     char lockid[32] = { 0 };
     char key_loc[PROPERTY_VALUE_MAX];
     char fuse_sdcard[PROPERTY_VALUE_MAX];
     char *sd_mnt_point;
-    char sd_blk_dev[256] = { 0 };
     int num_vols;
     struct volume_info *vol_list = 0;
     off64_t cur_encryption_done=0, tot_encryption_size=0;
@@ -1709,10 +1780,35 @@ int cryptfs_enable(char *howarg, char *passwd)
         }
     }
 
+    /* Unmount the /data/data partition bind-mounted on some devices. */
+    if (wait_and_unmount("/data/data")) {
+        goto error_shutting_down;
+    }
+
     /* Now unmount the /data partition. */
     if (wait_and_unmount(DATA_MNT_POINT)) {
         goto error_shutting_down;
     }
+
+    /* Start the actual work of making an encrypted filesystem */
+    /* Initialize a crypt_mnt_ftr for the partition */
+    cryptfs_init_crypt_mnt_ftr(&crypt_ftr);
+
+    if (!strcmp(key_loc, KEY_IN_FOOTER)) {
+        crypt_ftr.fs_size = nr_sec - (CRYPT_FOOTER_OFFSET / 512);
+    } else {
+        crypt_ftr.fs_size = nr_sec;
+    }
+    crypt_ftr.flags |= CRYPT_ENCRYPTION_IN_PROGRESS;
+#ifndef CONFIG_HW_DISK_ENCRYPTION
+    strlcpy((char *)crypt_ftr.crypto_type_name, "aes-cbc-essiv:sha256", MAX_CRYPTO_TYPE_NAME_LEN);
+#else
+    strlcpy((char *)crypt_ftr.crypto_type_name, "aes-xts", MAX_CRYPTO_TYPE_NAME_LEN);
+    if(!set_hw_device_encryption_key(passwd, (char*)crypt_ftr.crypto_type_name)) {
+        SLOGE("error setting hw device encryption key");
+        goto error_shutting_down;
+    }
+#endif
 
     /* Do extra work for a better UX when doing the long inplace encryption */
     if (how == CRYPTO_ENABLE_INPLACE) {
@@ -1750,18 +1846,6 @@ int cryptfs_enable(char *howarg, char *passwd)
          */
     }
 
-    /* Start the actual work of making an encrypted filesystem */
-    /* Initialize a crypt_mnt_ftr for the partition */
-    cryptfs_init_crypt_mnt_ftr(&crypt_ftr);
-
-    if (!strcmp(key_loc, KEY_IN_FOOTER)) {
-        crypt_ftr.fs_size = nr_sec - (CRYPT_FOOTER_OFFSET / 512);
-    } else {
-        crypt_ftr.fs_size = nr_sec;
-    }
-    crypt_ftr.flags |= CRYPT_ENCRYPTION_IN_PROGRESS;
-    strcpy((char *)crypt_ftr.crypto_type_name, "aes-cbc-essiv:sha256");
-
     /* Make an encrypted master key */
     if (create_encrypted_random_key(passwd, crypt_ftr.master_key, crypt_ftr.salt, &crypt_ftr)) {
         SLOGE("Cannot create encrypted master key\n");
@@ -1769,7 +1853,10 @@ int cryptfs_enable(char *howarg, char *passwd)
     }
 
     /* Write the key to the end of the partition */
-    put_crypt_ftr_and_key(&crypt_ftr);
+    if (put_crypt_ftr_and_key(&crypt_ftr)) {
+        SLOGE("Failed to write the key to the end of the partition\n");
+        goto error_unencrypted;
+    }
 
     /* If any persistent data has been remembered, save it.
      * If none, create a valid empty table and save that.
@@ -1785,7 +1872,10 @@ int cryptfs_enable(char *howarg, char *passwd)
         save_persistent_data();
     }
 
-    decrypt_master_key(passwd, decrypted_master_key, &crypt_ftr);
+    if (decrypt_master_key(passwd, decrypted_master_key, &crypt_ftr)) {
+        SLOGE("failed to decrypt master key\n");
+        goto error_unencrypted;
+    }
     create_crypto_blk_dev(&crypt_ftr, decrypted_master_key, real_blkdev, crypto_blkdev,
                           "userdata");
 
@@ -1919,7 +2009,6 @@ error_shutting_down:
 int cryptfs_changepw(char *newpw)
 {
     struct crypt_mnt_ftr crypt_ftr;
-    unsigned char decrypted_master_key[KEY_LEN_BYTES];
 
     /* This is only allowed after we've successfully decrypted the master key */
     if (! master_key_saved) {
@@ -1938,6 +2027,9 @@ int cryptfs_changepw(char *newpw)
     /* save the key */
     put_crypt_ftr_and_key(&crypt_ftr);
 
+#ifdef CONFIG_HW_DISK_ENCRYPTION
+    update_hw_device_encryption_key(newpw, (char*)crypt_ftr.crypto_type_name);
+#endif
     return 0;
 }
 
@@ -2012,7 +2104,6 @@ static int persist_set_key(char *fieldname, char *value, int encrypted)
 int cryptfs_getfield(char *fieldname, char *value, int len)
 {
     char temp_value[PROPERTY_VALUE_MAX];
-    char real_blkdev[MAXPATHLEN];
     /* 0 is success, 1 is not encrypted,
      * -1 is value not set, -2 is any other error
      */
@@ -2042,9 +2133,6 @@ out:
 /* Set the value of the specified field. */
 int cryptfs_setfield(char *fieldname, char *value)
 {
-    struct crypt_persist_data stored_pdata;
-    struct crypt_persist_data *pdata_p;
-    struct crypt_mnt_ftr crypt_ftr;
     char encrypted_state[PROPERTY_VALUE_MAX];
     /* 0 is success, -1 is an error */
     int rc = -1;

@@ -45,18 +45,32 @@ GraphicBuffer::GraphicBuffer()
     handle = NULL;
 }
 
-GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h, 
+GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h,
         PixelFormat reqFormat, uint32_t reqUsage)
     : BASE(), mOwner(ownData), mBufferMapper(GraphicBufferMapper::get()),
       mInitCheck(NO_ERROR)
 {
-    width  = 
-    height = 
-    stride = 
-    format = 
+    width  =
+    height =
+    stride =
+    format =
     usage  = 0;
     handle = NULL;
     mInitCheck = initSize(w, h, reqFormat, reqUsage);
+}
+
+GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h,
+        PixelFormat reqFormat, uint32_t reqUsage, uint32_t bufferSize)
+    : BASE(), mOwner(ownData), mBufferMapper(GraphicBufferMapper::get()),
+      mInitCheck(NO_ERROR)
+{
+    width  =
+    height =
+    stride =
+    format =
+    usage  = 0;
+    handle = NULL;
+    mInitCheck = initSize(w, h, reqFormat, reqUsage, bufferSize);
 }
 
 GraphicBuffer::GraphicBuffer(uint32_t w, uint32_t h,
@@ -153,6 +167,21 @@ status_t GraphicBuffer::initSize(uint32_t w, uint32_t h, PixelFormat format,
     return err;
 }
 
+status_t GraphicBuffer::initSize(uint32_t w, uint32_t h, PixelFormat format,
+                                 uint32_t reqUsage, uint32_t bufferSize)
+{
+    GraphicBufferAllocator& allocator = GraphicBufferAllocator::get();
+    status_t err = allocator.alloc(w, h, format,
+                                   reqUsage, &handle, &stride, bufferSize);
+    if (err == NO_ERROR) {
+        this->width  = w;
+        this->height = h;
+        this->format = format;
+        this->usage  = reqUsage;
+    }
+    return err;
+}
+
 status_t GraphicBuffer::lock(uint32_t usage, void** vaddr)
 {
     const Rect lockBounds(width, height);
@@ -162,10 +191,10 @@ status_t GraphicBuffer::lock(uint32_t usage, void** vaddr)
 
 status_t GraphicBuffer::lock(uint32_t usage, const Rect& rect, void** vaddr)
 {
-    if (rect.left < 0 || rect.right  > this->width || 
+    if (rect.left < 0 || rect.right  > this->width ||
         rect.top  < 0 || rect.bottom > this->height) {
         ALOGE("locking pixels (%d,%d,%d,%d) outside of buffer (w=%d, h=%d)",
-                rect.left, rect.top, rect.right, rect.bottom, 
+                rect.left, rect.top, rect.right, rect.bottom,
                 this->width, this->height);
         return BAD_VALUE;
     }
@@ -231,12 +260,12 @@ status_t GraphicBuffer::flatten(void*& buffer, size_t& size, int*& fds, size_t& 
         native_handle_t const* const h = handle;
         memcpy(fds,     h->data,             h->numFds*sizeof(int));
         memcpy(&buf[8], h->data + h->numFds, h->numInts*sizeof(int));
+        fds += handle->numFds;
+        count -= handle->numFds;
     }
 
     buffer = reinterpret_cast<void*>(static_cast<int*>(buffer) + sizeNeeded);
     size -= sizeNeeded;
-    fds += handle->numFds;
-    count -= handle->numFds;
 
     return NO_ERROR;
 }
@@ -251,10 +280,23 @@ status_t GraphicBuffer::unflatten(
     const size_t numFds  = buf[6];
     const size_t numInts = buf[7];
 
+    // Limit the maxNumber to be relatively small. The number of fds or ints
+    // should not come close to this number, and the number itself was simply
+    // chosen to be high enough to not cause issues and low enough to prevent
+    // overflow problems.
+    const size_t maxNumber = 4096;
+    if (numFds >= maxNumber || numInts >= (maxNumber - 8)) {
+        width = height = stride = format = usage = 0;
+        handle = NULL;
+        ALOGE("unflatten: numFds or numInts is too large: %d, %d",
+                numFds, numInts);
+        return BAD_VALUE;
+    }
+
     const size_t sizeNeeded = (8 + numInts) * sizeof(int);
     if (size < sizeNeeded) return NO_MEMORY;
 
-    size_t fdCountNeeded = 0;
+    size_t fdCountNeeded = numFds;
     if (count < fdCountNeeded) return NO_MEMORY;
 
     if (handle) {
@@ -269,6 +311,12 @@ status_t GraphicBuffer::unflatten(
         format = buf[4];
         usage  = buf[5];
         native_handle* h = native_handle_create(numFds, numInts);
+        if (!h) {
+            width = height = stride = format = usage = 0;
+            handle = NULL;
+            ALOGE("unflatten: native_handle_create failed");
+            return NO_MEMORY;
+        }
         memcpy(h->data,          fds,     numFds*sizeof(int));
         memcpy(h->data + numFds, &buf[8], numInts*sizeof(int));
         handle = h;
@@ -282,6 +330,8 @@ status_t GraphicBuffer::unflatten(
     if (handle != 0) {
         status_t err = mBufferMapper.registerBuffer(handle);
         if (err != NO_ERROR) {
+            width = height = stride = format = usage = 0;
+            handle = NULL;
             ALOGE("unflatten: registerBuffer failed: %s (%d)",
                     strerror(-err), err);
             return err;

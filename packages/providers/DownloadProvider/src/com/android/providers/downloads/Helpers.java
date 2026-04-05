@@ -28,6 +28,7 @@ import android.webkit.MimeTypeMap;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -141,7 +142,15 @@ public class Helpers {
             // Claim this filename inside lock to prevent other threads from
             // clobbering us. We're not paranoid enough to use O_EXCL.
             try {
-                new File(path).createNewFile();
+                File file = new File(path);
+                File parent = file.getParentFile();
+
+                // Make sure the parent directories exists before generates new file
+                if (parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
+
+                file.createNewFile();
             } catch (IOException e) {
                 throw new StopRequestException(Downloads.Impl.STATUS_FILE_ERROR,
                         "Failed to create target file " + path, e);
@@ -341,29 +350,86 @@ public class Helpers {
     }
 
     /**
-     * Checks whether the filename looks legitimate
+     * Checks whether the filename looks legitimate for security purposes. This
+     * prevents us from opening files that aren't actually downloads.
      */
-    static boolean isFilenameValid(String filename, File downloadsDataDir) {
-        final String[] whitelist;
+    static boolean isFilenameValid(Context context, File file) {
+        final File[] whitelist;
+
+        final List<String> secondaryStoragePaths = StorageManager.getSecondaryStoragePaths(context);
+
         try {
-            filename = new File(filename).getCanonicalPath();
-            whitelist = new String[] {
-                    downloadsDataDir.getCanonicalPath(),
-                    Environment.getDownloadCacheDirectory().getCanonicalPath(),
-                    Environment.getExternalStorageDirectory().getCanonicalPath(),
+            whitelist = new File[] {
+                    context.getFilesDir().getCanonicalFile(),
+                    context.getCacheDir().getCanonicalFile(),
+                    Environment.getDownloadCacheDirectory().getCanonicalFile(),
+                    Environment.getExternalStorageDirectory().getCanonicalFile(),
             };
         } catch (IOException e) {
             Log.w(TAG, "Failed to resolve canonical path: " + e);
             return false;
         }
 
-        for (String test : whitelist) {
-            if (filename.startsWith(test)) {
-                return true;
+        for (File testDir : whitelist) {
+            if (contains(testDir, file)) {
+                  return true;
+            }
+        }
+
+        for (String test : secondaryStoragePaths) {
+            try {
+                File testDir = new File(test).getCanonicalFile();
+                if (contains(testDir, file)) {
+                    return true;
+                }
+            } catch (IOException e) {
+                Log.w(TAG, "Failed to resolve canonical path for sec. storage path: " + e);
+                return false;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Test if a file lives under the given directory, either as a direct child
+     * or a distant grandchild.
+     * <p>
+     * Both files <em>must</em> have been resolved using
+     * {@link File#getCanonicalFile()} to avoid symlink or path traversal
+     * attacks.
+     */
+    public static boolean contains(File[] dirs, File file) {
+        for (File dir : dirs) {
+            if (contains(dir, file)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Test if a file lives under the given directory, either as a direct child
+     * or a distant grandchild.
+     * <p>
+     * Both files <em>must</em> have been resolved using
+     * {@link File#getCanonicalFile()} to avoid symlink or path traversal
+     * attacks.
+     */
+    public static boolean contains(File dir, File file) {
+        if (dir == null || file == null) return false;
+
+        String dirPath = dir.getAbsolutePath();
+        String filePath = file.getAbsolutePath();
+
+        if (dirPath.equals(filePath)) {
+            return true;
+        }
+
+        if (!dirPath.endsWith("/")) {
+            dirPath += "/";
+        }
+        return filePath.startsWith(dirPath);
     }
 
     /**

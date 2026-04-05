@@ -1,5 +1,7 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +34,17 @@
 #include <hardware/audio.h>
 #include <media/stagefright/Utils.h>
 #include <media/AudioParameter.h>
+#ifdef QCOM_HARDWARE
+#include <media/stagefright/ExtendedCodec.h>
+#endif
+#ifdef ENABLE_AV_ENHANCEMENTS
+#include <QCMediaDefs.h>
+#include <QCMetaData.h>
+#endif
+
+#if defined(ENABLE_AV_ENHANCEMENTS) || defined(ENABLE_OFFLOAD_ENHANCEMENTS)
+#include "include/ExtendedUtils.h"
+#endif
 
 namespace android {
 
@@ -66,6 +79,23 @@ uint64_t ntoh64(uint64_t x) {
 
 uint64_t hton64(uint64_t x) {
     return ((uint64_t)htonl(x & 0xffffffff) << 32) | htonl(x >> 32);
+}
+
+static status_t copyNALUToABuffer(sp<ABuffer> *buffer, const uint8_t *ptr, size_t length) {
+    if (((*buffer)->size() + 4 + length) > ((*buffer)->capacity() - (*buffer)->offset())) {
+        sp<ABuffer> tmpBuffer = new (std::nothrow) ABuffer((*buffer)->size() + 4 + length + 1024);
+        if (tmpBuffer.get() == NULL || tmpBuffer->base() == NULL) {
+            return NO_MEMORY;
+        }
+        memcpy(tmpBuffer->data(), (*buffer)->data(), (*buffer)->size());
+        tmpBuffer->setRange(0, (*buffer)->size());
+        (*buffer) = tmpBuffer;
+    }
+
+    memcpy((*buffer)->data() + (*buffer)->size(), "\x00\x00\x00\x01", 4);
+    memcpy((*buffer)->data() + (*buffer)->size() + 4, ptr, length);
+    (*buffer)->setRange((*buffer)->offset(), (*buffer)->size() + 4 + length);
+    return OK;
 }
 
 status_t convertMetaDataToMessage(
@@ -143,8 +173,10 @@ status_t convertMetaDataToMessage(
 
         const uint8_t *ptr = (const uint8_t *)data;
 
-        CHECK(size >= 7);
-        CHECK_EQ((unsigned)ptr[0], 1u);  // configurationVersion == 1
+        if (size < 7 || ptr[0] != 1) {  // configurationVersion == 1
+            ALOGE("b/23680780");
+            return BAD_VALUE;
+        }
         uint8_t profile = ptr[1];
         uint8_t level = ptr[3];
 
@@ -163,21 +195,29 @@ status_t convertMetaDataToMessage(
         ptr += 6;
         size -= 6;
 
-        sp<ABuffer> buffer = new ABuffer(1024);
+        sp<ABuffer> buffer = new (std::nothrow) ABuffer(1024);
+        if (buffer.get() == NULL || buffer->base() == NULL) {
+            return NO_MEMORY;
+        }
         buffer->setRange(0, 0);
 
         for (size_t i = 0; i < numSeqParameterSets; ++i) {
-            CHECK(size >= 2);
+            if (size < 2) {
+                ALOGE("b/23680780");
+                return BAD_VALUE;
+            }
             size_t length = U16_AT(ptr);
 
             ptr += 2;
             size -= 2;
 
-            CHECK(size >= length);
-
-            memcpy(buffer->data() + buffer->size(), "\x00\x00\x00\x01", 4);
-            memcpy(buffer->data() + buffer->size() + 4, ptr, length);
-            buffer->setRange(0, buffer->size() + 4 + length);
+            if (size < length) {
+                return BAD_VALUE;
+            }
+            status_t err = copyNALUToABuffer(&buffer, ptr, length);
+            if (err != OK) {
+                return err;
+            }
 
             ptr += length;
             size -= length;
@@ -188,26 +228,37 @@ status_t convertMetaDataToMessage(
 
         msg->setBuffer("csd-0", buffer);
 
-        buffer = new ABuffer(1024);
+        buffer = new (std::nothrow) ABuffer(1024);
+        if (buffer.get() == NULL || buffer->base() == NULL) {
+            return NO_MEMORY;
+        }
         buffer->setRange(0, 0);
 
-        CHECK(size >= 1);
+        if (size < 1) {
+            ALOGE("b/23680780");
+            return BAD_VALUE;
+        }
         size_t numPictureParameterSets = *ptr;
         ++ptr;
         --size;
 
         for (size_t i = 0; i < numPictureParameterSets; ++i) {
-            CHECK(size >= 2);
+            if (size < 2) {
+                ALOGE("b/23680780");
+                return BAD_VALUE;
+            }
             size_t length = U16_AT(ptr);
 
             ptr += 2;
             size -= 2;
 
-            CHECK(size >= length);
-
-            memcpy(buffer->data() + buffer->size(), "\x00\x00\x00\x01", 4);
-            memcpy(buffer->data() + buffer->size() + 4, ptr, length);
-            buffer->setRange(0, buffer->size() + 4 + length);
+            if (size < length) {
+                return BAD_VALUE;
+            }
+            status_t err = copyNALUToABuffer(&buffer, ptr, length);
+            if (err != OK) {
+                return err;
+            }
 
             ptr += length;
             size -= length;
@@ -225,7 +276,10 @@ status_t convertMetaDataToMessage(
         esds.getCodecSpecificInfo(
                 &codec_specific_data, &codec_specific_data_size);
 
-        sp<ABuffer> buffer = new ABuffer(codec_specific_data_size);
+        sp<ABuffer> buffer = new (std::nothrow) ABuffer(codec_specific_data_size);
+        if (buffer.get() == NULL || buffer->base() == NULL) {
+            return NO_MEMORY;
+        }
 
         memcpy(buffer->data(), codec_specific_data,
                codec_specific_data_size);
@@ -234,7 +288,10 @@ status_t convertMetaDataToMessage(
         buffer->meta()->setInt64("timeUs", 0);
         msg->setBuffer("csd-0", buffer);
     } else if (meta->findData(kKeyVorbisInfo, &type, &data, &size)) {
-        sp<ABuffer> buffer = new ABuffer(size);
+        sp<ABuffer> buffer = new (std::nothrow) ABuffer(size);
+        if (buffer.get() == NULL || buffer->base() == NULL) {
+            return NO_MEMORY;
+        }
         memcpy(buffer->data(), data, size);
 
         buffer->meta()->setInt32("csd", true);
@@ -245,7 +302,10 @@ status_t convertMetaDataToMessage(
             return -EINVAL;
         }
 
-        buffer = new ABuffer(size);
+        buffer = new (std::nothrow) ABuffer(size);
+        if (buffer.get() == NULL || buffer->base() == NULL) {
+            return NO_MEMORY;
+        }
         memcpy(buffer->data(), data, size);
 
         buffer->meta()->setInt32("csd", true);
@@ -253,6 +313,9 @@ status_t convertMetaDataToMessage(
         msg->setBuffer("csd-1", buffer);
     }
 
+#ifdef QCOM_HARDWARE
+    ExtendedCodec::convertMetaDataToMessage(meta, &msg);
+#endif
     *format = msg;
 
     return OK;
@@ -437,18 +500,39 @@ void convertMessageToMetaData(const sp<AMessage> &msg, sp<MetaData> &meta) {
     // reassemble the csd data into its original form
     sp<ABuffer> csd0;
     if (msg->findBuffer("csd-0", &csd0)) {
+        int csd0size = csd0->size();
         if (mime.startsWith("video/")) { // do we need to be stricter than this?
-            sp<ABuffer> csd1;
-            if (msg->findBuffer("csd-1", &csd1)) {
-                char avcc[1024]; // that oughta be enough, right?
-                size_t outsize = reassembleAVCC(csd0, csd1, avcc);
-                meta->setData(kKeyAVCC, kKeyAVCC, avcc, outsize);
+            if (!strcasecmp(mime.c_str(), MEDIA_MIMETYPE_VIDEO_AVC)) {
+                sp<ABuffer> csd1;
+                if (msg->findBuffer("csd-1", &csd1)) {
+                    Vector<char> avcc;
+                    int avccSize = csd0size + csd1->size() + 1024;
+                    if (avcc.resize(avccSize) < 0) {
+                        ALOGE("error allocating avcc (size %d); abort setting avcc.", avccSize);
+                    } else {
+                        size_t outsize = reassembleAVCC(csd0, csd1, avcc.editArray());
+                        meta->setData(kKeyAVCC, kKeyAVCC, avcc.array(), outsize);
+                    }
+                }
+            } else if (!strcasecmp(mime.c_str(), MEDIA_MIMETYPE_VIDEO_MPEG4)) {
+                Vector<char> esds;
+                int esdsSize = csd0size + 31;
+                if (esds.resize(esdsSize) < 0) {
+                    ALOGE("error allocating esds (size %d); abort setting esds.", esdsSize);
+                } else {
+                    reassembleESDS(csd0, esds.editArray());
+                    meta->setData(kKeyESDS, kKeyESDS, esds.array(), esds.size());
+                }
             }
         } else if (mime.startsWith("audio/")) {
-            int csd0size = csd0->size();
-            char esds[csd0size + 31];
-            reassembleESDS(csd0, esds);
-            meta->setData(kKeyESDS, kKeyESDS, esds, sizeof(esds));
+            Vector<char> esds;
+            int esdsSize = csd0size + 31;
+            if (esds.resize(esdsSize) < 0) {
+                ALOGE("error allocating esds (size %d); abort setting esds.", esdsSize);
+            } else {
+                reassembleESDS(csd0, esds.editArray());
+                meta->setData(kKeyESDS, kKeyESDS, esds.array(), esds.size());
+            }
         }
     }
 
@@ -484,6 +568,8 @@ status_t sendMetaDataToHal(sp<MediaPlayerBase::AudioSink>& sink,
     int32_t channelMask = 0;
     int32_t delaySamples = 0;
     int32_t paddingSamples = 0;
+    int32_t isADTS = 0;
+    int32_t minBlkSize, maxBlkSize, minFrmSize, maxFrmSize; //FLAC params
 
     AudioParameter param = AudioParameter();
 
@@ -502,6 +588,23 @@ status_t sendMetaDataToHal(sp<MediaPlayerBase::AudioSink>& sink,
     if (meta->findInt32(kKeyEncoderPadding, &paddingSamples)) {
         param.addInt(String8(AUDIO_OFFLOAD_CODEC_PADDING_SAMPLES), paddingSamples);
     }
+    if (meta->findInt32(kKeyIsADTS, &isADTS)) {
+        param.addInt(String8(AUDIO_OFFLOAD_CODEC_FORMAT), 0x02 /*SND_AUDIOSTREAMFORMAT_MP4ADTS*/);
+    }
+#ifdef ENABLE_AV_ENHANCEMENTS
+    if (meta->findInt32(kKeyMinBlkSize, &minBlkSize)) {
+        param.addInt(String8(AUDIO_OFFLOAD_CODEC_FLAC_MIN_BLK_SIZE), minBlkSize);
+    }
+    if (meta->findInt32(kKeyMaxBlkSize, &maxBlkSize)) {
+        param.addInt(String8(AUDIO_OFFLOAD_CODEC_FLAC_MAX_BLK_SIZE), maxBlkSize);
+    }
+    if (meta->findInt32(kKeyMinFrmSize, &minFrmSize)) {
+        param.addInt(String8(AUDIO_OFFLOAD_CODEC_FLAC_MIN_FRAME_SIZE), minFrmSize);
+    }
+    if (meta->findInt32(kKeyMaxFrmSize, &maxFrmSize)) {
+        param.addInt(String8(AUDIO_OFFLOAD_CODEC_FLAC_MAX_FRAME_SIZE), maxFrmSize);
+    }
+#endif
 
     ALOGV("sendMetaDataToHal: bitRate %d, sampleRate %d, chanMask %d,"
           "delaySample %d, paddingSample %d", bitRate, sampleRate,
@@ -523,6 +626,20 @@ static const struct mime_conv_t mimeLookup[] = {
     { MEDIA_MIMETYPE_AUDIO_AMR_WB,      AUDIO_FORMAT_AMR_WB },
     { MEDIA_MIMETYPE_AUDIO_AAC,         AUDIO_FORMAT_AAC },
     { MEDIA_MIMETYPE_AUDIO_VORBIS,      AUDIO_FORMAT_VORBIS },
+#ifdef ENABLE_AV_ENHANCEMENTS
+    { MEDIA_MIMETYPE_AUDIO_FLAC,        AUDIO_FORMAT_FLAC },
+    { MEDIA_MIMETYPE_AUDIO_AC3,         AUDIO_FORMAT_AC3 },
+    { MEDIA_MIMETYPE_AUDIO_AMR_WB_PLUS, AUDIO_FORMAT_AMR_WB_PLUS },
+    { MEDIA_MIMETYPE_AUDIO_DTS,         AUDIO_FORMAT_DTS },
+    { MEDIA_MIMETYPE_AUDIO_EAC3,        AUDIO_FORMAT_EAC3 },
+    { MEDIA_MIMETYPE_AUDIO_EVRC,        AUDIO_FORMAT_EVRC },
+    { MEDIA_MIMETYPE_AUDIO_QCELP,       AUDIO_FORMAT_QCELP },
+    { MEDIA_MIMETYPE_AUDIO_WMA,         AUDIO_FORMAT_WMA },
+    { MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II, AUDIO_FORMAT_MP2 },
+#ifdef QTI_FLAC_DECODER
+    { MEDIA_MIMETYPE_CONTAINER_QTIFLAC, AUDIO_FORMAT_FLAC },
+#endif
+#endif
     { 0, AUDIO_FORMAT_INVALID }
 };
 
@@ -540,20 +657,47 @@ const struct mime_conv_t* p = &mimeLookup[0];
     return BAD_VALUE;
 }
 
-bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo,
+bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo, const sp<MetaData>& vMeta,
                       bool isStreaming, audio_stream_type_t streamType)
 {
     const char *mime;
     CHECK(meta->findCString(kKeyMIMEType, &mime));
 
+    if (hasVideo) {
+        const char *vMime;
+        CHECK(vMeta->findCString(kKeyMIMEType, &vMime));
+#ifdef ENABLE_AV_ENHANCEMENTS
+        if (!strncmp(vMime, MEDIA_MIMETYPE_VIDEO_HEVC, 10)) {
+            ALOGD("Do not offload HEVC audio+video playback");
+            return false;
+        }
+#endif
+    }
+
     audio_offload_info_t info = AUDIO_INFO_INITIALIZER;
+
+    int32_t bitWidth = 16;
+#if defined(ENABLE_AV_ENHANCEMENTS) || defined(ENABLE_OFFLOAD_ENHANCEMENTS)
+    if (!meta->findInt32(kKeySampleBits, &bitWidth)) {
+        ALOGV("bits per sample not set, using default %d", bitWidth);
+    }
+    info.bit_width = bitWidth >= 24 ? 24 : bitWidth;
+#endif
 
     info.format = AUDIO_FORMAT_INVALID;
     if (mapMimeToAudioFormat(info.format, mime) != OK) {
         ALOGE(" Couldn't map mime type \"%s\" to a valid AudioSystem::audio_format !", mime);
         return false;
-    } else {
-        ALOGV("Mime type \"%s\" mapped to audio_format %d", mime, info.format);
+    } else if (audio_is_linear_pcm(info.format) || audio_is_offload_pcm(info.format)) {
+#if defined(QCOM_HARDWARE) || defined(ENABLE_OFFLOAD_ENHANCEMENTS)
+        // Override audio format for PCM offload
+        if (bitWidth >= 24) {
+            ALOGD("24-bit PCM offload enabled");
+            info.format = AUDIO_FORMAT_PCM_24_BIT_OFFLOAD;
+        } else {
+            info.format = AUDIO_FORMAT_PCM_16_BIT_OFFLOAD;
+        }
+#endif
     }
 
     if (AUDIO_FORMAT_INVALID == info.format) {
@@ -562,13 +706,15 @@ bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo,
         return false;
     }
 
-    // check whether it is ELD/LD content -> no offloading
+    ALOGV("Mime type \"%s\" mapped to audio_format 0x%x", mime, info.format);
+
+    // check whether it is ELD/LD/main content -> no offloading
     // FIXME: this should depend on audio DSP capabilities. mapMimeToAudioFormat() should use the
     // metadata to refine the AAC format and the audio HAL should only list supported profiles.
     int32_t aacaot = -1;
     if (meta->findInt32(kKeyAACAOT, &aacaot)) {
-        if (aacaot == 23 || aacaot == 39 ) {
-            ALOGV("track of type '%s' is ELD/LD content", mime);
+        if (aacaot == 23 || aacaot == 39 || aacaot == 1) {
+            ALOGV("track of type '%s' is ELD/LD/main content", mime);
             return false;
         }
     }
@@ -580,7 +726,7 @@ bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo,
     info.sample_rate = srate;
 
     int32_t cmask = 0;
-    if (!meta->findInt32(kKeyChannelMask, &cmask)) {
+    if (!meta->findInt32(kKeyChannelMask, &cmask) || (cmask == 0)) {
         ALOGV("track of type '%s' does not publish channel mask", mime);
 
         // Try a channel count instead
@@ -605,14 +751,23 @@ bool canOffloadStream(const sp<MetaData>& meta, bool hasVideo,
      }
     info.bit_rate = brate;
 
-
     info.stream_type = streamType;
     info.has_video = hasVideo;
     info.is_streaming = isStreaming;
 
     // Check if offload is possible for given format, stream type, sample rate,
     // bit rate, duration, video and streaming
-    return AudioSystem::isOffloadSupported(info);
+    bool canOffload = AudioSystem::isOffloadSupported(info);
+
+#if defined(ENABLE_AV_ENHANCEMENTS) || defined(ENABLE_OFFLOAD_ENHANCEMENTS)
+    // If we can't offload a 24-bit stream, we need to downgrade
+    // it to 16-bits. Codec will reconfigure for new bit width.
+    if (audio_is_offload_pcm(info.format)) {
+        ExtendedUtils::updateOutputBitWidth(meta, canOffload);
+    }
+#endif
+
+    return canOffload;
 }
 
 }  // namespace android

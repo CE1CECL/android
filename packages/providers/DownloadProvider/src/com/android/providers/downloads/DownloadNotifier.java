@@ -35,6 +35,7 @@ import android.os.SystemClock;
 import android.provider.Downloads;
 import android.text.TextUtils;
 import android.text.format.DateUtils;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.util.LongSparseLongArray;
 
@@ -150,9 +151,37 @@ public class DownloadNotifier {
             }
             builder.setWhen(firstShown);
 
+            // Check paused status about these downloads. If exists, will
+            // update icon and content title/content text in notification.
+            boolean hasPausedStatus = false;
+            int pausedStatus = -1;
+            for (DownloadInfo info : cluster) {
+                if (isPausedStatus(info.mStatus)) {
+                    hasPausedStatus = true;
+                    pausedStatus = info.mStatus;
+                    break;
+                }
+            }
+
+            // Check error status about downloads. If error exists, will
+            // update icon and content title/content text in notification.
+            boolean hasErrorStatus = false;
+            for (DownloadInfo info : cluster) {
+                if (isErrorStatus(info.mStatus)) {
+                    hasErrorStatus = true;
+                    break;
+                }
+            }
+
             // Show relevant icon
             if (type == TYPE_ACTIVE) {
-                builder.setSmallIcon(android.R.drawable.stat_sys_download);
+                if (hasPausedStatus) {
+                    builder.setSmallIcon(R.drawable.download_pause);
+                } else if (hasErrorStatus) {
+                    builder.setSmallIcon(R.drawable.ic_stat_download_error);
+                } else {
+                    builder.setSmallIcon(android.R.drawable.stat_sys_download);
+                }
             } else if (type == TYPE_WAITING) {
                 builder.setSmallIcon(android.R.drawable.stat_sys_warning);
             } else if (type == TYPE_COMPLETE) {
@@ -202,9 +231,10 @@ public class DownloadNotifier {
             // Calculate and show progress
             String remainingText = null;
             String percentText = null;
+            String speedAsSizeText = null;
+            long total = 0;
             if (type == TYPE_ACTIVE) {
                 long current = 0;
-                long total = 0;
                 long speed = 0;
                 synchronized (mDownloadSpeed) {
                     for (DownloadInfo info : cluster) {
@@ -222,8 +252,26 @@ public class DownloadNotifier {
 
                     if (speed > 0) {
                         final long remainingMillis = ((total - current) * 1000) / speed;
+                        final int duration, durationResId;
+
+                        // This duplicates DateUtils.formatDuration(), but uses our
+                        // abbreviated plurals.
+                        if (remainingMillis >= DateUtils.HOUR_IN_MILLIS) {
+                            duration = (int) ((remainingMillis + 1800000)
+                                    / DateUtils.HOUR_IN_MILLIS);
+                            durationResId = R.plurals.duration_hours;
+                        } else if (remainingMillis >= DateUtils.MINUTE_IN_MILLIS) {
+                            duration = (int) ((remainingMillis + 30000)
+                                    / DateUtils.MINUTE_IN_MILLIS);
+                            durationResId = R.plurals.duration_minutes;
+                        } else {
+                            duration = (int) ((remainingMillis + 500)
+                                    / DateUtils.SECOND_IN_MILLIS);
+                            durationResId = R.plurals.duration_seconds;
+                        }
                         remainingText = res.getString(R.string.download_remaining,
-                                DateUtils.formatDuration(remainingMillis));
+                                res.getQuantityString(durationResId, duration, duration));
+                        speedAsSizeText = Formatter.formatFileSize(mContext, speed);
                     }
 
                     builder.setProgress(100, percent, false);
@@ -236,14 +284,22 @@ public class DownloadNotifier {
             final Notification notif;
             if (cluster.size() == 1) {
                 final DownloadInfo info = cluster.iterator().next();
-
                 builder.setContentTitle(getDownloadTitle(res, info));
 
                 if (type == TYPE_ACTIVE) {
-                    if (!TextUtils.isEmpty(info.mDescription)) {
-                        builder.setContentText(info.mDescription);
-                    } else {
-                        builder.setContentText(remainingText);
+                    if (hasPausedStatus) {
+                        if (pausedStatus == Downloads.Impl.STATUS_PAUSED_BY_MANUAL)
+                            builder.setContentText(res.getText(R.string.download_paused));
+                        else
+                            builder.setContentText(res.getText(R.string.download_queued));
+                    } else if (speedAsSizeText != null) {
+                        builder.setContentText(res.getString(R.string.download_speed_text,
+                                remainingText, speedAsSizeText));
+                    } else if (hasErrorStatus) {
+                        builder.setContentText(res.getText(
+                                R.string.notification_download_failed));
+                        if (total == 0)
+                           builder.setProgress(100, 0, false);
                     }
                     builder.setContentInfo(percentText);
 
@@ -270,10 +326,20 @@ public class DownloadNotifier {
                 }
 
                 if (type == TYPE_ACTIVE) {
-                    builder.setContentTitle(res.getQuantityString(
-                            R.plurals.notif_summary_active, cluster.size(), cluster.size()));
+                    if (hasPausedStatus) {
+                        builder.setContentTitle(res.getString(R.string.download_queued));
+                    } else if (hasErrorStatus) {
+                        builder.setContentText(res.getText(
+                                R.string.notification_download_failed));
+                        if (total == 0)
+                           builder.setProgress(100, 0, false);
+                    } else {
+                        builder.setContentTitle(res.getQuantityString(
+                                R.plurals.notif_summary_active, cluster.size(), cluster.size()));
+                    }
                     builder.setContentText(remainingText);
-                    builder.setContentInfo(percentText);
+                    builder.setContentInfo(res.getString(R.string.download_speed_text,
+                                percentText, speedAsSizeText));
                     inboxStyle.setSummaryText(remainingText);
 
                 } else if (type == TYPE_WAITING) {
@@ -356,7 +422,7 @@ public class DownloadNotifier {
     }
 
     private static boolean isActiveAndVisible(DownloadInfo download) {
-        return download.mStatus == STATUS_RUNNING &&
+        return Downloads.Impl.isStatusInformational(download.mStatus) &&
                 (download.mVisibility == VISIBILITY_VISIBLE
                 || download.mVisibility == VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
     }
@@ -366,4 +432,19 @@ public class DownloadNotifier {
                 (download.mVisibility == VISIBILITY_VISIBLE_NOTIFY_COMPLETED
                 || download.mVisibility == VISIBILITY_VISIBLE_NOTIFY_ONLY_COMPLETION);
     }
+
+    private static boolean isPausedStatus(int status) {
+        return status == Downloads.Impl.STATUS_WAITING_FOR_NETWORK ||
+                status == Downloads.Impl.STATUS_PAUSED_BY_MANUAL;
+    }
+
+    private static boolean isErrorStatus(int status) {
+        boolean isErrorStatus = Downloads.Impl.isStatusError(status)
+                             || Downloads.Impl.isStatusClientError(status)
+                             || Downloads.Impl.isStatusServerError(status)
+                             || status == Downloads.Impl.STATUS_INSUFFICIENT_SPACE_ERROR
+                             || status == Downloads.Impl.STATUS_DEVICE_NOT_FOUND_ERROR;
+        return isErrorStatus;
+    }
+
 }

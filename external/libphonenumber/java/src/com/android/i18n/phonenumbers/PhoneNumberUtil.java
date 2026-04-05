@@ -2568,6 +2568,15 @@ public class PhoneNumberUtil {
     return false;
   }
 
+  public String stripExtension(String number) {
+      if (number == null || number.isEmpty()) {
+          return number;
+      }
+      StringBuilder builder = new StringBuilder(number);
+      maybeStripExtension(builder);
+      return builder.toString();
+  }
+
   /**
    * Strips any extension (as in, the part of the number dialled after the call is connected,
    * usually indicated with extn, ext, x or similar) from the end of the number, and returns it.

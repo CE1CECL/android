@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -30,22 +31,29 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.SmsMessage;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
+import android.widget.Toast;
 
 import com.android.common.contacts.DataUsageStatUpdater;
 import com.android.common.userhappiness.UserHappinessSignals;
+import com.android.internal.telephony.MSimConstants;
 import com.android.mms.ContentRestrictionException;
 import com.android.mms.ExceedMessageSizeException;
 import com.android.mms.LogTag;
@@ -57,12 +65,14 @@ import com.android.mms.model.ImageModel;
 import com.android.mms.model.SlideModel;
 import com.android.mms.model.SlideshowModel;
 import com.android.mms.model.TextModel;
+import com.android.mms.R;
 import com.android.mms.transaction.MessageSender;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.transaction.SmsMessageSender;
 import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.ui.SearchActivity;
 import com.android.mms.ui.SlideshowEditor;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
@@ -120,6 +130,7 @@ public class WorkingMessage {
     public static final int VIDEO = 2;
     public static final int AUDIO = 3;
     public static final int SLIDESHOW = 4;
+    public static final int VCARD = 5;
 
     // Current attachment type of the message; one of the above values.
     private int mAttachmentType;
@@ -158,6 +169,12 @@ public class WorkingMessage {
     };
 
     private static final int MMS_MESSAGE_SIZE_INDEX  = 1;
+    public static int mCurrentConvSub = MSimConstants.SUB1;
+
+    // Flag indicate resend sms that the recipient of conversion is more than one.
+    private boolean mResendMultiRecipients;
+
+    private static final int DEFAULT_SUBSCRIPTION = 0;
 
     /**
      * Callback interface for communicating important state changes back to
@@ -263,6 +280,8 @@ public class WorkingMessage {
                 mAttachmentType = VIDEO;
             } else if (slide.hasAudio()) {
                 mAttachmentType = AUDIO;
+            } else if (slide.hasVcard()) {
+                mAttachmentType = VCARD;
             }
         }
 
@@ -366,6 +385,9 @@ public class WorkingMessage {
         return mText;
     }
 
+    public void setWorkingMessageSub(int subscription) {
+        mCurrentConvSub = subscription;
+    }
     /**
      * @return True if the message has any text. A message with just whitespace is not considered
      * to have text.
@@ -491,7 +513,7 @@ public class WorkingMessage {
                 // an sms longer than one segment, we have to turn the message into an mms.
                 setLengthRequiresMms(smsSegmentCount > 1, false);
             } else {
-                int threshold = MmsConfig.getSmsToMmsTextThreshold();
+                int threshold = MmsConfig.getSmsToMmsTextThreshold(mActivity);
                 setLengthRequiresMms(threshold > 0 && smsSegmentCount > threshold, false);
             }
         }
@@ -592,6 +614,30 @@ public class WorkingMessage {
         return result;
     }
 
+    private boolean needAddNewSlide(int type) {
+        // The first time this method is called, mSlideshow.size() is going to be
+        // one (a newly initialized slideshow has one empty slide). The first time we
+        // attach the picture/video to that first empty slide.
+        int slideNum = mSlideshow.size();
+        if (slideNum >= 1) {
+            // Check the last slide. One silde can have a picture and an audio at the same time.
+            SlideModel slide = mSlideshow.get(slideNum -1);
+            boolean hasImage = slide.hasImage();
+            boolean hasVideo = slide.hasVideo();
+            boolean hasVcard = slide.hasVcard();
+            boolean hasAudio = slide.hasAudio();
+            if (hasVideo || (hasImage && hasAudio)
+                    || (hasImage && (type == IMAGE || type == VIDEO))
+                    || (hasAudio && (type == VIDEO))
+                    || (hasAudio && (type == AUDIO))) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Add the message's attachment to the data in the specified Uri to a new slide.
      */
@@ -603,15 +649,7 @@ public class WorkingMessage {
             return result;
         }
 
-        // The first time this method is called, mSlideshow.size() is going to be
-        // one (a newly initialized slideshow has one empty slide). The first time we
-        // attach the picture/video to that first empty slide. From then on when this
-        // function is called, we've got to create a new slide and add the picture/video
-        // to that new slide.
-        boolean addNewSlide = true;
-        if (mSlideshow.size() == 1 && !mSlideshow.isSimple()) {
-            addNewSlide = false;
-        }
+        boolean addNewSlide = needAddNewSlide(type);
         if (addNewSlide) {
             if (!slideShowEditor.addNewSlide()) {
                 return result;
@@ -639,6 +677,8 @@ public class WorkingMessage {
                 slideShowEditor.changeVideo(slideNum, uri);
             } else if (type == AUDIO) {
                 slideShowEditor.changeAudio(slideNum, uri);
+            } else if (type == VCARD) {
+                slideShowEditor.changeVcard(slideNum, uri);
             } else {
                 result = UNSUPPORTED_TYPE;
             }
@@ -663,6 +703,10 @@ public class WorkingMessage {
      */
     public boolean hasAttachment() {
         return (mAttachmentType > TEXT);
+    }
+
+    public boolean hasVcard() {
+        return mAttachmentType == VCARD;
     }
 
     /**
@@ -691,6 +735,9 @@ public class WorkingMessage {
     public void setSubject(CharSequence s, boolean notify) {
         mSubject = s;
         updateState(HAS_SUBJECT, (s != null), notify);
+        if (mSlideshow != null) {
+            mSlideshow.setSubjectSize((s == null) ? 0 : s.toString().getBytes().length);
+        }
     }
 
     /**
@@ -785,6 +832,18 @@ public class WorkingMessage {
         }
     }
 
+    private void checkConversationHasRecipients(String recipientsInUI) {
+        if (mConversation.getRecipients().size() == 0) {
+            LogTag.debug("mConversation do not has Recipients: " + recipientsInUI);
+            String[] dests = TextUtils.split(recipientsInUI, ";");
+            List<String> list = Arrays.asList(dests);
+            ContactList recipients = ContactList.getByNumbers(list, false);
+            // resets the threadId to zero
+            mConversation.setRecipients(recipients);
+            setHasMultipleRecipients(recipients.size() > 1, true);
+        }
+    }
+
     public String getWorkingRecipients() {
         // this function is used for DEBUG only
         if (mWorkingRecipients == null) {
@@ -846,6 +905,7 @@ public class WorkingMessage {
             mHasMmsDraft = true;
         } finally {
             DraftCache.getInstance().setSavingDraft(false);
+            updateSearchResult();
         }
         return mMessageUri;
     }
@@ -919,6 +979,7 @@ public class WorkingMessage {
         // Delete any associated drafts if there are any.
         if (mHasMmsDraft) {
             asyncDeleteDraftMmsMessage(mConversation);
+            updateSearchResult();
         }
         if (mHasSmsDraft) {
             asyncDeleteDraftSmsMessage(mConversation);
@@ -1185,6 +1246,9 @@ public class WorkingMessage {
         // Get ready to write to disk.
         prepareForSave(true /* notify */);
 
+        // Make sure the mConversation has Recipients
+        checkConversationHasRecipients(recipientsInUI);
+
         // We need the recipient list for both SMS and MMS.
         final Conversation conv = mConversation;
         String msgTxt = mText.toString();
@@ -1232,7 +1296,21 @@ public class WorkingMessage {
             }, "WorkingMessage.send MMS").start();
         } else {
             // Same rules apply as above.
-            final String msgText = mText.toString();
+            // add user's signature first if this feature is enabled.
+            String text = mText.toString();
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(mActivity);
+            if (sp.getBoolean("pref_key_enable_signature", false)) {
+                String signature = (sp.getString("pref_key_edit_signature", "")).trim();
+                if (signature.length() > 0) {
+                    String sigBlock = "\n" + signature;
+                    if (!text.endsWith(sigBlock)) {
+                        // Signature should be written behind the text in a
+                        // newline while the signature has changed.
+                        text += sigBlock;
+                    }
+                }
+            }
+            final String msgText = text;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -1296,7 +1374,8 @@ public class WorkingMessage {
 
         // recipientsInUI can be empty when the user types in a number and hits send
         if (LogTag.SEVERE_WARNING && ((origThreadId != 0 && origThreadId != threadId) ||
-               (!semiSepRecipients.equals(recipientsInUI) && !TextUtils.isEmpty(recipientsInUI)))) {
+                ((!mResendMultiRecipients && !semiSepRecipients.equals(recipientsInUI)) &&
+                        !TextUtils.isEmpty(recipientsInUI)))) {
             String msg = origThreadId != 0 && origThreadId != threadId ?
                     "WorkingMessage.preSendSmsWorker threadId changed or " +
                     "recipients changed. origThreadId: " +
@@ -1310,10 +1389,15 @@ public class WorkingMessage {
 
             // Just interrupt the process of sending message if recipient mismatch
             LogTag.warnPossibleRecipientMismatch(msg, mActivity);
-        }else {
+        } else {
             // just do a regular send. We're already on a non-ui thread so no need to fire
             // off another thread to do this work.
-            sendSmsWorker(msgText, semiSepRecipients, threadId);
+            if (mResendMultiRecipients) {
+                sendSmsWorker(msgText, recipientsInUI, threadId);
+                mResendMultiRecipients = false;
+            } else {
+                sendSmsWorker(msgText, semiSepRecipients, threadId);
+            }
 
             // Be paranoid and clean any draft SMS up.
             deleteDraftSmsMessage(threadId);
@@ -1326,7 +1410,11 @@ public class WorkingMessage {
             Log.d(LogTag.TRANSACTION, "sendSmsWorker sending message: recipients=" +
                     semiSepRecipients + ", threadId=" + threadId);
         }
-        MessageSender sender = new SmsMessageSender(mActivity, dests, msgText, threadId);
+        MessageSender sender;
+
+        sender = new SmsMessageSender(mActivity, dests, msgText, threadId,
+                        mCurrentConvSub);
+
         try {
             sender.sendMessage(threadId);
 
@@ -1345,6 +1433,25 @@ public class WorkingMessage {
         long threadId = 0;
         Cursor cursor = null;
         boolean newMessage = false;
+        boolean forwardMessage = conv.getHasMmsForward();
+        boolean sameRecipient = false;
+        int subscription = MSimTelephonyManager.getDefault().isMultiSimEnabled() ? mCurrentConvSub
+                : MSimTelephonyManager.getDefault().getPreferredDataSubscription();
+        ContactList contactList = conv.getRecipients();
+        if (contactList != null) {
+            String[] numbers = contactList.getNumbers();
+            String[] forward = conv.getForwardRecipientNumber();
+            if (numbers != null && forward != null
+                    && (numbers.length == forward.length)) {
+                List<String> currentNumberList = Arrays.asList(numbers);
+                List<String> forwardNumberList = Arrays.asList(forward);
+                Collections.sort(currentNumberList);
+                Collections.sort(forwardNumberList);
+                if (currentNumberList.equals(forwardNumberList)) {
+                    sameRecipient = true;
+                }
+            }
+        }
         try {
             // Put a placeholder message in the database first
             DraftCache.getInstance().setSavingDraft(true);
@@ -1353,6 +1460,9 @@ public class WorkingMessage {
             // Make sure we are still using the correct thread ID for our
             // recipient set.
             threadId = conv.ensureThreadId();
+            if (forwardMessage && sameRecipient) {
+                MessageUtils.sSameRecipientList.add(threadId);
+            }
 
             if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
                 LogTag.debug("sendMmsWorker: update draft MMS message " + mmsUri +
@@ -1393,6 +1503,7 @@ public class WorkingMessage {
                 if (textOnly) {
                     values.put(Mms.TEXT_ONLY, 1);
                 }
+                values.put(Mms.SUB_ID, subscription);
                 mmsUri = SqliteWrapper.insert(mActivity, mContentResolver, Mms.Outbox.CONTENT_URI,
                         values);
             }
@@ -1429,10 +1540,19 @@ public class WorkingMessage {
             if (newMessage) {
                 // Create a new MMS message if one hasn't been made yet.
                 mmsUri = createDraftMmsMessage(persister, sendReq, slideshow, mmsUri,
-                        mActivity, null);
+                        mActivity, null, subscription);
+                // Remove the sd card mmsUri will be null
+                if (mmsUri == null) {
+                    Toast.makeText(mActivity, R.string.cannot_send_attach_reason,
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
             } else {
                 // Otherwise, sync the MMS message in progress to disk.
                 updateDraftMmsMessage(mmsUri, persister, slideshow, sendReq, null);
+                ContentValues values = new ContentValues(1);
+                values.put(Mms.SUB_ID, subscription);
+                SqliteWrapper.update(mActivity, mContentResolver, mmsUri, values, null, null);
             }
 
             // Be paranoid and clean any draft SMS up.
@@ -1441,23 +1561,8 @@ public class WorkingMessage {
             DraftCache.getInstance().setSavingDraft(false);
         }
 
-        // Resize all the resizeable attachments (e.g. pictures) to fit
-        // in the remaining space in the slideshow.
-        int error = 0;
-        try {
-            slideshow.finalResize(mmsUri);
-        } catch (ExceedMessageSizeException e1) {
-            error = MESSAGE_SIZE_EXCEEDED;
-        } catch (MmsException e1) {
-            error = UNKNOWN_ERROR;
-        }
-        if (error != 0) {
-            markMmsMessageWithError(mmsUri);
-            mStatusListener.onAttachmentError(error);
-            return;
-        }
         MessageSender sender = new MmsMessageSender(mActivity, mmsUri,
-                slideshow.getCurrentMessageSize());
+                slideshow.getCurrentMessageSize(), mCurrentConvSub);
         try {
             if (!sender.sendMessage(threadId)) {
                 // The message was sent through SMS protocol, we should
@@ -1470,7 +1575,11 @@ public class WorkingMessage {
         } catch (Exception e) {
             Log.e(TAG, "Failed to send message: " + mmsUri + ", threadId=" + threadId, e);
         }
+        if (forwardMessage && sameRecipient) {
+            MessageUtils.sSameRecipientList.remove(threadId);
+        }
         MmsWidgetProvider.notifyDatasetChanged(mActivity);
+        updateSearchResult();
     }
 
     private void markMmsMessageWithError(Uri mmsUri) {
@@ -1568,6 +1677,13 @@ public class WorkingMessage {
     private static Uri createDraftMmsMessage(PduPersister persister, SendReq sendReq,
             SlideshowModel slideshow, Uri preUri, Context context,
             HashMap<Uri, InputStream> preOpenedFiles) {
+        return createDraftMmsMessage(persister, sendReq, slideshow, preUri, context,
+                preOpenedFiles, DEFAULT_SUBSCRIPTION);
+    }
+
+    private static Uri createDraftMmsMessage(PduPersister persister, SendReq sendReq,
+            SlideshowModel slideshow, Uri preUri, Context context,
+            HashMap<Uri, InputStream> preOpenedFiles, int subscription) {
         if (slideshow == null) {
             return null;
         }
@@ -1576,7 +1692,7 @@ public class WorkingMessage {
             sendReq.setBody(pb);
             Uri res = persister.persist(sendReq, preUri == null ? Mms.Draft.CONTENT_URI : preUri,
                     true, MessagingPreferenceActivity.getIsGroupMmsEnabled(context),
-                    preOpenedFiles);
+                    preOpenedFiles, subscription);
             slideshow.sync(pb);
             return res;
         } catch (MmsException e) {
@@ -1588,12 +1704,12 @@ public class WorkingMessage {
         if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
             LogTag.debug("asyncUpdateDraftMmsMessage conv=%s mMessageUri=%s", conv, mMessageUri);
         }
-        final HashMap<Uri, InputStream> preOpenedFiles =
-                mSlideshow.openPartFiles(mContentResolver);
 
         new Thread(new Runnable() {
             @Override
             public void run() {
+                final HashMap<Uri, InputStream> preOpenedFiles =
+                        mSlideshow.openPartFiles(mContentResolver);
                 try {
                     DraftCache.getInstance().setSavingDraft(true);
 
@@ -1620,6 +1736,7 @@ public class WorkingMessage {
                 } finally {
                     DraftCache.getInstance().setSavingDraft(false);
                     closePreOpenedFiles(preOpenedFiles);
+                    updateSearchResult();
                 }
             }
         }, "WorkingMessage.asyncUpdateDraftMmsMessage").start();
@@ -1761,13 +1878,15 @@ public class WorkingMessage {
             return;
         }
 
-        ContentValues values = new ContentValues(3);
+        ContentValues values = new ContentValues(4);
         values.put(Sms.THREAD_ID, threadId);
         values.put(Sms.BODY, contents);
         values.put(Sms.TYPE, Sms.MESSAGE_TYPE_DRAFT);
+        values.put(Sms.ADDRESS, conv.getRecipients().serialize());
         SqliteWrapper.insert(mActivity, mContentResolver, Sms.CONTENT_URI, values);
         asyncDeleteDraftMmsMessage(conv);
         mMessageUri = null;
+        MmsWidgetProvider.notifyDatasetChanged(MmsApp.getApplication());
     }
 
     private void asyncDelete(final Uri uri, final String selection, final String[] selectionArgs) {
@@ -1778,6 +1897,7 @@ public class WorkingMessage {
             @Override
             public void run() {
                 SqliteWrapper.delete(mActivity, mContentResolver, uri, selection, selectionArgs);
+                updateSearchResult();
             }
         }, "WorkingMessage.asyncDelete").start();
     }
@@ -1806,6 +1926,20 @@ public class WorkingMessage {
         // to clear those messages as well as ones with a valid thread id.
         final String where = Mms.THREAD_ID +  (threadId > 0 ? " = " + threadId : " IS NULL");
         asyncDelete(Mms.Draft.CONTENT_URI, where, null);
+    }
+
+    private void updateSearchResult(){
+        // Because save Mms Draft will comsume a long time than sms Draft.
+        // so need  notice SearchActivity update again after save Mms Draft successful.
+        mActivity.sendBroadcast(new Intent(SearchActivity.ACTION_QUERY_MMS));
+    }
+
+    public void setResendMultiRecipients(boolean bResendMultiRecipients) {
+        mResendMultiRecipients = bResendMultiRecipients;
+    }
+
+    public boolean getResendMultiRecipients() {
+        return mResendMultiRecipients;
     }
 
     /**

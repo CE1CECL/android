@@ -74,6 +74,8 @@ public final class MimeUtils {
         add("application/vnd.oasis.opendocument.graphics", "odg");
         add("application/vnd.oasis.opendocument.graphics-template", "otg");
         add("application/vnd.oasis.opendocument.image", "odi");
+        add("application/vnd.oasis.opendocument.presentation", "odp");
+        add("application/vnd.oasis.opendocument.presentation-template", "otp");
         add("application/vnd.oasis.opendocument.spreadsheet", "ods");
         add("application/vnd.oasis.opendocument.spreadsheet-template", "ots");
         add("application/vnd.oasis.opendocument.text", "odt");
@@ -241,6 +243,8 @@ public final class MimeUtils {
         add("audio/x-scpls", "pls");
         add("audio/x-sd2", "sd2");
         add("audio/x-wav", "wav");
+        add("audio/aac-adts", "aac");
+        add("audio/amr-wb", "awb");
         add("image/bmp", "bmp");
         add("image/gif", "gif");
         add("image/ico", "cur");

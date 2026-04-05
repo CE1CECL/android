@@ -46,15 +46,6 @@
 #define off64_t off_t
 #endif
 
-#ifdef __BIONIC__
-extern void*  __mmap2(void *, size_t, int, int, int, off_t);
-static inline void *mmap64(void *addr, size_t length, int prot, int flags,
-        int fd, off64_t offset)
-{
-    return __mmap2(addr, length, prot, flags, fd, offset >> 12);
-}
-#endif
-
 #define min(a, b) \
 	({ typeof(a) _a = (a); typeof(b) _b = (b); (_a < _b) ? _a : _b; })
 
@@ -731,10 +722,12 @@ int write_fd_chunk(struct output_file *out, unsigned int len,
 	}
 	pos = lseek64(fd, offset, SEEK_SET);
 	if (pos < 0) {
+                free(data);
 		return -errno;
 	}
 	ret = read_all(fd, data, len);
 	if (ret < 0) {
+                free(data);
 		return ret;
 	}
 	ptr = data;

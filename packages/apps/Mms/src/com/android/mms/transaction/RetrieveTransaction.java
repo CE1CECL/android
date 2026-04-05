@@ -29,6 +29,8 @@ import android.provider.Telephony.Mms.Inbox;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.internal.util.HexDump;
+import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
@@ -65,6 +67,7 @@ public class RetrieveTransaction extends Transaction implements Runnable {
     private final Uri mUri;
     private final String mContentLocation;
     private boolean mLocked;
+    private boolean isCancelMyself;
 
     static final String[] PROJECTION = new String[] {
         Mms.CONTENT_LOCATION,
@@ -128,17 +131,32 @@ public class RetrieveTransaction extends Transaction implements Runnable {
 
     public void run() {
         try {
-            // Change the downloading state of the M-Notification.ind.
-            DownloadManager.getInstance().markState(
-                    mUri, DownloadManager.STATE_DOWNLOADING);
+            DownloadManager downloadManager = DownloadManager.getInstance();
+            //Obtain Message Size from M-Notification.ind for original MMS
+            int msgSize = downloadManager.getMessageSize(mUri);
 
+            // Change the downloading state of the M-Notification.ind.
+            downloadManager.markState( mUri, DownloadManager.STATE_DOWNLOADING);
+
+            if (isCancelMyself) {
+                DownloadManager.getInstance().markState(mUri, DownloadManager.STATE_UNSTARTED);
+                return;
+            }
             // Send GET request to MMSC and retrieve the response data.
             byte[] resp = getPdu(mContentLocation);
 
+            if (isCancelMyself) {
+                DownloadManager.getInstance().markState(mUri, DownloadManager.STATE_UNSTARTED);
+                return;
+            }
             // Parse M-Retrieve.conf
             RetrieveConf retrieveConf = (RetrieveConf) new PduParser(resp).parse();
             if (null == retrieveConf) {
                 throw new MmsException("Invalid M-Retrieve.conf PDU.");
+            }
+            if (Log.isLoggable(LogTag.TRANSACTION, Log.DEBUG)) {
+                Log.v(TAG, "RetrieveTransaction: retrieve data=" +
+                        HexDump.dumpHexString(resp));
             }
 
             Uri msgUri = null;
@@ -154,8 +172,23 @@ public class RetrieveTransaction extends Transaction implements Runnable {
                         MessagingPreferenceActivity.getIsGroupMmsEnabled(mContext), null);
 
                 // Use local time instead of PDU time
-                ContentValues values = new ContentValues(1);
+                ContentValues values = new ContentValues(3);
                 values.put(Mms.DATE, System.currentTimeMillis() / 1000L);
+                // Update Message Size for Original MMS.
+                values.put(Mms.MESSAGE_SIZE, msgSize);
+                Cursor c = mContext.getContentResolver().query(mUri,
+                        null, null, null, null);
+                if (c != null) {
+                    try {
+                        if (c.moveToFirst()) {
+                            int subId = c.getInt(c.getColumnIndex(Mms.SUB_ID));
+                            Log.d(TAG, "RetrieveTransaction: subId value is " + subId);
+                            values.put(Mms.SUB_ID, subId);
+                        }
+                    } finally {
+                        c.close();
+                    }
+                }
                 SqliteWrapper.update(mContext, mContext.getContentResolver(),
                         msgUri, values, null, null);
 
@@ -188,7 +221,11 @@ public class RetrieveTransaction extends Transaction implements Runnable {
             Log.e(TAG, Log.getStackTraceString(t));
         } finally {
             if (mTransactionState.getState() != TransactionState.SUCCESS) {
-                mTransactionState.setState(TransactionState.FAILED);
+                if (isCancelMyself) {
+                    mTransactionState.setState(TransactionState.CANCELED);
+                } else {
+                    mTransactionState.setState(TransactionState.FAILED);
+                }
                 mTransactionState.setContentUri(mUri);
                 Log.e(TAG, "Retrieval failed.");
             }
@@ -301,5 +338,16 @@ public class RetrieveTransaction extends Transaction implements Runnable {
     @Override
     public int getType() {
         return RETRIEVE_TRANSACTION;
+    }
+
+    @Override
+    public void cancelTransaction(Uri uri) {
+        if (mUri.equals(uri)) {
+            isCancelMyself = true;
+        }
+    }
+
+    public Uri getUri() {
+        return mUri;
     }
 }

@@ -157,14 +157,12 @@ public class SipEditor extends PreferenceActivity
     public void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, "start profile editor");
         super.onCreate(savedInstanceState);
+        addPreferencesFromResource(R.xml.sip_edit);
 
         mSipManager = SipManager.newInstance(this);
         mSharedPreferences = new SipSharedPreferences(this);
         mProfileDb = new SipProfileDb(this);
         mCallManager = CallManager.getInstance();
-
-        setContentView(R.layout.sip_settings_ui);
-        addPreferencesFromResource(R.xml.sip_edit);
 
         SipProfile p = mOldProfile = (SipProfile) ((savedInstanceState == null)
                 ? getIntent().getParcelableExtra(SipSettings.KEY_SIP_PROFILE)
@@ -183,6 +181,12 @@ public class SipEditor extends PreferenceActivity
         mPrimaryAccountSelector = new PrimaryAccountSelector(p);
 
         loadPreferencesFromProfile(p);
+
+        ActionBar actionBar = getActionBar();
+        if (actionBar != null) {
+            // android.R.id.home will be triggered in onOptionsItemSelected()
+            actionBar.setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     @Override
@@ -190,7 +194,6 @@ public class SipEditor extends PreferenceActivity
         Log.v(TAG, "SipEditor onPause(): finishing? " + isFinishing());
         if (!isFinishing()) {
             mHomeButtonClicked = true;
-            validateAndSetResult();
         }
         super.onPause();
     }
@@ -218,6 +221,8 @@ public class SipEditor extends PreferenceActivity
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case android.R.id.home: // See ActionBar#setDisplayHomeAsUpEnabled()
+                // This time just work as "back" or "save" capability.
             case MENU_SAVE:
                 validateAndSetResult();
                 return true;
@@ -340,7 +345,12 @@ public class SipEditor extends PreferenceActivity
                             }
                     }
                 } else if (key == PreferenceKey.Port) {
-                    int port = Integer.parseInt(PreferenceKey.Port.getValue());
+                    int port = 0;
+                    try {
+                        port = Integer.parseInt(PreferenceKey.Port.getValue());
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Get port failed", e);
+                    }
                     if ((port < 1000) || (port > 65534)) {
                         showAlert(getString(R.string.not_a_valid_port));
                         return;

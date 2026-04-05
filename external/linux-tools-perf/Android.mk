@@ -92,7 +92,11 @@ LOCAL_SRC_FILES := $(libperf_src_files)
 LOCAL_SRC_FILES += \
 	arch/arm/util/dwarf-regs.c
 
-LOCAL_CFLAGS := -DNO_NEWT_SUPPORT -DNO_LIBPERL -DNO_LIBPYTHON -DNO_STRLCPY -std=gnu99
+LOCAL_CFLAGS := -DNO_NEWT_SUPPORT -DNO_LIBPERL -DNO_LIBPYTHON -std=gnu99
+
+ifneq ($(mac_sdk_version),10.9)
+LOCAL_CFLAGS += -DNO_STRLCPY
+endif
 
 LOCAL_CFLAGS += -DHAVE_ANDROID_DEMANGLE
 LOCAL_CFLAGS += -DDWARF_SUPPORT
@@ -164,6 +168,7 @@ LOCAL_MODULE := perfhost
 
 perf_src_files := \
 	builtin-annotate.c \
+	builtin-bench.c \
 	builtin-buildid-cache.c \
 	builtin-buildid-list.c \
 	builtin-diff.c \
@@ -196,7 +201,11 @@ LOCAL_LDLIBS += -lrt
 endif
 
 # common
-LOCAL_CFLAGS := -DNO_NEWT_SUPPORT -DNO_LIBPERL -DNO_LIBPYTHON -DNO_STRLCPY -std=gnu99
+LOCAL_CFLAGS := -DNO_NEWT_SUPPORT -DNO_LIBPERL -DNO_LIBPYTHON -std=gnu99
+
+ifneq ($(mac_sdk_version),10.9)
+LOCAL_CFLAGS += -DNO_STRLCPY
+endif
 
 LOCAL_CFLAGS += \
 	-include $(LOCAL_PATH)/host-$(HOST_OS)-fixup/AndroidFixup.h

@@ -56,6 +56,15 @@
 #include <hardware/bluetooth.h>
 #define asrt(s) if(!(s)) APPL_TRACE_ERROR3("## %s assert %s failed at line:%d ##",__FUNCTION__, #s, __LINE__)
 
+#define UUID_MAX_LENGTH 16
+
+#define IS_UUID(u1,u2)  !memcmp(u1,u2,UUID_MAX_LENGTH)
+
+#define MODEM_SIGNAL_DTRDSR        0x01
+#define MODEM_SIGNAL_RTSCTS        0x02
+#define MODEM_SIGNAL_RI            0x04
+#define MODEM_SIGNAL_DCD           0x08
+
 extern void uuid_to_string(bt_uuid_t *p_uuid, char *str);
 static inline void logu(const char* title, const uint8_t * p_uuid)
 {
@@ -144,6 +153,7 @@ static void init_rfc_slots()
 bt_status_t btsock_rfc_init(int poll_thread_handle)
 {
     pth = poll_thread_handle;
+    btif_data_profile_register(0);
     init_rfc_slots();
     return BT_STATUS_SUCCESS;
 }
@@ -151,6 +161,7 @@ void btsock_rfc_cleanup()
 {
     int curr_pth = pth;
     pth = -1;
+    btif_data_profile_register(0);
     btsock_thread_exit(curr_pth);
     lock_slot(&slot_lock);
     int i;
@@ -242,14 +253,42 @@ static inline rfc_slot_t* find_rfc_slot_by_fd(int fd)
     }
     return NULL;
 }
+
+static inline rfc_slot_t* find_rfc_slot_by_scn(int scn)
+{
+    int i;
+    if(scn > 0)
+    {
+        /* traverse it from the last entry, as incase of
+         * server two entries will exist with the same scn
+         * and the later entry is valid
+         */
+        for(i = MAX_RFC_CHANNEL-1; i >= 0; i--)
+        {
+            if(rfc_slots[i].scn == scn)
+            {
+                if(rfc_slots[i].id)
+                    return &rfc_slots[i];
+            }
+        }
+    }
+    return NULL;
+}
+
 static rfc_slot_t* alloc_rfc_slot(const bt_bdaddr_t *addr, const char* name, const uint8_t* uuid, int channel, int flags, BOOLEAN server)
 {
     int security = 0;
     if(flags & BTSOCK_FLAG_ENCRYPT)
         security |= server ? BTM_SEC_IN_ENCRYPT : BTM_SEC_OUT_ENCRYPT;
-    if(flags & BTSOCK_FLAG_AUTH)
-        security |= server ? BTM_SEC_IN_AUTHENTICATE : BTM_SEC_OUT_AUTHENTICATE;
-
+    if(flags & BTSOCK_FLAG_AUTH) {
+        /* Convert SAP Authentication to High Authentication */
+        if(IS_UUID(UUID_SAP, uuid)) {
+            security |= BTM_SEC_IN_AUTH_HIGH;
+        }
+        else {
+            security |= server ? BTM_SEC_IN_AUTHENTICATE : BTM_SEC_OUT_AUTHENTICATE;
+        }
+    }
     rfc_slot_t* rs = find_free_slot();
     if(rs)
     {
@@ -283,26 +322,35 @@ static inline rfc_slot_t* create_srv_accept_rfc_slot(rfc_slot_t* srv_rs, const b
                                         int open_handle, int new_listen_handle)
 {
     rfc_slot_t *accept_rs = alloc_rfc_slot(addr, srv_rs->service_name, srv_rs->service_uuid, srv_rs->scn, 0, FALSE);
-    clear_slot_flag(&accept_rs->f);
-    accept_rs->f.server = FALSE;
-    accept_rs->f.connected = TRUE;
-    accept_rs->security = srv_rs->security;
-    accept_rs->mtu = srv_rs->mtu;
-    accept_rs->role = srv_rs->role;
-    accept_rs->rfc_handle = open_handle;
-    accept_rs->rfc_port_handle = BTA_JvRfcommGetPortHdl(open_handle);
-     //now update listen rfc_handle of server slot
-    srv_rs->rfc_handle = new_listen_handle;
-    srv_rs->rfc_port_handle = BTA_JvRfcommGetPortHdl(new_listen_handle);
-    BTIF_TRACE_DEBUG4("create_srv_accept__rfc_slot(open_handle: 0x%x, new_listen_handle:"
-            "0x%x) accept_rs->rfc_handle:0x%x, srv_rs_listen->rfc_handle:0x%x"
-      ,open_handle, new_listen_handle, accept_rs->rfc_port_handle, srv_rs->rfc_port_handle);
-    asrt(accept_rs->rfc_port_handle != srv_rs->rfc_port_handle);
-  //now swap the slot id
-    uint32_t new_listen_id = accept_rs->id;
-    accept_rs->id = srv_rs->id;
-    srv_rs->id = new_listen_id;
-    return accept_rs;
+    if( accept_rs)
+    {
+        clear_slot_flag(&accept_rs->f);
+        accept_rs->f.server = FALSE;
+        accept_rs->f.connected = TRUE;
+        accept_rs->security = srv_rs->security;
+        accept_rs->mtu = srv_rs->mtu;
+        accept_rs->role = srv_rs->role;
+        accept_rs->rfc_handle = open_handle;
+        accept_rs->rfc_port_handle = BTA_JvRfcommGetPortHdl(open_handle);
+        //now update listen rfc_handle of server slot
+        srv_rs->rfc_handle = new_listen_handle;
+        srv_rs->rfc_port_handle = BTA_JvRfcommGetPortHdl(new_listen_handle);
+        BTIF_TRACE_DEBUG4("create_srv_accept__rfc_slot(open_handle: 0x%x, new_listen_handle:"
+                "0x%x) accept_rs->rfc_handle:0x%x, srv_rs_listen->rfc_handle:0x%x"
+                ,open_handle, new_listen_handle, accept_rs->rfc_port_handle, srv_rs->rfc_port_handle);
+        asrt(accept_rs->rfc_port_handle != srv_rs->rfc_port_handle);
+        //now swap the slot id
+        uint32_t new_listen_id = accept_rs->id;
+        accept_rs->id = srv_rs->id;
+        srv_rs->id = new_listen_id;
+
+        return accept_rs;
+    }
+    else
+    {
+        APPL_TRACE_ERROR1(" accept_rs is NULL %s", __FUNCTION__);
+        return NULL;
+    }
 }
 bt_status_t btsock_rfc_listen(const char* service_name, const uint8_t* service_uuid, int channel,
                             int* sock_fd, int flags)
@@ -317,15 +365,27 @@ bt_status_t btsock_rfc_listen(const char* service_name, const uint8_t* service_u
     *sock_fd = -1;
     if(!is_init_done())
         return BT_STATUS_NOT_READY;
-    if(is_uuid_empty(service_uuid))
+
+    btif_data_profile_register(1);
+
+    if(channel == RESERVED_SCN_FTP)
+    {
+        service_uuid = UUID_FTP;
+    }
+    else if(is_uuid_empty(service_uuid))
         service_uuid = UUID_SPP; //use serial port profile to listen to specified channel
     else
     {
-        //Check the service_uuid. overwrite the channel # if reserved
-        int reserved_channel = get_reserved_rfc_channel(service_uuid);
-        if(reserved_channel > 0)
-        {
-            channel = reserved_channel;
+       if (!strncmp(service_name, "OBEX File Transfer", strlen("OBEX File Transfer"))) {
+            channel = RESERVED_SCN_FTP;
+            APPL_TRACE_DEBUG1("Registering FTP SDP for: %s", service_name);
+        } else {
+            //Check the service_uuid. overwrite the channel # if reserved
+            int reserved_channel = get_reserved_rfc_channel(service_uuid);
+            if(reserved_channel > 0)
+            {
+                channel = reserved_channel;
+            }
         }
     }
     int status = BT_STATUS_FAIL;
@@ -343,6 +403,97 @@ bt_status_t btsock_rfc_listen(const char* service_name, const uint8_t* service_u
     unlock_slot(&slot_lock);
     return status;
 }
+
+bt_status_t btsock_rfc_get_sockopt(int channel, btsock_option_type_t option_name,
+                                            void *option_value, int *option_len)
+{
+    int status = BT_STATUS_FAIL;
+
+    APPL_TRACE_DEBUG1("btsock_rfc_get_sockopt channel is %d ", channel);
+    if((channel < 1) || (channel > 30) || (option_value == NULL) || (option_len == NULL))
+    {
+        APPL_TRACE_ERROR3("invalid rfc channel:%d or option_value:%p, option_len:%p",
+                                             channel, option_value, option_len);
+        return BT_STATUS_PARM_INVALID;
+    }
+    rfc_slot_t* rs = find_rfc_slot_by_scn(channel);
+    if((rs) && ((option_name == BTSOCK_OPT_GET_MODEM_BITS)))
+    {
+        if(PORT_SUCCESS == PORT_GetModemStatus(rs->rfc_port_handle, (UINT8 *)option_value))
+        {
+            *option_len = sizeof(UINT8);
+            status = BT_STATUS_SUCCESS;
+        }
+    }
+    return status;
+}
+
+bt_status_t btsock_rfc_set_sockopt(int channel, btsock_option_type_t option_name,
+                                            void *option_value, int option_len)
+{
+    int status = BT_STATUS_FAIL;
+
+    APPL_TRACE_DEBUG1("btsock_rfc_get_sockopt channel is %d ", channel);
+    if((channel < 1) || (channel > 30) || (option_value == NULL) || (option_len <= 0)
+                     || (option_len > (int)sizeof(UINT8)))
+    {
+        APPL_TRACE_ERROR3("invalid rfc channel:%d or option_value:%p, option_len:%d",
+                                        channel, option_value, option_len);
+        return BT_STATUS_PARM_INVALID;
+    }
+    rfc_slot_t* rs = find_rfc_slot_by_scn(channel);
+    if((rs) && ((option_name == BTSOCK_OPT_SET_MODEM_BITS)))
+    {
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_DTRDSR)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_SET_DTRDSR))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_RTSCTS)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_SET_CTSRTS))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_RI)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_SET_RI))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_DCD)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_SET_DCD))
+                return status;
+        }
+        status = BT_STATUS_SUCCESS;
+    }
+    else if((rs) && ((option_name == BTSOCK_OPT_CLR_MODEM_BITS)))
+    {
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_DTRDSR)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_CLR_DTRDSR))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_RTSCTS)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_CLR_CTSRTS))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_RI)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_CLR_RI))
+                return status;
+        }
+        if((*((UINT8 *)option_value)) & MODEM_SIGNAL_DCD)
+        {
+            if(PORT_SUCCESS != PORT_Control(rs->rfc_port_handle, PORT_CLR_DCD))
+                return status;
+        }
+        status = BT_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
 bt_status_t btsock_rfc_connect(const bt_bdaddr_t *bd_addr, const uint8_t* service_uuid,
         int channel, int* sock_fd, int flags)
 {
@@ -490,6 +641,7 @@ static void cleanup_rfc_slot(rfc_slot_t* rs)
         close(rs->fd);
         rs->fd = -1;
     }
+
     if(rs->app_fd != -1)
     {
         close(rs->app_fd);
@@ -819,7 +971,7 @@ static int send_data_to_app(int fd, BT_HDR *p_buf)
 {
     if(p_buf->len == 0)
         return SENT_ALL;
-    int sent = send(fd, (UINT8 *)(p_buf + 1) + p_buf->offset,  p_buf->len, MSG_DONTWAIT);
+    int sent = TEMP_FAILURE_RETRY(send(fd, (UINT8 *)(p_buf + 1) + p_buf->offset,  p_buf->len, MSG_DONTWAIT));
     if(sent == p_buf->len)
         return SENT_ALL;
 
@@ -891,7 +1043,7 @@ void btsock_rfc_signaled(int fd, int flags, uint32_t user_id)
                     int size = 0;
                     //make sure there's data pending in case the peer closed the socket
                     if(!(flags & SOCK_THREAD_FD_EXCEPTION) ||
-                                (ioctl(rs->fd, FIONREAD, &size) == 0 && size))
+                                (TEMP_FAILURE_RETRY(ioctl(rs->fd, FIONREAD, &size)) == 0 && size))
                         BTA_JvRfcommWrite(rs->rfc_handle, (UINT32)rs->id);
                 }
                 else
@@ -916,7 +1068,7 @@ void btsock_rfc_signaled(int fd, int flags, uint32_t user_id)
         if(need_close || (flags & SOCK_THREAD_FD_EXCEPTION))
         {
             int size = 0;
-            if(need_close || ioctl(rs->fd, FIONREAD, &size) != 0 || size == 0 )
+            if(need_close || TEMP_FAILURE_RETRY(ioctl(rs->fd, FIONREAD, &size)) != 0 || size == 0 )
             {
                 //cleanup when no data pending
                 APPL_TRACE_DEBUG3("SOCK_THREAD_FD_EXCEPTION, cleanup, flags:%x, need_close:%d, pending size:%d",
@@ -976,7 +1128,7 @@ int bta_co_rfc_data_outgoing_size(void *user_data, int *size)
     rfc_slot_t* rs = find_rfc_slot_by_id(id);
     if(rs)
     {
-        if(ioctl(rs->fd, FIONREAD, size) == 0)
+        if(TEMP_FAILURE_RETRY(ioctl(rs->fd, FIONREAD, size)) == 0)
         {
             APPL_TRACE_DEBUG2("ioctl read avaiable size:%d, fd:%d", *size, rs->fd);
             ret = TRUE;
@@ -999,7 +1151,7 @@ int bta_co_rfc_data_outgoing(void *user_data, UINT8* buf, UINT16 size)
     rfc_slot_t* rs = find_rfc_slot_by_id(id);
     if(rs)
     {
-        int received = recv(rs->fd, buf, size, 0);
+        int received = TEMP_FAILURE_RETRY(recv(rs->fd, buf, size, 0));
         if(received == size)
             ret = TRUE;
         else

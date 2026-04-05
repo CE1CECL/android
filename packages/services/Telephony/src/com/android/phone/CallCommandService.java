@@ -23,10 +23,13 @@ import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.internal.telephony.CallManager;
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.phone.CallModeler.CallResult;
 import com.android.phone.NotificationMgr.StatusBarHelper;
 import com.android.services.telephony.common.Call;
+import com.android.services.telephony.common.CallDetails;
 import com.android.services.telephony.common.ICallCommandService;
 
 /**
@@ -61,10 +64,64 @@ class CallCommandService extends ICallCommandService.Stub {
         try {
             CallResult result = mCallModeler.getCallWithId(callId);
             if (result != null) {
-                PhoneUtils.answerCall(result.getConnection().getCall());
+                answerCallWithCallType(callId, CallDetails.CALL_TYPE_UNKNOWN);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during answerCall().", e);
+        }
+    }
+
+    public void answerCallWithCallType(int callId, int callType) {
+        Log.v(TAG, "answerCallWithCallType" + callId + " calltype" + callType);
+        try {
+            CallResult result = mCallModeler.getCallWithId(callId);
+            if (result != null && callType != CallDetails.CALL_TYPE_UNKNOWN) {
+                result.mCall.getCallDetails().setCallType(callType);
+            }
+            if (mCallManager.hasActiveFgCall() && mCallManager.hasActiveBgCall()) {
+                PhoneUtils.answerAndEndActive(mCallManager, result.getConnection().getCall());
+            } else {
+                PhoneUtils.answerCall(result.getConnection().getCall(), callType);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error during answerCall().", e);
+        }
+    }
+
+    public void deflectCall(int callId, String number) {
+        Log.v(TAG, "deflectCall connId" + callId + "to number" + number);
+        try {
+            CallResult result = mCallModeler.getCallWithId(callId);
+            PhoneUtils.deflectCall(result.getConnection(), number);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during deflectCall().", e);
+        }
+    }
+
+    public void modifyCallInitiate(int callId, int callType) {
+        Log.v(TAG, "modifyCallInitiate: callId=" + callId + "callType=" + callType);
+        try {
+            CallResult result = mCallModeler.getCallWithId(callId);
+            if (result != null) {
+                PhoneUtils.modifyCallInitiate(result.getConnection(), callType, null);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error during modifyCallInitiate().", e);
+        }
+    }
+
+    public void modifyCallConfirm(boolean responseType, int callId) {
+        Log.v(TAG, "modifyCallConfirm" + "responseType " + responseType + "callId" + callId);
+        CallDetails callModify;
+        try {
+            CallResult result = mCallModeler.getCallWithId(callId);
+            if (result != null) {
+                callModify = result.mCall.getCallModifyDetails();
+                PhoneUtils.modifyCallConfirm(responseType, result.getConnection(),
+                        callModify.getExtras());
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error during modifyCallInitiate().", e);
         }
     }
 
@@ -76,9 +133,11 @@ class CallCommandService extends ICallCommandService.Stub {
         try {
             int callId = Call.INVALID_CALL_ID;
             String phoneNumber = "";
+            int subscription = 0;
             if (call != null) {
                 callId = call.getCallId();
                 phoneNumber = call.getNumber();
+                subscription = call.getSubscription();
             }
             CallResult result = mCallModeler.getCallWithId(callId);
 
@@ -90,7 +149,8 @@ class CallCommandService extends ICallCommandService.Stub {
             }
 
             if (rejectWithMessage && !phoneNumber.isEmpty()) {
-                RejectWithTextMessageManager.rejectCallWithMessage(phoneNumber, message);
+                RejectWithTextMessageManager.rejectCallWithMessage(phoneNumber, message,
+                        subscription);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during rejectCall().", e);
@@ -185,6 +245,24 @@ class CallCommandService extends ICallCommandService.Stub {
     }
 
     @Override
+    public void muteInternal(boolean onOff) {
+        try {
+            PhoneUtils.muteOnNewCall(onOff);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during mute().", e);
+        }
+    }
+
+    @Override
+    public void updateMuteState(int sub, boolean muted) {
+        try {
+            PhoneUtils.updateMuteState(sub, muted);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during updateMuteState().", e);
+        }
+    }
+
+    @Override
     public void speaker(boolean onOff) {
         try {
             PhoneUtils.turnOnSpeaker(mContext, onOff, true);
@@ -236,6 +314,16 @@ class CallCommandService extends ICallCommandService.Stub {
         }
     }
 
+    public void hangupWithReason(int callId, String userUri, boolean mpty, int failCause,
+            String errorInfo) {
+        try {
+            Log.d(TAG, "hangupWithReason");
+            PhoneUtils.hangupWithReason(callId, userUri, mpty, failCause, errorInfo);
+        } catch (Exception e) {
+            Log.e(TAG, "Error hangupWithReason", e);
+        }
+    }
+
     @Override
     public void setSystemBarNavigationEnabled(boolean enable) {
         try {
@@ -248,4 +336,70 @@ class CallCommandService extends ICallCommandService.Stub {
         }
     }
 
+    @Override
+    public void blacklistAndHangup(int callId) {
+        final CallResult result = mCallModeler.getCallWithId(callId);
+        if (result == null) {
+            return;
+        }
+
+        try {
+            final String phoneNumber = result.getConnection().getAddress();
+            BlacklistUtils.addOrUpdate(mContext, phoneNumber,
+                    BlacklistUtils.BLOCK_CALLS, BlacklistUtils.BLOCK_CALLS);
+            Log.v(TAG, "Hanging up");
+            PhoneUtils.hangup(result.getConnection().getCall());
+        } catch (Exception e) {
+            Log.e(TAG, "Error during blacklistAndHangup().", e);
+        }
+    }
+
+    @Override
+    public void setActiveSubscription(int subscriptionId) {
+        try {
+            // Set only the active subscription, if SubInConversation is not set, it
+            // means lch state should be retained on active subscription, hence enable
+            // mute so that user is aware that call is in lch.
+            PhoneUtils.setActiveSubscription(subscriptionId);
+            if ((mCallManager.getState(subscriptionId) == PhoneConstants.State.OFFHOOK) &&
+                    (mCallManager.getSubInConversation() == MSimConstants.INVALID_SUBSCRIPTION)) {
+                if (DBG) Log.d(TAG, "setActiveSubscription: call setMute");
+                // Set mute on active sub, when active sub changed due to remote end of call
+                // in conversation
+                PhoneUtils.setMute(true);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error during setActiveSubscription().", e);
+        }
+    }
+
+    @Override
+    public void setSubInConversation(int subscriptionId) {
+        try {
+            mCallManager.setSubInConversation(subscriptionId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during setSubInConversation().", e);
+        }
+    }
+
+    @Override
+    public void setActiveAndConversationSub(int subscriptionId) {
+        try {
+            PhoneUtils.setActiveAndConversationSub(subscriptionId);
+        } catch (Exception e) {
+            Log.e(TAG, "Error during setActiveAndConversationSub().", e);
+        }
+    }
+
+    @Override
+    public int getActiveSubscription() {
+        int subscriptionId = MSimConstants.INVALID_SUBSCRIPTION;
+
+        try {
+            subscriptionId = PhoneUtils.getActiveSubscription();
+        } catch (Exception e) {
+            Log.e(TAG, "Error during getActiveSubscription().", e);
+        }
+        return subscriptionId;
+    }
 }

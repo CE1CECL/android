@@ -48,6 +48,7 @@ import com.google.android.mms.util.DownloadDrmHelper;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashSet;
 import android.provider.Telephony.Threads;
 
 /**
@@ -62,6 +63,8 @@ public class MmsProvider extends ContentProvider {
     static final String TABLE_DRM  = "drm";
     static final String TABLE_WORDS = "words";
 
+    // Define the max length of file name
+    private static final int MAX_FILE_NAME_LENGTH = 30;
 
     @Override
     public boolean onCreate() {
@@ -268,7 +271,11 @@ public class MmsProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        // Don't let anyone insert anything with the _data column
+        // The _data column is filled internally in MmsProvider, so this check is just to avoid
+        // it from being inadvertently set. This is not supposed to be a protection against
+        // malicious attack, since sql injection could still be attempted to bypass the check. On
+        // the other hand, the MmsProvider does verify that the _data column has an allowed value
+        // before opening any uri/files.
         if (values != null && values.containsKey(Part._DATA)) {
             return null;
         }
@@ -403,8 +410,10 @@ public class MmsProvider extends ContentProvider {
                 // Use the filename if possible, otherwise use the current time as the name.
                 String contentLocation = values.getAsString("cl");
                 if (!TextUtils.isEmpty(contentLocation)) {
-                    File f = new File(contentLocation);
-                    contentLocation = "_" + f.getName();
+                    // In Android, the name of a new file has it's limit.
+                    // We must limit the part file name length.
+                    // Sub 30 words so the name length can't over limit.
+                    contentLocation = "_" + getFileName(contentLocation);
                 } else {
                     contentLocation = "";
                 }
@@ -511,6 +520,15 @@ public class MmsProvider extends ContentProvider {
         return res;
     }
 
+    private String getFileName(String fileLocation) {
+        File f = new File(fileLocation);
+        String fileName = f.getName();
+        if (fileName.length() >= MAX_FILE_NAME_LENGTH) {
+            fileName = fileName.substring(0, MAX_FILE_NAME_LENGTH);
+        }
+        return fileName;
+    }
+
     private int getMessageBoxByMatch(int match) {
         switch (match) {
             case MMS_INBOX_ID:
@@ -595,6 +613,10 @@ public class MmsProvider extends ContentProvider {
                                          selectionArgs, uri);
         } else if (TABLE_PART.equals(table)) {
             deletedRows = deleteParts(db, finalSelection, selectionArgs);
+            // Because the trigger for part table is deleted
+            // We need to update word and threads table after delete sth in part table
+            cleanUpWords(db);
+            updateHasAttachment(db);
         } else if (TABLE_DRM.equals(table)) {
             deletedRows = deleteTempDrmData(db, finalSelection, selectionArgs);
         } else {
@@ -609,12 +631,13 @@ public class MmsProvider extends ContentProvider {
 
     static int deleteMessages(Context context, SQLiteDatabase db,
             String selection, String[] selectionArgs, Uri uri) {
-        Cursor cursor = db.query(TABLE_PDU, new String[] { Mms._ID },
+        Cursor cursor = db.query(TABLE_PDU, new String[] { Mms._ID, Mms.THREAD_ID },
                 selection, selectionArgs, null, null, null);
         if (cursor == null) {
             return 0;
         }
 
+        HashSet<Long> threadIds = new HashSet<Long>();
         try {
             if (cursor.getCount() == 0) {
                 return 0;
@@ -623,12 +646,22 @@ public class MmsProvider extends ContentProvider {
             while (cursor.moveToNext()) {
                 deleteParts(db, Part.MSG_ID + " = ?",
                         new String[] { String.valueOf(cursor.getLong(0)) });
+                threadIds.add(cursor.getLong(1));
             }
+            // Because the trigger for part table is deleted
+            // We need to update word and threads table after delete sth in part table
+            cleanUpWords(db);
+            updateHasAttachment(db);
         } finally {
             cursor.close();
         }
 
         int count = db.delete(TABLE_PDU, selection, selectionArgs);
+        // The triggers used to update threads after delete pdu is deleted
+        // Remenber to update threads which related to the deleted pdus
+        for (long thread : threadIds) {
+            MmsSmsDatabaseHelper.updateThread(db, thread);
+        }
         if (count > 0) {
             Intent intent = new Intent(Mms.Intents.CONTENT_CHANGED_ACTION);
             intent.putExtra(Mms.Intents.DELETED_CONTENTS, uri);
@@ -638,6 +671,18 @@ public class MmsProvider extends ContentProvider {
             context.sendBroadcast(intent);
         }
         return count;
+    }
+
+    private static void cleanUpWords(SQLiteDatabase db) {
+        db.execSQL("DELETE FROM words WHERE source_id not in (select _id from part) AND "
+                + "table_to_use = 2");
+    }
+
+    private static void updateHasAttachment(SQLiteDatabase db) {
+        db.execSQL("UPDATE threads SET has_attachment = CASE "
+                + "(SELECT COUNT(*) FROM part JOIN pdu WHERE part.mid = pdu._id AND "
+                + "pdu.thread_id = threads._id AND part.ct != 'text/plain' "
+                + "AND part.ct != 'application/smil') WHEN 0 THEN 0 ELSE 1 END");
     }
 
     private static int deleteParts(SQLiteDatabase db, String selection,
@@ -686,7 +731,11 @@ public class MmsProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values,
             String selection, String[] selectionArgs) {
-        // Don't let anyone update the _data column
+        // The _data column is filled internally in MmsProvider, so this check is just to avoid
+        // it from being inadvertently set. This is not supposed to be a protection against
+        // malicious attack, since sql injection could still be attempted to bypass the check. On
+        // the other hand, the MmsProvider does verify that the _data column has an allowed value
+        // before opening any uri/files.
         if (values != null && values.containsKey(Part._DATA)) {
             return 0;
         }
@@ -785,7 +834,11 @@ public class MmsProvider extends ContentProvider {
             return null;
         }
 
-        // Verify that the _data path points to mms data
+            return safeOpenFileHelper(uri, mode);
+        }
+
+    private ParcelFileDescriptor safeOpenFileHelper(
+            Uri uri, String mode) throws FileNotFoundException {
         Cursor c = query(uri, new String[]{"_data"}, null, null, null);
         int count = (c != null) ? c.getCount() : 0;
         if (count != 1) {
@@ -806,19 +859,33 @@ public class MmsProvider extends ContentProvider {
         c.close();
 
         if (path == null) {
-            return null;
+            throw new FileNotFoundException("Column _data not found.");
         }
+
+        File filePath = new File(path);
         try {
-            File filePath = new File(path);
+            // The MmsProvider shouldn't open a file that isn't MMS data, so we verify that the
+            // _data path actually points to MMS data. That safeguards ourselves from callers who
+            // inserted or updated a URI (more specifically the _data column) with disallowed paths.
+            // TODO(afurtado): provide a more robust mechanism to avoid disallowed _data paths to
+            // be inserted/updated in the first place, including via SQL injection.
+            File appDataDirPath = new File(getContext().getApplicationInfo().dataDir
+                    + "/app_parts/");
+            // use canonical path to determin whether two paths point to the
+            // same file, because it
+            // will change symbolic link to canonical paths when comparing
+            // the paths.
             if (!filePath.getCanonicalPath()
-                    .startsWith(getContext().getApplicationInfo().dataDir + "/app_parts/")) {
+                    .startsWith(appDataDirPath.getCanonicalPath())) {
                 return null;
             }
         } catch (IOException e) {
+            Log.e(TAG, "openFile: create path failed " + e, e);
             return null;
         }
 
-        return openFileHelper(uri, mode);
+        int modeBits = ParcelFileDescriptor.parseMode(mode);
+        return ParcelFileDescriptor.open(filePath, modeBits);
     }
 
     private void filterUnsupportedKeys(ContentValues values) {

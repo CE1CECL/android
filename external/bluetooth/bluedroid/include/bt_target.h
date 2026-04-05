@@ -1,5 +1,7 @@
 /******************************************************************************
  *
+ *  Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ *  Not a Contribution.
  *  Copyright (C) 1999-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +35,9 @@
 #define BTIF_HFAG_SERVICE_NAME  ("Handsfree Gateway")
 #endif
 
+#ifndef BTIF_HF_CLIENT_SERVICE_NAME
+#define BTIF_HF_CLIENT_SERVICE_NAME  ("Handsfree")
+#endif
 
 #ifdef BUILDCFG
 
@@ -54,6 +59,10 @@
 
 
 //------------------Added from bdroid_buildcfg.h---------------------
+#ifndef I2SPCM_SLAVE_BRCM
+#define I2SPCM_SLAVE_BRCM FALSE
+#endif
+
 #ifndef UNV_INCLUDED
 #define UNV_INCLUDED FALSE
 #endif
@@ -68,6 +77,15 @@
 
 #ifndef L2CAP_EXTFEA_SUPPORTED_MASK
 #define L2CAP_EXTFEA_SUPPORTED_MASK (L2CAP_EXTFEA_ENH_RETRANS | L2CAP_EXTFEA_STREAM_MODE | L2CAP_EXTFEA_NO_CRC | L2CAP_EXTFEA_FIXED_CHNLS)
+#endif
+
+/* This feature is used to update any QCOM related changes in the stack*/
+#ifndef BLUETOOTH_QCOM_SW
+#define BLUETOOTH_QCOM_SW FALSE
+#endif
+
+#ifndef BTA_BLE_SKIP_CONN_UPD
+#define BTA_BLE_SKIP_CONN_UPD FALSE
 #endif
 
 #ifndef BTUI_OPS_FORMATS
@@ -176,7 +194,7 @@
 #endif
 
 #ifndef BTA_HD_INCLUDED
-#define BTA_HD_INCLUDED FALSE
+#define BTA_HD_INCLUDED TRUE
 #endif
 
 #ifndef BTA_HH_INCLUDED
@@ -203,9 +221,7 @@
 #define BTA_AV_VDP_INCLUDED FALSE
 #endif
 
-#ifndef BTA_AVK_INCLUDED
-#define BTA_AVK_INCLUDED FALSE
-#endif
+/* defined BTA_AVK_INCLUDED in Android.mk file based on target selected*/
 
 #ifndef BTA_PBS_INCLUDED
 #define BTA_PBS_INCLUDED FALSE
@@ -339,12 +355,12 @@
 #define BTA_AV_RET_TOUT 15
 #endif
 
-#ifndef PORCHE_PAIRING_CONFLICT
-#define PORCHE_PAIRING_CONFLICT  TRUE
-#endif
-
 #ifndef BTA_AV_CO_CP_SCMS_T
 #define BTA_AV_CO_CP_SCMS_T  FALSE
+#endif
+
+#ifndef BTA_AV_DISCONNECT_IF_NO_SCMS_T
+#define BTA_AV_DISCONNECT_IF_NO_SCMS_T  FALSE
 #endif
 
 #ifndef AVDT_CONNECT_CP_ONLY
@@ -371,6 +387,10 @@
 
 #ifndef BT_TRACE_BTIF
 #define BT_TRACE_BTIF  TRUE
+#endif
+
+#ifndef BT_TRACE_LATENCY_AUDIO
+#define BT_TRACE_LATENCY_AUDIO  TRUE
 #endif
 
 #ifndef BTTRC_INCLUDED
@@ -564,7 +584,7 @@
 /* Number of ACL buffers to assign to LE
    if the HCI buffer pool is shared with BR/EDR */
 #ifndef L2C_DEF_NUM_BLE_BUF_SHARED
-#define L2C_DEF_NUM_BLE_BUF_SHARED      1
+#define L2C_DEF_NUM_BLE_BUF_SHARED      2
 #endif
 
 /* Used by BTM when it sends HCI commands to the controller. */
@@ -749,6 +769,8 @@ BT_API extern void bte_main_hci_send (BT_HDR *p_msg, UINT16 event);
 BT_API extern void bte_main_lpm_allow_bt_device_sleep(void);
 #endif
 
+BT_API extern void bte_ssr_cleanup(void);
+
 #ifdef __cplusplus
 }
 #endif
@@ -856,9 +878,19 @@ and USER_HW_DISABLE_API macros */
 #define BTM_SCO_HCI_INCLUDED            FALSE       /* TRUE includes SCO over HCI code */
 #endif
 
+#if (BLUETOOTH_QCOM_SW == TRUE) /* Enable WBS only under this flag.*/
+#define BTM_WBS_INCLUDED            TRUE
+#define BTC_INCLUDED                TRUE
+#else
 /* Includes WBS if TRUE */
 #ifndef BTM_WBS_INCLUDED
 #define BTM_WBS_INCLUDED            FALSE       /* TRUE includes WBS code */
+#endif
+/* BTC */
+#ifndef BTC_INCLUDED
+#define BTC_INCLUDED FALSE
+#endif
+
 #endif
 
 /* Includes PCM2 support if TRUE */
@@ -1286,7 +1318,7 @@ and USER_HW_DISABLE_API macros */
 
 /* Whether link wants to be the master or the slave. */
 #ifndef L2CAP_DESIRED_LINK_ROLE
-#define L2CAP_DESIRED_LINK_ROLE     HCI_ROLE_SLAVE
+#define L2CAP_DESIRED_LINK_ROLE     HCI_ROLE_MASTER
 #endif
 
 /* Include Non-Flushable Packet Boundary Flag feature of Lisbon */
@@ -1397,6 +1429,10 @@ and USER_HW_DISABLE_API macros */
 #endif
 #endif
 
+#ifndef HCI_RAW_CMD_INCLUDED
+#define HCI_RAW_CMD_INCLUDED    TRUE
+#endif
+
 /******************************************************************************
 **
 ** BLE
@@ -1502,7 +1538,7 @@ and USER_HW_DISABLE_API macros */
 
 /* The maximum number of SDP records the server can support. */
 #ifndef SDP_MAX_RECORDS
-#define SDP_MAX_RECORDS             20
+#define SDP_MAX_RECORDS             25
 #endif
 
 /* The maximum number of attributes in each record. */
@@ -2163,6 +2199,11 @@ Range: Minimum 12000 (12 secs) on BR/EDR when supporting PBF.
 /* Default Security level for NAP role. */
 #ifndef PAN_NAP_SECURITY_LEVEL
 #define PAN_NAP_SECURITY_LEVEL           0
+#endif
+
+/*This ensures that PANU Service record will not be advertised on SDP */
+#ifndef PAN_ALWAYS_NAP_NO_PANU_ON_SDP
+#define PAN_ALWAYS_NAP_NO_PANU_ON_SDP TRUE
 #endif
 
 
@@ -2845,7 +2886,7 @@ Range: Minimum 12000 (12 secs) on BR/EDR when supporting PBF.
 #endif
 
 #ifndef HID_HOST_MAX_CONN_RETRY
-#define HID_HOST_MAX_CONN_RETRY     (3)
+#define HID_HOST_MAX_CONN_RETRY     (1)
 #endif
 
 #ifndef HID_HOST_REPAGE_WIN
@@ -3495,6 +3536,19 @@ Range: Minimum 12000 (12 secs) when supporting PBF.
 #define AVRC_ADV_CTRL_INCLUDED      TRUE
 #endif
 
+#ifndef SDP_AVRCP_1_5
+#define SDP_AVRCP_1_5               FALSE
+
+#if  SDP_AVRCP_1_5    == TRUE
+#ifndef AVCT_BROWSE_INCLUDED
+#define AVCT_BROWSE_INCLUDED        TRUE
+#else
+#ifndef AVCT_BROWSE_INCLUDED
+#define AVCT_BROWSE_INCLUDED        FALSE
+#endif
+#endif
+#endif
+#endif
 /******************************************************************************
 **
 ** MCAP
@@ -3730,6 +3784,11 @@ The maximum number of payload octets that the local device can receive in a sing
 /* When TRUE indicates that an application task is to be run */
 #ifndef APPL_INCLUDED
 #define APPL_INCLUDED                TRUE
+#endif
+
+/* TEST_APP_INTERFACE */
+#ifndef TEST_APP_INTERFACE
+#define TEST_APP_INTERFACE          TRUE
 #endif
 
 /* When TRUE remote terminal code included (RPC MUST be included) */

@@ -32,6 +32,7 @@ import android.content.Context;
 import android.os.AsyncResult;
 import android.os.Message;
 import android.os.SystemProperties;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.Rlog;
 import android.text.TextUtils;
 
@@ -41,6 +42,8 @@ import com.android.internal.telephony.MccTable;
 
 import com.android.internal.telephony.cdma.sms.UserData;
 import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppType;
+import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppState;
+import com.android.internal.telephony.uicc.UICCConfig;
 
 
 /**
@@ -57,6 +60,7 @@ public final class RuimRecords extends IccRecords {
     private String mMin2Min1;
 
     private String mPrlVersion;
+    private boolean mRecordsRequired = false;
     // From CSIM application
     private byte[] mEFpl = null;
     private byte[] mEFli = null;
@@ -65,6 +69,7 @@ public final class RuimRecords extends IccRecords {
     private String mMin;
     private String mHomeSystemId;
     private String mHomeNetworkId;
+    private boolean mMSIMRecordeEnabled = false;
 
     @Override
     public String toString() {
@@ -82,6 +87,10 @@ public final class RuimRecords extends IccRecords {
                 + " mHomeNetworkId=" + mHomeNetworkId;
     }
 
+    //Constants
+    //MNC length in case of CSIM/RUIM IMSI is 2 as per spec C.S0065 section 5.2.2
+    private static final int CSIM_IMSI_MNC_LENGTH = 2;
+
     // ***** Event Constants
     private static final int EVENT_GET_IMSI_DONE = 3;
     private static final int EVENT_GET_DEVICE_IDENTITY_DONE = 4;
@@ -95,8 +104,6 @@ public final class RuimRecords extends IccRecords {
     private static final int EVENT_SMS_ON_RUIM = 21;
     private static final int EVENT_GET_SMS_DONE = 22;
 
-    private static final int EVENT_RUIM_REFRESH = 31;
-
     public RuimRecords(UiccCardApplication app, Context c, CommandsInterface ci) {
         super(app, c, ci);
 
@@ -108,7 +115,6 @@ public final class RuimRecords extends IccRecords {
         mRecordsToLoad = 0;
 
         // NOTE the EVENT_SMS_ON_RUIM is not registered
-        mCi.registerForIccRefresh(this, EVENT_RUIM_REFRESH, null);
 
         // Start off by setting empty state
         resetRecords();
@@ -121,7 +127,6 @@ public final class RuimRecords extends IccRecords {
     public void dispose() {
         if (DBG) log("Disposing RuimRecords " + this);
         //Unregister for all events
-        mCi.unregisterForIccRefresh(this);
         mParentApp.unregisterForReady(this);
         resetRecords();
         super.dispose();
@@ -133,7 +138,6 @@ public final class RuimRecords extends IccRecords {
     }
 
     protected void resetRecords() {
-        mCountVoiceMessages = 0;
         mMncLength = UNINITIALIZED;
         mIccId = null;
 
@@ -149,11 +153,6 @@ public final class RuimRecords extends IccRecords {
         // read requests made so far are not valid. This is set to
         // true only when fresh set of read requests are made.
         mRecordsRequested = false;
-    }
-
-    @Override
-    public String getIMSI() {
-        return mImsi;
     }
 
     public String getMdnNumber() {
@@ -193,23 +192,79 @@ public final class RuimRecords extends IccRecords {
         }
     }
 
-    private int adjstMinDigits (int digits) {
+    private int decodeImsiDigits(int digits, int length) {
         // Per C.S0005 section 2.3.1.
-        digits += 111;
-        digits = (digits % 10 == 0)?(digits - 10):digits;
-        digits = ((digits / 10) % 10 == 0)?(digits - 100):digits;
-        digits = ((digits / 100) % 10 == 0)?(digits - 1000):digits;
+        int constant = 0;
+        for (int i = 0; i < length; i++ ) {
+            constant = (constant * 10) + 1;
+        }
+
+        digits += constant;
+
+        for (int i = 0, denominator = 1; i < length; i++) {
+            digits = ((digits / denominator) % 10 == 0) ? (digits - (10 * denominator)) : digits;
+            denominator *= 10;
+        }
         return digits;
     }
+
+    /**
+     * Decode utility to decode IMSI from data read from EF_IMSIM
+     * Please refer to
+     *       // C.S0065 section 5.2.2 for IMSI_M encoding
+     *       // C.S0005 section 2.3.1 for MIN encoding in IMSI_M.
+     */
+    private String decodeImsi(byte[] data) {
+        // Retrieve the MCC and digits 11 and 12
+        int mcc_data = ((0x03 & data[9]) << 8) | (0xFF & data[8]);
+        int mcc = decodeImsiDigits(mcc_data, 3);
+        int digits_11_12_data = data[6] & 0x7f;
+        int digits_11_12 = decodeImsiDigits(digits_11_12_data, 2);
+
+        // Retrieve 10 MIN digits
+        int first3digits = ((0x03 & data[2]) << 8) + (0xFF & data[1]);
+        int second3digits = (((0xFF & data[5]) << 8) | (0xFF & data[4])) >> 6;
+        int digit7 = 0x0F & (data[4] >> 2);
+        if (digit7 > 0x09) digit7 = 0;
+        int last3digits = ((0x03 & data[4]) << 8) | (0xFF & data[3]);
+
+        first3digits = decodeImsiDigits(first3digits, 3);
+        second3digits = decodeImsiDigits(second3digits, 3);
+        last3digits = decodeImsiDigits(last3digits, 3);
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(String.format(Locale.US, "%03d", mcc));
+        builder.append(String.format(Locale.US, "%02d", digits_11_12));
+        builder.append(String.format(Locale.US, "%03d", first3digits));
+        builder.append(String.format(Locale.US, "%03d", second3digits));
+        builder.append(String.format(Locale.US, "%d", digit7));
+        builder.append(String.format(Locale.US, "%03d", last3digits));
+        return  builder.toString();
+    }
+
 
     /**
      * Returns the 5 or 6 digit MCC/MNC of the operator that
      *  provided the RUIM card. Returns null of RUIM is not yet ready
      */
-    public String getRUIMOperatorNumeric() {
+
+    @Override
+    public String getOperatorNumeric() {
         if (mImsi == null) {
             return null;
         }
+
+        if (SystemProperties.getBoolean("ro.telephony.get_imsi_from_sim", false)) {
+            String imsi = mParentApp.getUICCConfig().getImsi();
+            int mnclength = mParentApp.getUICCConfig().getMncLength();
+
+            // If we are LTE over CDMA (Verizon), then pull the correct info from SIMRecords
+            if (imsi != null) {
+                log("Overriding with Operator Numeric: " + imsi.substring(0, 3 + mnclength));
+                return imsi.substring(0, 3 + mnclength);
+            }
+        }
+
 
         if (mMncLength != UNINITIALIZED && mMncLength != UNKNOWN) {
             // Length = length of MCC + length of MNC
@@ -221,7 +276,7 @@ public final class RuimRecords extends IccRecords {
         // have a valid value in ef[ad]
 
         int mcc = Integer.parseInt(mImsi.substring(0,3));
-        return mImsi.substring(0, 3 + MccTable.smallestDigitsMccForMnc(mcc));
+        return mImsi.substring(0, 3 + CSIM_IMSI_MNC_LENGTH);
     }
 
     // Refer to ETSI TS 102.221
@@ -305,8 +360,20 @@ public final class RuimRecords extends IccRecords {
                     break;
                 case UserData.ENCODING_IA5:
                 case UserData.ENCODING_GSM_7BIT_ALPHABET:
-                case UserData.ENCODING_7BIT_ASCII:
                     mSpn = GsmAlphabet.gsm7BitPackedToString(spnData, 0, (numBytes*8)/7);
+                    break;
+                case UserData.ENCODING_7BIT_ASCII:
+                    mSpn =  new String(spnData, 0, numBytes, "US-ASCII");
+                        // To address issues with incorrect encoding scheme
+                        // programmed in some commercial CSIM cards, the decoded
+                        // SPN is checked to have characters in printable ASCII
+                        // range. If not, they are decoded with
+                        // ENCODING_GSM_7BIT_ALPHABET scheme.
+                    if (!TextUtils.isPrintableAsciiOnly(mSpn)) {
+                        if (DBG) log("Some corruption in SPN decoding = " + mSpn);
+                        if (DBG) log("Using ENCODING_GSM_7BIT_ALPHABET scheme...");
+                        mSpn = GsmAlphabet.gsm7BitPackedToString(spnData, 0, (numBytes*8)/7);
+                    }
                     break;
                 case UserData.ENCODING_UNICODE_16:
                     mSpn =  new String(spnData, 0, numBytes, "utf-16");
@@ -349,33 +416,42 @@ public final class RuimRecords extends IccRecords {
         @Override
         public void onRecordLoaded(AsyncResult ar) {
             byte[] data = (byte[]) ar.result;
+
+            if (data == null || data.length < 10) {
+                log("Invalid IMSI from EF_CSIM_IMSIM " + IccUtils.bytesToHexString(data));
+                mImsi = null;
+                mMin = null;
+                return;
+            }
             if (DBG) log("CSIM_IMSIM=" + IccUtils.bytesToHexString(data));
+
             // C.S0065 section 5.2.2 for IMSI_M encoding
             // C.S0005 section 2.3.1 for MIN encoding in IMSI_M.
             boolean provisioned = ((data[7] & 0x80) == 0x80);
 
             if (provisioned) {
-                int first3digits = ((0x03 & data[2]) << 8) + (0xFF & data[1]);
-                int second3digits = (((0xFF & data[5]) << 8) | (0xFF & data[4])) >> 6;
-                int digit7 = 0x0F & (data[4] >> 2);
-                if (digit7 > 0x09) digit7 = 0;
-                int last3digits = ((0x03 & data[4]) << 8) | (0xFF & data[3]);
-                first3digits = adjstMinDigits(first3digits);
-                second3digits = adjstMinDigits(second3digits);
-                last3digits = adjstMinDigits(last3digits);
+                mImsi = decodeImsi(data);
+                if (null != mImsi) {
+                    mMin = mImsi.substring(5, 15);
+                }
+                log("IMSI: " + mImsi.substring(0, 5) + "xxxxxxxxx");
 
-                StringBuilder builder = new StringBuilder();
-                builder.append(String.format(Locale.US, "%03d", first3digits));
-                builder.append(String.format(Locale.US, "%03d", second3digits));
-                builder.append(String.format(Locale.US, "%d", digit7));
-                builder.append(String.format(Locale.US, "%03d", last3digits));
-                mMin = builder.toString();
-                if (DBG) log("min present=" + mMin);
             } else {
-                if (DBG) log("min not present");
+                if (DBG) log("IMSI not provisioned in card");
             }
+
+            //Update MccTable with the retrieved IMSI
+            String operatorNumeric = getOperatorNumeric();
+            if (operatorNumeric != null) {
+                if(operatorNumeric.length() <= 6) {
+                    mMSIMRecordeEnabled = true;
+                    MccTable.updateMccMncConfiguration(mContext, operatorNumeric, false);
+                }
+            }
+
+            mImsiReadyRegistrants.notifyRegistrants();
         }
-    }
+   }
 
     private class EfCsimCdmaHomeLoaded implements IccRecordLoaded {
         @Override
@@ -480,13 +556,13 @@ public final class RuimRecords extends IccRecords {
 
                 log("IMSI: " + mImsi.substring(0, 6) + "xxxxxxxxx");
 
-                String operatorNumeric = getRUIMOperatorNumeric();
+                String operatorNumeric = getOperatorNumeric();
                 if (operatorNumeric != null) {
-                    if(operatorNumeric.length() <= 6){
+                    if(operatorNumeric.length() <= 6) {
                         MccTable.updateMccMncConfiguration(mContext, operatorNumeric, false);
                     }
                 }
-            break;
+                break;
 
             case EVENT_GET_CDMA_SUBSCRIPTION_DONE:
                 ar = (AsyncResult)msg.obj;
@@ -537,14 +613,6 @@ public final class RuimRecords extends IccRecords {
             case EVENT_GET_SST_DONE:
                 log("Event EVENT_GET_SST_DONE Received");
             break;
-
-            case EVENT_RUIM_REFRESH:
-                isRecordLoadResponse = false;
-                ar = (AsyncResult)msg.obj;
-                if (ar.exception == null) {
-                    handleRuimRefresh((IccRefreshResponse)ar.result);
-                }
-                break;
 
             default:
                 super.handleMessage(msg);   // IccRecords handles generic record load responses
@@ -628,25 +696,6 @@ public final class RuimRecords extends IccRecords {
     protected void onAllRecordsLoaded() {
         if (DBG) log("record load complete");
 
-        // Further records that can be inserted are Operator/OEM dependent
-
-        String operator = getRUIMOperatorNumeric();
-        if (!TextUtils.isEmpty(operator)) {
-            log("onAllRecordsLoaded set 'gsm.sim.operator.numeric' to operator='" +
-                    operator + "'");
-            SystemProperties.set(PROPERTY_ICC_OPERATOR_NUMERIC, operator);
-        } else {
-            log("onAllRecordsLoaded empty 'gsm.sim.operator.numeric' skipping");
-        }
-
-        if (!TextUtils.isEmpty(mImsi)) {
-            log("onAllRecordsLoaded set mcc imsi=" + mImsi);
-            SystemProperties.set(PROPERTY_ICC_OPERATOR_ISO_COUNTRY,
-                    MccTable.countryCodeForMcc(Integer.parseInt(mImsi.substring(0,3))));
-        } else {
-            log("onAllRecordsLoaded empty imsi skipping setting mcc");
-        }
-
         setLocaleFromCsim();
         mRecordsLoadedRegistrants.notifyRegistrants(
             new AsyncResult(null, null, null));
@@ -659,14 +708,41 @@ public final class RuimRecords extends IccRecords {
         mCi.getCDMASubscription(obtainMessage(EVENT_GET_CDMA_SUBSCRIPTION_DONE));
     }
 
+    /**
+     * Called by IccCardProxy before it requests records.
+     * We use this as a trigger to read records from the card.
+     */
+    void recordsRequired() {
+        if (DBG) log("recordsRequired mRecordsRequired = " + mRecordsRequired);
+        if (!mRecordsRequired) {
+            mRecordsRequired = true;
+            // trigger to retrieve all records
+            fetchRuimRecords();
+        }
+    }
 
     private void fetchRuimRecords() {
+        /* Don't read records if we don't expect
+         * anyone to ask for them
+         *
+         * If records are not required by anyone OR
+         * the app is not ready then bail
+         */
+        if (!mRecordsRequired || AppState.APPSTATE_READY != mParentApp.getState()) {
+            if (DBG) log("fetchRuimRecords: Abort fetching records rRecordsRequested = "
+                            + mRecordsRequested
+                            + " state = " + mParentApp.getState()
+                            + " required = " + mRecordsRequired);
+            return;
+        }
+
         mRecordsRequested = true;
 
         if (DBG) log("fetchRuimRecords " + mRecordsToLoad);
-
-        mCi.getIMSIForApp(mParentApp.getAid(), obtainMessage(EVENT_GET_IMSI_DONE));
-        mRecordsToLoad++;
+        if (!mMSIMRecordeEnabled) {
+            mCi.getIMSIForApp(mParentApp.getAid(), obtainMessage(EVENT_GET_IMSI_DONE));
+            mRecordsToLoad++;
+        }
 
         mFh.loadEFTransparent(EF_ICCID,
                 obtainMessage(EVENT_GET_ICCID_DONE));
@@ -701,6 +777,8 @@ public final class RuimRecords extends IccRecords {
         mFh.loadEFTransparent(EF_CSIM_EPRL, 4,
                 obtainMessage(EVENT_GET_ICC_RECORD_DONE, new EfCsimEprlLoaded()));
         mRecordsToLoad++;
+
+        mFh.getEFLinearRecordSize(EF_SMS, obtainMessage(EVENT_GET_SMS_RECORD_SIZE_DONE));
 
         if (DBG) log("fetchRuimRecords " + mRecordsToLoad + " requested: " + mRecordsRequested);
         // Further records that can be inserted are Operator/OEM dependent
@@ -742,63 +820,23 @@ public final class RuimRecords extends IccRecords {
 
     @Override
     public void setVoiceMessageWaiting(int line, int countWaiting) {
-        if (line != 1) {
-            // only profile 1 is supported
-            return;
-        }
-
-        // range check
-        if (countWaiting < 0) {
-            countWaiting = -1;
-        } else if (countWaiting > 0xff) {
-            // C.S0015-B v2, 4.5.12
-            // range: 0-99
-            countWaiting = 0xff;
-        }
-        mCountVoiceMessages = countWaiting;
-
-        mRecordsEventsRegistrants.notifyResult(EVENT_MWI);
+        // Will be used in future to store voice mail count in UIM
+        // C.S0023-D_v1.0 does not have a file id in UIM for MWI
+        log("RuimRecords:setVoiceMessageWaiting - NOP for CDMA");
     }
 
-    private void handleRuimRefresh(IccRefreshResponse refreshResponse) {
-        if (refreshResponse == null) {
-            if (DBG) log("handleRuimRefresh received without input");
-            return;
-        }
+    @Override
+    public int getVoiceMessageCount() {
+        // Will be used in future to retrieve voice mail count for UIM
+        // C.S0023-D_v1.0 does not have a file id in UIM for MWI
+        log("RuimRecords:getVoiceMessageCount - NOP for CDMA");
+        return 0;
+    }
 
-        if (refreshResponse.aid != null &&
-                !refreshResponse.aid.equals(mParentApp.getAid())) {
-            // This is for different app. Ignore.
-            return;
-        }
-
-        switch (refreshResponse.refreshResult) {
-            case IccRefreshResponse.REFRESH_RESULT_FILE_UPDATE:
-                if (DBG) log("handleRuimRefresh with SIM_REFRESH_FILE_UPDATED");
-                mAdnCache.reset();
-                fetchRuimRecords();
-                break;
-            case IccRefreshResponse.REFRESH_RESULT_INIT:
-                if (DBG) log("handleRuimRefresh with SIM_REFRESH_INIT");
-                // need to reload all files (that we care about)
-                onIccRefreshInit();
-                break;
-            case IccRefreshResponse.REFRESH_RESULT_RESET:
-                if (DBG) log("handleRuimRefresh with SIM_REFRESH_RESET");
-                mCi.setRadioPower(false, null);
-                /* Note: no need to call setRadioPower(true).  Assuming the desired
-                * radio power state is still ON (as tracked by ServiceStateTracker),
-                * ServiceStateTracker will call setRadioPower when it receives the
-                * RADIO_STATE_CHANGED notification for the power off.  And if the
-                * desired power state has changed in the interim, we don't want to
-                * override it with an unconditional power on.
-                */
-                break;
-            default:
-                // unknown refresh operation
-                if (DBG) log("handleRuimRefresh with unknown operation");
-                break;
-        }
+    @Override
+    protected void handleFileUpdate(int efid) {
+        mAdnCache.reset();
+        fetchRuimRecords();
     }
 
     public String getMdn() {
@@ -847,5 +885,13 @@ public final class RuimRecords extends IccRecords {
         pw.println(" mHomeSystemId=" + mHomeSystemId);
         pw.println(" mHomeNetworkId=" + mHomeNetworkId);
         pw.flush();
+    }
+
+    private void setSystemProperty(String key, String val) {
+        // Update the system properties only in case NON-DSDS.
+        // TODO: Shall have a better approach!
+        if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            SystemProperties.set(key, val);
+        }
     }
 }

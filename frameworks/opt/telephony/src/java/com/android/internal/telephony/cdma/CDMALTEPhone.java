@@ -26,6 +26,7 @@ import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Telephony;
 import android.telephony.Rlog;
+import android.telephony.ServiceState;
 
 import com.android.internal.telephony.CommandsInterface;
 
@@ -112,6 +113,10 @@ public class CDMALTEPhone extends CDMAPhone {
             // removeReferences() have already been called
 
             ret = PhoneConstants.DataState.DISCONNECTED;
+        } else if (mSST.getCurrentDataConnectionState() != ServiceState.STATE_IN_SERVICE &&
+                            mOosIsDisconnect) {
+            ret = PhoneConstants.DataState.DISCONNECTED;
+            log("getDataConnectionState: Data is Out of Service. ret = " + ret);
         } else if (mDcTracker.isApnTypeEnabled(apnType) == false) {
             ret = PhoneConstants.DataState.DISCONNECTED;
         } else {
@@ -195,27 +200,6 @@ public class CDMALTEPhone extends CDMAPhone {
 
     }
 
-
-    /**
-     * Sets the "current" field in the telephony provider according to the
-     * build-time operator numeric property
-     *
-     * @return true for success; false otherwise.
-     */
-    @Override
-    boolean updateCurrentCarrierInProvider(String operatorNumeric) {
-        boolean retVal;
-        if (mUiccController.getUiccCardApplication(UiccController.APP_FAM_3GPP) == null) {
-            if (DBG) log("updateCurrentCarrierInProvider APP_FAM_3GPP == null");
-            retVal = super.updateCurrentCarrierInProvider(operatorNumeric);
-        } else {
-            if (DBG) log("updateCurrentCarrierInProvider not updated");
-            retVal = true;
-        }
-        if (DBG) log("updateCurrentCarrierInProvider X retVal=" + retVal);
-        return retVal;
-    }
-
     @Override
     public boolean updateCurrentCarrierInProvider() {
         if (mSimRecords != null) {
@@ -237,11 +221,14 @@ public class CDMALTEPhone extends CDMAPhone {
         return false;
     }
 
-    // return IMSI from USIM as subscriber ID.
-    @Override
-    public String getSubscriberId() {
-        return (mSimRecords != null) ? mSimRecords.getIMSI() : "";
-    }
+   @Override
+   public String getSubscriberId() {
+       if ((super.getSubscriberId()) != null) {
+           return super.getSubscriberId();
+       } else {
+           return (mSimRecords != null) ? mSimRecords.getIMSI() : "";
+       }
+   }
 
     // return GID1 from USIM
     @Override

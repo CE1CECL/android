@@ -33,6 +33,10 @@
 
 #include "SoftMPEG4Encoder.h"
 
+#ifndef INT32_MAX
+#define INT32_MAX   2147483647
+#endif
+
 namespace android {
 
 template<class T>
@@ -125,6 +129,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::initEncParams() {
         ALOGE("Failed to get default encoding parameters");
         return OMX_ErrorUndefined;
     }
+    if (mVideoFrameRate == 0) {
+        ALOGE("Framerate should not be 0");
+        return OMX_ErrorUndefined;
+    }
     mEncParams->encMode = mEncodeMode;
     mEncParams->encWidth[0] = mVideoWidth;
     mEncParams->encHeight[0] = mVideoHeight;
@@ -149,7 +157,12 @@ OMX_ERRORTYPE SoftMPEG4Encoder::initEncParams() {
 
     if (mVideoColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
         // Color conversion is needed.
-        CHECK(mInputFrameData == NULL);
+        free(mInputFrameData);
+        mInputFrameData = NULL;
+        if (((uint64_t)mVideoWidth * mVideoHeight) > ((uint64_t)INT32_MAX / 3)) {
+            ALOGE("b/25812794, Buffer size is too big.");
+            return OMX_ErrorBadParameter;
+        }
         mInputFrameData =
             (uint8_t *) malloc((mVideoWidth * mVideoHeight * 3 ) >> 1);
         CHECK(mInputFrameData != NULL);
@@ -308,6 +321,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalGetParameter(
             OMX_VIDEO_PARAM_BITRATETYPE *bitRate =
                 (OMX_VIDEO_PARAM_BITRATETYPE *) params;
 
+            if (!isValidOMXParam(bitRate)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (bitRate->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
             }
@@ -356,6 +373,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalGetParameter(
             OMX_VIDEO_PARAM_H263TYPE *h263type =
                 (OMX_VIDEO_PARAM_H263TYPE *)params;
 
+            if (!isValidOMXParam(h263type)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (h263type->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
             }
@@ -376,6 +397,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalGetParameter(
         {
             OMX_VIDEO_PARAM_MPEG4TYPE *mpeg4type =
                 (OMX_VIDEO_PARAM_MPEG4TYPE *)params;
+
+            if (!isValidOMXParam(mpeg4type)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (mpeg4type->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
@@ -439,6 +464,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalSetParameter(
         {
             OMX_VIDEO_PARAM_BITRATETYPE *bitRate =
                 (OMX_VIDEO_PARAM_BITRATETYPE *) params;
+
+            if (!isValidOMXParam(bitRate)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (bitRate->nPortIndex != 1 ||
                 bitRate->eControlRate != OMX_Video_ControlRateVariable) {
@@ -548,6 +577,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalSetParameter(
             OMX_VIDEO_PARAM_H263TYPE *h263type =
                 (OMX_VIDEO_PARAM_H263TYPE *)params;
 
+            if (!isValidOMXParam(h263type)) {
+                return OMX_ErrorBadParameter;
+            }
+
             if (h263type->nPortIndex != 1) {
                 return OMX_ErrorUndefined;
             }
@@ -569,6 +602,10 @@ OMX_ERRORTYPE SoftMPEG4Encoder::internalSetParameter(
         {
             OMX_VIDEO_PARAM_MPEG4TYPE *mpeg4type =
                 (OMX_VIDEO_PARAM_MPEG4TYPE *)params;
+
+            if (!isValidOMXParam(mpeg4type)) {
+                return OMX_ErrorBadParameter;
+            }
 
             if (mpeg4type->nPortIndex != 1) {
                 return OMX_ErrorUndefined;

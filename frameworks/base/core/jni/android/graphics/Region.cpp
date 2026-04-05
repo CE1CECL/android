@@ -175,9 +175,18 @@ static SkRegion* Region_createFromParcel(JNIEnv* env, jobject clazz, jobject par
 
     android::Parcel* p = android::parcelForJavaObject(env, parcel);
 
+    const size_t size = p->readInt32();
+    const void* regionData = p->readInplace(size);
+    if (regionData == NULL) {
+        return NULL;
+    }
     SkRegion* region = new SkRegion;
-    size_t size = p->readInt32();
-    region->readFromMemory(p->readInplace(size), size);
+    size_t actualSize = region->readFromMemory(regionData, size);
+
+    if (size != actualSize) {
+        delete region;
+        return NULL;
+    }
 
     return region;
 }

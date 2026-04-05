@@ -35,8 +35,12 @@ public class CarrierContentRestriction implements ContentRestriction {
     private static final ArrayList<String> sSupportedVideoTypes;
     private static final boolean DEBUG = true;
 
+    public static final String IMAGE_BMP = "image/bmp";
+
     static {
         sSupportedImageTypes = ContentType.getImageTypes();
+        // Add a ContentType for .bmp
+        sSupportedImageTypes.add(IMAGE_BMP);
         sSupportedAudioTypes = ContentType.getAudioTypes();
         sSupportedVideoTypes = ContentType.getVideoTypes();
     }
@@ -57,7 +61,10 @@ public class CarrierContentRestriction implements ContentRestriction {
         }
         int newSize = messageSize + increaseSize;
 
-        if ( (newSize < 0) || (newSize > MmsConfig.getMaxMessageSize()) ) {
+        // 0, and MmsConfig.getMaxMessageSize() - SlideshowModel.SLIDESHOW_SLOP is limitation.
+        // Reserve SlideshowModel.SLIDESHOW_SLOP(1k) for overhead.
+        if ( (newSize < 0) || ((newSize + SlideshowModel.SLIDESHOW_SLOP)
+                      > MmsConfig.getMaxMessageSize() )) {
             throw new ExceedMessageSizeException("Exceed message size limitation");
         }
     }

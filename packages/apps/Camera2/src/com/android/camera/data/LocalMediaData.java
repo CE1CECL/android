@@ -457,6 +457,7 @@ public abstract class LocalMediaData implements LocalData {
                 return null;
             }
             PhotoData newData = buildFromCursor(c);
+            c.close();
             return newData;
         }
 
@@ -636,6 +637,14 @@ public abstract class LocalMediaData implements LocalData {
             int height = c.getInt(COL_HEIGHT);
             MediaMetadataRetriever retriever = new MediaMetadataRetriever();
             String rotation = null;
+
+            File origFile = new File(path);
+            if (!origFile.exists() || origFile.length() <= 0) {
+                Log.e(TAG, "Invalid video file");
+                retriever.release();
+                return null;
+            }
+
             try {
                 retriever.setDataSource(path);
             } catch (RuntimeException ex) {
@@ -736,6 +745,7 @@ public abstract class LocalMediaData implements LocalData {
                 return null;
             }
             VideoData newData = buildFromCursor(c);
+            c.close();
             return newData;
         }
 

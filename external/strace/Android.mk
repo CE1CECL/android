@@ -1,23 +1,8 @@
 # Copyright 2006 The Android Open Source Project
 
 LOCAL_PATH := $(my-dir)
-include $(CLEAR_VARS)
 
-# From autoconf-generated Makefile
-strace_SOURCES = strace.c syscall.c count.c util.c desc.c file.c ipc.c \
-                 io.c ioctl.c mem.c net.c process.c bjm.c quota.c \
-                 resource.c signal.c sock.c system.c term.c time.c \
-                 proc.c stream.c block.c
-
-#excluded_sources = scsi.c
-
-strace_VERSION = 4.6
-
-LOCAL_SRC_FILES:= $(strace_SOURCES)
-
-LOCAL_SHARED_LIBRARIES :=
-
-LOCAL_CFLAGS := -DLINUX=1 \
+common_cflags := -DLINUX=1 \
 	-DGETGROUPS_T=gid_t \
 	-DHAVE_ASM_SIGCONTEXT_H=1 \
 	-DHAVE_DECL_SYS_ERRLIST=1 \
@@ -107,31 +92,59 @@ LOCAL_CFLAGS := -DLINUX=1 \
 
 arch := $(TARGET_ARCH)
 ifeq ($(TARGET_ARCH),arm)
-	LOCAL_CFLAGS += -DARM=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
-	LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
+	common_cflags += -DARM=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+	common_cflags += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
 else ifeq ($(TARGET_ARCH),x86)
-	LOCAL_CFLAGS += -DI386=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
-        LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
+	common_cflags += -DI386=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+        common_cflags += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
 	arch := i386
 else ifeq ($(TARGET_ARCH),sh)
-	LOCAL_CFLAGS += -DSH=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
-        LOCAL_CFLAGS += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
+	common_cflags += -DSH=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+        common_cflags += -DHAVE_STRUCT___OLD_KERNEL_STAT=1
 else ifeq ($(TARGET_ARCH),mips)
-	LOCAL_CFLAGS += -DMIPS=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
+	common_cflags += -DMIPS=1 -DHAVE_LITTLE_ENDIAN_LONG_LONG=1
 #	Mips does not use STRUCT__OLD_KERNEL_STAT type
 endif
 
-LOCAL_CFLAGS += -Wno-missing-field-initializers
+common_cflags += -Wno-missing-field-initializers
 
-LOCAL_C_INCLUDES := \
+common_c_includes := \
 	$(KERNEL_HEADERS) \
 	$(LOCAL_PATH)/linux \
 	$(LOCAL_PATH)/linux/$(arch)
 
+
+
+# From autoconf-generated Makefile
+strace_SOURCES = strace.c syscall.c count.c util.c desc.c file.c ipc.c \
+                 io.c ioctl.c mem.c net.c process.c bjm.c quota.c \
+                 resource.c signal.c sock.c system.c term.c time.c \
+                 proc.c stream.c block.c
+
+#excluded_sources = scsi.c
+
+strace_VERSION = 4.6
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES:= $(strace_SOURCES)
+LOCAL_CFLAGS := $(common_cflags)
+LOCAL_SHARED_LIBRARIES :=
 LOCAL_MODULE := strace
-
+LOCAL_C_INCLUDES := $(common_c_includes)
 LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
-
 LOCAL_MODULE_TAGS := debug
+include $(BUILD_EXECUTABLE)
 
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES:= $(strace_SOURCES)
+LOCAL_CFLAGS := $(common_cflags)
+LOCAL_MODULE := strace_static
+LOCAL_C_INCLUDES := $(common_c_includes)
+LOCAL_MODULE_STEM := strace
+LOCAL_MODULE_CLASS := UTILITY_EXECUTABLES
+LOCAL_UNSTRIPPED_PATH := $(PRODUCT_OUT)/symbols/utilities
+LOCAL_MODULE_PATH := $(PRODUCT_OUT)/utilities
+LOCAL_MODULE_TAGS := eng
+LOCAL_STATIC_LIBRARIES := libc
+LOCAL_FORCE_STATIC_EXECUTABLE := true
 include $(BUILD_EXECUTABLE)

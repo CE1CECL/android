@@ -20,18 +20,23 @@ import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemProperties;
+import android.provider.Settings;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Connection;
+import com.android.internal.telephony.MSimConstants;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.cdma.CdmaCallWaitingNotification;
+import com.android.internal.telephony.gsm.SuppServiceNotification;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
 import com.android.services.telephony.common.Call;
+import com.android.services.telephony.common.CallDetails;
 import com.android.services.telephony.common.Call.Capabilities;
 import com.android.services.telephony.common.Call.State;
 
@@ -42,6 +47,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Lists;
 
+import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,6 +101,9 @@ public class CallModeler extends Handler {
     private final ArrayList<Listener> mListeners = new ArrayList<Listener>();
     private Connection mCdmaIncomingConnection;
     private Connection mCdmaOutgoingConnection;
+    private boolean mNextGsmCallIsForwarded;
+    private SuppServiceNotification mSuppSvcNotification;
+    private boolean mVoicePrivacyState = false;
 
     public CallModeler(CallStateMonitor callStateMonitor, CallManager callManager,
             CallGatewayManager callGatewayManager) {
@@ -124,6 +133,39 @@ public class CallModeler extends Handler {
             case CallStateMonitor.PHONE_ON_DIAL_CHARS:
                 onPostDialChars((AsyncResult) msg.obj, (char) msg.arg1);
                 break;
+            case CallStateMonitor.PHONE_SUPP_SERVICE_NOTIFY:
+                if (DBG) Log.d(TAG, "Received Supplementary Notification");
+                if (msg.obj != null) {
+                    onSuppServiceNotification((AsyncResult) msg.obj);
+                }
+                break;
+            case CallStateMonitor.PHONE_ACTIVE_SUBSCRIPTION_CHANGE:
+                onActiveSubChanged((AsyncResult) msg.obj);
+                break;
+            case CallStateMonitor.PHONE_SUPP_SERVICE_FAILED:
+                AsyncResult r = (AsyncResult) msg.obj;
+                Phone.SuppService service = (Phone.SuppService) r.result;
+                int val = service.ordinal();
+                if (DBG) Log.d(TAG, "SUPP_SERVICE_FAILED..." +service);
+                for (int i = 0; i < mListeners.size(); i++) {
+                    mListeners.get(i).onSuppServiceFailed(val);
+                }
+                break;
+            case CallStateMonitor.PHONE_ENHANCED_VP_ON:
+                if (DBG) Log.d(TAG, "PHONE_ENHANCED_VP_ON...");
+                if (!mVoicePrivacyState) {
+                    mVoicePrivacyState = true;
+                    onPhoneStateChanged(null);
+                }
+                break;
+            case CallStateMonitor.PHONE_ENHANCED_VP_OFF:
+                if (DBG) Log.d(TAG, "PHONE_ENHANCED_VP_OFF...");
+                if (mVoicePrivacyState) {
+                    mVoicePrivacyState = false;
+                    onPhoneStateChanged(null);
+                }
+                break;
+
             default:
                 break;
         }
@@ -294,10 +336,24 @@ public class CallModeler extends Handler {
         final Call call = getCallFromMap(mCallMap, conn, true);
 
         if (call != null) {
-            updateCallFromConnection(call, conn, false);
+            Phone phone = conn.getCall().getPhone();
+            if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_GSM && mNextGsmCallIsForwarded) {
+                call.setForwarded(true);
+                mNextGsmCallIsForwarded = false;
+            }
 
+            updateCallFromConnection(call, conn, false);
             for (int i = 0; i < mListeners.size(); ++i) {
                 mListeners.get(i).onIncoming(call);
+            }
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                int subscription = conn.getCall().getPhone().getSubscription();
+                Log.i(TAG, "Setting Active sub : '" + subscription + "'");
+                PhoneUtils.setActiveSubscription(subscription);
+                // if any local hold tones are playing then they need to be stoped.
+                final MSimCallNotifier notifier =
+                        (MSimCallNotifier) PhoneGlobals.getInstance().notifier;
+                notifier.manageLocalCallWaitingTone();
             }
         }
 
@@ -305,8 +361,19 @@ public class CallModeler extends Handler {
         return call;
     }
 
+    /* package */void onUnsolCallModify(Connection conn) {
+        final Call call = getCallFromMap(mCallMap, conn, false);
+        copyDetails(conn.getCallModify().call_details, call.getCallModifyDetails(),
+                conn.getCallModify().error + "");
+        for (int i = 0; i < mListeners.size(); i++) {
+            mListeners.get(i).onModifyCall(call);
+        }
+    }
+
     private void onDisconnect(Connection conn) {
         Log.i(TAG, "onDisconnect");
+
+        mVoicePrivacyState = false;
         final Call call = getCallFromMap(mCallMap, conn, false);
 
         if (call != null) {
@@ -327,8 +394,84 @@ public class CallModeler extends Handler {
             mCallMap.remove(conn);
         }
 
-        mCallManager.clearDisconnected();
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled() && (call != null)) {
+            mCallManager.clearDisconnected(call.getSubscription());
+        } else {
+            mCallManager.clearDisconnected();
+        }
         PhoneGlobals.getInstance().updateWakeState();
+    }
+
+    private void onSuppServiceNotification(AsyncResult r) {
+        SuppServiceNotification notification = (SuppServiceNotification) r.result;
+        Phone gsmPhone = PhoneUtils.getGsmPhone(mCallManager);
+
+        Log.d(TAG, "SS Notification: " + notification);
+
+        if (notification.notificationType == SuppServiceNotification.NOTIFICATION_TYPE_MT) {
+            if (notification.code == SuppServiceNotification.MT_CODE_FORWARDED_CALL
+                    || notification.code == SuppServiceNotification.MT_CODE_DEFLECTED_CALL) {
+                com.android.internal.telephony.Call ringing = gsmPhone.getRingingCall();
+                if (ringing.getState().isRinging()) {
+                    final Call call = getCallForEarliestConnection(ringing);
+                    if (call != null) {
+                        call.setForwarded(true);
+                        notifyUpdateListeners(call);
+                    }
+                } else {
+                    mNextGsmCallIsForwarded = true;
+                }
+            } else if (notification.code == SuppServiceNotification.MT_CODE_CALL_ON_HOLD
+                    || notification.code == SuppServiceNotification.MT_CODE_CALL_RETRIEVED) {
+                final Call call = getCallForEarliestConnection(gsmPhone.getForegroundCall());
+                if (call != null) {
+                    boolean nowHeld = notification.code ==
+                            SuppServiceNotification.MT_CODE_CALL_ON_HOLD;
+                    call.setHeldRemotely(nowHeld);
+                    notifyUpdateListeners(call);
+                }
+            } else if (notification.code ==
+                    SuppServiceNotification.MT_CODE_ADDITIONAL_CALL_FORWARDED) {
+                com.android.internal.telephony.Call fgCall = gsmPhone.getForegroundCall();
+                if (fgCall.getState().isAlive()) {
+                    final Call call = getCallForEarliestConnection(fgCall);
+                    if (call != null) {
+                        call.setAdditionalCallForwarded(true);
+                        notifyUpdateListeners(call);
+                    }
+                }
+            }
+        } else if (notification.notificationType == SuppServiceNotification.NOTIFICATION_TYPE_MO) {
+            if (notification.code == SuppServiceNotification.MO_CODE_CALL_IS_WAITING) {
+                com.android.internal.telephony.Call fgCall = gsmPhone.getForegroundCall();
+                if (fgCall.getState().isDialing()) {
+                    final Call call = getCallForEarliestConnection(fgCall);
+                    if (call != null) {
+                        call.setDialingIsWaiting(true);
+                        notifyUpdateListeners(call);
+                    }
+                }
+            } else if (notification.code ==
+                    SuppServiceNotification.MO_CODE_INCOMING_CALLS_BARRED) {
+                final Call call = getCallForEarliestConnection(gsmPhone.getForegroundCall());
+                if (call != null) {
+                    call.setRemoteIncomingCallBarringEnabled(true);
+                    notifyUpdateListeners(call);
+                }
+            }
+        }
+    }
+
+    private Call getCallForEarliestConnection(com.android.internal.telephony.Call call) {
+        return getCallFromMap(mCallMap, call.getEarliestConnection(), false);
+    }
+
+    private void notifyUpdateListeners(Call call) {
+        final List<Call> updatedCalls = Lists.newArrayList();
+        updatedCalls.add(call);
+        for (int i = 0; i < mListeners.size(); ++i) {
+            mListeners.get(i).onUpdate(updatedCalls);
+        }
     }
 
     /**
@@ -336,6 +479,12 @@ public class CallModeler extends Handler {
      */
     private void onPhoneStateChanged(AsyncResult r) {
         Log.i(TAG, "onPhoneStateChanged: ");
+        //csvt state changed, do not update phone UI.
+        if(PhoneGlobals.getInstance().isCsvtActive())
+        {
+            Log.d(TAG, "csvt is active, do not update phone UI.");
+            return;
+        }
         final List<Call> updatedCalls = Lists.newArrayList();
         doUpdate(false, updatedCalls);
 
@@ -436,7 +585,7 @@ public class CallModeler extends Handler {
             }
 
             if (mConfCallMap.containsKey(orphanedConnection)) {
-                final Call call = mCallMap.get(orphanedConnection);
+                final Call call = mConfCallMap.get(orphanedConnection);
                 call.setState(Call.State.IDLE);
                 out.add(call);
 
@@ -536,6 +685,37 @@ public class CallModeler extends Handler {
         call.setState(newState);
     }
 
+    private void mapCallDetails(Call call, Connection connection) {
+        copyDetails(connection.getCallDetails(), call.getCallDetails(), connection.errorInfo);
+
+        if (connection.getCallModify() != null) {
+            copyDetails(connection.getCallModify().call_details, call.getCallModifyDetails(),
+                    connection.errorInfo);
+        }
+
+        if (connection.getCall().getConfUriList() != null) {
+            String[] confList = connection.getCall().getConfUriList();
+            call.getCallDetails().setConfUriList(confList);
+        }
+
+        call.getCallDetails().setMpty(PhoneUtils.isConferenceCall(connection.getCall()));
+    }
+
+    /**
+     * copy CallDetails of connection to CallDetails of Call
+     * @param src
+     * @param dest
+     * @param errorInfo
+     */
+    private void copyDetails(com.android.internal.telephony.CallDetails src,
+            com.android.services.telephony.common.CallDetails dest, String errorInfo) {
+        dest.setCallType(src.call_type);
+        dest.setCallDomain(src.call_domain);
+        dest.setExtras(src.extras);
+        dest.setErrorInfo(errorInfo);
+        dest.setVideoPauseState(src.getVideoPauseState());
+    }
+
     /**
      * Updates the Call properties to match the state of the connection object
      * that it represents.
@@ -555,6 +735,8 @@ public class CallModeler extends Handler {
             changed = true;
         }
 
+        mapCallDetails(call, connection);
+
         final Call.DisconnectCause newDisconnectCause =
                 translateDisconnectCauseFromTelephony(connection.getDisconnectCause());
         if (call.getDisconnectCause() != newDisconnectCause) {
@@ -567,6 +749,9 @@ public class CallModeler extends Handler {
             call.setConnectTime(connection.getConnectTime());
             changed = true;
         }
+
+        // creation time should be fixed
+        call.setCreateTime(connection.getCreateTime());
 
         if (!isForConference) {
             // Number
@@ -622,6 +807,11 @@ public class CallModeler extends Handler {
             changed |= !oldSet.equals(call.getChildCallIds());
         }
 
+        //Subscription id, this shall be done when Call object created.
+        if (call.getSubscription() == MSimConstants.INVALID_SUBSCRIPTION) {
+            call.setSubscription(connection.getCall().getPhone().getSubscription());
+        }
+
         /**
          * !!! Uses values from connection and call collected above so this part must be last !!!
          */
@@ -639,6 +829,7 @@ public class CallModeler extends Handler {
      */
     private int getCapabilitiesFor(Connection connection, Call call, boolean isForConference) {
         final boolean callIsActive = (call.getState() == Call.State.ACTIVE);
+        final boolean callIsBackground = (call.getState() == Call.State.ONHOLD);
         final Phone phone = connection.getCall().getPhone();
 
         boolean canAddCall = false;
@@ -646,19 +837,40 @@ public class CallModeler extends Handler {
         boolean canSwapCall = false;
         boolean canRespondViaText = false;
         boolean canMute = false;
+        boolean canAddParticipant = false;
+        boolean canModifyCall = false;
+        boolean voicePrivacy = false;
+        final boolean supportHold;
+        final boolean canHold;
 
-        final boolean supportHold = PhoneUtils.okToSupportHold(mCallManager);
-        final boolean canHold = (supportHold ? PhoneUtils.okToHoldCall(mCallManager) : false);
         final boolean genericConf = isForConference &&
                 (connection.getCall().getPhone().getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA);
+        if (!MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            supportHold = PhoneUtils.okToSupportHold(mCallManager);
+            canHold = (supportHold ? PhoneUtils.okToHoldCall(mCallManager) : false);
 
-        // only applies to active calls
-        if (callIsActive) {
-            canMergeCall = PhoneUtils.okToMergeCalls(mCallManager);
-            canSwapCall = PhoneUtils.okToSwapCalls(mCallManager);
+            // only applies to active calls
+            if (callIsActive) {
+                canMergeCall = PhoneUtils.okToMergeCalls(mCallManager);
+                canSwapCall = PhoneUtils.okToSwapCalls(mCallManager);
+            }
+            canAddCall = PhoneUtils.okToAddCall(mCallManager) && passedSetupWizard();
+        } else {
+            final int subscription = call.getSubscription();
+            supportHold = PhoneUtils.okToSupportHold(mCallManager, subscription);
+            canHold = (supportHold ? PhoneUtils.okToHoldCall(mCallManager, subscription) : false);
+
+            // only applies to active calls
+            if (callIsActive) {
+                canMergeCall = PhoneUtils.okToMergeCalls(mCallManager, subscription);
+                canSwapCall = PhoneUtils.okToSwapCalls(mCallManager, subscription);
+            }
+            canAddCall = PhoneUtils.okToAddCall(mCallManager, subscription) && passedSetupWizard();
         }
-
-        canAddCall = PhoneUtils.okToAddCall(mCallManager);
+        if (callIsActive || callIsBackground) {
+            canModifyCall = PhoneUtils.isVTModifyAllowed(connection);
+        }
+        canAddParticipant = PhoneUtils.canAddParticipant(mCallManager) && canAddCall;
 
         // "Mute": only enabled when the foreground call is ACTIVE.
         // (It's meaningless while on hold, or while DIALING/ALERTING.)
@@ -685,6 +897,11 @@ public class CallModeler extends Handler {
             canAddCall = true;
         }
 
+        //Voice Privacy for CDMA
+        if ((phone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA) && mVoicePrivacyState) {
+            voicePrivacy = true;
+        }
+
         int retval = 0x0;
         if (canHold) {
             retval |= Capabilities.HOLD;
@@ -707,10 +924,18 @@ public class CallModeler extends Handler {
         if (canMute) {
             retval |= Capabilities.MUTE;
         }
+        if (canAddParticipant) {
+            retval |= Capabilities.ADD_PARTICIPANT;
+        }
         if (genericConf) {
             retval |= Capabilities.GENERIC_CONFERENCE;
         }
-
+        if (canModifyCall) {
+            retval |= Capabilities.MODIFY_CALL;
+        }
+        if (voicePrivacy) {
+            retval |= Capabilities.VOICE_PRIVACY;
+        }
         return retval;
     }
 
@@ -720,21 +945,27 @@ public class CallModeler extends Handler {
      * checking to see if more than one of it's children is alive.
      */
     private boolean isPartOfLiveConferenceCall(Connection connection) {
+        boolean ret = false;
         if (connection.getCall() != null && connection.getCall().isMultiparty()) {
             int count = 0;
-            for (Connection currConn : connection.getCall().getConnections()) {
-
-                // Only count connections which are alive and never cound the special
-                // "dialing" 3way call for CDMA calls.
-                if (currConn.isAlive() && currConn != mCdmaOutgoingConnection) {
-                    count++;
-                    if (count >= 2) {
-                        return true;
+            if (connection.getCallDetails().call_domain
+                    == com.android.services.telephony.common.CallDetails.CALL_DOMAIN_PS) {
+                ret = true;
+            } else {
+                for (Connection currConn : connection.getCall().getConnections()) {
+                    // Only count connections which are alive and never cound
+                    // the special
+                    // "dialing" 3way call for CDMA calls.
+                    if (currConn.isAlive() && currConn != mCdmaOutgoingConnection) {
+                        count++;
+                        if (count >= 2) {
+                            return true;
+                        }
                     }
                 }
             }
         }
-        return false;
+        return ret;
     }
 
     private int translateStateFromTelephony(Connection connection, boolean isForConference) {
@@ -787,6 +1018,19 @@ public class CallModeler extends Handler {
         }
 
         return retval;
+    }
+
+
+    /**
+     * Called when the active subscription changes.
+     */
+    private void onActiveSubChanged(AsyncResult r) {
+        int activeSub = (Integer) r.result;
+        Log.i(TAG, "onActiveSubChanged: " + activeSub);
+
+        for (int i = 0; i < mListeners.size(); ++i) {
+            mListeners.get(i).onActiveSubChanged(activeSub);
+        }
     }
 
     private final ImmutableMap<Connection.DisconnectCause, Call.DisconnectCause> CAUSE_MAP =
@@ -844,6 +1088,18 @@ public class CallModeler extends Handler {
                 .put(Connection.DisconnectCause.TIMED_OUT, Call.DisconnectCause.TIMED_OUT)
                 .put(Connection.DisconnectCause.UNOBTAINABLE_NUMBER,
                         Call.DisconnectCause.UNOBTAINABLE_NUMBER)
+                .put(Connection.DisconnectCause.DIAL_MODIFIED_TO_USSD,
+                        Call.DisconnectCause.DIAL_MODIFIED_TO_USSD)
+                .put(Connection.DisconnectCause.DIAL_MODIFIED_TO_SS,
+                        Call.DisconnectCause.DIAL_MODIFIED_TO_SS)
+                .put(Connection.DisconnectCause.DIAL_MODIFIED_TO_DIAL,
+                        Call.DisconnectCause.DIAL_MODIFIED_TO_DIAL)
+                .put(Connection.DisconnectCause.SRVCC_CALL_DROP,
+                        Call.DisconnectCause.SRVCC_CALL_DROP)
+                .put(Connection.DisconnectCause.ANSWERED_ELSEWHERE,
+                        Call.DisconnectCause.ANSWERED_ELSEWHERE)
+                .put(Connection.DisconnectCause.CALL_FAIL_MISC,
+                        Call.DisconnectCause.CALL_FAIL_MISC)
                 .build();
 
     private Call.DisconnectCause translateDisconnectCauseFromTelephony(
@@ -898,6 +1154,13 @@ public class CallModeler extends Handler {
         return new Call(callId);
     }
 
+    private boolean passedSetupWizard() {
+        // Incoming calls are totally ignored if the device isn't provisioned yet.
+        return Settings.Global.getInt(
+                PhoneGlobals.getInstance().getContentResolver(),
+                Settings.Global.DEVICE_PROVISIONED, 0) != 0;
+    }
+
     /**
      * Listener interface for changes to Calls.
      */
@@ -907,6 +1170,9 @@ public class CallModeler extends Handler {
         void onUpdate(List<Call> calls);
         void onPostDialAction(Connection.PostDialState state, int callId, String remainingChars,
                 char c);
+        void onActiveSubChanged(int activeSub);
+        void onModifyCall(Call call);
+        void onSuppServiceFailed(int service);
     }
 
     /**

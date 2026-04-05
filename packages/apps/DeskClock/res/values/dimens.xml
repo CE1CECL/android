@@ -82,7 +82,7 @@
     <dimen name="small_font_size">48sp</dimen>
     <dimen name="medium_font_size">60dp</dimen>
     <dimen name="label_font_size">14sp</dimen>
-    <dimen name="widget_label_font_size">14sp</dimen>
+    <dimen name="widget_label_font_size">13sp</dimen>
     <dimen name="main_ampm_font_size">18sp</dimen>
     <dimen name="header_font_size">24sp</dimen>
     <dimen name="body_font_size">18sp</dimen>
@@ -113,8 +113,8 @@
     <dimen name="dialpad_digit_padding">22dip</dimen>
     <dimen name="timer_setup_font_size">56sp</dimen>
     <dimen name="timer_setup_button_size">24sp</dimen>
-    <!--margin should be ~ half timer_setup_font_size -->
-    <dimen name="timer_setup_delete_start_margin">28sp</dimen>
+    <!--margin should be ~ third timer_setup_font_size -->
+    <dimen name="timer_setup_delete_start_margin">19sp</dimen>
     <dimen name="timer_setup_delete_padding">12dip</dimen>
     <dimen name="timer_setup_label_size">18sp</dimen>
 
@@ -215,4 +215,7 @@
 
     <!-- Bottom margin for the expand area -->
     <dimen name="collapse_expand_height">48dp</dimen>
+
+    <!-- padding for the alarm on/off switch thumb-->
+    <dimen name="alarm_thumb_switch_padding">10dp</dimen>
 </resources>

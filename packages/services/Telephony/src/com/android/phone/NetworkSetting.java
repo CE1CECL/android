@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +36,8 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
+import android.telephony.MSimTelephonyManager;
+import android.telephony.ServiceState;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -42,6 +47,8 @@ import com.android.internal.telephony.OperatorInfo;
 
 import java.util.HashMap;
 import java.util.List;
+
+import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
 
 /**
  * "Networks" settings UI for the Phone app.
@@ -60,6 +67,7 @@ public class NetworkSetting extends PreferenceActivity
     private static final int DIALOG_NETWORK_SELECTION = 100;
     private static final int DIALOG_NETWORK_LIST_LOAD = 200;
     private static final int DIALOG_NETWORK_AUTO_SELECT = 300;
+    private static final int EVENT_NETWORK_DATA_MANAGER_DONE = 500;
 
     //String keys for preference lookup
     private static final String LIST_NETWORKS_KEY = "list_networks_key";
@@ -69,7 +77,11 @@ public class NetworkSetting extends PreferenceActivity
     //map of network controls to the network data.
     private HashMap<Preference, OperatorInfo> mNetworkMap;
 
+    //map of RAT type values to user understandable strings
+    private HashMap<String, String> mRatMap;
+
     Phone mPhone;
+    NetworkSettingDataManager mDataManager = null;
     protected boolean mIsForeground = false;
 
     /** message for network selection */
@@ -103,6 +115,14 @@ public class NetworkSetting extends PreferenceActivity
                         displayNetworkSelectionSucceeded();
                     }
                     break;
+                case EVENT_NETWORK_DATA_MANAGER_DONE:
+                    log("EVENT_NETWORK_DATA_MANAGER_DONE: " + msg.arg1);
+                    if (msg.arg1 == 1) {
+                        loadNetworksList();
+                    }
+                    mSearchButton.setEnabled(true);
+                    break;
+
                 case EVENT_AUTO_SELECT_DONE:
                     if (DBG) log("hideProgressPanel");
 
@@ -150,7 +170,14 @@ public class NetworkSetting extends PreferenceActivity
             if (DBG) log("connection created, binding local service.");
             mNetworkQueryService = ((NetworkQueryService.LocalBinder) service).getService();
             // as soon as it is bound, run a query.
-            loadNetworksList();
+            if (getApplicationContext().getResources().getBoolean(
+                    R.bool.config_disable_data_manual_plmn) && !isMultiSimModeDsda()) {
+                mSearchButton.setEnabled(false);
+                Message onCompleteMsg = mHandler.obtainMessage(EVENT_NETWORK_DATA_MANAGER_DONE);
+                mDataManager.updateDataState(false, onCompleteMsg);
+            } else {
+                loadNetworksList();
+            }
         }
 
         /** Handle the task of cleaning up the local binding */
@@ -180,7 +207,14 @@ public class NetworkSetting extends PreferenceActivity
         boolean handled = false;
 
         if (preference == mSearchButton) {
-            loadNetworksList();
+            if (getApplicationContext().getResources().getBoolean(
+                    R.bool.config_disable_data_manual_plmn) && !isMultiSimModeDsda()) {
+                mSearchButton.setEnabled(false);
+                Message onCompleteMsg = mHandler.obtainMessage(EVENT_NETWORK_DATA_MANAGER_DONE);
+                mDataManager.updateDataState(false, onCompleteMsg);
+            } else {
+                loadNetworksList();
+            }
             handled = true;
         } else if (preference == mAutoSelect) {
             selectNetworkAutomatic();
@@ -226,10 +260,17 @@ public class NetworkSetting extends PreferenceActivity
 
         addPreferencesFromResource(R.xml.carrier_select);
 
-        mPhone = PhoneGlobals.getPhone();
+        int subscription = getIntent().getIntExtra(SUBSCRIPTION_KEY,
+                MSimPhoneGlobals.getInstance().getDefaultSubscription());
+        log("onCreate subscription :" + subscription);
+        mPhone = MSimPhoneGlobals.getInstance().getPhone(subscription);
+        Intent intent = new Intent(this, NetworkQueryService.class);
+        intent.putExtra(SUBSCRIPTION_KEY, subscription);
 
         mNetworkList = (PreferenceGroup) getPreferenceScreen().findPreference(LIST_NETWORKS_KEY);
         mNetworkMap = new HashMap<Preference, OperatorInfo>();
+        mRatMap = new HashMap<String, String>();
+        initRatMap();
 
         mSearchButton = getPreferenceScreen().findPreference(BUTTON_SRCH_NETWRKS_KEY);
         mAutoSelect = getPreferenceScreen().findPreference(BUTTON_AUTO_SELECT_KEY);
@@ -239,9 +280,13 @@ public class NetworkSetting extends PreferenceActivity
         // long as startService is called) until a stopservice request is made.  Since
         // we want this service to just stay in the background until it is killed, we
         // don't bother stopping it from our end.
-        startService (new Intent(this, NetworkQueryService.class));
+        startService (intent);
         bindService (new Intent(this, NetworkQueryService.class), mNetworkQueryServiceConnection,
                 Context.BIND_AUTO_CREATE);
+        if (getApplicationContext().getResources().getBoolean(
+                R.bool.config_disable_data_manual_plmn) && !isMultiSimModeDsda()) {
+            mDataManager = new NetworkSettingDataManager(getApplicationContext());
+        }
     }
 
     @Override
@@ -262,6 +307,9 @@ public class NetworkSetting extends PreferenceActivity
      */
     @Override
     protected void onDestroy() {
+        if (mDataManager != null) {
+            mDataManager.updateDataState(true, null);
+        }
         // unbind the service.
         unbindService(mNetworkQueryServiceConnection);
 
@@ -405,7 +453,9 @@ public class NetworkSetting extends PreferenceActivity
             // connected after this activity is moved to background.
             if (DBG) log("Fail to dismiss network load list dialog");
         }
-
+        if (mDataManager != null) {
+            mDataManager.updateDataState(true, null);
+        }
         getPreferenceScreen().setEnabled(true);
         clearList();
 
@@ -446,13 +496,22 @@ public class NetworkSetting extends PreferenceActivity
      */
 
     private String getNetworkTitle(OperatorInfo ni) {
+        String title;
+
         if (!TextUtils.isEmpty(ni.getOperatorAlphaLong())) {
-            return ni.getOperatorAlphaLong();
+            title = ni.getOperatorAlphaLong();
         } else if (!TextUtils.isEmpty(ni.getOperatorAlphaShort())) {
-            return ni.getOperatorAlphaShort();
+            title = ni.getOperatorAlphaShort();
         } else {
-            return ni.getOperatorNumeric();
+            title = ni.getOperatorNumeric();
         }
+        if (!ni.getRadioTech().equals(""))
+            title += " " + mRatMap.get(ni.getRadioTech());
+
+        if (ni.getState() == OperatorInfo.State.FORBIDDEN)
+            title += " " + getString(R.string.network_forbidden);
+
+        return title;
     }
 
     private void clearList() {
@@ -470,6 +529,33 @@ public class NetworkSetting extends PreferenceActivity
 
         Message msg = mHandler.obtainMessage(EVENT_AUTO_SELECT_DONE);
         mPhone.setNetworkSelectionModeAutomatic(msg);
+    }
+
+    private void initRatMap() {
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_UNKNOWN), "Unknown");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_GPRS), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_EDGE), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_UMTS), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_IS95A), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_IS95B), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_1xRTT), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_EVDO_0), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_EVDO_A), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_HSDPA), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_HSUPA), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_HSPA), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_EVDO_B), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_EHRPD), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_LTE), "4G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_HSPAP), "3G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_GSM), "2G");
+        mRatMap.put(String.valueOf(ServiceState.RIL_RADIO_TECHNOLOGY_TD_SCDMA), "3G");
+    }
+
+    private boolean isMultiSimModeDsda() {
+        return (MSimTelephonyManager.getDefault()
+                .getMultiSimConfiguration()
+                == MSimTelephonyManager.MultiSimVariants.DSDA);
     }
 
     private void log(String msg) {

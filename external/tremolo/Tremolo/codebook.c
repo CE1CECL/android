@@ -39,12 +39,14 @@
 #include <string.h>
 #include <math.h>
 #include <limits.h>
+#include <log/log.h>
 #include "ogg.h"
 #include "ivorbiscodec.h"
 #include "codebook.h"
 #include "misc.h"
 #include "os.h"
 
+#define MARKER_SIZE 33
 
 /**** pack/unpack helpers ******************************************/
 int _ilog(unsigned int v){
@@ -145,7 +147,7 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
 		       codebook *b, oggpack_buffer *opb,int maptype){
   long i,j,count=0;
   long top=0;
-  ogg_uint32_t marker[33];
+  ogg_uint32_t marker[MARKER_SIZE];
 
   if (n<1)
     return 1;
@@ -158,6 +160,10 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
     for(i=0;i<n;i++){
       long length=l[i];
       if(length){
+        if (length < 0 || length >= MARKER_SIZE) {
+          ALOGE("b/23881715");
+          return 1;
+        }
 	ogg_uint32_t entry=marker[length];
 	long chase=0;
 	if(count && !entry)return -1; /* overpopulated tree! */
@@ -200,7 +206,7 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
 	/* prune the tree; the implicit invariant says all the longer
 	   markers were dangling from our just-taken node.  Dangle them
 	   from our *new* node. */
-	for(j=length+1;j<33;j++)
+	for(j=length+1;j<MARKER_SIZE;j++)
 	  if((marker[j]>>1) == entry){
 	    entry=marker[j];
 	    marker[j]=marker[j-1]<<1;
@@ -209,6 +215,20 @@ static int _make_words(char *l,long n,ogg_uint32_t *r,long quantvals,
       }
     }
   }
+
+  // following sanity check copied from libvorbis
+  /* sanity check the huffman tree; an underpopulated tree must be
+     rejected. The only exception is the one-node pseudo-nil tree,
+     which appears to be underpopulated because the tree doesn't
+     really exist; there's only one possible 'codeword' or zero bits,
+     but the above tree-gen code doesn't mark that. */
+  if(b->used_entries != 1){
+    for(i=1;i<MARKER_SIZE;i++)
+      if(marker[i] & (0xffffffffUL>>(32-i))){
+          return 1;
+      }
+  }
+
 
   return 0;
 }
@@ -507,13 +527,12 @@ int vorbis_book_unpack(oggpack_buffer *opb,codebook *s){
 	/* use dec_type 1: vector of packed values */
 
 	/* need quantized values before  */
-	s->q_val=alloca(sizeof(ogg_uint16_t)*quantvals);
+	s->q_val=calloc(sizeof(ogg_uint16_t), quantvals);
 	if (!s->q_val) goto _eofout;
 	for(i=0;i<quantvals;i++)
 	  ((ogg_uint16_t *)s->q_val)[i]=(ogg_uint16_t)oggpack_read(opb,s->q_bits);
 
 	if(oggpack_eop(opb)){
-	  s->q_val=0; /* cleanup must not free alloca memory */
 	  goto _eofout;
 	}
 
@@ -523,12 +542,11 @@ int vorbis_book_unpack(oggpack_buffer *opb,codebook *s){
 	s->dec_leafw=_determine_leaf_words(s->dec_nodeb,
 					   (s->q_bits*s->dim+8)/8);
 	if(_make_decode_table(s,lengthlist,quantvals,opb,maptype)){
-	  s->q_val=0; /* cleanup must not free alloca memory */
 	  goto _errout;
 	}
 
-	s->q_val=0; /* about to go out of scope; _make_decode_table
-                       was using it */
+	free(s->q_val);
+	s->q_val=0;
 
       }else{
 	/* use dec_type 2: packed vector of column offsets */
@@ -619,6 +637,7 @@ int vorbis_book_unpack(oggpack_buffer *opb,codebook *s){
  _eofout:
   vorbis_book_clear(s);
   free(lengthlist);
+  free(s->q_val);
   return -1;
 }
 

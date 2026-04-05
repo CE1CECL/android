@@ -377,7 +377,7 @@ public class Process {
      * @param gids Additional group-ids associated with the process.
      * @param debugFlags Additional flags.
      * @param targetSdkVersion The target SDK version for the app.
-     * @param seInfo null-ok SE Android information for the new process.
+     * @param seInfo null-ok SELinux information for the new process.
      * @param zygoteArgs Additional arguments to supply to the zygote process.
      * 
      * @return An object that describes the result of the attempt to start the process.
@@ -391,10 +391,11 @@ public class Process {
                                   int debugFlags, int mountExternal,
                                   int targetSdkVersion,
                                   String seInfo,
+                                  boolean refreshTheme,
                                   String[] zygoteArgs) {
         try {
             return startViaZygote(processClass, niceName, uid, gid, gids,
-                    debugFlags, mountExternal, targetSdkVersion, seInfo, zygoteArgs);
+                    debugFlags, mountExternal, targetSdkVersion, seInfo, refreshTheme, zygoteArgs);
         } catch (ZygoteStartFailedEx ex) {
             Log.e(LOG_TAG,
                     "Starting VM process through Zygote failed");
@@ -495,6 +496,15 @@ public class Process {
         openZygoteSocketIfNeeded();
 
         try {
+            // Throw early if any of the arguments are malformed. This means we can
+            // avoid writing a partial response to the zygote.
+            int sz = args.size();
+            for (int i = 0; i < sz; i++) {
+                if (args.get(i).indexOf('\n') >= 0) {
+                    throw new ZygoteStartFailedEx("embedded newlines not allowed");
+                }
+            }
+
             /**
              * See com.android.internal.os.ZygoteInit.readArgumentList()
              * Presently the wire format to the zygote process is:
@@ -509,13 +519,8 @@ public class Process {
             sZygoteWriter.write(Integer.toString(args.size()));
             sZygoteWriter.newLine();
 
-            int sz = args.size();
             for (int i = 0; i < sz; i++) {
                 String arg = args.get(i);
-                if (arg.indexOf('\n') >= 0) {
-                    throw new ZygoteStartFailedEx(
-                            "embedded newlines not allowed");
-                }
                 sZygoteWriter.write(arg);
                 sZygoteWriter.newLine();
             }
@@ -524,11 +529,15 @@ public class Process {
 
             // Should there be a timeout on this?
             ProcessStartResult result = new ProcessStartResult();
+            // Always read the entire result from the input stream to avoid leaving
+            // bytes in the stream for future process starts to accidentally stumble
+            // upon.
             result.pid = sZygoteInputStream.readInt();
+            result.usingWrapper = sZygoteInputStream.readBoolean();
+
             if (result.pid < 0) {
                 throw new ZygoteStartFailedEx("fork() failed");
             }
-            result.usingWrapper = sZygoteInputStream.readBoolean();
             return result;
         } catch (IOException ex) {
             try {
@@ -557,7 +566,7 @@ public class Process {
      * new process should setgroup() to.
      * @param debugFlags Additional flags.
      * @param targetSdkVersion The target SDK version for the app.
-     * @param seInfo null-ok SE Android information for the new process.
+     * @param seInfo null-ok SELinux information for the new process.
      * @param extraArgs Additional arguments to supply to the zygote process.
      * @return An object that describes the result of the attempt to start the process.
      * @throws ZygoteStartFailedEx if process start failed for any reason
@@ -569,6 +578,7 @@ public class Process {
                                   int debugFlags, int mountExternal,
                                   int targetSdkVersion,
                                   String seInfo,
+                                  boolean refreshTheme,
                                   String[] extraArgs)
                                   throws ZygoteStartFailedEx {
         synchronized(Process.class) {
@@ -598,6 +608,9 @@ public class Process {
                 argsForZygote.add("--mount-external-multiuser");
             } else if (mountExternal == Zygote.MOUNT_EXTERNAL_MULTIUSER_ALL) {
                 argsForZygote.add("--mount-external-multiuser-all");
+            }
+            if (refreshTheme) {
+                argsForZygote.add("--refresh_theme");
             }
             argsForZygote.add("--target-sdk-version=" + targetSdkVersion);
 

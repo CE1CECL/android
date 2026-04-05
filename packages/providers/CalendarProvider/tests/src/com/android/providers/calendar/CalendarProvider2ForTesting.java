@@ -44,6 +44,11 @@ public class CalendarProvider2ForTesting extends CalendarProvider2 {
         return true;
     }
 
+    @Override
+    protected boolean shouldSyncFor(Uri uri) {
+        return true;
+    }
+
     private static class MockCalendarAlarmManager extends CalendarAlarmManager {
 
         public MockCalendarAlarmManager(Context context) {

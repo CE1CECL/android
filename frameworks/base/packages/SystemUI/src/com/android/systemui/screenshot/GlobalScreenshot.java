@@ -44,6 +44,7 @@ import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Process;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.Display;
 import android.view.LayoutInflater;
@@ -56,7 +57,9 @@ import android.view.WindowManager;
 import android.view.animation.Interpolator;
 import android.widget.ImageView;
 
+import com.android.internal.util.cm.QuietHoursUtils;
 import com.android.systemui.R;
+import com.android.systemui.screenshot.DeleteScreenshot;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -231,6 +234,15 @@ class SaveImageInBackgroundTask extends AsyncTask<SaveImageInBackgroundData, Voi
                      PendingIntent.getActivity(context, 0, chooserIntent,
                              PendingIntent.FLAG_CANCEL_CURRENT));
 
+            Intent deleteIntent = new Intent();
+            deleteIntent.setClass(context, DeleteScreenshot.class);
+            deleteIntent.putExtra(DeleteScreenshot.SCREENSHOT_URI, uri.toString());
+
+            mNotificationBuilder.addAction(R.drawable.ic_menu_delete,
+                     r.getString(R.string.screenshot_delete_action),
+                     PendingIntent.getBroadcast(context, 0, deleteIntent,
+                             PendingIntent.FLAG_CANCEL_CURRENT));
+
             OutputStream out = resolver.openOutputStream(uri);
             image.compress(Bitmap.CompressFormat.PNG, 100, out);
             out.flush();
@@ -305,7 +317,7 @@ class SaveImageInBackgroundTask extends AsyncTask<SaveImageInBackgroundData, Voi
 class GlobalScreenshot {
     private static final String TAG = "GlobalScreenshot";
 
-    private static final int SCREENSHOT_NOTIFICATION_ID = 789;
+    protected static final int SCREENSHOT_NOTIFICATION_ID = 789;
     private static final int SCREENSHOT_FLASH_TO_PEAK_DURATION = 130;
     private static final int SCREENSHOT_DROP_IN_DURATION = 430;
     private static final int SCREENSHOT_DROP_OUT_DELAY = 500;
@@ -342,6 +354,8 @@ class GlobalScreenshot {
     private AsyncTask<SaveImageInBackgroundData, Void, SaveImageInBackgroundData> mSaveInBgTask;
 
     private MediaActionSound mCameraSound;
+
+    private final int mSfHwRotation;
 
 
     /**
@@ -396,6 +410,9 @@ class GlobalScreenshot {
         // Setup the Camera shutter sound
         mCameraSound = new MediaActionSound();
         mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
+
+        // Load hardware rotation from prop
+        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
     }
 
     /**
@@ -437,7 +454,10 @@ class GlobalScreenshot {
         // only in the natural orientation of the device :!)
         mDisplay.getRealMetrics(mDisplayMetrics);
         float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
-        float degrees = getDegreesForRotation(mDisplay.getRotation());
+        int rot = mDisplay.getRotation();
+        // Allow for abnormal hardware orientation
+        rot = (rot + mSfHwRotation) % 4;
+        float degrees = getDegreesForRotation(rot);
         boolean requiresRotation = (degrees > 0);
         if (requiresRotation) {
             // Get the dimensions of the device in its native orientation
@@ -456,20 +476,23 @@ class GlobalScreenshot {
             return;
         }
 
+        Bitmap ss = Bitmap.createBitmap(mDisplayMetrics.widthPixels,
+                mDisplayMetrics.heightPixels, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(ss);
+
         if (requiresRotation) {
             // Rotate the screenshot to the current orientation
-            Bitmap ss = Bitmap.createBitmap(mDisplayMetrics.widthPixels,
-                    mDisplayMetrics.heightPixels, Bitmap.Config.ARGB_8888);
-            Canvas c = new Canvas(ss);
             c.translate(ss.getWidth() / 2, ss.getHeight() / 2);
             c.rotate(degrees);
             c.translate(-dims[0] / 2, -dims[1] / 2);
-            c.drawBitmap(mScreenBitmap, 0, 0, null);
-            c.setBitmap(null);
-            // Recycle the previous bitmap
-            mScreenBitmap.recycle();
-            mScreenBitmap = ss;
         }
+
+        c.drawBitmap(mScreenBitmap, 0, 0, null);
+        c.setBitmap(null);
+
+        // Recycle the previous bitmap
+        mScreenBitmap.recycle();
+        mScreenBitmap = ss;
 
         // Optimizations
         mScreenBitmap.setHasAlpha(false);
@@ -517,8 +540,14 @@ class GlobalScreenshot {
         mScreenshotLayout.post(new Runnable() {
             @Override
             public void run() {
-                // Play the shutter sound to notify that we've taken a screenshot
-                mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+                // Play the shutter sound to notify that we've taken a screenshot, but only if
+                // we aren't in quiet hours
+                // The reason behind this code is added here and not in MediaActionSound is for
+                // legal considerations (take a photo or record with the camera cannot be silence),
+                // but take a screenshot of the current has no legal considerations.
+                if (!QuietHoursUtils.inQuietHours(mContext, Settings.System.QUIET_HOURS_SYSTEM)) {
+                    mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+                }
 
                 mScreenshotView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 mScreenshotView.buildLayer();

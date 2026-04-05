@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 /*
+** Copyright (c) 2013 The Linux Foundation. All rights reserved.
+** Not a Contribution.
 ** Copyright 2009, The Android Open Source Project
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,6 +37,7 @@
        <item><xliff:g id="id">volume</xliff:g></item>
        <item><xliff:g id="id">wifi</xliff:g></item>
        <item><xliff:g id="id">cdma_eri</xliff:g></item>
+       <item><xliff:g id="id">phone_signal_second_sub</xliff:g></item>
        <item><xliff:g id="id">data_connection</xliff:g></item>
        <item><xliff:g id="id">phone_evdo_signal</xliff:g></item>
        <item><xliff:g id="id">phone_signal</xliff:g></item>
@@ -130,6 +133,9 @@
          off features. -->
     <bool name="config_avoidGfxAccel">false</bool>
 
+    <!-- Whether to enable auto provisioning the app for new SIM card on boot.-->
+    <bool name="config_auto_provision_enable">false</bool>
+
     <!-- Device configuration setting the minfree tunable in the lowmemorykiller in the kernel.
          A high value will cause the lowmemorykiller to fire earlier, keeping more memory
          in the file cache and preventing I/O thrashing, but allowing fewer processes to
@@ -187,6 +193,7 @@
         <item>"mobile,0,0,0,-1,true"</item>
         <item>"mobile_mms,2,0,2,60000,true"</item>
         <item>"mobile_supl,3,0,2,60000,true"</item>
+        <item>"mobile_dun,4,0,2,60000,true"</item>
         <item>"mobile_hipri,5,0,3,60000,true"</item>
         <item>"mobile_fota,10,0,2,60000,true"</item>
         <item>"mobile_ims,11,0,2,60000,true"</item>
@@ -302,6 +309,7 @@
     <integer-array translatable="false" name="config_tether_upstream_types">
         <item>0</item>
         <item>1</item>
+        <item>4</item>
         <item>5</item>
         <item>7</item>
         <item>9</item>
@@ -319,6 +327,9 @@
          "name,apn,proxy,port,username,password,server,mmsc,mmsproxy,mmsport,mcc,mnc,auth,type"
          note that empty fields can be ommitted: "name,apn,,,,,,,,,310,260,,DUN" -->
     <string translatable="false" name="config_tether_apndata"></string>
+
+    <!-- Boolean indicating whether Softap requires reloading AP firmware -->
+    <bool name="config_wifiApFirmwareReload">true</bool>
 
     <!-- Boolean indicating whether the wifi chipset has dual frequency band support -->
     <bool translatable="false" name="config_wifi_dual_band_support">false</bool>
@@ -339,6 +350,9 @@
     <!-- Integer indicating wpa_supplicant scan interval when p2p is connected in milliseconds -->
     <integer translatable="false" name="config_wifi_scan_interval_p2p_connected">60000</integer>
 
+    <!-- Integer indicating wpa_supplicant scan intervel when WFD session established in milliseconds  -->
+    <integer translatable="false" name="config_wifi_scan_interval_wfd_connected">300000</integer>
+
     <!-- Integer indicating the framework scan interval in milliseconds. This is used in the scenario
          where the chipset does not support background scanning (config_wifi_background_scan_suport
          is false) to set up a periodic wake up scan so that the device can connect to a new access
@@ -351,6 +365,10 @@
 
     <!-- Wifi driver supports batched scan -->
     <bool translatable="false" name="config_wifi_batched_scan_supported">false</bool>
+
+    <!-- Boolean indicating whether the start command should be called on the wireless interface
+         when starting the SoftAp -->
+    <bool name="config_wifiApStartInterface">false</bool>
 
     <!-- Flag indicating whether the we should enable the automatic brightness in Settings.
          Software implementation will be used if config_hardware_auto_brightness_available is not set -->
@@ -433,6 +451,14 @@
          a car dock make the accelerometer more a physical input (like a lid). -->
     <bool name="config_carDockEnablesAccelerometer">true</bool>
 
+    <!-- Control whether a desk dock event should override the default bluetooth
+         audio routing, FORCE_BT_DESK_DOCK, with an analog dock, FORCE_ANALOG_DOCK. -->
+    <bool name="config_forceAnalogDeskDock">false</bool>
+
+    <!-- Control whether a car dock event should override the default bluetooth
+         audio routing, FORCE_BT_CAR_DOCK, with an analog dock, FORCE_ANALOG_DOCK. -->
+    <bool name="config_forceAnalogCarDock">false</bool>
+
     <!-- Indicate whether the lid state impacts the accessibility of
          the physical keyboard.  0 means it doesn't, 1 means it is accessible
          when the lid is open, 2 means it is accessible when the lid is
@@ -449,6 +475,17 @@
          it causes the device to wake up.
          The default is false. -->
     <bool name="config_lidControlsSleep">false</bool>
+
+    <!-- Indicate the device's Smart Cover coordinates.
+         If none are provided, then the feature will be disabled.
+         The array should contain 4 values, in pixels, (sample values provided):
+            Top      0
+            Left     100
+            Bottom   Top + 400
+            Right    Display Width - 100
+    -->
+    <integer-array name="config_smartCoverWindowCoords">
+    </integer-array>
 
     <!-- Indicate whether to allow the device to suspend when the screen is off
          due to the proximity sensor.  This resource should only be set to true
@@ -469,6 +506,12 @@
 
     <!-- Class name for default keyguard appwidget [DO NOT TRANSLATE] -->
     <string name="widget_default_class_name"></string>
+
+    <!-- Package name for keyguard to use -->
+    <string name="config_keyguardPackage">com.android.keyguard</string>
+
+    <!-- Class name for keyguard service to use -->
+    <string name="config_keyguardService">com.android.keyguard.KeyguardService</string>
 
     <!-- Indicate whether the SD card is accessible without removing the battery. -->
     <bool name="config_batterySdCardAccessibility">false</bool>
@@ -556,7 +599,7 @@
     <integer name="config_defaultNotificationLedOn">500</integer>
 
     <!-- Default LED off time for notification LED in milliseconds. -->
-    <integer name="config_defaultNotificationLedOff">2000</integer>
+    <integer name="config_defaultNotificationLedOff">1000</integer>
 
     <!-- Default value for led color when battery is low on charge -->
     <integer name="config_notificationsBatteryLowARGB">0xFFFF0000</integer>
@@ -572,6 +615,15 @@
 
     <!-- Is the notification LED intrusive? Used to decide if there should be a disable option -->
     <bool name="config_intrusiveNotificationLed">false</bool>
+
+    <!-- Does the notification LED support multiple colors? Used to decide if the user can change the colors -->
+    <bool name="config_multiColorNotificationLed">true</bool>
+
+    <!-- Is the battery LED intrusive? Used to decide if there should be a disable option -->
+    <bool name="config_intrusiveBatteryLed">false</bool>
+
+    <!-- Does the battery LED support multiple colors? Used to decide if the user can change the colors -->
+    <bool name="config_multiColorBatteryLed">false</bool>
 
     <!-- Default value for LED off time when the battery is low on charge in miliseconds -->
     <integer name="config_notificationsBatteryLedOff">2875</integer>
@@ -591,6 +643,9 @@
     <!-- Enable translucent decor by default -->
     <bool name="config_enableTranslucentDecor">true</bool>
 
+    <!-- Is the device capable of hot swapping an UICC Card -->
+    <bool name="config_hotswapCapable">false</bool>
+
     <!-- Enable puk unlockscreen by default.
          If unlock screen is disabled, the puk should be unlocked through Emergency Dialer -->
     <bool name="config_enable_puk_unlock_screen">true</bool>
@@ -602,16 +657,23 @@
 
     <!-- Control the behavior when the user long presses the home button.
             0 - Nothing
-            1 - Recent apps view in SystemUI
-            2 - Launch assist intent
+            1 - Menu key
+            2 - Recent apps view in SystemUI
+            3 - Launch assist intent
+            4 - Voice Search
+            5 - In-app Search
          This needs to match the constants in
          policy/src/com/android/internal/policy/impl/PhoneWindowManager.java
     -->
-    <integer name="config_longPressOnHomeBehavior">1</integer>
+    <integer name="config_longPressOnHomeBehavior">2</integer>
 
     <!-- Control the behavior when the user double-taps the home button.
             0 - Nothing
-            1 - Recent apps view in SystemUI
+            1 - Menu key
+            2 - Recent apps view in SystemUI
+            3 - Launch assist intent
+            4 - Voice Search
+            5 - In-app Search
          This needs to match the constants in
          policy/src/com/android/internal/policy/impl/PhoneWindowManager.java
     -->
@@ -681,6 +743,10 @@
     <integer-array name="config_autoBrightnessKeyboardBacklightValues">
     </integer-array>
 
+    <integer name="config_buttonBrightnessSettingDefault">255</integer>
+    <integer name="config_keyboardBrightnessSettingDefault">0</integer>
+    <bool name="config_deviceHasVariableButtonBrightness">false</bool>
+
     <!-- Amount of time it takes for the light sensor to warm up in milliseconds.
          For this time after the screen turns on, the Power Manager
          will not debounce light sensor readings -->
@@ -727,8 +793,18 @@
          to false.
          -->
     <bool name="config_enableFusedLocationOverlay" translatable="false">true</bool>
+    <!-- Whether to enable fused hardware provider overlay which allows fused
+         hardware provider to be replaced by an app at run-time. When disabled,
+         only the config_fusedLocationProviderPackageName package will be
+         searched for fused location provider, otherwise packages whose
+         signature matches the signatures of config_locationProviderPackageNames
+         will be searched, and the service with the highest version number will
+         be picked. Anyone who wants to disable the overlay mechanism can set it
+         to false.
+         -->
+    <bool name="config_enableHwFlpOverlay" translatable="false">true</bool>
     <!-- Package name providing fused location support. Used only when
-         config_enableFusedLocationOverlay is false. -->
+         config_enableFusedLocationOverlay or config_enableHwFlpOverlay is false. -->
     <string name="config_fusedLocationProviderPackageName" translatable="false">com.android.location.fused</string>
 
     <!-- Whether to enable geocoder overlay which allows geocoder to be replaced
@@ -774,6 +850,12 @@
         <!-- The standard AOSP fused location provider -->
         <item>com.android.location.fused</item>
     </string-array>
+
+    <!-- Component name of the geofence services provider. -->
+    <string name="config_geofenceServicesProvider" translatable="false">com.qualcomm.location</string>
+
+    <!-- Component name of the combo network location provider. -->
+    <string name="config_comboNetworkLocationProvider" translatable="false">com.qualcomm.location</string>
 
     <!-- Boolean indicating if current platform supports bluetooth SCO for off call
     use cases -->
@@ -840,6 +922,9 @@
          This can be overridden for devices where a different default SMS
          application is desired. -->
     <string name="default_sms_application" translatable="false">com.android.mms</string>
+
+    <!-- If this value is true, we handle Samsung CDMA's message ID method -->
+    <bool name="config_smsSamsungCdmaAlternateMessageIDEncoding">false</bool>
 
     <!-- Enable/disable default bluetooth profiles:
         HSP_AG, ObexObjectPush, Audio, NAP -->
@@ -1081,7 +1166,7 @@
     <!-- If supported and enabled, are dreams activated when asleep and charging? (by default) -->
     <bool name="config_dreamsActivatedOnSleepByDefault">false</bool>
     <!-- ComponentName of the default dream (Settings.Secure.SCREENSAVER_COMPONENT) -->
-    <string name="config_dreamsDefaultComponent">com.google.android.deskclock/com.android.deskclock.Screensaver</string>
+    <string name="config_dreamsDefaultComponent">com.android.deskclock/com.android.deskclock.Screensaver</string>
 
     <!-- Base "touch slop" value used by ViewConfiguration as a
          movement threshold where scrolling should begin. -->
@@ -1100,6 +1185,10 @@
 
     <!-- Set to true to add links to Cell Broadcast app from Settings and MMS app. -->
     <bool name="config_cellBroadcastAppLinks">false</bool>
+
+    <!-- Boolean indicating if RADIO POWER OFF should be skipped on receiving SIM REFRESH with RESET-->
+    <!-- This will be handled by modem if it is true-->
+    <bool translatable="false" name="skip_radio_power_off_on_sim_refresh_reset">true</bool>
 
     <!-- The default value if the SyncStorageEngine should sync automatically or not -->
     <bool name="config_syncstorageengine_masterSyncAutomatically">true</bool>
@@ -1129,8 +1218,15 @@
     <integer name="config_safe_media_volume_index">10</integer>
 
     <!-- Configure mobile network MTU. The standard default is set here but each carrier
-         may have a specific value set in an overlay config.xml file. -->
-    <integer name="config_mobile_mtu">1500</integer>
+         may have a specific value set in an overlay config.xml file. 
+         This really must be 1358 as per 3GPP standards and packet segmentation on the LTE
+         radio.-->
+    <integer name="config_mobile_mtu">1358</integer>
+
+
+    <!-- Configuration to send sms on 1x when UE is attached to eHRPD and there is an active
+         1xRTT voice call, irrespective of IMS registration state  -->
+    <bool name="config_send_sms1x_on_voice_call">true</bool>
 
     <!-- Whether WiFi display is supported by this device.
          There are many prerequisites for this feature to work correctly.
@@ -1213,6 +1309,16 @@
         <item>100</item>
     </integer-array>
 
+    <!-- Vibrator pattern to be used as for notifications while alerts
+         are disabled (e.g. during phone calls) if enabled by the user.
+     -->
+    <integer-array name="config_notificationNoAlertsVibePattern">
+        <item>0</item>
+        <item>50</item>
+        <item>100</item>
+        <item>50</item>
+    </integer-array>
+
     <!-- Flag indicating if the speed up audio on mt call code should be executed -->
     <bool name="config_speed_up_audio_on_mt_calls">false</bool>
 
@@ -1229,6 +1335,10 @@
          the default framework version. If left empty, then the framework version will be used.
          Example: com.google.android.myapp/.resolver.MyResolverActivity  -->
     <string name="config_customResolverActivity"></string>
+
+    <!-- Component name of a custom pre launch check activity to be used instead of default
+         framework version. Currently, there is no default version. -->
+    <string name="config_prelaunchcheckactivity"></string>
 
     <!-- Apps that are authorized to access shared accounts, overridden by product overlays -->
     <string name="config_appsAuthorizedForSharedAccounts">;com.android.settings;</string>
@@ -1277,10 +1387,6 @@
     <string-array translatable="false" name="config_operatorConsideredNonRoaming">
     </string-array>
 
-    <!-- Threshold (in ms) under which a screen off / screen on will be considered a reset of the
-         immersive mode confirmation prompt.-->
-    <integer name="config_immersive_mode_confirmation_panic">5000</integer>
-
     <!-- For some operators, PDU has garbages. To fix it, need to use valid index -->
     <integer name="config_valid_wappush_index">-1</integer>
 
@@ -1305,11 +1411,177 @@
         <item>353</item>
     </string-array>
 
-    <!-- Override the default detection behavior for the framework method
+    <!-- True will enable the screen-off animation. -->
+    <bool name="config_screenOffAnimation">true</bool>
+
+    <!-- NOT USED IN CM. see config_deviceHardwareKeys
+         Retaining this entry to preserve config ID sequences
+
+         Override the default detection behavior for the framework method
          android.view.ViewConfiguration#hasPermanentMenuKey().
          Valid settings are:
          0 - No change. Use the default autodetection behavior.
          1 - The device DOES have a permanent menu key; ignore autodetection.
          2 - The device DOES NOT have a permanent menu key; ignore autodetection. -->
     <integer name="config_overrideHasPermanentMenuKey">0</integer>
+
+    <!-- Timeout in MS for how long you have to long-press the back key to
+         kill the foreground app. -->
+    <integer name="config_backKillTimeout">2000</integer>
+
+    <!-- Device has a h/w rotation lock switch -->
+    <bool name="config_hasRotationLockSwitch">false</bool>
+
+    <!-- Workaround for devices with broken keyboards -->
+    <bool name="config_forceDisableHardwareKeyboard">false</bool>
+
+    <!-- Setting to false will disable CM's IME switcher implementation for tablets -->
+    <bool name="config_show_cmIMESwitcher">true</bool>
+
+    <!-- Boolean to enable stk functionality on Samsung phones -->
+    <bool name="config_samsung_stk">false</bool>
+
+    <!-- Maximum wallpaper width for devices with very high-res screen (1920x1200)
+         the wallpaper width suggestion by the launcher may be too large for
+         the GPU to handle. -->
+    <integer name="config_wallpaperMaxWidth">-1</integer>
+
+    <!-- LUN file to be used by legacy USB manager.
+         The existence of this file will be used to determine in the
+         legacy USB manager should be started. -->
+    <string name="config_legacyUmsLunFile">/sys/devices/platform/usb_mass_storage/lun0/file</string>
+
+    <!-- Path to the library that contains a device specific key handler -->
+    <string name="config_deviceKeyHandlerLib" translatable="false"></string>
+
+    <!-- Name of that key handler class -->
+    <string name="config_deviceKeyHandlerClass" translatable="false"></string>
+
+    <!-- If a dock provides a lid switch, that lid can be removed. This
+         setting is used to determine, whether lidOpenRotation has to be
+         applied. -->
+    <bool name="config_hasRemovableLid">false</bool>
+
+    <!-- Boolean to enable Stylus gestures -->
+    <bool name="config_stylusGestures">false</bool>
+
+    <!-- Integer to configure panel auto brightness mode when changed -->
+    <integer name="config_panelAutoBrightnessValue">-1</integer>
+
+    <!-- True if the gesture service should be started at system start -->
+    <bool name="config_enableGestureService">false</bool>
+
+    <!-- The list of components which should be automatically disabled. -->
+    <string-array name="config_disabledComponents" translatable="false">
+    </string-array>
+
+    <!-- The list of components which should be forced to be enabled. -->
+    <string-array name="config_forceEnabledComponents" translatable="false">
+    </string-array>
+
+    <!-- Device supports LED flashlight -->
+    <bool name="config_enableTorch">false</bool>
+
+    <!-- Hardware 'face' keys present on the device, stored as a bit field.
+         This integer should equal the sum of the corresponding value for each
+         of the following keys present:
+             1 - Home
+             2 - Back
+             4 - Menu
+             8 - Assistant (search)
+            16 - App switch
+            32 - Camera
+         For example, a device with Home, Back and Menu keys would set this
+         config to 7. -->
+    <integer name="config_deviceHardwareKeys">15</integer>
+
+    <!-- Indicates that the device has Single-stage Camera key
+         (without "Focus" state) instead of Dual-stage. -->
+    <bool name="config_singleStageCameraKey">false</bool>
+
+    <!-- Defines the system property to set for performance profile xe: sys.cpu.modes. Leave it
+         blank if the device do not support performance profiles -->
+    <string name="config_perf_profile_prop" translatable="false"></string>
+
+    <!-- When config_perf_profile_prop is defined, this value MUST be the index of
+         one of the listes values in frameworks/base/core/res/res/values/cm_arrays.xml
+         for "perf_profile_values" array. Leave it blank if the device do not support
+         performance profiles  -->
+    <string name="config_perf_profile_default_entry" translatable="false"></string>
+
+    <!-- bool value to for enabling motion accelerometer -->
+    <bool name="use_motion_accel">false</bool>
+
+    <!-- set to false if we dont need to consider data
+         service state to display signal strength bars -->
+    <bool name="config_combined_signal">true</bool>
+
+    <!-- Configuration to restart radio upon PDP_DEACTIVATE with
+         error cause as Regular deactivation(36). -->
+    <bool name="config_radio_reset_on_regular_deactivation">true</bool>
+
+    <!-- Configuartion to support 7bit Ascii encoding and decoding
+         for long messages. -->
+    <bool name="config_ascii_7bit_support_for_long_message">false</bool>
+
+    <!-- Configuration to sending and receiving Mms when mobile data is disable.-->
+    <bool name="config_setup_mms_data">false</bool>
+
+    <!-- Configuration to set delete any partial segments expire age -->
+    <!-- 30 days by default (60 * 60 * 1000) * 24 * 30 , no long so use string-->
+    <string name="config_partial_segment_expire_age">2592000000</string>
+
+    <!-- Configuration to enable non-default PDP during IWLAN -->
+    <bool name="config_feature_iwlan_enabled">false</bool>
+
+    <!-- Flag indicating whether the RIL_REQUEST_SEND_SMS_EXPECT_MORE
+         API should be used or not. The usage of the API is added
+         by CodeAurora and may not be supported by certain RIL.
+
+         The default value is false which represents AOSP behavior. -->
+    <bool name="config_smsUseExpectMore">false</bool>
+
+    <!-- Automatic power profile management per app.
+         Each item should list the fully-qualified activity
+         name and the power profile id, separated by a comma. -->
+    <string-array name="config_auto_perf_activities" translatable="false">
+    </string-array>
+
+    <!-- Packages that are allowed to write killswitch values -->
+    <string-array name="config_packagesAllowedAccessToKillSwitch" translatable="false">
+    </string-array>
+
+    <!-- Path to the library that contains the kill switch library -->
+    <string name="config_killSwitchLib" translatable="false"></string>
+
+    <!-- Name of the class which implements the IKillSwitch interface -->
+    <string name="config_killSwitchClass" translatable="false"></string>
+
+
+    <!-- Control the behavior when the user long presses the menu button.
+            0 - Nothing
+            1 - Menu key
+            2 - Recent apps view in SystemUI
+            3 - Launch assist intent
+            4 - Voice Search
+            5 - In-app Search
+         This needs to match the constants in
+         policy/src/com/android/internal/policy/impl/PhoneWindowManager.java
+    -->
+    <integer name="config_longPressOnMenuBehavior">3</integer>
+
+    <!-- Default value for proximity check on screen wake
+         NOTE ! - Enable for devices that have a fast response proximity sensor (ideally < 300ms)
+    -->
+    <bool name="config_proximityCheckOnWake">false</bool>
+    <integer name="config_proximityCheckTimeout">250</integer>
+
+    <!-- Ignored sms packages -->
+    <string-array name="config_ignored_sms_packages"></string-array>
+
+    <!-- Whether to always request audio focus for incoming calls.
+         Default is false: silent and vibrate modes will not request audio focus.
+         true: all incoming calls will request audio focus (overriding any active music)
+    -->
+    <bool name="config_alwaysRequestAudioFocusForCalls">false</bool>
 </resources>

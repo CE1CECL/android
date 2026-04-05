@@ -27,6 +27,10 @@
 #include "vpx/vpx_codec.h"
 #include "vpx/vp8dx.h"
 
+#ifndef UINT32_MAX
+#define UINT32_MAX       (4294967295U)
+#endif
+
 namespace android {
 
 SoftVPX::SoftVPX(
@@ -134,7 +138,7 @@ void SoftVPX::onQueueFilled(OMX_U32 portIndex) {
         vpx_image_t *img = vpx_codec_get_frame((vpx_codec_ctx_t *)mCtx, &iter);
 
         if (img != NULL) {
-            CHECK_EQ(img->fmt, IMG_FMT_I420);
+            CHECK_EQ(img->fmt, VPX_IMG_FMT_I420);
 
             uint32_t width = img->d_w;
             uint32_t height = img->d_h;
@@ -151,35 +155,38 @@ void SoftVPX::onQueueFilled(OMX_U32 portIndex) {
             }
 
             outHeader->nOffset = 0;
-            outHeader->nFilledLen = (width * height * 3) / 2;
+            outHeader->nFilledLen = (mWidth * mHeight * 3) / 2;
             outHeader->nFlags = EOSseen ? OMX_BUFFERFLAG_EOS : 0;
             outHeader->nTimeStamp = inHeader->nTimeStamp;
 
-            const uint8_t *srcLine = (const uint8_t *)img->planes[PLANE_Y];
-            uint8_t *dst = outHeader->pBuffer;
-            for (size_t i = 0; i < img->d_h; ++i) {
-                memcpy(dst, srcLine, img->d_w);
+            if (outputBufferSafe(outHeader)) {
+                const uint8_t *srcLine = (const uint8_t *)img->planes[VPX_PLANE_Y];
+                uint8_t *dst = outHeader->pBuffer;
+                for (size_t i = 0; i < img->d_h; ++i) {
+                    memcpy(dst, srcLine, img->d_w);
 
-                srcLine += img->stride[PLANE_Y];
-                dst += img->d_w;
+                    srcLine += img->stride[VPX_PLANE_Y];
+                    dst += img->d_w;
+                }
+
+                srcLine = (const uint8_t *)img->planes[VPX_PLANE_U];
+                for (size_t i = 0; i < img->d_h / 2; ++i) {
+                    memcpy(dst, srcLine, img->d_w / 2);
+
+                    srcLine += img->stride[VPX_PLANE_U];
+                    dst += img->d_w / 2;
+                }
+
+                srcLine = (const uint8_t *)img->planes[VPX_PLANE_V];
+                for (size_t i = 0; i < img->d_h / 2; ++i) {
+                    memcpy(dst, srcLine, img->d_w / 2);
+
+                    srcLine += img->stride[VPX_PLANE_V];
+                    dst += img->d_w / 2;
+                }
+            } else {
+                outHeader->nFilledLen = 0;
             }
-
-            srcLine = (const uint8_t *)img->planes[PLANE_U];
-            for (size_t i = 0; i < img->d_h / 2; ++i) {
-                memcpy(dst, srcLine, img->d_w / 2);
-
-                srcLine += img->stride[PLANE_U];
-                dst += img->d_w / 2;
-            }
-
-            srcLine = (const uint8_t *)img->planes[PLANE_V];
-            for (size_t i = 0; i < img->d_h / 2; ++i) {
-                memcpy(dst, srcLine, img->d_w / 2);
-
-                srcLine += img->stride[PLANE_V];
-                dst += img->d_w / 2;
-            }
-
             outInfo->mOwnedByUs = false;
             outQueue.erase(outQueue.begin());
             outInfo = NULL;
@@ -193,6 +200,24 @@ void SoftVPX::onQueueFilled(OMX_U32 portIndex) {
         notifyEmptyBufferDone(inHeader);
         inHeader = NULL;
     }
+}
+
+bool SoftVPX::outputBufferSafe(OMX_BUFFERHEADERTYPE *outHeader) {
+    uint32_t width = mWidth;
+    uint32_t height = mHeight;
+    uint64_t nFilledLen = width;
+    nFilledLen *= height;
+    if (nFilledLen > UINT32_MAX / 3) {
+        ALOGE("b/29421675, nFilledLen overflow %llu w %u h %u", nFilledLen, width, height);
+        android_errorWriteLog(0x534e4554, "29421675");
+        return false;
+    } else if (outHeader->nAllocLen < outHeader->nFilledLen) {
+        ALOGE("b/27597103, buffer too small");
+        android_errorWriteLog(0x534e4554, "27597103");
+        return false;
+    }
+
+    return true;
 }
 
 }  // namespace android

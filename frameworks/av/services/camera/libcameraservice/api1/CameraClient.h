@@ -69,7 +69,9 @@ public:
 
     status_t initialize(camera_module_t *module);
 
-    status_t dump(int fd, const Vector<String16>& args);
+    virtual status_t dump(int fd, const Vector<String16>& args);
+
+    virtual status_t dumpClient(int fd, const Vector<String16>& args);
 
 private:
 
@@ -105,6 +107,9 @@ private:
     void                    handlePostview(const sp<IMemory>& mem);
     void                    handleRawPicture(const sp<IMemory>& mem);
     void                    handleCompressedPicture(const sp<IMemory>& mem);
+#if defined(OMAP_ICS_CAMERA) || defined(OMAP_ENHANCEMENT_BURST_CAPTURE)
+    void                    handleCompressedBurstPicture(const sp<IMemory>& mem);
+#endif
     void                    handleGenericNotify(int32_t msgType, int32_t ext1, int32_t ext2);
     void                    handleGenericData(int32_t msgType, const sp<IMemory>& dataPtr,
             camera_frame_metadata_t *metadata);

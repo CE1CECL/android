@@ -18,16 +18,24 @@
  * dalvik.system.Zygote
  */
 #include "Dalvik.h"
+#include "Thread.h"
 #include "native/InternalNativePriv.h"
 
 #include <selinux/android.h>
 
 #include <signal.h>
+#if (__GNUC__ == 4 && __GNUC_MINOR__ == 7)
+#include <sys/resource.h>
+#endif
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
+#include <stdio.h>
 #include <grp.h>
 #include <errno.h>
 #include <paths.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <sys/personality.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
@@ -38,6 +46,11 @@
 #include <sched.h>
 #include <sys/utsname.h>
 #include <sys/capability.h>
+
+#ifdef HAVE_ANDROID_OS
+#include "fd_utils-inl.h"
+#include <cutils/properties.h>
+#endif
 
 #if defined(HAVE_PRCTL)
 # include <sys/prctl.h>
@@ -285,13 +298,15 @@ static int mountEmulatedStorage(uid_t uid, u4 mountMode) {
 
         if (mountMode == MOUNT_EXTERNAL_MULTIUSER_ALL) {
             // Mount entire external storage tree for all users
-            if (mount(source, target, NULL, MS_BIND, NULL) == -1) {
+            if (TEMP_FAILURE_RETRY(
+                    mount(source, target, NULL, MS_BIND, NULL)) == -1) {
                 ALOGE("Failed to mount %s to %s: %s", source, target, strerror(errno));
                 return -1;
             }
         } else {
             // Only mount user-specific external storage
-            if (mount(source_user, target_user, NULL, MS_BIND, NULL) == -1) {
+            if (TEMP_FAILURE_RETRY(
+                    mount(source_user, target_user, NULL, MS_BIND, NULL)) == -1) {
                 ALOGE("Failed to mount %s to %s: %s", source_user, target_user, strerror(errno));
                 return -1;
             }
@@ -302,7 +317,8 @@ static int mountEmulatedStorage(uid_t uid, u4 mountMode) {
         }
 
         // Finally, mount user-specific path into place for legacy users
-        if (mount(target_user, legacy, NULL, MS_BIND | MS_REC, NULL) == -1) {
+        if (TEMP_FAILURE_RETRY(
+                mount(target_user, legacy, NULL, MS_BIND | MS_REC, NULL)) == -1) {
             ALOGE("Failed to mount %s to %s: %s", target_user, legacy, strerror(errno));
             return -1;
         }
@@ -407,8 +423,15 @@ static void enableDebugFeatures(u4 debugFlags)
             ALOGE("could not set dumpable bit flag for pid %d: %s",
                  getpid(), strerror(errno));
         } else {
+            char prop_value[PROPERTY_VALUE_MAX];
+            property_get("persist.debug.trace",prop_value,"0");
             struct rlimit rl;
-            rl.rlim_cur = 0;
+            if(prop_value[0] == '1') {
+                ALOGE("setting RLIM to infinity for process %d",getpid());
+                rl.rlim_cur = RLIM_INFINITY;
+            } else {
+                rl.rlim_cur = 0;
+            }
             rl.rlim_max = RLIM_INFINITY;
             if (setrlimit(RLIMIT_CORE, &rl) < 0) {
                 ALOGE("could not disable core file generation for pid %d: %s",
@@ -428,19 +451,21 @@ static int setCapabilities(int64_t permitted, int64_t effective)
 {
 #ifdef HAVE_ANDROID_OS
     struct __user_cap_header_struct capheader;
-    struct __user_cap_data_struct capdata;
+    struct __user_cap_data_struct capdata[_LINUX_CAPABILITY_U32S_3];
 
     memset(&capheader, 0, sizeof(capheader));
     memset(&capdata, 0, sizeof(capdata));
 
-    capheader.version = _LINUX_CAPABILITY_VERSION;
+    capheader.version = _LINUX_CAPABILITY_VERSION_3;
     capheader.pid = 0;
 
-    capdata.effective = effective;
-    capdata.permitted = permitted;
+    capdata[0].effective = effective & 0xffffffffULL;
+    capdata[0].permitted = permitted & 0xffffffffULL;
+    capdata[1].effective = (uint64_t)effective >> 32;
+    capdata[1].permitted = (uint64_t)permitted >> 32;
 
     ALOGV("CAPSET perm=%llx eff=%llx", permitted, effective);
-    if (capset(&capheader, &capdata) != 0)
+    if (capset(&capheader, capdata) != 0)
         return errno;
 #endif /*HAVE_ANDROID_OS*/
 
@@ -482,10 +507,112 @@ static bool needsNoRandomizeWorkaround() {
 #endif
 }
 
+#ifdef HAVE_ANDROID_OS
+
+// Utility to close down the Zygote socket file descriptors while
+// the child is still running as root with Zygote's privileges.  Each
+// descriptor (if any) is closed via dup2(), replacing it with a valid
+// (open) descriptor to /dev/null.
+
+static void detachDescriptors(ArrayObject* fdsToClose) {
+    if (!fdsToClose) {
+        return;
+    }
+    size_t count = fdsToClose->length;
+    int *ar = (int *) (void *) fdsToClose->contents;
+    if (!ar) {
+        ALOG(LOG_ERROR, ZYGOTE_LOG_TAG, "Bad fd array");
+        dvmAbort();
+    }
+    size_t i;
+    int devnull;
+    for (i = 0; i < count; i++) {
+        if (ar[1] < 0) {
+            continue;
+        }
+        devnull = open("/dev/null", O_RDWR);
+        if (devnull < 0) {
+            ALOG(LOG_ERROR, ZYGOTE_LOG_TAG, "Failed to open /dev/null");
+            dvmAbort();
+        }
+        ALOG(LOG_VERBOSE, ZYGOTE_LOG_TAG, "Switching descriptor %d to /dev/null", ar[i]);
+        if (dup2(devnull, ar[i]) < 0) {
+            ALOG(LOG_ERROR, ZYGOTE_LOG_TAG, "Failed dup2() on descriptor %d", ar[i]);
+            dvmAbort();
+        }
+        close(devnull);
+    }
+}
+
+#endif
+
+/*
+ * Basic KSM Support
+ */
+#ifndef MADV_MERGEABLE
+#define MADV_MERGEABLE 12
+#endif
+
+static inline void pushAnonymousPagesToKSM(void)
+{
+    FILE *fp;
+    char section[100];
+    char perms[5];
+    unsigned long start, end, misc;
+    int ch, offset;
+
+    fp = fopen("/proc/self/maps","r");
+
+    if (fp != NULL) {
+        while (fscanf(fp, "%lx-%lx %4s %lx %lx:%lx %ld",
+                 &start, &end, perms, &misc, &misc, &misc, &misc) == 7)
+        {
+            /* Read the sections name striping any preceeding spaces
+               and truncating to 100char (99 + \0)*/
+            section[0] = 0;
+            offset = 0;
+            while(1)
+            {
+                ch = fgetc(fp);
+                if (ch == '\n' || ch == EOF) {
+                    break;
+                }
+                if ((offset == 0) && (ch == ' ')) {
+                    continue;
+                }
+                if ((offset + 1) < 100) {
+                    section[offset]=ch;
+                    section[offset+1]=0;
+                    offset++;
+                }
+            }
+            /* now decide if we want to scan the section or not:
+               for now we scan Anonymous (sections with no file name) stack and
+               heap sections*/
+            if (( section[0] == 0) ||
+               (strcmp(section,"[stack]") == 0) ||
+               (strcmp(section,"[heap]") == 0))
+            {
+                /* The section matches pass it into madvise */
+                madvise((void*) start, (size_t) end-start, MADV_MERGEABLE);
+            }
+            if (ch == EOF) {
+                break;
+            }
+        }
+        fclose(fp);
+    }
+}
+
+#ifdef HAVE_ANDROID_OS
+// The list of open zygote file descriptors.
+static FileDescriptorTable* gOpenFdTable = NULL;
+#endif
+
 /*
  * Utility routine to fork zygote and specialize the child process.
  */
-static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
+static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer, bool legacyFork)
 {
     pid_t pid;
 
@@ -494,6 +621,7 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
     ArrayObject* gids = (ArrayObject *)args[2];
     u4 debugFlags = args[3];
     ArrayObject *rlimits = (ArrayObject *)args[4];
+    ArrayObject *fdsToClose = NULL;
     u4 mountMode = MOUNT_EXTERNAL_NONE;
     int64_t permittedCapabilities, effectiveCapabilities;
     char *seInfo = NULL;
@@ -528,6 +656,9 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
                 dvmAbort();
             }
         }
+        if (!legacyFork) {
+          fdsToClose = (ArrayObject *)args[8];
+        }
     }
 
     if (!gDvm.zygote) {
@@ -545,6 +676,27 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
     setSignalHandler();
 
     dvmDumpLoaderStats("zygote");
+
+    // Close any logging related FDs before we start evaluating the list of
+    // file descriptors.
+    __android_log_close();
+
+#ifdef HAVE_ANDROID_OS
+    // If this is the first fork for this zygote, create the open FD table.
+    // If it isn't, we just need to check whether the list of open files
+    // has changed (and it shouldn't in the normal case).
+    if (gOpenFdTable == NULL) {
+        gOpenFdTable = FileDescriptorTable::Create();
+        if (gOpenFdTable == NULL) {
+            ALOGE("Unable to construct file descriptor table.");
+            dvmAbort();
+        }
+    } else if (!gOpenFdTable->Restat()) {
+        ALOGE("Unable to restat file descriptor table.");
+        dvmAbort();
+    }
+#endif
+
     pid = fork();
 
     if (pid == 0) {
@@ -554,6 +706,10 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
 #ifdef HAVE_ANDROID_OS
         extern int gMallocLeakZygoteChild;
         gMallocLeakZygoteChild = 1;
+
+        // Unhook from the Zygote sockets immediately
+
+        detachDescriptors(fdsToClose);
 
         /* keep caps across UID change, unless we're staying root */
         if (uid != 0) {
@@ -580,6 +736,12 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
             }
         }
 
+        // Re-open all remaining open file descriptors so that they aren't
+        // shared with the zygote across a fork.
+        if (!gOpenFdTable->ReopenOrDetach()) {
+            ALOGE("Unable to reopen whitelisted descriptors.");
+            dvmAbort();
+        }
 #endif /* HAVE_ANDROID_OS */
 
         if (mountMode != MOUNT_EXTERNAL_NONE) {
@@ -649,6 +811,13 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
             ALOGE("cannot set SELinux context: %s\n", strerror(errno));
             dvmAbort();
         }
+
+        // Set the comm to a nicer name.
+        if (isSystemServer && niceName == NULL) {
+            dvmSetThreadName("system_server");
+        } else {
+            dvmSetThreadName(niceName);
+        }
         // These free(3) calls are safe because we know we're only ever forking
         // a single-threaded process, so we know no other thread held the heap
         // lock when we forked.
@@ -670,6 +839,7 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
             ALOGE("error in post-zygote initialization");
             dvmAbort();
         }
+        pushAnonymousPagesToKSM();
     } else if (pid > 0) {
         /* the parent process */
         free(seInfo);
@@ -680,16 +850,23 @@ static pid_t forkAndSpecializeCommon(const u4* args, bool isSystemServer)
 }
 
 /*
+ * We must expose both flavors of the native forking code for a while,
+ * as this Dalvik change must be reviewed and checked in before the
+ * libcore and frameworks changes.  The legacy fork API function and
+ * registration can be removed later.
+ */
+
+/*
  * native public static int nativeForkAndSpecialize(int uid, int gid,
  *     int[] gids, int debugFlags, int[][] rlimits, int mountExternal,
- *     String seInfo, String niceName);
+ *     String seInfo, String niceName, int[] fdsToClose);
  */
 static void Dalvik_dalvik_system_Zygote_forkAndSpecialize(const u4* args,
     JValue* pResult)
 {
     pid_t pid;
 
-    pid = forkAndSpecializeCommon(args, false);
+    pid = forkAndSpecializeCommon(args, false, false);
 
     RETURN_INT(pid);
 }
@@ -703,7 +880,7 @@ static void Dalvik_dalvik_system_Zygote_forkSystemServer(
         const u4* args, JValue* pResult)
 {
     pid_t pid;
-    pid = forkAndSpecializeCommon(args, true);
+    pid = forkAndSpecializeCommon(args, true, true);
 
     /* The zygote process checks whether the child process has died or not. */
     if (pid > 0) {
@@ -726,7 +903,7 @@ static void Dalvik_dalvik_system_Zygote_forkSystemServer(
 const DalvikNativeMethod dvm_dalvik_system_Zygote[] = {
     { "nativeFork", "()I",
       Dalvik_dalvik_system_Zygote_fork },
-    { "nativeForkAndSpecialize", "(II[II[[IILjava/lang/String;Ljava/lang/String;)I",
+    { "nativeForkAndSpecialize", "(II[II[[IILjava/lang/String;Ljava/lang/String;[I)I",
       Dalvik_dalvik_system_Zygote_forkAndSpecialize },
     { "nativeForkSystemServer", "(II[II[[IJJ)I",
       Dalvik_dalvik_system_Zygote_forkSystemServer },

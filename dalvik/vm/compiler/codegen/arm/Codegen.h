@@ -25,6 +25,8 @@
 #include "compiler/CompilerIR.h"
 #include "CalloutHelper.h"
 
+#include "compiler/codegen/PostOptimizer.h"
+
 #if defined(_CODEGEN_C)
 /*
  * loadConstant() sometimes needs to add a small imm to a pre-existing constant
@@ -45,7 +47,7 @@ static bool genArithOpDoublePortable(CompilationUnit *cUnit, MIR *mir,
 
 static bool genConversionPortable(CompilationUnit *cUnit, MIR *mir);
 
-#if defined(__ARM_ARCH_5__)
+#if defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_6__)
 static void genMonitorPortable(CompilationUnit *cUnit, MIR *mir);
 #endif
 

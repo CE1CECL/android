@@ -5,17 +5,25 @@ import java.util.ArrayList;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.Sms;
+import android.telephony.MSimSmsManager;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
+import com.android.internal.telephony.MSimConstants;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.data.Conversation;
 import com.android.mms.ui.MessageUtils;
+import com.android.mms.util.MultiSimUtility;
 import com.google.android.mms.MmsException;
 
 public class SmsSingleRecipientSender extends SmsMessageSender {
@@ -23,15 +31,22 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
     private final boolean mRequestDeliveryReport;
     private String mDest;
     private Uri mUri;
+    private boolean mIsExpectMore;
     private static final String TAG = "SmsSingleRecipientSender";
+    private int mPriority = -1;
 
     public SmsSingleRecipientSender(Context context, String dest, String msgText, long threadId,
-            boolean requestDeliveryReport, Uri uri) {
-        super(context, null, msgText, threadId);
+            boolean requestDeliveryReport, Uri uri, int subscription, boolean expectMore) {
+        super(context, null, msgText, threadId, subscription);
         mRequestDeliveryReport = requestDeliveryReport;
         mDest = dest;
         mUri = uri;
+        mIsExpectMore = expectMore;
     }
+
+    public void setPriority(int priority) {
+        this.mPriority = priority;
+     }
 
     public boolean sendMessage(long token) throws MmsException {
         if (LogTag.DEBUG_SEND) {
@@ -67,6 +82,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
         }
 
         boolean moved = Sms.moveMessageToFolder(mContext, mUri, Sms.MESSAGE_TYPE_OUTBOX, 0);
+
         if (!moved) {
             throw new MmsException("SmsMessageSender.sendMessage: couldn't move message " +
                     "to outbox: " + mUri);
@@ -98,7 +114,7 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
                     mUri,
                     mContext,
                     SmsReceiver.class);
-
+            intent.putExtra(MSimConstants.SUBSCRIPTION_KEY, mSubscription);
             int requestCode = 0;
             if (i == messageCount -1) {
                 // Changing the requestCode so that a different pending intent
@@ -112,18 +128,43 @@ public class SmsSingleRecipientSender extends SmsMessageSender {
             }
             sentIntents.add(PendingIntent.getBroadcast(mContext, requestCode, intent, 0));
         }
+
+        int validityPeriod = getValidityPeriod(mSubscription);
+        Log.d(TAG, "sendMessage validityPeriod = "+validityPeriod);
+        // Remove all attributes for CDMA international roaming.
+        if (MessageUtils.isCDMAInternationalRoaming(mSubscription)) {
+            Log.v(TAG, "sendMessage during CDMA international roaming.");
+            mPriority = -1;
+            deliveryIntents = null;
+            validityPeriod = -1;
+        }
         try {
-            smsManager.sendMultipartTextMessage(mDest, mServiceCenter, messages, sentIntents, deliveryIntents);
+            if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                MSimSmsManager.getDefault().sendMultipartTextMessage(mDest, mServiceCenter,
+                            messages, sentIntents, deliveryIntents, mPriority, mIsExpectMore,
+                            validityPeriod, mSubscription);
+            } else {
+                smsManager.sendMultipartTextMessage(mDest, mServiceCenter,
+                            messages, sentIntents, deliveryIntents, mPriority, mIsExpectMore,
+                            validityPeriod);
+            }
         } catch (Exception ex) {
             Log.e(TAG, "SmsMessageSender.sendMessage: caught", ex);
             throw new MmsException("SmsMessageSender.sendMessage: caught " + ex +
-                    " from SmsManager.sendTextMessage()");
+                    " from MSimSmsManager.sendTextMessage()");
         }
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE) || LogTag.DEBUG_SEND) {
             log("sendMessage: address=" + mDest + ", threadId=" + mThreadId +
                     ", uri=" + mUri + ", msgs.count=" + messageCount);
         }
         return false;
+    }
+
+    private int getValidityPeriod(int subscription) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
+        return Integer.valueOf(prefs.getString(
+                MultiSimUtility.getPreferenceKey("pref_key_sms_validity_period", mSubscription),
+                "-1"));
     }
 
     private void log(String msg) {

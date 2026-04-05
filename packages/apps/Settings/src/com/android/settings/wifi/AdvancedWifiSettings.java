@@ -44,12 +44,14 @@ public class AdvancedWifiSettings extends SettingsPreferenceFragment
     private static final String KEY_MAC_ADDRESS = "mac_address";
     private static final String KEY_CURRENT_IP_ADDRESS = "current_ip_address";
     private static final String KEY_FREQUENCY_BAND = "frequency_band";
+    private static final String KEY_COUNTRY_CODE = "wifi_countrycode";
     private static final String KEY_NOTIFY_OPEN_NETWORKS = "notify_open_networks";
     private static final String KEY_SLEEP_POLICY = "sleep_policy";
     private static final String KEY_POOR_NETWORK_DETECTION = "wifi_poor_network_detection";
     private static final String KEY_SCAN_ALWAYS_AVAILABLE = "wifi_scan_always_available";
     private static final String KEY_INSTALL_CREDENTIALS = "install_credentials";
     private static final String KEY_SUSPEND_OPTIMIZATIONS = "suspend_optimizations";
+    private static final String KEY_WIFI_PRIORITY = "wifi_priority";
 
     private WifiManager mWifiManager;
 
@@ -113,17 +115,44 @@ public class AdvancedWifiSettings extends SettingsPreferenceFragment
 
         if (mWifiManager.isDualBandSupported()) {
             frequencyPref.setOnPreferenceChangeListener(this);
-            int value = mWifiManager.getFrequencyBand();
-            if (value != -1) {
-                frequencyPref.setValue(String.valueOf(value));
-                updateFrequencyBandSummary(frequencyPref, value);
-            } else {
-                Log.e(TAG, "Failed to fetch frequency band");
+            try {
+                int value = Settings.Global.getInt(getContentResolver(),
+                Global.WIFI_FREQUENCY_BAND);
+                if (value != -1) {
+                    frequencyPref.setValue(String.valueOf(value));
+                    updateFrequencyBandSummary(frequencyPref, value);
+
+                    // make sure this frequeny band is in use
+                    if (mWifiManager.getFrequencyBand() != value)
+                        mWifiManager.setFrequencyBand(value, true);
+
+                }
+            } catch(Settings.SettingNotFoundException e) {
+                Log.e(TAG, "Failed to fetch frequency band:" + e.getMessage());
             }
         } else {
             if (frequencyPref != null) {
                 // null if it has already been removed before resume
                 getPreferenceScreen().removePreference(frequencyPref);
+            }
+        }
+
+        ListPreference ccodePref = (ListPreference) findPreference(KEY_COUNTRY_CODE);
+        if (ccodePref != null) {
+            ccodePref.setOnPreferenceChangeListener(this);
+            String value = Settings.Global.getString(getContentResolver(),
+            Settings.Global.WIFI_COUNTRY_CODE);
+            if (value != null) {
+                ccodePref.setValue(value);
+
+                // make sure this country code is in use
+                String ccode = mWifiManager.getCountryCode();
+                if (ccode != null) {
+                    if (!ccode.equals(value))
+                        mWifiManager.setCountryCode(value, true);
+                }
+            } else {
+                Log.e(TAG, "Failed to fetch country code");
             }
         }
 
@@ -140,6 +169,9 @@ public class AdvancedWifiSettings extends SettingsPreferenceFragment
             sleepPolicyPref.setValue(stringValue);
             updateSleepPolicySummary(sleepPolicyPref, stringValue);
         }
+
+        Preference wifiPriority = findPreference(KEY_WIFI_PRIORITY);
+        wifiPriority.setEnabled(mWifiManager.isWifiEnabled());
     }
 
     private void updateSleepPolicySummary(Preference sleepPolicyPref, String value) {
@@ -200,10 +232,24 @@ public class AdvancedWifiSettings extends SettingsPreferenceFragment
         if (KEY_FREQUENCY_BAND.equals(key)) {
             try {
                 int value = Integer.parseInt((String) newValue);
+                Settings.Global.putInt(getContentResolver(), Settings.Global.WIFI_FREQUENCY_BAND,
+                        value);
                 mWifiManager.setFrequencyBand(value, true);
                 updateFrequencyBandSummary(preference, value);
             } catch (NumberFormatException e) {
                 Toast.makeText(getActivity(), R.string.wifi_setting_frequency_band_error,
+                        Toast.LENGTH_SHORT).show();
+                return false;
+            }
+        }
+
+        if (KEY_COUNTRY_CODE.equals(key)) {
+            try {
+                Settings.Global.putString(getContentResolver(), Settings.Global.WIFI_COUNTRY_CODE,
+                        (String) newValue);
+                mWifiManager.setCountryCode((String) newValue, true);
+            } catch (IllegalArgumentException e) {
+                Toast.makeText(getActivity(), R.string.wifi_setting_countrycode_error,
                         Toast.LENGTH_SHORT).show();
                 return false;
             }

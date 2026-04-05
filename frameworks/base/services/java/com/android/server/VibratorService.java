@@ -44,6 +44,7 @@ import android.view.InputDevice;
 
 import com.android.internal.app.IAppOpsService;
 import com.android.internal.app.IBatteryStats;
+import com.android.internal.util.cm.QuietHoursUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -52,6 +53,11 @@ import java.util.ListIterator;
 public class VibratorService extends IVibratorService.Stub
         implements InputManager.InputDeviceListener {
     private static final String TAG = "VibratorService";
+
+    // QuietHours have different modes for haptic feedback and vibration, but both
+    // use this vibrator class. This constant defines the line to determine vibrate call
+    // as a haptic feedback or as a vibration
+    private static final int HAPTIC_FEEDBACK_MAX_DURATION = 70;
 
     private final LinkedList<Vibration> mVibrations;
     private Vibration mCurrentVibration;
@@ -196,7 +202,14 @@ public class VibratorService extends IVibratorService.Stub
                 != PackageManager.PERMISSION_GRANTED) {
             throw new SecurityException("Requires VIBRATE permission");
         }
-        verifyIncomingUid(uid);
+
+        // Determine the quiethours mode in base the haptic constant
+        String quietHoursMode = milliseconds > HAPTIC_FEEDBACK_MAX_DURATION
+                ? Settings.System.QUIET_HOURS_STILL : Settings.System.QUIET_HOURS_HAPTIC;
+        if (QuietHoursUtils.inQuietHours(mContext, quietHoursMode)) {
+            return;
+        }
+
         // We're running in the system server so we cannot crash. Check for a
         // timeout of 0 or negative. This will ensure that a vibration has
         // either a timeout of > 0 or a non-null pattern.
@@ -206,6 +219,8 @@ public class VibratorService extends IVibratorService.Stub
             // longer than milliseconds.
             return;
         }
+
+        verifyIncomingUid(uid);
 
         Vibration vib = new Vibration(token, milliseconds, uid, packageName);
 
@@ -238,8 +253,17 @@ public class VibratorService extends IVibratorService.Stub
                 != PackageManager.PERMISSION_GRANTED) {
             throw new SecurityException("Requires VIBRATE permission");
         }
-        verifyIncomingUid(uid);
+
+        // Determine the quiethours mode according to the haptic constant. Will assume that
+        // repeating a pattern is a vibration
+        String quietHoursMode = !isHapticFeedbackPattern(pattern) || repeat >= 0
+                ? Settings.System.QUIET_HOURS_STILL : Settings.System.QUIET_HOURS_HAPTIC;
+        if (QuietHoursUtils.inQuietHours(mContext, quietHoursMode)) {
+            return;
+        }
+
         // so wakelock calls will succeed
+        verifyIncomingUid(uid);
         long identity = Binder.clearCallingIdentity();
         try {
             if (false) {
@@ -509,6 +533,14 @@ public class VibratorService extends IVibratorService.Stub
                 vibratorOff();
             }
         }
+    }
+
+    private static boolean isHapticFeedbackPattern(long[] pattern) {
+        long milliseconds = 0;
+        for (long millis : pattern) {
+            milliseconds += millis;
+        }
+        return milliseconds <= HAPTIC_FEEDBACK_MAX_DURATION;
     }
 
     private class VibrateThread extends Thread {

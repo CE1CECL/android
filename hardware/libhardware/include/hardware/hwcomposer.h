@@ -35,6 +35,18 @@ __BEGIN_DECLS
 #define HWC_DEVICE_API_VERSION      HWC_DEVICE_API_VERSION_0_1
 #define HWC_API_VERSION             HWC_DEVICE_API_VERSION
 
+/* Users of this header can define HWC_REMOVE_DEPRECATED_VERSIONS to test that
+ * they still work with just the current version declared, before the
+ * deprecated versions are actually removed.
+ *
+ * To find code that still depends on the old versions, set the #define to 1
+ * here. Code that explicitly sets it to zero (rather than simply not defining
+ * it) will still see the old versions.
+ */
+#if !defined(HWC_REMOVE_DEPRECATED_VERSIONS)
+#define HWC_REMOVE_DEPRECATED_VERSIONS 0
+#endif
+
 /*****************************************************************************/
 
 /**
@@ -179,6 +191,12 @@ typedef struct hwc_layer_1 {
              * The visible region INCLUDES areas overlapped by a translucent layer.
              */
             hwc_region_t visibleRegionScreen;
+
+#ifdef QCOM_BSP
+            /* Region of the layer changed in the source buffer since
+             * previous frame */
+            hwc_rect_t dirtyRect;
+#endif
 
             /* Sync fence object that will be signaled when the buffer's
              * contents are available. May be -1 if the contents are already
@@ -641,6 +659,10 @@ static inline int hwc_close_1(hwc_composer_device_1_t* device) {
 }
 
 /*****************************************************************************/
+
+#if !HWC_REMOVE_DEPRECATED_VERSIONS
+#include <hardware/hwcomposer_v0.h>
+#endif
 
 __END_DECLS
 

@@ -16,6 +16,8 @@
 
 package com.android.phone;
 
+import java.util.Map;
+
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
@@ -23,16 +25,23 @@ import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
 import com.android.phone.Constants.CallStatusCode;
 import com.android.phone.ErrorDialogActivity;
+import com.google.android.collect.Maps;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemProperties;
+import android.provider.Settings;
 import android.provider.CallLog.Calls;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
+import android.telephony.TelephonyManager;
 import android.util.Log;
+
+import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
+import static com.android.internal.telephony.PhoneConstants.IP_CALL;
 
 /**
  * Phone app module in charge of "call control".
@@ -75,6 +84,7 @@ public class CallController extends Handler {
     /** Helper object for emergency calls in some rare use cases.  Created lazily. */
     private EmergencyCallHelper mEmergencyCallHelper;
 
+    private int mVoiceMailSub = 0;
 
     //
     // Message codes; see handleMessage().
@@ -149,6 +159,10 @@ public class CallController extends Handler {
         }
     }
 
+    public int getVoiceMailSub() {
+        return mVoiceMailSub;
+    }
+
     //
     // Outgoing call sequence
     //
@@ -207,11 +221,17 @@ public class CallController extends Handler {
 
         String scheme = uri.getScheme();
         String number = PhoneNumberUtils.getNumberFromIntent(intent, mApp);
-        if (VDBG) {
+        if (DBG) {
             log("- action: " + action);
             log("- uri: " + uri);
             log("- scheme: " + scheme);
             log("- number: " + number);
+            log("- ipcall: " + intent.getBooleanExtra(IP_CALL, false));
+            int subscription = intent.getIntExtra(SUBSCRIPTION_KEY,0);
+            log("- subscription: " + subscription);
+            log("- ipprefix: "
+                    + Settings.System.getString(mApp.getContentResolver(),
+                            Constants.SETTINGS_IP_PREFIX + (subscription + 1)));
         }
 
         // This method should only be used with the various flavors of CALL
@@ -270,6 +290,9 @@ public class CallController extends Handler {
         // in-call UI.  Or if there was an error, the InCallScreen will
         // notice the InCallUiState pending call status code flag and display an
         // error indication instead.)
+
+        // enable noise suppression
+        PhoneUtils.turnOnNoiseSuppression(mApp.getApplicationContext(), true);
     }
 
     /**
@@ -294,6 +317,9 @@ public class CallController extends Handler {
         final Uri uri = intent.getData();
         final String scheme = (uri != null) ? uri.getScheme() : null;
         String number;
+        int callType;
+        boolean isConferenceUri = false;
+        String[] extras = null;
         Phone phone = null;
 
         // Check the current ServiceState to make sure it's OK
@@ -311,7 +337,16 @@ public class CallController extends Handler {
         try {
             number = PhoneUtils.getInitialNumber(intent);
             if (VDBG) log("- actual number to dial: '" + number + "'");
-
+            callType = intent.getIntExtra(OutgoingCallBroadcaster.EXTRA_CALL_TYPE,
+                    Phone.CALL_TYPE_VOICE);
+            isConferenceUri = intent.getBooleanExtra(
+                    OutgoingCallBroadcaster.EXTRA_DIAL_CONFERENCE_URI, false);
+            if (isConferenceUri) {
+                final Map<String, String> extrasMap = Maps.newHashMap();
+                extrasMap.put(Phone.EXTRAS_IS_CONFERENCE_URI,
+                        Boolean.toString(isConferenceUri));
+                extras = PhoneUtils.getExtrasFromMap(extrasMap);
+            }
             // find the phone first
             // TODO Need a way to determine which phone to place the call
             // It could be determined by SIP setting, i.e. always,
@@ -320,7 +355,8 @@ public class CallController extends Handler {
             // or any of combinations
             String sipPhoneUri = intent.getStringExtra(
                     OutgoingCallBroadcaster.EXTRA_SIP_PHONE_URI);
-            phone = PhoneUtils.pickPhoneBasedOnNumber(mCM, scheme, number, sipPhoneUri);
+            int sub = intent.getIntExtra(SUBSCRIPTION_KEY, mApp.getVoiceSubscription());
+            phone = PhoneUtils.pickPhoneBasedOnNumber(mCM, scheme, number, sipPhoneUri, sub);
             if (VDBG) log("- got Phone instance: " + phone + ", class = " + phone.getClass());
 
             // update okToCallStatus based on new phone
@@ -332,6 +368,7 @@ public class CallController extends Handler {
             // may effect the way the voicemail number is being
             // retrieved.  Mask the VoiceMailNumberMissingException
             // with the underlying issue of the phone state.
+            mVoiceMailSub = intent.getIntExtra(SUBSCRIPTION_KEY, mApp.getDefaultSubscription());
             if (okToCallStatus != CallStatusCode.SUCCESS) {
                 if (DBG) log("Voicemail number not reachable in current SIM card state.");
                 return okToCallStatus;
@@ -380,8 +417,22 @@ public class CallController extends Handler {
             && ((okToCallStatus == CallStatusCode.EMERGENCY_ONLY)
                 || (okToCallStatus == CallStatusCode.OUT_OF_SERVICE))) {
             if (DBG) log("placeCall: Emergency number detected with status = " + okToCallStatus);
+            // Avoid updating phone in IMS case as it gets picked
+            // above by PhoneUtils.pickPhoneBasedOnNumber()
+            if ((MSimTelephonyManager.getDefault().isMultiSimEnabled()) &&
+                    (phone.getPhoneType() != PhoneConstants.PHONE_TYPE_IMS)) {
+                int sub = mApp.getVoiceSubscriptionInService();
+                phone = mApp.getPhone(sub);
+            }
             okToCallStatus = CallStatusCode.SUCCESS;
             if (DBG) log("==> UPDATING status to: " + okToCallStatus);
+        }
+
+        if ((isEmergencyNumber || isEmergencyIntent) &&
+                (MSimTelephonyManager.getDefault().isMultiSimEnabled())) {
+            final MSimCallNotifier notifier =
+                    (MSimCallNotifier)PhoneGlobals.getInstance().notifier;
+            notifier.onEmergencyCallDialed();
         }
 
         if (okToCallStatus != CallStatusCode.SUCCESS) {
@@ -420,8 +471,16 @@ public class CallController extends Handler {
                 // TODO(santoscordon): Try to restructure code so that we can handle failure-
                 // condition call logging in a single place (placeCall()) that also has access to
                 // the number we attempted to dial (not placeCall()).
-                mCallLogger.logCall(null /* callerInfo */, number, 0 /* presentation */,
-                        Calls.OUTGOING_TYPE, System.currentTimeMillis(), 0 /* duration */);
+                mCallLogger.logCall(
+                        null /* callerInfo */,
+                        number,
+                        0 /* presentation */,
+                        Calls.OUTGOING_TYPE,
+                        System.currentTimeMillis(),
+                        0 /* duration */,
+                        phone.getSubscription(),
+                        phone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA ?
+                                Calls.DURATION_TYPE_CALLOUT : Calls.DURATION_TYPE_ACTIVE);
 
                 return okToCallStatus;
             }
@@ -444,7 +503,9 @@ public class CallController extends Handler {
                                               contactUri,
                                               (isEmergencyNumber || isEmergencyIntent),
                                               rawGatewayInfo,
-                                              mCallGatewayManager);
+                                              mCallGatewayManager,
+                                              callType,
+                                              extras);
 
         switch (callStatus) {
             case PhoneUtils.CALL_STATUS_DIALED:
@@ -524,8 +585,16 @@ public class CallController extends Handler {
                 // failure in the telephony layer.
 
                 // Log failed call.
-                mCallLogger.logCall(null /* callerInfo */, number, 0 /* presentation */,
-                        Calls.OUTGOING_TYPE, System.currentTimeMillis(), 0 /* duration */);
+                mCallLogger.logCall(
+                        null /* callerInfo */,
+                        number,
+                        0 /* presentation */,
+                        Calls.OUTGOING_TYPE,
+                        System.currentTimeMillis(),
+                        0 /* duration */,
+                        phone.getSubscription(),
+                        phone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA ?
+                                Calls.DURATION_TYPE_CALLOUT : Calls.DURATION_TYPE_ACTIVE);
 
                 return CallStatusCode.CALL_FAILED;
 

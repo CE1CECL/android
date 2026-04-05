@@ -26,11 +26,16 @@
 #include <sys/mman.h>
 
 #include <binder/IMemory.h>
+#include <cutils/log.h>
 #include <utils/KeyedVector.h>
 #include <utils/threads.h>
 #include <utils/Atomic.h>
 #include <binder/Parcel.h>
 #include <utils/CallStack.h>
+
+#ifdef USE_MEMORY_HEAP_ION
+#include "ion.h"
+#endif
 
 #define VERBOSE   0
 
@@ -187,15 +192,26 @@ sp<IMemoryHeap> BpMemory::getMemory(ssize_t* offset, size_t* size) const
             if (heap != 0) {
                 mHeap = interface_cast<IMemoryHeap>(heap);
                 if (mHeap != 0) {
-                    mOffset = o;
-                    mSize = s;
+                    size_t heapSize = mHeap->getSize();
+                    if (s <= heapSize
+                            && o >= 0
+                            && (static_cast<size_t>(o) <= heapSize - s)) {
+                        mOffset = o;
+                        mSize = s;
+                    } else {
+                        // Hm.
+                        android_errorWriteWithInfoLog(0x534e4554,
+                            "26877992", -1, NULL, 0);
+                        mOffset = 0;
+                        mSize = 0;
+                    }
                 }
             }
         }
     }
     if (offset) *offset = mOffset;
     if (size) *size = mSize;
-    return mHeap;
+    return (mSize > 0) ? mHeap : 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -299,6 +315,14 @@ void BpMemoryHeap::assertReallyMapped() const
         ALOGE_IF(err, "binder=%p transaction failed fd=%d, size=%ld, err=%d (%s)",
                 asBinder().get(), parcel_fd, size, err, strerror(-err));
 
+#ifdef USE_MEMORY_HEAP_ION
+        ion_client ion_client_num = -1;
+        if (flags & USE_ION_FD) {
+            ion_client_num = ion_client_create();
+            ALOGE_IF(ion_client_num < 0, "BpMemoryHeap : ion client creation error");
+        }
+#endif
+
         int fd = dup( parcel_fd );
         ALOGE_IF(fd==-1, "cannot dup fd=%d, size=%ld, err=%d (%s)",
                 parcel_fd, size, err, strerror(errno));
@@ -311,7 +335,16 @@ void BpMemoryHeap::assertReallyMapped() const
         Mutex::Autolock _l(mLock);
         if (mHeapId == -1) {
             mRealHeap = true;
-            mBase = mmap(0, size, access, MAP_SHARED, fd, offset);
+
+#ifdef USE_MEMORY_HEAP_ION
+        if (flags & USE_ION_FD) {
+            if (ion_client_num < 0)
+                mBase = MAP_FAILED;
+            else
+                mBase = ion_map(fd, size, offset);
+            } else
+#endif
+                mBase = mmap(0, size, access, MAP_SHARED, fd, offset);
             if (mBase == MAP_FAILED) {
                 ALOGE("cannot map BpMemoryHeap (binder=%p), size=%ld, fd=%d (%s)",
                         asBinder().get(), size, fd, strerror(errno));
@@ -323,6 +356,12 @@ void BpMemoryHeap::assertReallyMapped() const
                 android_atomic_write(fd, &mHeapId);
             }
         }
+#ifdef USE_MEMORY_HEAP_ION
+        if (ion_client_num < 0)
+            ion_client_num = -1;
+        else
+            ion_client_destroy(ion_client_num);
+#endif
     }
 }
 

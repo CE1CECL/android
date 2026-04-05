@@ -17,7 +17,9 @@
 package com.android.incallui;
 
 import android.os.RemoteException;
+import android.os.SystemProperties;
 
+import com.android.internal.telephony.MSimConstants;
 
 import com.android.services.telephony.common.AudioMode;
 import com.android.services.telephony.common.ICallCommandService;
@@ -109,6 +111,31 @@ public class CallCommandClient {
             mCommandService.mute(onOff);
         } catch (RemoteException e) {
             Log.e(this, "Error muting phone.", e);
+        }
+    }
+
+    public void muteInternal(boolean onOff) {
+        Log.i(this, "muteInternal: " + onOff);
+        if (mCommandService == null) {
+            Log.e(this, "Cannot mute call; CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.muteInternal(onOff);
+        } catch (RemoteException e) {
+            Log.e(this, "Error muting phone.", e);
+        }
+     }
+
+    public void updateMuteState(int sub, boolean muted) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot updateMuteState; CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.updateMuteState(sub, muted);
+        } catch (RemoteException e) {
+            Log.e(this, "Error updateMuteState.", e);
         }
     }
 
@@ -230,6 +257,94 @@ public class CallCommandClient {
         }
     }
 
+    public void hangupWithReason(int callId, String userUri, boolean mpty,
+            int failCause, String errorInfo) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot hangupWithReason(); CallCommandService == null");
+            return;
+        }
+        try {
+            Log.v(this, "hangupWithReason() ");
+            mCommandService.hangupWithReason(callId, userUri, mpty,
+                    failCause, errorInfo);
+        } catch (RemoteException e) {
+            Log.e(this, "Error on hangupWithReason().", e);
+        }
+    }
+
+    public void answerCallWithCallType(int callId,int callType){
+        if (mCommandService == null) {
+            Log.e(this, "Cannot acceptCall(); CallCommandService == null");
+            return;
+        }
+        try {
+            /*
+             * To test call deflection this property has to be set with the
+             * number to which the call should be deflected. If this property is
+             * set to a number, on pressing the UI answer button, call deflect
+             * request will be sent. This is done to provide hooks to test call
+             * deflection through the UI answer button. For commercialization UI
+             * should be customized to call this API through the Call deflect UI
+             * button By default this property is not set and Answer button will
+             * work as expected
+             * Example:
+             * To deflect call to number 12345
+             * adb shell setprop persist.radio.deflect.number 12345
+             *
+             * Toggle above property and to invoke answerCallWithCallType
+             * adb shell setprop persist.radio.deflect.number ""
+             */
+            String deflectcall = SystemProperties.get("persist.radio.deflect.number");
+            if (deflectcall != null && !deflectcall.isEmpty()) {
+                mCommandService.deflectCall(callId, deflectcall);
+            } else {
+                Log.v(this, "acceptCall() ");
+                mCommandService.answerCallWithCallType(callId, callType);
+            }
+        } catch (RemoteException e) {
+            Log.e(this, "Error on acceptCall().", e);
+        }
+    }
+
+    public void deflectCall(int callId, String number) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot deflectCall(); CallCommandService == null");
+            return;
+        }
+        try{
+            Log.v(this, "deflectCall() ");
+            mCommandService.deflectCall(callId, number);
+        } catch (RemoteException e) {
+            Log.e(this, "Error on deflectCall().", e);
+        }
+    }
+
+    public void modifyCallInitiate(int callId, int callType) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot modifyCall(); CallCommandService == null");
+            return;
+        }
+        try {
+            Log.v(this, "modifyCall(), callId=" + callId + " callType=" + callType);
+            mCommandService.modifyCallInitiate(callId, callType);
+        } catch (RemoteException e) {
+            Log.e(this, "Error on modifyCall().");
+        }
+    }
+
+    public void modifyCallConfirm(boolean responseType, int callId) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot modifyCallConfirm(); CallCommandService == null" + responseType);
+            return;
+        }
+        try {
+            Log.v(this, "modifyCallConfirm() ");
+            mCommandService.modifyCallConfirm(responseType, callId);
+        } catch (RemoteException e) {
+            Log.e(this, "Error on modifyCallConfirm().");
+        }
+    }
+
     public void setSystemBarNavigationEnabled(boolean enable) {
         if (mCommandService == null) {
             Log.e(this, "Cannot setSystemBarNavigationEnabled(); CallCommandService == null");
@@ -243,4 +358,70 @@ public class CallCommandClient {
         }
     }
 
+    public void blacklistAndHangup(int callId) {
+        if (mCommandService == null) {
+            Log.e(this, "Cannot blacklistAndHangup(); CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.blacklistAndHangup(callId);
+        } catch (RemoteException e) {
+            Log.e(this, "Error on blacklistAndHangup().", e);
+        }
+    }
+
+    public void setActiveSubscription(int subscriptionId) {
+        Log.i(this, "set active sub = " + subscriptionId);
+        if (mCommandService == null) {
+            Log.e(this, "Cannot set active Sub; CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.setActiveSubscription(subscriptionId);
+        } catch (RemoteException e) {
+            Log.e(this, "Error setActiveSub.", e);
+        }
+    }
+
+    public void setSubInConversation(int subscriptionId) {
+        Log.i(this, "set conversation sub = " + subscriptionId);
+        if (mCommandService == null) {
+            Log.e(this, "Cannot set conversation Sub; CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.setSubInConversation(subscriptionId);
+        } catch (RemoteException e) {
+            Log.e(this, "Error setSubInConversation.", e);
+        }
+    }
+
+    public void setActiveAndConversationSub(int subscriptionId) {
+        Log.i(this, "setActiveAndConversationSub = " + subscriptionId);
+        if (mCommandService == null) {
+            Log.e(this, "Cannot set active Sub; CallCommandService == null");
+            return;
+        }
+        try {
+            mCommandService.setActiveAndConversationSub(subscriptionId);
+        } catch (RemoteException e) {
+            Log.e(this, "Error setActiveSub.", e);
+        }
+    }
+
+    public int getActiveSubscription() {
+        int subscriptionId = MSimConstants.INVALID_SUBSCRIPTION;
+
+        if (mCommandService == null) {
+            Log.e(this, "Cannot get active sub; CallCommandService == null");
+            return subscriptionId;
+        }
+        try {
+            subscriptionId = mCommandService.getActiveSubscription();
+        } catch (RemoteException e) {
+            Log.e(this, "Error getActiveSub.", e);
+        }
+        Log.i(this, "get active sub " + subscriptionId);
+        return subscriptionId;
+    }
 }

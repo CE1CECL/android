@@ -76,6 +76,9 @@ public final class CdmaCallTracker extends CallTracker {
     CdmaConnection mPendingMO;
     boolean mHangupPendingMO;
     boolean mPendingCallInEcm=false;
+    //Used to re-request the list of current calls
+    boolean mSlowModem = (SystemProperties.getInt("ro.telephony.slowModem",0) != 0);
+
     boolean mIsInEmergencyCall = false;
     CDMAPhone mPhone;
 
@@ -93,17 +96,29 @@ public final class CdmaCallTracker extends CallTracker {
     //***** Events
 
     //***** Constructors
-    CdmaCallTracker(CDMAPhone phone) {
+    public CdmaCallTracker(CDMAPhone phone) {
         mPhone = phone;
         mCi = phone.mCi;
         mCi.registerForCallStateChanged(this, EVENT_CALL_STATE_CHANGE, null);
         mCi.registerForOn(this, EVENT_RADIO_AVAILABLE, null);
         mCi.registerForNotAvailable(this, EVENT_RADIO_NOT_AVAILABLE, null);
         mCi.registerForCallWaitingInfo(this, EVENT_CALL_WAITING_INFO_CDMA, null);
+        mCi.registerForLineControlInfo(this, EVENT_CDMA_INFO_REC, null);
         mForegroundCall.setGeneric(false);
     }
 
+    private void onControlInfoRec() {
+        if (mState == PhoneConstants.State.OFFHOOK) {
+            Rlog.d(LOG_TAG, "on accepted, reset connection time");
+            CdmaConnection c = (CdmaConnection) mForegroundCall.getLatestConnection();
+            if (c.getDurationMillis() > 0 && !c.isConnectionTimerReset() && !c.isIncoming()) {
+                c.resetConnectionTimer();
+            }
+        }
+    }
+
     public void dispose() {
+        mCi.unregisterForLineControlInfo(this);
         mCi.unregisterForCallStateChanged(this);
         mCi.unregisterForOn(this);
         mCi.unregisterForNotAvailable(this);
@@ -497,6 +512,13 @@ public final class CdmaCallTracker extends CallTracker {
         boolean needsPollDelay = false;
         boolean unknownConnectionAppeared = false;
 
+        if (mSlowModem) {
+            if (polledCalls.size() == 0 && !mHangupPendingMO && mPendingMO != null) {
+                mLastRelevantPoll = obtainMessage(EVENT_POLL_CALLS_RESULT);
+                mCi.getCurrentCalls(mLastRelevantPoll);
+                return;
+            }
+        }
         for (int i = 0, curDC = 0, dcSize = polledCalls.size()
                 ; i < mConnections.length; i++) {
             CdmaConnection conn = mConnections[i];
@@ -726,11 +748,14 @@ public final class CdmaCallTracker extends CallTracker {
         }
 
         if (conn == mPendingMO) {
-            // We're hanging up an outgoing call that doesn't have it's
-            // GSM index assigned yet
+            // Re-start Ecm timer when an uncompleted emergency call ends
+            if (mIsEcmTimerCanceled) {
+                handleEcmTimer(CDMAPhone.RESTART_ECM_TIMER);
+            }
 
-            if (Phone.DEBUG_PHONE) log("hangup: set hangupPendingMO to true");
-            mHangupPendingMO = true;
+            // Allow HANGUP to RIL during pending MO is present
+            log("hangup conn with callId '-1' as there is no DIAL response yet ");
+            mCi.hangupConnection(-1, obtainCompleteMessage());
         } else if ((conn.getCall() == mRingingCall)
                 && (mRingingCall.getState() == CdmaCall.State.WAITING)) {
             // Handle call waiting hang up case.
@@ -827,6 +852,7 @@ public final class CdmaCallTracker extends CallTracker {
                     "does not belong to CdmaCallTracker " + this);
         }
 
+        mHangupPendingMO = true;
         call.onHangupLocal();
         mPhone.notifyPreciseCallStateChanged();
     }
@@ -1028,6 +1054,10 @@ public final class CdmaCallTracker extends CallTracker {
                     mPendingMO.onConnectedInOrOut();
                     mPendingMO = null;
                 }
+            break;
+
+            case EVENT_CDMA_INFO_REC:
+                onControlInfoRec();
             break;
 
             default:{

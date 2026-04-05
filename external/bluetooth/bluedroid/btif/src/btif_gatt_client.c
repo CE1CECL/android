@@ -96,7 +96,8 @@ typedef enum {
 #define BTIF_GATT_MAX_OBSERVED_DEV 40
 
 #define BTIF_GATT_OBSERVE_EVT   0x1000
-#define BTIF_GATTC_RSSI_EVT     0x1001
+#define BTIF_LE_EXTENDED_OBSERVE_EVT 0x1001
+#define BTIF_GATTC_RSSI_EVT     0x1002
 
 /*******************************************************************************
 **  Local type definitions
@@ -565,6 +566,76 @@ static void bta_scan_results_cb (tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH *p_dat
                                  (char*) &btif_cb, sizeof(btif_gattc_cb_t), NULL);
 }
 
+static void btif_le_extended_scan_upstreams_evt(uint16_t event, char* p_param)
+{
+    ALOGD("%s: Event %d", __FUNCTION__, event);
+
+    switch (event)
+    {
+        case BTIF_LE_EXTENDED_OBSERVE_EVT:
+        {
+            btif_gattc_cb_t *p_btif_cb = (btif_gattc_cb_t*)p_param;
+            ALOGD("%s BTIF_LE_EXTENDED_OBSERVE_EVT", __FUNCTION__);
+            if (!btif_gattc_find_bdaddr(p_btif_cb->bd_addr.address))
+            {
+                btif_gattc_add_remote_bdaddr(p_btif_cb->bd_addr.address, p_btif_cb->addr_type);
+                btif_gattc_update_properties(p_btif_cb);
+            }
+
+            HAL_CBACK(bt_hal_cbacks, le_extended_scan_result_cb,
+                      &p_btif_cb->bd_addr, p_btif_cb->rssi, p_btif_cb->value);
+            break;
+        }
+        default:
+            BTIF_TRACE_WARNING2("%s : Unknown event 0x%x", __FUNCTION__, event);
+            break;
+    }
+    ALOGD("%s exit", __FUNCTION__);
+}
+
+void bta_le_extended_scan_results_cb (tBTA_DM_SEARCH_EVT event, tBTA_DM_SEARCH *p_data)
+{
+    btif_gattc_cb_t btif_cb;
+    uint8_t len;
+    ALOGD("%s: Event %d, Search result:%p", __FUNCTION__, (int)event, p_data);
+
+    switch (event)
+    {
+        case BTA_DM_INQ_RES_EVT:
+        {
+            ALOGD("%s BTA_DM_INQ_RES_EVT", __FUNCTION__);
+            bdcpy(btif_cb.bd_addr.address, p_data->inq_res.bd_addr);
+            btif_cb.device_type = p_data->inq_res.device_type;
+            btif_cb.rssi = p_data->inq_res.rssi;
+            btif_cb.addr_type = p_data->inq_res.ble_addr_type;
+            if (p_data->inq_res.p_eir)
+            {
+                memcpy(btif_cb.value, p_data->inq_res.p_eir, 62);
+                if (BTA_CheckEirData(p_data->inq_res.p_eir, BTM_EIR_COMPLETE_LOCAL_NAME_TYPE,
+                                      &len))
+                {
+                    p_data->inq_res.remt_name_not_required  = TRUE;
+                }
+            }
+        }
+        break;
+
+        case BTA_DM_INQ_CMPL_EVT:
+        {
+            BTIF_TRACE_DEBUG2("%s  BLE observe complete. Num Resp %d",
+                              __FUNCTION__,p_data->inq_cmpl.num_resps);
+            return;
+        }
+
+        default:
+            BTIF_TRACE_WARNING2("%s : Unknown event 0x%x", __FUNCTION__, event);
+            return;
+    }
+    btif_transfer_context(btif_le_extended_scan_upstreams_evt, BTIF_LE_EXTENDED_OBSERVE_EVT,
+                          (char*) &btif_cb, sizeof(btif_gattc_cb_t), NULL);
+    ALOGD("%s exit", __FUNCTION__);
+}
+
 static void btm_read_rssi_cb (tBTM_RSSI_RESULTS *p_result)
 {
     btif_gattc_cb_t btif_cb;
@@ -861,19 +932,19 @@ static void btgattc_handle_event(uint16_t event, char* p_param)
                 GKI_freebuf(p_cb->adv_data.data.manu.p_val);
 
             // ... service data
-            if (p_cb->adv_data.data.p_proprietary != NULL)
+            if (p_cb->adv_data.data.vs_data != NULL)
             {
                 int i = 0;
-                tBTA_BLE_PROP_ELEM *p_elem = p_cb->adv_data.data.p_proprietary->p_elem;
-                while (i++ != p_cb->adv_data.data.p_proprietary->num_elem && p_elem)
+                tBTA_BLE_PROP_ELEM *p_elem = p_cb->adv_data.data.vs_data->p_elem;
+                while (i++ != p_cb->adv_data.data.vs_data->num_elem && p_elem)
                 {
                     if (p_elem->p_val != NULL)
                         GKI_freebuf(p_elem->p_val);
                     ++p_elem;
                 }
-                if (p_cb->adv_data.data.p_proprietary->p_elem != NULL)
-                    GKI_freebuf(p_cb->adv_data.data.p_proprietary->p_elem);
-                GKI_freebuf(p_cb->adv_data.data.p_proprietary);
+                if (p_cb->adv_data.data.vs_data->p_elem != NULL)
+                    GKI_freebuf(p_cb->adv_data.data.vs_data->p_elem);
+                GKI_freebuf(p_cb->adv_data.data.vs_data);
             }
 
             // ... service list
@@ -1077,13 +1148,13 @@ static bt_status_t btif_gattc_set_adv_data(int client_if, bool set_scan_rsp, boo
 
     if (p_elem_service_data != NULL || p_elem_service_128 != NULL)
     {
-        btif_cb.adv_data.data.p_proprietary = GKI_getbuf(sizeof(tBTA_BLE_PROPRIETARY));
-        if (btif_cb.adv_data.data.p_proprietary != NULL)
+        btif_cb.adv_data.data.vs_data = GKI_getbuf(sizeof(tBTA_BLE_VS_DATA));
+        if (btif_cb.adv_data.data.vs_data != NULL)
         {
-            tBTA_BLE_PROPRIETARY *p_prop = btif_cb.adv_data.data.p_proprietary;
+            tBTA_BLE_VS_DATA *p_prop = btif_cb.adv_data.data.vs_data;
             tBTA_BLE_PROP_ELEM *p_elem = NULL;
             p_prop->num_elem = 0;
-            btif_cb.adv_data.mask |= BTM_BLE_AD_BIT_PROPRIETARY;
+            btif_cb.adv_data.mask |= BTM_BLE_AD_BIT_VS_DATA;
 
             if (p_elem_service_128 != NULL)
                 ++p_prop->num_elem;

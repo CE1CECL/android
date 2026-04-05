@@ -16,15 +16,19 @@
 
 package com.android.mail.browse;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.FragmentManager;
 import android.content.AsyncQueryHandler;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.database.DataSetObserver;
 import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -60,6 +64,8 @@ import com.android.mail.providers.Conversation;
 import com.android.mail.providers.Folder;
 import com.android.mail.providers.Message;
 import com.android.mail.providers.UIProvider;
+import com.android.mail.providers.UIProvider.MessageFlagLoaded;
+import com.android.mail.providers.UIProvider.AccountCapabilities;
 import com.android.mail.ui.ImageCanvas;
 import com.android.mail.utils.LogTag;
 import com.android.mail.utils.LogUtils;
@@ -127,6 +133,7 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
     private TextView mUpperDateView;
     private View mReplyButton;
     private View mReplyAllButton;
+    private View mLoadMoreButton;
     private View mAttachmentIcon;
     private final EmailCopyContextMenu mEmailCopyMenu;
 
@@ -276,6 +283,7 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
         mPhotoView = (QuickContactBadge) findViewById(R.id.photo);
         mReplyButton = findViewById(R.id.reply);
         mReplyAllButton = findViewById(R.id.reply_all);
+        mLoadMoreButton = findViewById(R.id.load_more);
         mForwardButton = findViewById(R.id.forward);
         mStarView = (ImageView) findViewById(R.id.star);
         mTitleContainerView = (ViewGroup) findViewById(R.id.title_container);
@@ -500,7 +508,7 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
 
     public static Address getAddress(Map<String, Address> cache, String emailStr) {
         Address addr = null;
-        synchronized (cache) {
+        synchronized (cache != null ? cache : emailStr) {
             if (cache != null) {
                 addr = cache.get(emailStr);
             }
@@ -611,8 +619,8 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
             setMessageDetailsVisibility(VISIBLE);
             setChildVisibility(GONE, mSnapHeaderBottomBorder);
 
-            setChildVisibility(GONE, mReplyButton, mReplyAllButton, mForwardButton,
-                    mOverflowButton, mDraftIcon, mEditDraftButton, mStarView,
+            setChildVisibility(GONE, mReplyButton, mReplyAllButton, mLoadMoreButton,
+                    mForwardButton, mOverflowButton, mDraftIcon, mEditDraftButton, mStarView,
                     mAttachmentIcon, mUpperDateView, mSnippetView);
             setChildVisibility(VISIBLE, mPhotoView, mSenderEmailView, mDateView);
 
@@ -632,6 +640,8 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
             }
 
             setReplyOrReplyAllVisible();
+            setLoadMoreVisible();
+
             setChildVisibility(normalVis, mPhotoView, mForwardButton, mOverflowButton);
             setChildVisibility(draftVis, mDraftIcon, mEditDraftButton);
             setChildVisibility(VISIBLE, mSenderEmailView, mDateView);
@@ -647,7 +657,8 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
             setChildVisibility(VISIBLE, mSnippetView, mUpperDateView);
 
             setChildVisibility(GONE, mEditDraftButton, mReplyButton, mReplyAllButton,
-                    mForwardButton, mOverflowButton, mSenderEmailView, mDateView);
+                    mLoadMoreButton, mForwardButton, mOverflowButton,
+                    mSenderEmailView, mDateView);
 
             setChildVisibility(mMessage.hasAttachments ? VISIBLE : GONE,
                     mAttachmentIcon);
@@ -691,6 +702,17 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
                 == UIProvider.DefaultReplyBehavior.REPLY_ALL : false;
         setChildVisibility(defaultReplyAll ? GONE : VISIBLE, mReplyButton);
         setChildVisibility(defaultReplyAll ? VISIBLE : GONE, mReplyAllButton);
+    }
+
+    private void setLoadMoreVisible() {
+        if (mOverflowButton == null
+                && mMessage.messageFlagLoaded == MessageFlagLoaded.FLAG_LOADED_PARTIAL_COMPLETE) {
+            setChildVisibility(VISIBLE, mLoadMoreButton);
+            return;
+        } else {
+            setChildVisibility(GONE, mLoadMoreButton);
+            return;
+        }
     }
 
     private static void setChildMarginEnd(View childView, int marginEnd) {
@@ -878,7 +900,17 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
         } else if (id == R.id.reply_all) {
             ComposeActivity.replyAll(getContext(), getAccount(), mMessage);
         } else if (id == R.id.forward) {
-            ComposeActivity.forward(getContext(), getAccount(), mMessage);
+            if (mMessage.hasAttachments && getAccount().settings.confirmForward
+                    && (getAccount().capabilities & AccountCapabilities.SMART_FORWARD) == 0) {
+                // Enabled the confirm before forward and do not support smart forward
+                // Prompt the confirm dialog first, then forward the message according
+                // to the user's selection.
+                ConfirmForwardDialogFragment dialog = ConfirmForwardDialogFragment.newInstance(
+                        getAccount(), mMessage);
+                dialog.displayDialog(mCallbacks.getFragmentManager());
+            } else {
+                ComposeActivity.forward(getContext(), getAccount(), mMessage);
+            }
         } else if (id == R.id.report_rendering_problem) {
             final String text = getContext().getString(R.string.report_rendering_problem_desc);
             ComposeActivity.reportRenderingFeedback(getContext(), getAccount(), mMessage,
@@ -893,6 +925,8 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
             mMessage.star(newValue);
         } else if (id == R.id.edit_draft) {
             ComposeActivity.editDraft(getContext(), getAccount(), mMessage);
+        } else if (id == R.id.load_more) {
+            mMessage.loadMore();
         } else if (id == R.id.overflow) {
             if (mPopup == null) {
                 mPopup = new PopupMenu(getContext(), v);
@@ -905,6 +939,13 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
             final Menu m = mPopup.getMenu();
             m.findItem(R.id.reply).setVisible(defaultReplyAll);
             m.findItem(R.id.reply_all).setVisible(!defaultReplyAll);
+
+            // Update the load more menu visible value.
+            MenuItem fetch = m.findItem(R.id.load_more);
+            if (fetch != null) {
+                fetch.setVisible(mMessage.messageFlagLoaded
+                        == MessageFlagLoaded.FLAG_LOADED_PARTIAL_COMPLETE);
+            }
 
             final boolean reportRendering = ENABLE_REPORT_RENDERING_PROBLEM
                 && mCallbacks.supportsMessageTransforms();
@@ -1515,6 +1556,44 @@ public class MessageHeaderView extends LinearLayout implements OnClickListener,
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         if (!mPreMeasuring) {
             t.pause(MEASURE_TAG);
+        }
+    }
+
+    public static class ConfirmForwardDialogFragment extends ConfirmDialogFragment {
+        private static final String ACCOUNT = "account";
+        private static final String MESSAGE = "source-message";
+
+        public static ConfirmForwardDialogFragment newInstance(Account account, Message message) {
+            final ConfirmForwardDialogFragment f = new ConfirmForwardDialogFragment();
+            final Bundle args = new Bundle();
+            args.putParcelable(ACCOUNT, account);
+            args.putParcelable(MESSAGE, message);
+            f.setArguments(args);
+            return f;
+        }
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedState) {
+            final Account account = getArguments().getParcelable(ACCOUNT);
+            final Message message = getArguments().getParcelable(MESSAGE);
+
+            final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            builder.setMessage(R.string.confirm_forward_message)
+                   .setPositiveButton(R.string.confirm_forward_normal,
+                           new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           ComposeActivity.forward(getActivity(), account, message);
+                       }
+                   })
+                   .setNeutralButton(R.string.confirm_forward_drop_unloaded,
+                           new DialogInterface.OnClickListener() {
+                       @Override
+                       public void onClick(DialogInterface dialog, int which) {
+                           ComposeActivity.forwardDropUnloadedAtts(getActivity(), account, message);
+                       }
+                   });
+            return builder.create();
         }
     }
 }

@@ -53,12 +53,12 @@
 
 /* Stack preload process timeout period  */
 #ifndef PRELOAD_START_TIMEOUT_MS
-#define PRELOAD_START_TIMEOUT_MS 3000  // 3 seconds
+#define PRELOAD_START_TIMEOUT_MS 5000  // 5 seconds
 #endif
 
 /* Stack preload process maximum retry attempts  */
 #ifndef PRELOAD_MAX_RETRY_ATTEMPTS
-#define PRELOAD_MAX_RETRY_ATTEMPTS 0
+#define PRELOAD_MAX_RETRY_ATTEMPTS 2
 #endif
 
 /*******************************************************************************
@@ -94,6 +94,7 @@ static bt_preload_retry_cb_t preload_retry_cb;
 static void bte_main_in_hw_init(void);
 static void bte_hci_enable(void);
 static void bte_hci_disable(void);
+static void bte_send_preload_req(void);
 static void preload_start_wait_timer(void);
 static void preload_stop_wait_timer(void);
 
@@ -204,6 +205,7 @@ void bte_main_enable()
                     sizeof(bte_btu_stack));
 
     GKI_run(0);
+    bte_send_preload_req();
 }
 
 /******************************************************************************
@@ -226,6 +228,30 @@ void bte_main_disable(void)
     GKI_freeze();
 }
 
+/******************************************************************************
+**
+** Function         bte_send_preload_req
+**
+** Description      Request for firmware & transport intialization
+**
+** Returns          None
+**
+******************************************************************************/
+static void bte_send_preload_req(void)
+{
+    APPL_TRACE_DEBUG1("%s", __FUNCTION__);
+    /* Since btu_task waits to recieve event for preload result(Success or failure) while
+     starting. So btu_task must be started before the firmware & transport is intialized.
+     Otherwise btu_task might miss the event for preload result(success or failure). which
+     could lead a failure while turning on bluetooth. */
+
+    preload_start_wait_timer();
+
+    if (bt_hc_if)
+    {
+       bt_hc_if->preload(NULL);
+    }
+}
 /******************************************************************************
 **
 ** Function         bte_main_config_hci_logging
@@ -268,7 +294,6 @@ static void bte_hci_enable(void)
 {
     APPL_TRACE_DEBUG1("%s", __FUNCTION__);
 
-    preload_start_wait_timer();
 
     if (bt_hc_if)
     {
@@ -300,8 +325,28 @@ static void bte_hci_enable(void)
 #endif
         bt_hc_if->set_power(BT_HC_CHIP_PWR_ON);
 
-        bt_hc_if->preload(NULL);
     }
+}
+
+/******************************************************************************
+**
+** Function         bte_ssr_cleanup
+**
+** Description      sends PWR_OFF to vendor library so that harware would be
+**                  turned off as part of hardware subsystem crash
+**
+** Returns          None
+**
+******************************************************************************/
+void bte_ssr_cleanup(void)
+{
+    APPL_TRACE_ERROR1("%s", __FUNCTION__);
+#if (BLUETOOTH_QCOM_SW == TRUE)
+    bt_hc_if->ssr_cleanup();
+#else
+    bt_hc_if->set_power(BT_HC_CHIP_PWR_OFF);
+#endif
+
 }
 
 /******************************************************************************
@@ -346,6 +391,7 @@ static void preload_wait_timeout(union sigval arg)
         bte_hci_disable();
         GKI_delay(100);
         bte_hci_enable();
+        bte_send_preload_req();
     }
     else
     {

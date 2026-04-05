@@ -290,7 +290,8 @@ public class OpenSSLSocketImpl
             if (!client) {
                 Set<String> keyTypes = new HashSet<String>();
                 for (String enabledCipherSuite : enabledCipherSuites) {
-                    if (enabledCipherSuite.equals(NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)) {
+                    if (enabledCipherSuite.equals(NativeCrypto.TLS_EMPTY_RENEGOTIATION_INFO_SCSV)
+                        || enabledCipherSuite.equals(NativeCrypto.TLS_FALLBACK_SCSV)) {
                         continue;
                     }
                     String keyType = CipherSuite.getByName(enabledCipherSuite).getServerKeyType();
@@ -410,8 +411,7 @@ public class OpenSSLSocketImpl
                 wrapper.initCause(e);
                 throw wrapper;
             }
-            byte[] sessionId = NativeCrypto.SSL_SESSION_session_id(sslSessionNativePointer);
-            if (sessionToReuse != null && Arrays.equals(sessionToReuse.getId(), sessionId)) {
+            if (sessionToReuse != null && NativeCrypto.SSL_session_reused(sslNativePointer)) {
                 this.sslSession = sessionToReuse;
                 sslSession.lastAccessedTime = System.currentTimeMillis();
                 NativeCrypto.SSL_SESSION_free(sslSessionNativePointer);

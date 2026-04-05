@@ -407,6 +407,8 @@ setup_failure:
     env->SetIntField(thiz, fields.fidNativeAudioEffect, 0);
 
     if (lpJniStorage) {
+        env->DeleteGlobalRef(lpJniStorage->mCallbackData.audioEffect_class);
+        env->DeleteGlobalRef(lpJniStorage->mCallbackData.audioEffect_ref);
         delete lpJniStorage;
     }
     env->SetIntField(thiz, fields.fidJniData, 0);
@@ -439,6 +441,9 @@ static void android_media_AudioEffect_native_finalize(JNIEnv *env,  jobject thiz
     AudioEffectJniStorage* lpJniStorage = (AudioEffectJniStorage *)env->GetIntField(
         thiz, fields.fidJniData);
     if (lpJniStorage) {
+        // delete global refs created in native_setup
+        env->DeleteGlobalRef(lpJniStorage->mCallbackData.audioEffect_class);
+        env->DeleteGlobalRef(lpJniStorage->mCallbackData.audioEffect_ref);
         ALOGV("deleting pJniStorage: %x\n", (int)lpJniStorage);
         delete lpJniStorage;
     }
@@ -785,28 +790,12 @@ queryEffects_failure:
 static jobjectArray
 android_media_AudioEffect_native_queryPreProcessings(JNIEnv *env, jclass clazz, jint audioSession)
 {
-    // kDefaultNumEffects is a "reasonable" value ensuring that only one query will be enough on
-    // most devices to get all active audio pre processing on a given session.
-    static const uint32_t kDefaultNumEffects = 5;
-
-    effect_descriptor_t *descriptors = new effect_descriptor_t[kDefaultNumEffects];
-    uint32_t numEffects = kDefaultNumEffects;
+    effect_descriptor_t *descriptors = new effect_descriptor_t[AudioEffect::kMaxPreProcessing];
+    uint32_t numEffects = AudioEffect::kMaxPreProcessing;
 
     status_t status = AudioEffect::queryDefaultPreProcessing(audioSession,
                                            descriptors,
                                            &numEffects);
-    if ((status != NO_ERROR && status != NO_MEMORY) ||
-            numEffects == 0) {
-        delete[] descriptors;
-        return NULL;
-    }
-    if (status == NO_MEMORY) {
-        delete [] descriptors;
-        descriptors = new effect_descriptor_t[numEffects];
-        status = AudioEffect::queryDefaultPreProcessing(audioSession,
-                                               descriptors,
-                                               &numEffects);
-    }
     if (status != NO_ERROR || numEffects == 0) {
         delete[] descriptors;
         return NULL;

@@ -34,8 +34,11 @@ import android.provider.Settings;
 import android.provider.Telephony.Sms.Intents;
 import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
+
+import com.android.internal.R;
 import com.android.internal.content.PackageMonitor;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -256,7 +259,7 @@ public final class SmsApplication {
      */
     private static SmsApplicationData getApplication(Context context, boolean updateIfNeeded) {
         TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm.getPhoneType() == TelephonyManager.PHONE_TYPE_NONE) {
+        if (!tm.isSmsCapable()) {
             // No phone, no SMS
             return null;
         }
@@ -368,7 +371,7 @@ public final class SmsApplication {
      */
     public static void setDefaultApplication(String packageName, Context context) {
         TelephonyManager tm = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm.getPhoneType() == TelephonyManager.PHONE_TYPE_NONE) {
+        if (!tm.isSmsCapable()) {
             // No phone, no SMS
             return;
         }
@@ -598,6 +601,13 @@ public final class SmsApplication {
         ComponentName component = getDefaultSmsApplication(context, false);
         if (component != null) {
             defaultSmsPackage = component.getPackageName();
+        }
+
+        List<String> ignorePackages = Arrays.asList(
+                context.getResources().getStringArray(R.array.config_ignored_sms_packages));
+
+        if (ignorePackages.contains(packageName)) {
+            return false;
         }
 
         if ((defaultSmsPackage == null || !defaultSmsPackage.equals(packageName)) &&

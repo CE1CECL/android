@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008 Esmertec AG.
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2015 The CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ package com.android.mms.ui;
 import android.app.ActionBar;
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ActivityNotFoundException;
@@ -62,6 +64,7 @@ import android.view.View.OnCreateContextMenuListener;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -78,6 +81,8 @@ import com.android.mms.data.Conversation;
 import com.android.mms.data.Conversation.ConversationQueryHandler;
 import com.android.mms.transaction.MessagingNotification;
 import com.android.mms.transaction.SmsRejectedReceiver;
+import com.android.mms.ui.PopupList;
+import com.android.mms.ui.SelectionMenu;
 import com.android.mms.util.DraftCache;
 import com.android.mms.util.Recycler;
 import com.android.mms.widget.MmsWidgetProvider;
@@ -95,17 +100,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private static final boolean DEBUG = false;
     private static final boolean DEBUGCLEANUP = true;
 
-    private static final int THREAD_LIST_QUERY_TOKEN       = 1701;
-    private static final int UNREAD_THREADS_QUERY_TOKEN    = 1702;
-    public static final int DELETE_CONVERSATION_TOKEN      = 1801;
-    public static final int HAVE_LOCKED_MESSAGES_TOKEN     = 1802;
-    private static final int DELETE_OBSOLETE_THREADS_TOKEN = 1803;
+    private static final int THREAD_LIST_QUERY_TOKEN        = 1701;
+    private static final int UNREAD_THREADS_QUERY_TOKEN     = 1702;
+    public static final int DELETE_CONVERSATION_TOKEN       = 1801;
+    public static final int HAVE_LOCKED_MESSAGES_TOKEN      = 1802;
+    private static final int DELETE_OBSOLETE_THREADS_TOKEN  = 1803;
+    private static final int MARK_CONVERSATION_UNREAD_TOKEN = 1804;
 
     // IDs of the context menu items for the list of conversations.
     public static final int MENU_DELETE               = 0;
     public static final int MENU_VIEW                 = 1;
     public static final int MENU_VIEW_CONTACT         = 2;
     public static final int MENU_ADD_TO_CONTACTS      = 3;
+
+    public static boolean mIsRunning;
 
     private ThreadListQueryHandler mQueryHandler;
     private ConversationListAdapter mListAdapter;
@@ -118,12 +126,17 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     private View mSmsPromoBannerView;
     private int mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
     private int mSavedFirstItemOffset;
+    private ProgressDialog mProgressDialog;
 
     // keys for extras and icicles
     private final static String LAST_LIST_POS = "last_list_pos";
     private final static String LAST_LIST_OFFSET = "last_list_offset";
 
     static private final String CHECKED_MESSAGE_LIMITS = "checked_message_limits";
+    private final static int DELAY_TIME = 500;
+
+    private static boolean mIsDeleteLockChecked = false;
+    private static long mLastDeletedThread = -1;
 
     // Whether or not we are currently enabled for SMS. This field is updated in onResume to make
     // sure we notice if the user has changed the default SMS app.
@@ -133,8 +146,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.conversation_list_screen);
+        if (MessageUtils.isMailboxMode()) {
+            Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+            startActivityIfNeeded(modeIntent, -1);
+            finish();
+            return;
+        }
 
         mSmsPromoBannerView = findViewById(R.id.banner_sms_promo);
 
@@ -152,6 +170,8 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         initListAdapter();
 
         setupActionBar();
+
+        mProgressDialog = createProgressDialog();
 
         setTitle(R.string.app_label);
 
@@ -195,16 +215,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         mSavedFirstVisiblePosition = listView.getFirstVisiblePosition();
         View firstChild = listView.getChildAt(0);
         mSavedFirstItemOffset = (firstChild == null) ? 0 : firstChild.getTop();
+        mIsRunning = false;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         boolean isSmsEnabled = MmsConfig.isSmsEnabled(this);
         if (isSmsEnabled != mIsSmsEnabled) {
             mIsSmsEnabled = isSmsEnabled;
             invalidateOptionsMenu();
         }
+
+        mIsRunning = true;
 
         // Multi-select is used to delete conversations. It is disabled if we are not the sms app.
         ListView listView = getListView();
@@ -245,6 +269,31 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         @Override
         public void onContentChanged(ConversationListAdapter adapter) {
             startAsyncQuery();
+        }
+    };
+
+    private void resetSearchView() {
+        mHandler.removeCallbacks(resetSearchRunnable);
+        mHandler.postDelayed(resetSearchRunnable, DELAY_TIME);
+    }
+
+    private Runnable resetSearchRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // Only when user is searching, reset the SearchView.
+            if (mSearchView != null && !mSearchView.isIconified()) {
+                final CharSequence query = mSearchView.getQuery();
+                invalidateOptionsMenu();
+                mHandler.postDelayed(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        mSearchView.setQuery(query, false);
+                    }
+                }, DELAY_TIME);
+            } else {
+                invalidateOptionsMenu();
+            }
         }
     };
 
@@ -370,6 +419,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     protected void onNewIntent(Intent intent) {
         // Handle intents that occur after the activity has already been created.
+        if (isFinishing()) {
+            // Just for monkey test, "ConversationList" has been closed when
+            // run "onNewIntent".
+            return;
+        }
         startAsyncQuery();
     }
 
@@ -410,6 +464,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
         DraftCache.getInstance().removeOnDraftChangedListener(this);
 
+        unbindListeners(null);
         // Simply setting the choice mode causes the previous choice mode to finish and we exit
         // multi-select mode (if we're in it) and remove all the selections.
         getListView().setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
@@ -422,6 +477,28 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
 
         mListAdapter.changeCursor(null);
+    }
+
+    private void unbindListeners(final Collection<Long> threadIds) {
+        for (int i = 0; i < getListView().getChildCount(); i++) {
+            View view = getListView().getChildAt(i);
+            if (view instanceof ConversationListItem) {
+                ConversationListItem item = (ConversationListItem)view;
+                if (threadIds == null) {
+                    item.unbind();
+                } else if (threadIds.contains(item.getConversation().getThreadId())) {
+                    item.unbind();
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        Contact.clearListener();
+        MessageUtils.removeDialogs();
     }
 
     @Override
@@ -468,19 +545,26 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        //In folder mode, it will jump to MailBoxMessageList,finish current
+        //activity, no need create option menu.
+        if (MessageUtils.isMailboxMode()) {
+            return true;
+        }
         getMenuInflater().inflate(R.menu.conversation_list_menu, menu);
 
-        mSearchItem = menu.findItem(R.id.search);
-        mSearchView = (SearchView) mSearchItem.getActionView();
+        if (!getResources().getBoolean(R.bool.config_classify_search)) {
+            mSearchItem = menu.findItem(R.id.search);
+            mSearchItem.setActionView(new SearchView(this));
+            mSearchView = (SearchView) mSearchItem.getActionView();
+            mSearchView.setOnQueryTextListener(mQueryTextListener);
+            mSearchView.setQueryHint(getString(R.string.search_hint));
+            mSearchView.setIconifiedByDefault(true);
+            SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
 
-        mSearchView.setOnQueryTextListener(mQueryTextListener);
-        mSearchView.setQueryHint(getString(R.string.search_hint));
-        mSearchView.setIconifiedByDefault(true);
-        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-
-        if (searchManager != null) {
-            SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
-            mSearchView.setSearchableInfo(info);
+            if (searchManager != null) {
+                SearchableInfo info = searchManager.getSearchableInfo(this.getComponentName());
+                mSearchView.setSearchableInfo(info);
+            }
         }
 
         MenuItem cellBroadcastItem = menu.findItem(R.id.action_cell_broadcasts);
@@ -509,7 +593,20 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        //In folder mode, it will jump to MailBoxMessageList,finish current
+        //activity, no need prepare option menu.
+        if (MessageUtils.isMailboxMode()) {
+            return true;
+        }
         MenuItem item = menu.findItem(R.id.action_delete_all);
+        if (item != null) {
+            item.setVisible((mListAdapter.getCount() > 0) && mIsSmsEnabled);
+        }
+        item = menu.findItem(R.id.action_mark_all_as_unread);
+        if (item != null) {
+            item.setVisible((mListAdapter.getCount() > 0) && mIsSmsEnabled);
+        }
+        item = menu.findItem(R.id.action_mark_all_as_read);
         if (item != null) {
             item.setVisible((mListAdapter.getCount() > 0) && mIsSmsEnabled);
         }
@@ -518,6 +615,18 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             // Dim compose if SMS is disabled because it will not work (will show a toast)
             item.getIcon().setAlpha(mIsSmsEnabled ? 255 : 127);
         }
+
+        if (!getResources().getBoolean(R.bool.config_mailbox_enable)) {
+            item = menu.findItem(R.id.action_change_mode);
+            if (item != null) {
+                item.setVisible(false);
+            }
+            item = menu.findItem(R.id.action_memory_status);
+            if (item != null) {
+                item.setVisible(false);
+            }
+        }
+
         if (!LogTag.DEBUG_DUMP) {
             item = menu.findItem(R.id.action_debug_dump);
             if (item != null) {
@@ -529,6 +638,11 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
 
     @Override
     public boolean onSearchRequested() {
+        if (getResources().getBoolean(R.bool.config_classify_search)) {
+            // block search entirely (by simply returning false).
+            return false;
+        }
+
         if (mSearchItem != null) {
             mSearchItem.expandActionView();
         }
@@ -538,6 +652,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
+            case R.id.search:
+                if (getResources().getBoolean(R.bool.config_classify_search)) {
+                    Intent searchintent = new Intent(this, SearchActivityExtend.class);
+                    startActivityIfNeeded(searchintent, -1);
+                    break;
+                }
+                return true;
             case R.id.action_compose_new:
                 if (mIsSmsEnabled) {
                     createNewMessage();
@@ -554,12 +675,31 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 // The invalid threadId of -1 means all threads here.
                 confirmDeleteThread(-1L, mQueryHandler);
                 break;
+            case R.id.action_mark_all_as_unread:
+                final MarkAsUnreadThreadListener listener = new MarkAsUnreadThreadListener(
+                        null, mQueryHandler, this);
+                confirmMarkAsUnreadDialog(listener, null, this);
+                break;
+            case R.id.action_mark_all_as_read:
+                final MarkAsReadThreadListener r_listener = new MarkAsReadThreadListener(
+                        null, mQueryHandler, this);
+                confirmMarkAsReadDialog(r_listener, null, this);
+                break;
             case R.id.action_settings:
                 Intent intent = new Intent(this, MessagingPreferenceActivity.class);
                 startActivityIfNeeded(intent, -1);
                 break;
+            case R.id.action_change_mode:
+                Intent modeIntent = new Intent(this, MailBoxMessageList.class);
+                MessageUtils.setMailboxMode(true);
+                startActivityIfNeeded(modeIntent, -1);
+                finish();
+                break;
             case R.id.action_debug_dump:
                 LogTag.dumpInternalTables(this);
+                break;
+            case R.id.action_memory_status:
+                MessageUtils.showMemoryStatusDialog(this);
                 break;
             case R.id.action_cell_broadcasts:
                 Intent cellBroadcastIntent = new Intent(Intent.ACTION_MAIN);
@@ -765,6 +905,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void onClick(View v) {
                     listener.setDeleteLockedMessage(checkbox.isChecked());
+                    mIsDeleteLockChecked = checkbox.isChecked();
                 }
             });
         }
@@ -777,6 +918,67 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             .setNegativeButton(R.string.no, null)
             .setView(contents)
             .show();
+    }
+
+
+ /**
+     * Build and show the proper mark as unread thread dialog. The UI is slightly different
+     * depending on whether we're unreading single/multiple threads or all threads.
+     * @param listener gets called when the unread button is pressed
+     * @param threadIds the thread IDs to be unread (pass null for all threads)
+     * @param context used to load the various UI elements
+     */
+    private static void confirmMarkAsUnreadDialog(final MarkAsUnreadThreadListener listener,
+            Collection<Long> threadIds,
+            Context context) {
+        View contents = View.inflate(context,R.layout.mark_unread_thread_dialog_view,null);
+        TextView msg = (TextView)contents.findViewById(R.id.message);
+        if (threadIds == null) {
+            msg.setText(R.string.confirm_mark_unread_all_conversations);
+        } else {
+            // Show the number of threads getting marked as unread in the confirmation dialog.
+            int cnt = threadIds.size();
+            msg.setText(context.getResources().getQuantityString(
+                R.plurals.confirm_mark_unread_conversation,cnt,cnt));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.confirm_mark_unread_dialog_title)
+            .setIconAttribute(android.R.attr.alertDialogIcon)
+            .setCancelable(true)
+            .setPositiveButton(R.string.menu_as_unread,listener)
+            .setNegativeButton(R.string.no,null)
+            .setView(contents)
+            .show();
+    }
+
+ /**
+     * Build and show the proper mark as read thread dialog. The UI is slightly different
+     * depending on whether we're reading single/multiple threads or all threads.
+     * @param listener gets called when the read button is pressed
+     * @param threadIds the thread IDs to be read (pass null for all threads)
+     * @param context used to load the various UI elements
+     */
+    private static void confirmMarkAsReadDialog(final MarkAsReadThreadListener listener,
+            Collection<Long> threadIds,
+            Context context) {
+        View contents = View.inflate(context,R.layout.mark_read_thread_dialog_view,null);
+        TextView msg = (TextView)contents.findViewById(R.id.message);
+        if (threadIds == null) {
+            msg.setText(R.string.confirm_mark_read_all_conversations);
+        } else {
+            // Show the number of threads getting marked as read in the confirmation dialog.
+            int cnt = threadIds.size();
+            msg.setText(context.getResources().getQuantityString(
+                    R.plurals.confirm_mark_read_conversation,cnt,cnt));
+        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.confirm_mark_read_dialog_title)
+                .setIconAttribute(android.R.attr.alertDialogIcon)
+                .setCancelable(true)
+                .setPositiveButton(R.string.menu_as_read,listener)
+                .setNegativeButton(R.string.no,null)
+                .setView(contents)
+                .show();
     }
 
     private final OnKeyListener mThreadListKeyListener = new OnKeyListener() {
@@ -797,17 +999,88 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     };
 
+    public static boolean getExitDialogueSign() {
+        return mIsDeleteLockChecked;
+    }
+
+    public static void setExitDialogueSign() {
+        mIsDeleteLockChecked = false;
+    }
+
+    public static class MarkAsUnreadThreadListener implements OnClickListener {
+        private final Collection<Long> mThreadIds;
+        private final ConversationQueryHandler mHandler;
+        private final Context mContext;
+
+        public MarkAsUnreadThreadListener(Collection<Long> threadIds, ConversationQueryHandler handler,
+                Context context) {
+            mThreadIds = threadIds;
+            mHandler = handler;
+            mContext = context;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, final int whichButton) {
+            MessageUtils.handleReadReport(mContext, mThreadIds,
+                    PduHeaders.READ_STATUS__DELETED_WITHOUT_BEING_READ, new Runnable() {
+                @Override
+                public void run() {
+                    if (mThreadIds == null) {
+                        Conversation.startMarkAsUnreadAll(mContext, mHandler);
+                        DraftCache.getInstance().refresh();
+                    } else {
+                        Conversation.startMarkAsUnread(mContext, mHandler, mThreadIds);
+                    }
+                }
+            });
+            dialog.dismiss();
+        }
+    }
+
+    public static class MarkAsReadThreadListener implements OnClickListener {
+        private final Collection<Long> mThreadIds;
+        private final ConversationQueryHandler mHandler;
+        private final Context mContext;
+
+        public MarkAsReadThreadListener(Collection<Long> threadIds,
+                ConversationQueryHandler handler,
+                Context context) {
+            mThreadIds = threadIds;
+            mHandler = handler;
+            mContext = context;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, final int whichButton) {
+            MessageUtils.handleReadReport(mContext, mThreadIds,
+                    PduHeaders.READ_STATUS__DELETED_WITHOUT_BEING_READ, new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mThreadIds == null) {
+                                Conversation.startMarkAsReadAll(mContext, mHandler);
+                                DraftCache.getInstance().refresh();
+                            } else {
+                                Conversation.startMarkAsRead(mContext, mHandler, mThreadIds);
+                            }
+                        }
+                    });
+            dialog.dismiss();
+        }
+    }
+
     public static class DeleteThreadListener implements OnClickListener {
         private final Collection<Long> mThreadIds;
         private final ConversationQueryHandler mHandler;
         private final Context mContext;
         private boolean mDeleteLockedMessages;
+        private final Runnable mCallBack;
 
         public DeleteThreadListener(Collection<Long> threadIds, ConversationQueryHandler handler,
-                Context context) {
+                Runnable callBack, Context context) {
             mThreadIds = threadIds;
             mHandler = handler;
             mContext = context;
+            mCallBack = callBack;
         }
 
         public void setDeleteLockedMessage(boolean deleteLockedMessages) {
@@ -821,10 +1094,22 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @Override
                 public void run() {
                     int token = DELETE_CONVERSATION_TOKEN;
+                    if (mCallBack != null) {
+                        mCallBack.run();
+                    }
+                    if (mContext instanceof ConversationList) {
+                        ((ConversationList)mContext).unbindListeners(mThreadIds);
+                    }
                     if (mThreadIds == null) {
                         Conversation.startDeleteAll(mHandler, token, mDeleteLockedMessages);
                         DraftCache.getInstance().refresh();
                     } else {
+                        int size = mThreadIds.size();
+                        if(size > 0 && mCallBack != null) {
+                            // Save the last thread id.
+                            // And cancel deleting dialog after this thread been deleted.
+                            mLastDeletedThread = (mThreadIds.toArray(new Long[size]))[size - 1];
+                        }
                         Conversation.startDelete(mHandler, token, mDeleteLockedMessages,
                                 mThreadIds);
                     }
@@ -907,6 +1192,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                             mSavedFirstItemOffset);
                     mSavedFirstVisiblePosition = AdapterView.INVALID_POSITION;
                 }
+                resetSearchView();
                 break;
 
             case UNREAD_THREADS_QUERY_TOKEN:
@@ -922,7 +1208,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 @SuppressWarnings("unchecked")
                 Collection<Long> threadIds = (Collection<Long>)cookie;
                 confirmDeleteThreadDialog(new DeleteThreadListener(threadIds, mQueryHandler,
-                        ConversationList.this), threadIds,
+                        mDeletingRunnable, ConversationList.this), threadIds,
                         cursor != null && cursor.getCount() > 0,
                         ConversationList.this);
                 if (cursor != null) {
@@ -941,6 +1227,13 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             switch (token) {
             case DELETE_CONVERSATION_TOKEN:
                 long threadId = cookie != null ? (Long)cookie : -1;     // default to all threads
+                if (threadId < 0 || threadId == mLastDeletedThread) {
+                    mHandler.removeCallbacks(mShowProgressDialogRunnable);
+                    if (mProgressDialog != null && mProgressDialog.isShowing()) {
+                        mProgressDialog.dismiss();
+                    }
+                    mLastDeletedThread = -1;
+                }
 
                 if (threadId == -1) {
                     // Rebuild the contacts cache now that all threads and their associated unique
@@ -985,10 +1278,32 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         }
     }
 
+    public void checkAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, true);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
+    public void unCheckAll() {
+        int count = getListView().getCount();
+
+        for (int i = 0; i < count; i++) {
+            getListView().setItemChecked(i, false);
+        }
+        mListAdapter.notifyDataSetChanged();
+    }
+
     private class ModeCallback implements ListView.MultiChoiceModeListener {
         private View mMultiSelectActionBarView;
         private TextView mSelectedConvCount;
+        private ImageView mSelectedAll;
+        private boolean mHasSelectAll = false;
         private HashSet<Long> mSelectedThreadIds;
+        // build action bar with a spinner
+        private SelectionMenu mSelectionMenu;
 
         @Override
         public boolean onCreateActionMode(ActionMode mode, Menu menu) {
@@ -997,15 +1312,28 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             inflater.inflate(R.menu.conversation_multi_select_menu, menu);
 
             if (mMultiSelectActionBarView == null) {
-                mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this)
-                    .inflate(R.layout.conversation_list_multi_select_actionbar, null);
-
-                mSelectedConvCount =
-                    (TextView)mMultiSelectActionBarView.findViewById(R.id.selected_conv_count);
+                mMultiSelectActionBarView = LayoutInflater.from(ConversationList.this).inflate(
+                        R.layout.action_mode, null);
             }
             mode.setCustomView(mMultiSelectActionBarView);
-            ((TextView)mMultiSelectActionBarView.findViewById(R.id.title))
-                .setText(R.string.select_conversations);
+            mSelectionMenu = new SelectionMenu(ConversationList.this,
+                    (Button) mMultiSelectActionBarView.findViewById(R.id.selection_menu),
+                    new PopupList.OnPopupItemClickListener() {
+                        @Override
+                        public boolean onPopupItemClick(int itemId) {
+                            if (itemId == SelectionMenu.SELECT_OR_DESELECT) {
+                                if (mHasSelectAll) {
+                                    unCheckAll();
+                                    mHasSelectAll = false;
+                                } else {
+                                    checkAll();
+                                    mHasSelectAll = true;
+                                }
+                                mSelectionMenu.updateSelectAllMode(mHasSelectAll);
+                            }
+                            return true;
+                        }
+                    });
             return true;
         }
 
@@ -1031,6 +1359,26 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                     mode.finish();
                     break;
 
+                case R.id.markAsUnread:
+                    if (mSelectedThreadIds.size() > 0) {
+                        final MarkAsUnreadThreadListener listener = new MarkAsUnreadThreadListener(
+                                mSelectedThreadIds, mQueryHandler,ConversationList.this);
+                        confirmMarkAsUnreadDialog(listener, mSelectedThreadIds,
+                                ConversationList.this);
+                    }
+                    mode.finish();
+                    break;
+
+                case R.id.markAsRead:
+                    if (mSelectedThreadIds.size() > 0) {
+                        final MarkAsReadThreadListener listener = new MarkAsReadThreadListener(
+                                mSelectedThreadIds, mQueryHandler,ConversationList.this);
+                        confirmMarkAsReadDialog(listener, mSelectedThreadIds,
+                                ConversationList.this);
+                    }
+                    mode.finish();
+                    break;
+
                 default:
                     break;
             }
@@ -1042,6 +1390,7 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
             ConversationListAdapter adapter = (ConversationListAdapter)getListView().getAdapter();
             adapter.uncheckAll();
             mSelectedThreadIds = null;
+            mSelectionMenu.dismiss();
         }
 
         @Override
@@ -1049,7 +1398,15 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
                 int position, long id, boolean checked) {
             ListView listView = getListView();
             final int checkedCount = listView.getCheckedItemCount();
-            mSelectedConvCount.setText(Integer.toString(checkedCount));
+
+            mSelectionMenu.setTitle(getApplicationContext().getString(R.string.selected_count,
+                    checkedCount));
+            if (getListView().getCount() == checkedCount) {
+                mHasSelectAll = true;
+            } else {
+                mHasSelectAll = false;
+            }
+            mSelectionMenu.updateSelectAllMode(mHasSelectAll);
 
             Cursor cursor  = (Cursor)listView.getItemAtPosition(position);
             Conversation conv = Conversation.from(ConversationList.this, cursor);
@@ -1069,4 +1426,30 @@ public class ConversationList extends ListActivity implements DraftCache.OnDraft
         String s = String.format(format, args);
         Log.d(TAG, "[" + Thread.currentThread().getId() + "] " + s);
     }
+
+    private ProgressDialog createProgressDialog() {
+        ProgressDialog dialog = new ProgressDialog(this);
+        dialog.setIndeterminate(true);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(false);
+        dialog.setMessage(getText(R.string.deleting_threads));
+        return dialog;
+    }
+
+    private Runnable mDeletingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            mHandler.postDelayed(mShowProgressDialogRunnable, DELAY_TIME);
+        }
+    };
+
+    private Runnable mShowProgressDialogRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mProgressDialog != null) {
+                mProgressDialog.show();
+            }
+        }
+    };
 }

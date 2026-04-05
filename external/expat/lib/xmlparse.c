@@ -3,10 +3,18 @@
 */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>                     /* memset(), memcpy() */
 #include <assert.h>
 #include <limits.h>                     /* UINT_MAX */
-#include <time.h>                       /* time() */
+
+#ifdef COMPILED_FROM_DSP
+#define getpid GetCurrentProcessId
+#else
+#include <sys/time.h>                   /* gettimeofday() */
+#include <sys/types.h>                  /* getpid() */
+#include <unistd.h>                     /* getpid() */
+#endif
 
 #define XML_BUILDING_EXPAT 1
 
@@ -432,7 +440,7 @@ static ELEMENT_TYPE *
 getElementType(XML_Parser parser, const ENCODING *enc,
                const char *ptr, const char *end);
 
-static unsigned long generate_hash_secret_salt(void);
+static unsigned long generate_hash_secret_salt(XML_Parser parser);
 static XML_Bool startParsing(XML_Parser parser);
 
 static XML_Parser
@@ -691,11 +699,38 @@ static const XML_Char implicitContext[] = {
 };
 
 static unsigned long
-generate_hash_secret_salt(void)
+gather_time_entropy(void)
 {
-  unsigned int seed = time(NULL) % UINT_MAX;
-  srand(seed);
-  return rand();
+#ifdef COMPILED_FROM_DSP
+  FILETIME ft;
+  GetSystemTimeAsFileTime(&ft); /* never fails */
+  return ft.dwHighDateTime ^ ft.dwLowDateTime;
+#else
+  struct timeval tv;
+  int gettimeofday_res;
+
+  gettimeofday_res = gettimeofday(&tv, NULL);
+  assert (gettimeofday_res == 0);
+
+  /* Microseconds time is <20 bits entropy */
+  return tv.tv_usec;
+#endif
+}
+
+static unsigned long
+generate_hash_secret_salt(XML_Parser parser)
+{
+  /* Process ID is 0 bits entropy if attacker has local access
+   * XML_Parser address is few bits of entropy if attacker has local access */
+  const unsigned long entropy =
+      gather_time_entropy() ^ getpid() ^ (uintptr_t)parser;
+
+  /* Factors are 2^31-1 and 2^61-1 (Mersenne primes M31 and M61) */
+  if (sizeof(unsigned long) == 4) {
+    return entropy * 2147483647;
+  } else {
+    return entropy * 2305843009213693951;
+  }
 }
 
 static XML_Bool  /* only valid for root parser */
@@ -703,7 +738,7 @@ startParsing(XML_Parser parser)
 {
     /* hash functions must be initialized before setContext() is called */
     if (hash_secret_salt == 0)
-      hash_secret_salt = generate_hash_secret_salt();
+      hash_secret_salt = generate_hash_secret_salt(parser);
     if (ns) {
       /* implicit context only set for root parser, since child
          parsers (i.e. external entity parsers) will inherit it
@@ -1550,7 +1585,7 @@ XML_Parse(XML_Parser parser, const char *s, int len, int isFinal)
   else if (bufferPtr == bufferEnd) {
     const char *end;
     int nLeftOver;
-    enum XML_Error result;
+    enum XML_Status result;
     parseEndByteIndex += len;
     positionPtr = s;
     ps_finalBuffer = (XML_Bool)isFinal;
@@ -1678,6 +1713,10 @@ XML_ParseBuffer(XML_Parser parser, int len, int isFinal)
 void * XMLCALL
 XML_GetBuffer(XML_Parser parser, int len)
 {
+  if (len < 0) {
+    errorCode = XML_ERROR_NO_MEMORY;
+    return NULL;
+  }
   switch (ps_parsing) {
   case XML_SUSPENDED:
     errorCode = XML_ERROR_SUSPENDED;
@@ -1689,8 +1728,11 @@ XML_GetBuffer(XML_Parser parser, int len)
   }
 
   if (len > bufferLim - bufferEnd) {
-    /* FIXME avoid integer overflow */
     int neededSize = len + (int)(bufferEnd - bufferPtr);
+    if (neededSize < 0) {
+      errorCode = XML_ERROR_NO_MEMORY;
+      return NULL;
+    }
 #ifdef XML_CONTEXT_BYTES
     int keep = (int)(bufferPtr - buffer);
 
@@ -1719,7 +1761,11 @@ XML_GetBuffer(XML_Parser parser, int len)
         bufferSize = INIT_BUFFER_SIZE;
       do {
         bufferSize *= 2;
-      } while (bufferSize < neededSize);
+      } while (bufferSize < neededSize && bufferSize > 0);
+      if (bufferSize <= 0) {
+        errorCode = XML_ERROR_NO_MEMORY;
+        return NULL;
+      }
       newBuf = (char *)MALLOC(bufferSize);
       if (newBuf == 0) {
         errorCode = XML_ERROR_NO_MEMORY;
@@ -2415,11 +2461,11 @@ doContent(XML_Parser parser,
           for (;;) {
             int bufSize;
             int convLen;
-            XmlConvert(enc,
+            const enum XML_Convert_Result convert_res = XmlConvert(enc,
                        &fromPtr, rawNameEnd,
                        (ICHAR **)&toPtr, (ICHAR *)tag->bufEnd - 1);
             convLen = (int)(toPtr - (XML_Char *)tag->buf);
-            if (fromPtr == rawNameEnd) {
+            if ((convert_res == XML_CONVERT_COMPLETED) || (convert_res == XML_CONVERT_INPUT_INCOMPLETE)) {
               tag->name.strLen = convLen;
               break;
             }
@@ -2640,11 +2686,11 @@ doContent(XML_Parser parser,
           if (MUST_CONVERT(enc, s)) {
             for (;;) {
               ICHAR *dataPtr = (ICHAR *)dataBuf;
-              XmlConvert(enc, &s, next, &dataPtr, (ICHAR *)dataBufEnd);
+              const enum XML_Convert_Result convert_res = XmlConvert(enc, &s, next, &dataPtr, (ICHAR *)dataBufEnd);
               *eventEndPP = s;
               charDataHandler(handlerArg, dataBuf,
                               (int)(dataPtr - (ICHAR *)dataBuf));
-              if (s == next)
+              if ((convert_res == XML_CONVERT_COMPLETED) || (convert_res == XML_CONVERT_INPUT_INCOMPLETE))
                 break;
               *eventPP = s;
             }
@@ -2911,6 +2957,8 @@ storeAtts(XML_Parser parser, const ENCODING *enc,
         unsigned long uriHash = hash_secret_salt;
         ((XML_Char *)s)[-1] = 0;  /* clear flag */
         id = (ATTRIBUTE_ID *)lookup(parser, &dtd->attributeIds, s, 0);
+        if (!id || !id->prefix)
+          return XML_ERROR_NO_MEMORY;
         b = id->prefix->binding;
         if (!b)
           return XML_ERROR_UNBOUND_PREFIX;
@@ -3248,11 +3296,11 @@ doCdataSection(XML_Parser parser,
           if (MUST_CONVERT(enc, s)) {
             for (;;) {
               ICHAR *dataPtr = (ICHAR *)dataBuf;
-              XmlConvert(enc, &s, next, &dataPtr, (ICHAR *)dataBufEnd);
+              const enum XML_Convert_Result convert_res = XmlConvert(enc, &s, next, &dataPtr, (ICHAR *)dataBufEnd);
               *eventEndPP = next;
               charDataHandler(handlerArg, dataBuf,
                               (int)(dataPtr - (ICHAR *)dataBuf));
-              if (s == next)
+              if ((convert_res == XML_CONVERT_COMPLETED) || (convert_res == XML_CONVERT_INPUT_INCOMPLETE))
                 break;
               *eventPP = s;
             }
@@ -5329,6 +5377,7 @@ reportDefault(XML_Parser parser, const ENCODING *enc,
               const char *s, const char *end)
 {
   if (MUST_CONVERT(enc, s)) {
+    enum XML_Convert_Result convert_res;
     const char **eventPP;
     const char **eventEndPP;
     if (enc == encoding) {
@@ -5341,11 +5390,11 @@ reportDefault(XML_Parser parser, const ENCODING *enc,
     }
     do {
       ICHAR *dataPtr = (ICHAR *)dataBuf;
-      XmlConvert(enc, &s, end, &dataPtr, (ICHAR *)dataBufEnd);
+      convert_res = XmlConvert(enc, &s, end, &dataPtr, (ICHAR *)dataBufEnd);
       *eventEndPP = s;
       defaultHandler(handlerArg, dataBuf, (int)(dataPtr - (ICHAR *)dataBuf));
       *eventPP = s;
-    } while (s != end);
+    } while ((convert_res != XML_CONVERT_COMPLETED) && (convert_res != XML_CONVERT_INPUT_INCOMPLETE));
   }
   else
     defaultHandler(handlerArg, (XML_Char *)s, (int)((XML_Char *)end - (XML_Char *)s));
@@ -5475,6 +5524,8 @@ getAttributeId(XML_Parser parser, const ENCODING *enc,
             return NULL;
           id->prefix = (PREFIX *)lookup(parser, &dtd->prefixes, poolStart(&dtd->pool),
                                         sizeof(PREFIX));
+          if (!id->prefix)
+            return NULL;
           if (id->prefix->name == poolStart(&dtd->pool))
             poolFinish(&dtd->pool);
           else
@@ -6148,8 +6199,8 @@ poolAppend(STRING_POOL *pool, const ENCODING *enc,
   if (!pool->ptr && !poolGrow(pool))
     return NULL;
   for (;;) {
-    XmlConvert(enc, &ptr, end, (ICHAR **)&(pool->ptr), (ICHAR *)pool->end);
-    if (ptr == end)
+    const enum XML_Convert_Result convert_res = XmlConvert(enc, &ptr, end, (ICHAR **)&(pool->ptr), (ICHAR *)pool->end);
+    if ((convert_res == XML_CONVERT_COMPLETED) || (convert_res == XML_CONVERT_INPUT_INCOMPLETE))
       break;
     if (!poolGrow(pool))
       return NULL;
@@ -6233,8 +6284,13 @@ poolGrow(STRING_POOL *pool)
     }
   }
   if (pool->blocks && pool->start == pool->blocks->s) {
+    BLOCK *temp;
     int blockSize = (int)(pool->end - pool->start)*2;
-    BLOCK *temp = (BLOCK *)
+
+    if (blockSize < 0)
+      return XML_FALSE;
+
+    temp = (BLOCK *)
       pool->mem->realloc_fcn(pool->blocks,
                              (offsetof(BLOCK, s)
                               + blockSize * sizeof(XML_Char)));
@@ -6249,6 +6305,10 @@ poolGrow(STRING_POOL *pool)
   else {
     BLOCK *tem;
     int blockSize = (int)(pool->end - pool->start);
+
+    if (blockSize < 0)
+      return XML_FALSE;
+
     if (blockSize < INIT_BLOCK_SIZE)
       blockSize = INIT_BLOCK_SIZE;
     else

@@ -21,6 +21,9 @@ import com.android.internal.telephony.MccTable;
 import com.android.internal.telephony.EventLogTags;
 import com.android.internal.telephony.uicc.RuimRecords;
 import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppState;
+import com.android.internal.telephony.dataconnection.DcTrackerBase;
+import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.Phone;
 
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
@@ -46,7 +49,7 @@ import java.util.List;
 public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
     private CDMALTEPhone mCdmaLtePhone;
     private final CellInfoLte mCellInfoLte;
-
+    protected int mNewRilRadioTechnology = 0;
     private CellIdentityLte mNewCellIdentityLte = new CellIdentityLte();
     private CellIdentityLte mLasteCellIdentityLte = new CellIdentityLte();
 
@@ -204,6 +207,7 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
                         + " regState=" + regState
                         + " dataRadioTechnology=" + type);
             }
+            mDataRoaming = regCodeIsRoaming(regState);
         } else {
             super.handlePollStateResultMessage(what, ar);
         }
@@ -231,7 +235,19 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
                 mGotCountryCode = false;
 
                 pollStateDone();
-                break;
+
+                /**
+                 * If iwlan feature is enabled then we do get
+                 * voice_network_change indication from RIL. At this moment we
+                 * dont know the current RAT since we are in Airplane mode.
+                 * We have to request for current registration state and hence
+                 * fallthrough to default case only if iwlan feature is
+                 * applicable.
+                 */
+                if (!isIwlanFeatureAvailable()) {
+                    /* fall-through */
+                    break;
+                }
 
             default:
                 // Issue all poll-related commands at once, then count
@@ -257,6 +273,19 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
 
     @Override
     protected void pollStateDone() {
+        // Some older CDMA/LTE RILs only report VoiceRadioTechnology which results in network
+        // Unknown. In these cases return RilVoiceRadioTechnology for RilDataRadioTechnology.
+        boolean oldRil = mCi.needsOldRilFeature("usevoicetechfordata");
+        if (mNewSS.getDataRegState() != ServiceState.STATE_IN_SERVICE && oldRil) {
+            // LTE out of service, get CDMA Service State
+            mNewRilRadioTechnology = mNewSS.getRilVoiceRadioTechnology();
+            mNewSS.setDataRegState(radioTechnologyToDataServiceState(mNewRilRadioTechnology));
+            mNewSS.setRilDataRadioTechnology(mNewRilRadioTechnology);
+            log("pollStateDone CDMA STATE_IN_SERVICE mNewRilRadioTechnology = " +
+                    mNewRilRadioTechnology + " mNewSS.getDataRegState() = " +
+                    mNewSS.getDataRegState());
+        }
+
         log("pollStateDone: lte 1 ss=[" + mSS + "] newSS=[" + mNewSS + "]");
 
         useDataRegStateForDataOnlyDevices();
@@ -309,6 +338,8 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
             ((mNewSS.getRilDataRadioTechnology() >= ServiceState.RIL_RADIO_TECHNOLOGY_IS95A) &&
              (mNewSS.getRilDataRadioTechnology() <= ServiceState.RIL_RADIO_TECHNOLOGY_EVDO_A));
 
+        boolean needNotifyData = (mSS.getCssIndicator() != mNewSS.getCssIndicator());
+
         if (DBG) {
             log("pollStateDone:"
                 + " hasRegistered=" + hasRegistered
@@ -353,6 +384,17 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
         if (hasDataRadioTechnologyChanged) {
             mPhone.setSystemProperty(TelephonyProperties.PROPERTY_DATA_NETWORK_TYPE,
                     ServiceState.rilRadioTechnologyToString(mSS.getRilDataRadioTechnology()));
+
+            // Query Signalstrength when there is a change in PS RAT.
+            sendMessage(obtainMessage(EVENT_POLL_SIGNAL_STRENGTH));
+
+            if (isIwlanFeatureAvailable()
+                    && (ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN
+                        == mSS.getRilDataRadioTechnology())) {
+                handleIwlan();
+            }
+            // Query Signalstrength when there is a change in PS RAT.
+            sendMessage(obtainMessage(EVENT_POLL_SIGNAL_STRENGTH));
         }
 
         if (hasRegistered) {
@@ -360,11 +402,12 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
         }
 
         if (hasChanged) {
-            if (mPhone.isEriFileLoaded()) {
+            if ((mCi.getRadioState().isOn()) && (mPhone.isEriFileLoaded())) {
                 String eriText;
                 // Now the CDMAPhone sees the new ServiceState so it can get the
                 // new ERI text
-                if (mSS.getVoiceRegState() == ServiceState.STATE_IN_SERVICE) {
+                if (mSS.getVoiceRegState() == ServiceState.STATE_IN_SERVICE ||
+                        (mSS.getDataRegState() == ServiceState.STATE_IN_SERVICE)) {
                     eriText = mPhone.getCdmaEriText();
                 } else if (mSS.getVoiceRegState() == ServiceState.STATE_POWER_OFF) {
                     eriText = (mIccRecords != null) ? mIccRecords.getServiceProviderName() : null;
@@ -442,17 +485,36 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
             mPhone.notifyServiceStateChanged(mSS);
         }
 
-        if (hasCdmaDataConnectionAttached || has4gHandoff) {
-            mAttachedRegistrants.notifyRegistrants();
-        }
-
+        // First notify detached, then rat changed, then attached - that's the way it
+        // happens in the modem.
+        // Behavior of recipients (DcTracker, for instance) depends on this sequence
+        // since DcTracker reloads profiles on "rat_changed" notification and sets up
+        // data call on "attached" notification.
         if (hasCdmaDataConnectionDetached) {
             mDetachedRegistrants.notifyRegistrants();
         }
 
         if ((hasCdmaDataConnectionChanged || hasDataRadioTechnologyChanged)) {
             notifyDataRegStateRilRadioTechnologyChanged();
+            if (isIwlanFeatureAvailable()
+                    && (ServiceState.RIL_RADIO_TECHNOLOGY_IWLAN
+                        == mSS.getRilDataRadioTechnology())) {
+                mPhone.notifyDataConnection(Phone.REASON_IWLAN_AVAILABLE);
+                //DCT shall inform the availability of APN for all non-default
+                //contexts.
+                mIwlanRegistrants.notifyRegistrants();
+                needNotifyData = false;
+            } else {
+                needNotifyData = true;
+            }
+        }
+
+        if (needNotifyData) {
             mPhone.notifyDataConnection(null);
+        }
+
+        if (hasCdmaDataConnectionAttached || has4gHandoff) {
+            mAttachedRegistrants.notifyRegistrants();
         }
 
         if (hasRoamingOn) {
@@ -517,8 +579,15 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
 
     @Override
     public boolean isConcurrentVoiceAndDataAllowed() {
-        // Using the Conncurrent Service Supported flag for CdmaLte devices.
-        return mSS.getCssIndicator() == 1;
+        // For LTE set true, else if the SVDO property is set, else use the CSS indicator to
+        // check for concurrent voice and data capability
+        if (mSS.getRilDataRadioTechnology() == ServiceState.RIL_RADIO_TECHNOLOGY_LTE) {
+            return true;
+        } else if (SystemProperties.getBoolean(TelephonyProperties.PROPERTY_SVDO, false)) {
+            return true;
+        } else {
+            return mSS.getCssIndicator() == 1;
+        }
     }
 
     /**
@@ -567,6 +636,18 @@ public class CdmaLteServiceStateTracker extends CdmaServiceStateTracker {
             if (DBG) log ("getAllCellInfo: arrayList=" + arrayList);
             return arrayList;
         }
+    }
+
+    @Override
+    protected void updatePhoneObject() {
+        int voiceRat = mSS.getRilVoiceRadioTechnology();
+        // For CDMA-LTE phone don't update phone to LTE.
+        // If there is a  real need to switch to LTE, then it will be done via
+        // RIL_UNSOL_VOICE_RADIO_TECH_CHANGED from RIL.
+        if (voiceRat == ServiceState.RIL_RADIO_TECHNOLOGY_LTE) {
+            voiceRat = ServiceState.RIL_RADIO_TECHNOLOGY_1xRTT;
+        }
+        mPhoneBase.updatePhoneObject(voiceRat);
     }
 
     @Override

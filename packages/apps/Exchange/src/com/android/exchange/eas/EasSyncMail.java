@@ -9,6 +9,7 @@ import com.android.emailcommon.provider.EmailContent.Message;
 import com.android.emailcommon.provider.EmailContent.MessageColumns;
 import com.android.emailcommon.provider.EmailContent.SyncColumns;
 import com.android.emailcommon.provider.Mailbox;
+import com.android.emailcommon.service.SyncSize;
 import com.android.emailcommon.service.SyncWindow;
 import com.android.exchange.Eas;
 import com.android.exchange.adapter.AbstractSyncParser;
@@ -32,7 +33,6 @@ public class EasSyncMail extends EasSyncCollectionTypeBase {
     private static final int FETCH_REQUEST_SERVER_ID = 0;
 
     private static final int EMAIL_WINDOW_SIZE = 10;
-
 
     @Override
     public int getTrafficFlag() {
@@ -84,7 +84,9 @@ public class EasSyncMail extends EasSyncCollectionTypeBase {
                 s.start(Tags.BASE_BODY_PREFERENCE);
                 // HTML for email
                 s.data(Tags.BASE_TYPE, Eas.BODY_PREFERENCE_HTML);
-                s.data(Tags.BASE_TRUNCATION_SIZE, Eas.EAS12_TRUNCATION_SIZE);
+                String sizeTruncation = account.getSyncSize() == SyncSize.SYNC_SIZE_ENTIRE_MAIL ?
+                    Eas.EAS12_TRUNCATION_SIZE : Integer.toString(account.getSyncSize());
+                s.data(Tags.BASE_TRUNCATION_SIZE, sizeTruncation);
                 s.end();
             } else {
                 // Use MIME data for EAS 2.5

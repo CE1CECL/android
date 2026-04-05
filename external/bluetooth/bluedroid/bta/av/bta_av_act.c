@@ -51,6 +51,8 @@
 #define BTA_AV_ACP_SIG_TIME_VAL 2000
 #endif
 
+/* constant for scb state machine, need to check in avrcp*/
+#define AV_SCB_INIT_STATE 0
 static void bta_av_acp_sig_timer_cback (TIMER_LIST_ENT *p_tle);
 
 /*******************************************************************************
@@ -206,7 +208,7 @@ static void bta_av_rc_ctrl_cback(UINT8 handle, UINT8 event, UINT16 result, BD_AD
 #if (defined(BTA_AV_MIN_DEBUG_TRACES) && BTA_AV_MIN_DEBUG_TRACES == TRUE)
     APPL_TRACE_EVENT2("rc_ctrl handle: %d event=0x%x", handle, event);
 #else
-    APPL_TRACE_EVENT2("bta_av_rc_ctrl_cback handle: %d event=0x%x", handle, event);
+    BTIF_TRACE_IMP2("bta_av_rc_ctrl_cback handle: %d event=0x%x", handle, event);
 #endif
     if (event == AVRC_OPEN_IND_EVT)
     {
@@ -252,7 +254,7 @@ static void bta_av_rc_msg_cback(UINT8 handle, UINT8 label, UINT8 opcode, tAVRC_M
 #if (defined(BTA_AV_MIN_DEBUG_TRACES) && BTA_AV_MIN_DEBUG_TRACES == TRUE)
     APPL_TRACE_ERROR2("rc_msg handle: %d opcode=0x%x", handle, opcode);
 #else
-    APPL_TRACE_EVENT2("bta_av_rc_msg_cback handle: %d opcode=0x%x", handle, opcode);
+    BTIF_TRACE_IMP2("bta_av_rc_msg_cback handle: %d opcode=0x%x", handle, opcode);
 #endif
     /* determine size of buffer we need */
     if (opcode == AVRC_OP_VENDOR && p_msg->vendor.p_vendor_data != NULL)
@@ -267,7 +269,13 @@ static void bta_av_rc_msg_cback(UINT8 handle, UINT8 label, UINT8 opcode, tAVRC_M
         p_p_data = &p_msg->pass.p_pass_data;
         data_len = (UINT16) p_msg->pass.pass_len;
     }
-
+    else if (opcode == AVRC_OP_BROWSE && p_msg->browse.p_browse_data != NULL)
+    {
+        APPL_TRACE_EVENT0("bta_av_rc_msg_cback Browse Data");
+        p_data  = p_msg->browse.p_browse_data;
+        p_p_data = &p_msg->browse.p_browse_data;
+        data_len = (UINT16) p_msg->browse.browse_len;
+    }
     if ((p_buf = (tBTA_AV_RC_MSG *) GKI_getbuf((UINT16) (sizeof(tBTA_AV_RC_MSG) + data_len))) != NULL)
     {
         p_buf->hdr.event = BTA_AV_AVRC_MSG_EVT;
@@ -493,6 +501,15 @@ void bta_av_rc_opened(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
     for(i=0; i<BTA_AV_NUM_STRS; i++)
     {
         p_scb = p_cb->p_scb[i];
+        /*If SCB is created and it is Sink SCB, we don't need AVRCP Connection*/
+        if ((p_scb) && (p_scb->seps[p_scb->sep_idx].tsep == AVDT_TSEP_SNK)
+            && (p_scb->state > AV_SCB_INIT_STATE))
+        {
+            APPL_TRACE_WARNING0(" Has A2DP Sink, rejecting AVRCP ");
+            AVRC_Close(p_data->rc_conn_chg.handle);
+            return;
+        }
+
         if(p_scb && bdcmp(p_scb->peer_addr, p_data->rc_conn_chg.peer_addr) == 0)
         {
             p_scb->rc_handle = p_data->rc_conn_chg.handle;
@@ -768,6 +785,16 @@ tBTA_AV_EVT bta_av_proc_meta_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_ms
     pdu = *(p_vendor->p_vendor_data);
     p_rc_rsp->pdu = pdu;
     *p_ctype = AVRC_RSP_REJ;
+    /* Check for valid Meta Length,
+     *  AVRC_MIN_CMD_LEN is 20. */
+    if ((20 + p_vendor->vendor_len) > AVRC_META_CMD_POOL_SIZE)
+    {
+        /* reject it */
+        evt = 0;
+        p_rc_rsp->rsp.status = AVRC_STS_BAD_PARAM;
+        APPL_TRACE_ERROR1("Invalid param length, we cant handle: %d", p_vendor->vendor_len);
+        return evt;
+    }
     /* Metadata messages only use PANEL sub-unit type */
     if (p_vendor->hdr.subunit_type != AVRC_SUB_PANEL)
     {
@@ -836,7 +863,7 @@ tBTA_AV_EVT bta_av_proc_meta_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_ms
         }
     }
 #else
-    APPL_TRACE_DEBUG0("AVRCP 1.3 Metadata not supporteed. Reject command.");
+    BTIF_TRACE_IMP0("AVRCP 1.3 Metadata not supporteed. Reject command.");
     /* reject invalid message without reporting to app */
     evt = 0;
     p_rc_rsp->rsp.status = AVRC_STS_BAD_CMD;
@@ -845,6 +872,40 @@ tBTA_AV_EVT bta_av_proc_meta_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_ms
     return evt;
 }
 
+/*****************************************************************************
+**
+** Function        bta_av_proc_browse_cmd
+**
+** Description     Process and AVRCP browse command from the peer
+**
+** Returns         status
+**
+****************************************************************************/
+tBTA_AV_EVT bta_av_proc_browse_cmd(tAVRC_RESPONSE  *p_rc_rsp, tBTA_AV_RC_MSG *p_msg)
+{
+    tBTA_AV_EVT evt = BTA_AV_BROWSE_MSG_EVT;
+    UINT8       u8, pdu, *p;
+    UINT16      u16;
+    tAVRC_MSG_BROWSE *p_browse = &p_msg->msg.browse;
+
+    pdu = p_browse->p_browse_data[0];
+    APPL_TRACE_DEBUG1("bta_av_proc_browse_cmd browse cmd: %x",pdu);
+    switch (pdu)
+    {
+        case AVRC_PDU_GET_FOLDER_ITEMS:
+            break;
+
+        case AVRC_PDU_SET_BROWSED_PLAYER:
+            break;
+
+        default:
+            evt = 0;
+            p_rc_rsp->rsp.status = AVRC_STS_BAD_CMD;
+            APPL_TRACE_ERROR0("### Not supported cmd");
+            break;
+    }
+    return evt;
+}
 
 /*******************************************************************************
 **
@@ -869,6 +930,7 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
 
     rc_rsp.rsp.status = BTA_AV_STS_NO_RSP;
 #endif
+    BTIF_TRACE_IMP2(" %s bta_av_rc_msg opcode: %x", __FUNCTION__, p_data->rc_msg.opcode);
 
     if (p_data->rc_msg.opcode == AVRC_OP_PASS_THRU)
     {
@@ -985,6 +1047,25 @@ void bta_av_rc_msg(tBTA_AV_CB *p_cb, tBTA_AV_DATA *p_data)
            AVRC_VendorRsp(p_data->rc_msg.handle, p_data->rc_msg.label, &p_data->rc_msg.msg.vendor);
         }
     }
+#if (AVCT_BROWSE_INCLUDED == TRUE)
+    else if (p_data->rc_msg.opcode == AVRC_OP_BROWSE )
+    {
+        APPL_TRACE_DEBUG1("browse len PDU :%x",p_data->rc_msg.msg.browse.browse_len);
+        APPL_TRACE_DEBUG1("browse  data:%x",p_data->rc_msg.msg.browse.p_browse_data[0]);
+        av.browse_msg.label = p_data->rc_msg.label;
+        av.browse_msg.p_msg = &p_data->rc_msg.msg;
+
+        evt = bta_av_proc_browse_cmd(&rc_rsp, &p_data->rc_msg);
+        if (evt == 0)
+        {
+            APPL_TRACE_ERROR0("Browse PDU not supported");
+            rc_rsp.rsp.pdu    = AVRC_PDU_GENERAL_REJECT;
+            rc_rsp.rsp.status = AVRC_STS_BAD_CMD;
+            ctype = 0;
+            AVRC_BldBrowseResponse(0, &rc_rsp, &p_pkt);
+        }
+    }
+#endif
 #if (AVRC_METADATA_INCLUDED == TRUE)
     if (evt == 0 && rc_rsp.rsp.status != BTA_AV_STS_NO_RSP)
     {
@@ -1410,7 +1491,8 @@ void bta_av_sig_chg(tBTA_AV_DATA *p_data)
     UINT8   mask;
     tBTA_AV_LCB *p_lcb = NULL;
 
-    APPL_TRACE_DEBUG1("bta_av_sig_chg event: %d", event);
+    BTIF_TRACE_IMP2("%s bta_av_sig_chg event: %d",
+            __FUNCTION__, event);
     if(event == AVDT_CONNECT_IND_EVT)
     {
         p_lcb = bta_av_find_lcb(p_data->str_msg.bd_addr, BTA_AV_LCB_FIND);
@@ -1450,7 +1532,9 @@ void bta_av_sig_chg(tBTA_AV_DATA *p_data)
                          * The following function shall send the event and start the recurring timer
                          */
                         bta_av_sig_timer(NULL);
-
+                        APPL_TRACE_DEBUG0("Re-start timer for AVDTP service");
+                        bta_sys_conn_open(BTA_ID_AV, p_cb->p_scb[xx]->app_id,
+                                p_cb->p_scb[xx]->peer_addr);
                         /* Possible collision : need to avoid outgoing processing while the timer is running */
                         p_cb->p_scb[xx]->coll_mask = BTA_AV_COLL_INC_TMR;
 
@@ -1482,23 +1566,34 @@ void bta_av_sig_chg(tBTA_AV_DATA *p_data)
     else
     {
         /* disconnected. */
+        int is_lcb_used = bta_av_cb.conn_lcb;
+        APPL_TRACE_DEBUG1(" is_lcb_used is %d",is_lcb_used);
         p_lcb = bta_av_find_lcb(p_data->str_msg.bd_addr, BTA_AV_LCB_FREE);
-        if(p_lcb && p_lcb->conn_msk)
+        if (p_lcb && (p_lcb->conn_msk || is_lcb_used))
         {
             APPL_TRACE_DEBUG1("conn_msk: 0x%x", p_lcb->conn_msk);
             /* clean up ssm  */
             for(xx=0; xx < BTA_AV_NUM_STRS; xx++)
             {
+
+                if ((p_cb->p_scb[xx]) &&
+                        (bdcmp(p_cb->p_scb[xx]->peer_addr, p_data->str_msg.bd_addr) == 0) )
+                {
+                    APPL_TRACE_DEBUG0("Closing timer for AVDTP service");
+                    bta_sys_conn_close(BTA_ID_AV, p_cb->p_scb[xx]->app_id,p_cb->p_scb[xx]->peer_addr);
+                }
                 mask = 1 << (xx + 1);
-                if ((mask & p_lcb->conn_msk) && (p_cb->p_scb[xx]) &&
+                if (((mask & p_lcb->conn_msk) || is_lcb_used)
+                     && (p_cb->p_scb[xx]) &&
                     (bdcmp(p_cb->p_scb[xx]->peer_addr, p_data->str_msg.bd_addr) == 0))
                 {
+                    APPL_TRACE_DEBUG0("Sending AVDT_DISCONNECT_EVT");
                     bta_av_ssm_execute(p_cb->p_scb[xx], BTA_AV_AVDT_DISCONNECT_EVT, NULL);
                 }
             }
         }
     }
-    APPL_TRACE_DEBUG1("conn_lcb: 0x%x", p_cb->conn_lcb);
+    APPL_TRACE_DEBUG1("sig_chg conn_lcb: 0x%x", p_cb->conn_lcb);
 }
 
 /*******************************************************************************
@@ -1741,7 +1836,20 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
                 if(p_lcb)
                 {
                     rc_handle = bta_av_rc_create(p_cb, AVCT_INT, (UINT8)(p_scb->hdi + 1), p_lcb->lidx);
-                    p_cb->rcb[rc_handle].peer_features = peer_features;
+                    if(rc_handle != BTA_AV_RC_HANDLE_NONE)
+                    {
+                        p_cb->rcb[rc_handle].peer_features = peer_features;
+                    }
+                    else
+                    {
+                        /* cannot create valid rc_handle for current device */
+                        APPL_TRACE_ERROR0(" No link resources available");
+                        p_scb->use_rc = FALSE;
+                        bdcpy(rc_open.peer_addr, p_scb->peer_addr);
+                        rc_open.peer_features = 0;
+                        rc_open.status = BTA_AV_FAIL_RESOURCES;
+                        (*p_cb->p_cback)(BTA_AV_RC_CLOSE_EVT, (tBTA_AV *) &rc_open);
+                    }
                 }
 #if (BT_USE_TRACES == TRUE || BT_TRACE_APPL == TRUE)
                 else
@@ -1987,6 +2095,11 @@ void bta_av_dereg_comp(tBTA_AV_DATA *p_data)
 #endif
                 bta_av_del_sdp_rec(&p_cb->sdp_a2d_handle);
                 bta_sys_remove_uuid(UUID_SERVCLASS_AUDIO_SOURCE);
+
+#ifdef BTA_AVK_INCLUDED
+                bta_av_del_sdp_rec(&p_cb->sdp_a2d_snk_handle);
+                bta_sys_remove_uuid(UUID_SERVCLASS_AUDIO_SINK);
+#endif
             }
         }
         else

@@ -65,7 +65,7 @@ private:
     struct CodecInfo {
         AString mName;
         bool mIsEncoder;
-        uint32_t mTypes;
+        uint64_t mTypes;
         uint32_t mQuirks;
     };
 
@@ -99,6 +99,8 @@ private:
     status_t addQuirk(const char **attrs);
     status_t addTypeFromAttributes(const char **attrs);
     void addType(const char *name);
+
+    friend class ExtendedUtils;
 
     DISALLOW_EVIL_CONSTRUCTORS(MediaCodecList);
 };

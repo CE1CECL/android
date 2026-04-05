@@ -45,7 +45,10 @@ const MediaProfiles::NameToTagMap MediaProfiles::sAudioEncoderNameMap[] = {
     {"amrwb",  AUDIO_ENCODER_AMR_WB},
     {"aac",    AUDIO_ENCODER_AAC},
     {"heaac",  AUDIO_ENCODER_HE_AAC},
-    {"aaceld", AUDIO_ENCODER_AAC_ELD}
+    {"aaceld", AUDIO_ENCODER_AAC_ELD},
+#ifdef QCOM_HARDWARE
+    {"lpcm",  AUDIO_ENCODER_LPCM}
+#endif
 };
 
 const MediaProfiles::NameToTagMap MediaProfiles::sFileFormatMap[] = {
@@ -70,6 +73,14 @@ const MediaProfiles::NameToTagMap MediaProfiles::sCamcorderQualityNameMap[] = {
     {"720p", CAMCORDER_QUALITY_720P},
     {"1080p", CAMCORDER_QUALITY_1080P},
     {"qvga", CAMCORDER_QUALITY_QVGA},
+    {"fwvga", CAMCORDER_QUALITY_FWVGA},
+    {"wvga", CAMCORDER_QUALITY_WVGA},
+    {"vga", CAMCORDER_QUALITY_VGA},
+    {"wqvga", CAMCORDER_QUALITY_WQVGA},
+#ifdef QCOM_HARDWARE
+    {"4kuhd", CAMCORDER_QUALITY_4kUHD},
+    {"4kdci", CAMCORDER_QUALITY_4kDCI},
+#endif
 
     {"timelapselow",  CAMCORDER_QUALITY_TIME_LAPSE_LOW},
     {"timelapsehigh", CAMCORDER_QUALITY_TIME_LAPSE_HIGH},
@@ -79,6 +90,14 @@ const MediaProfiles::NameToTagMap MediaProfiles::sCamcorderQualityNameMap[] = {
     {"timelapse720p", CAMCORDER_QUALITY_TIME_LAPSE_720P},
     {"timelapse1080p", CAMCORDER_QUALITY_TIME_LAPSE_1080P},
     {"timelapseqvga", CAMCORDER_QUALITY_TIME_LAPSE_QVGA},
+#ifdef QCOM_HARDWARE
+    {"timelapsevga", CAMCORDER_QUALITY_TIME_LAPSE_VGA},
+    {"timelapsewvga", CAMCORDER_QUALITY_TIME_LAPSE_WVGA},
+    {"timelapsefwvga", CAMCORDER_QUALITY_TIME_LAPSE_FWVGA},
+    {"timelapsewqvga", CAMCORDER_QUALITY_TIME_LAPSE_WQVGA},
+    {"timelapse4kuhd", CAMCORDER_QUALITY_TIME_LAPSE_4kUHD},
+    {"timelapse4kdci", CAMCORDER_QUALITY_TIME_LAPSE_4kDCI},
+#endif
 };
 
 /*static*/ void
@@ -111,6 +130,8 @@ MediaProfiles::logVideoEncoderCap(const MediaProfiles::VideoEncoderCap& cap)
     ALOGV("frame width: min = %d and max = %d", cap.mMinFrameWidth, cap.mMaxFrameWidth);
     ALOGV("frame height: min = %d and max = %d", cap.mMinFrameHeight, cap.mMaxFrameHeight);
     ALOGV("frame rate: min = %d and max = %d", cap.mMinFrameRate, cap.mMaxFrameRate);
+    ALOGV("max HFR width: = %d max HFR height: = %d", cap.mMaxHFRFrameWidth, cap.mMaxHFRFrameHeight);
+    ALOGV("max HFR mode: = %d", cap.mMaxHFRMode);
 }
 
 /*static*/ void
@@ -240,16 +261,30 @@ MediaProfiles::createVideoDecoderCap(const char **atts)
 /*static*/ MediaProfiles::VideoEncoderCap*
 MediaProfiles::createVideoEncoderCap(const char **atts)
 {
-    CHECK(!strcmp("name",           atts[0])  &&
-          !strcmp("enabled",        atts[2])  &&
-          !strcmp("minBitRate",     atts[4])  &&
-          !strcmp("maxBitRate",     atts[6])  &&
-          !strcmp("minFrameWidth",  atts[8])  &&
-          !strcmp("maxFrameWidth",  atts[10]) &&
-          !strcmp("minFrameHeight", atts[12]) &&
-          !strcmp("maxFrameHeight", atts[14]) &&
-          !strcmp("minFrameRate",   atts[16]) &&
-          !strcmp("maxFrameRate",   atts[18]));
+    int maxHFRFrameWidth = 0;
+    int maxHFRFrameHeight = 0;
+    int maxHFRMode = 0;
+
+    CHECK(!strcmp("name",               atts[0])  &&
+          !strcmp("enabled",            atts[2])  &&
+          !strcmp("minBitRate",         atts[4])  &&
+          !strcmp("maxBitRate",         atts[6])  &&
+          !strcmp("minFrameWidth",      atts[8])  &&
+          !strcmp("maxFrameWidth",      atts[10]) &&
+          !strcmp("minFrameHeight",     atts[12]) &&
+          !strcmp("maxFrameHeight",     atts[14]) &&
+          !strcmp("minFrameRate",       atts[16]) &&
+          !strcmp("maxFrameRate",       atts[18]));
+
+
+    if (atts[20]) {
+        CHECK(!strcmp("maxHFRFrameWidth",   atts[20]) &&
+          !strcmp("maxHFRFrameHeight",  atts[22]) &&
+          !strcmp("maxHFRMode",         atts[24]));
+        maxHFRFrameWidth = atoi(atts[21]);
+        maxHFRFrameHeight = atoi(atts[23]);
+        maxHFRMode = atoi(atts[25]);
+    }
 
     const size_t nMappings = sizeof(sVideoEncoderNameMap)/sizeof(sVideoEncoderNameMap[0]);
     const int codec = findTagForName(sVideoEncoderNameMap, nMappings, atts[1]);
@@ -258,7 +293,8 @@ MediaProfiles::createVideoEncoderCap(const char **atts)
     MediaProfiles::VideoEncoderCap *cap =
         new MediaProfiles::VideoEncoderCap(static_cast<video_encoder>(codec),
             atoi(atts[5]), atoi(atts[7]), atoi(atts[9]), atoi(atts[11]), atoi(atts[13]),
-            atoi(atts[15]), atoi(atts[17]), atoi(atts[19]));
+            atoi(atts[15]), atoi(atts[17]), atoi(atts[19]), maxHFRFrameWidth,
+            maxHFRFrameHeight, maxHFRMode);
     logVideoEncoderCap(*cap);
     return cap;
 }
@@ -643,14 +679,14 @@ MediaProfiles::getInstance()
 MediaProfiles::createDefaultH263VideoEncoderCap()
 {
     return new MediaProfiles::VideoEncoderCap(
-        VIDEO_ENCODER_H263, 192000, 420000, 176, 352, 144, 288, 1, 20);
+        VIDEO_ENCODER_H263, 192000, 420000, 176, 352, 144, 288, 1, 20, 0, 0, 0);
 }
 
 /*static*/ MediaProfiles::VideoEncoderCap*
 MediaProfiles::createDefaultM4vVideoEncoderCap()
 {
     return new MediaProfiles::VideoEncoderCap(
-        VIDEO_ENCODER_MPEG_4_SP, 192000, 420000, 176, 352, 144, 288, 1, 20);
+        VIDEO_ENCODER_MPEG_4_SP, 192000, 420000, 176, 352, 144, 288, 1, 20, 0, 0, 0);
 }
 
 
@@ -800,6 +836,10 @@ MediaProfiles::createDefaultCamcorderProfiles(MediaProfiles *profiles)
 MediaProfiles::createDefaultAudioEncoders(MediaProfiles *profiles)
 {
     profiles->mAudioEncoders.add(createDefaultAmrNBEncoderCap());
+#ifdef QCOM_HARDWARE
+    profiles->mAudioEncoders.add(createDefaultAacEncoderCap());
+    profiles->mAudioEncoders.add(createDefaultLpcmEncoderCap());
+#endif
 }
 
 /*static*/ void
@@ -833,6 +873,20 @@ MediaProfiles::createDefaultAmrNBEncoderCap()
     return new MediaProfiles::AudioEncoderCap(
         AUDIO_ENCODER_AMR_NB, 5525, 12200, 8000, 8000, 1, 1);
 }
+#ifdef QCOM_HARDWARE
+/*static*/ MediaProfiles::AudioEncoderCap*
+MediaProfiles::createDefaultAacEncoderCap()
+{
+    return new MediaProfiles::AudioEncoderCap(
+        AUDIO_ENCODER_AAC, 64000, 156000, 8000, 48000, 1, 2);
+}
+/*static*/ MediaProfiles::AudioEncoderCap*
+MediaProfiles::createDefaultLpcmEncoderCap()
+{
+    return new MediaProfiles::AudioEncoderCap(
+        AUDIO_ENCODER_LPCM, 768000, 4608000, 48000, 48000, 1, 6);
+}
+#endif
 
 /*static*/ void
 MediaProfiles::createDefaultImageEncodingQualityLevels(MediaProfiles *profiles)
@@ -977,6 +1031,9 @@ int MediaProfiles::getVideoEncoderParamByName(const char *name, video_encoder co
     if (!strcmp("enc.vid.bps.max", name)) return mVideoEncoders[index]->mMaxBitRate;
     if (!strcmp("enc.vid.fps.min", name)) return mVideoEncoders[index]->mMinFrameRate;
     if (!strcmp("enc.vid.fps.max", name)) return mVideoEncoders[index]->mMaxFrameRate;
+    if (!strcmp("enc.vid.hfr.width.max", name)) return mVideoEncoders[index]->mMaxHFRFrameWidth;
+    if (!strcmp("enc.vid.hfr.height.max", name)) return mVideoEncoders[index]->mMaxHFRFrameHeight;
+    if (!strcmp("enc.vid.hfr.mode.max", name)) return mVideoEncoders[index]->mMaxHFRMode;
 
     ALOGE("The given video encoder param name %s is not found", name);
     return -1;

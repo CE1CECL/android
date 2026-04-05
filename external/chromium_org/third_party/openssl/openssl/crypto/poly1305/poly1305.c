@@ -219,12 +219,14 @@ void CRYPTO_poly1305_init(poly1305_state *statep, const unsigned char key[32])
 	struct poly1305_state_st *state = (struct poly1305_state_st*) statep;
 	uint32_t t0,t1,t2,t3;
 
+#if 0 /* Disabled because of crbug.com/341598 */
 #if __arm__
 	if (CRYPTO_is_NEON_capable())
 		{
 		CRYPTO_poly1305_init_neon(statep, key);
 		return;
 		}
+#endif
 #endif
 
 	t0 = U8TO32_LE(key+0);
@@ -261,12 +263,14 @@ void CRYPTO_poly1305_update(poly1305_state *statep, const unsigned char *in,
 	unsigned int i;
 	struct poly1305_state_st *state = (struct poly1305_state_st*) statep;
 
+#if 0 /* Disabled because of crbug.com/341598 */
 #if __arm__
 	if (CRYPTO_is_NEON_capable())
 		{
 		CRYPTO_poly1305_update_neon(statep, in, in_len);
 		return;
 		}
+#endif
 #endif
 
 	if (state->buf_used)
@@ -310,12 +314,14 @@ void CRYPTO_poly1305_finish(poly1305_state *statep, unsigned char mac[16])
 	uint32_t g0,g1,g2,g3,g4;
 	uint32_t b, nb;
 
+#if 0 /* Disabled because of crbug.com/341598 */
 #if __arm__
 	if (CRYPTO_is_NEON_capable())
 		{
 		CRYPTO_poly1305_finish_neon(statep, mac);
 		return;
 		}
+#endif
 #endif
 
 	if (state->buf_used)

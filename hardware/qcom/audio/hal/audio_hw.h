@@ -26,6 +26,7 @@
 #include <audio_route/audio_route.h>
 
 #define VISUALIZER_LIBRARY_PATH "/system/lib/soundfx/libqcomvisualizer.so"
+#define OFFLOAD_EFFECTS_BUNDLE_LIBRARY_PATH "/system/lib/soundfx/libqcompostprocbundle.so"
 
 /* Flags used to initialize acdb_settings variable that goes to ACDB library */
 #define DMIC_FLAG       0x00000002
@@ -127,6 +128,7 @@ struct stream_out {
     void *offload_cookie;
     struct compr_gapless_mdata gapless_mdata;
     int send_new_metadata;
+    unsigned int bit_width;
 
     struct audio_device *dev;
 };
@@ -191,12 +193,22 @@ struct audio_device {
     bool speaker_lr_swap;
     unsigned int cur_hdmi_channels;
 
+    unsigned int cur_codec_backend_samplerate;
+    unsigned int cur_codec_backend_bit_width;
     void *platform;
 
     void *visualizer_lib;
-    int (*visualizer_start_output)(audio_io_handle_t);
-    int (*visualizer_stop_output)(audio_io_handle_t);
+    int (*visualizer_start_output)(audio_io_handle_t, int);
+    int (*visualizer_stop_output)(audio_io_handle_t, int);
+    void *offload_effects_lib;
+    int (*offload_effects_start_output)(audio_io_handle_t, int);
+    int (*offload_effects_stop_output)(audio_io_handle_t, int);
 };
+
+#define LITERAL_TO_STRING(x) #x
+#define CHECK(condition) LOG_ALWAYS_FATAL_IF(!(condition), "%s",\
+            __FILE__ ":" LITERAL_TO_STRING(__LINE__)\
+            " ASSERT_FATAL(" #condition ") failed.")
 
 /*
  * NOTE: when multiple mutexes have to be acquired, always take the

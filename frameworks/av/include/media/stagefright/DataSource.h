@@ -19,7 +19,7 @@
 #define DATA_SOURCE_H_
 
 #include <sys/types.h>
-
+#include <media/stagefright/foundation/ADebug.h>
 #include <media/stagefright/MediaErrors.h>
 #include <utils/Errors.h>
 #include <utils/KeyedVector.h>
@@ -32,6 +32,40 @@ namespace android {
 
 struct AMessage;
 class String8;
+class DataSource;
+
+class Sniffer : public RefBase {
+public:
+    Sniffer();
+
+    ////////////////////////////////////////////////////////////////////////////
+
+    bool sniff(DataSource *source, String8 *mimeType, float *confidence, sp<AMessage> *meta);
+
+    // The sniffer can optionally fill in "meta" with an AMessage containing
+    // a dictionary of values that helps the corresponding extractor initialize
+    // its state without duplicating effort already exerted by the sniffer.
+    typedef bool (*SnifferFunc)(
+            const sp<DataSource> &source, String8 *mimeType,
+            float *confidence, sp<AMessage> *meta);
+
+    //if isExtendedExtractor = true, store the location of the sniffer to register
+    void registerSniffer_l(SnifferFunc func);
+    void registerDefaultSniffers();
+
+    virtual ~Sniffer() {}
+
+private:
+    Mutex mSnifferMutex;
+    List<SnifferFunc> mSniffers;
+    List<SnifferFunc> mExtraSniffers;
+    List<SnifferFunc>::iterator extendedSnifferPosition;
+
+    void registerSnifferPlugin();
+
+    Sniffer(const Sniffer &);
+    Sniffer &operator=(const Sniffer &);
+};
 
 class DataSource : public RefBase {
 public:
@@ -40,13 +74,14 @@ public:
         kStreamedFromLocalHost = 2,
         kIsCachingDataSource   = 4,
         kIsHTTPBasedSource     = 8,
+        kSupportNonBlockingRead = 16,
     };
 
     static sp<DataSource> CreateFromURI(
             const char *uri,
             const KeyedVector<String8, String8> *headers = NULL);
 
-    DataSource() {}
+    DataSource() { mSniffer = new Sniffer(); }
 
     virtual status_t initCheck() const = 0;
 
@@ -57,6 +92,20 @@ public:
     bool getUInt24(off64_t offset, uint32_t *x); // 3 byte int, returned as a 32-bit int
     bool getUInt32(off64_t offset, uint32_t *x);
     bool getUInt64(off64_t offset, uint64_t *x);
+
+    // Reads in "count" entries of type T into vector *x.
+    // Returns true if "count" entries can be read.
+    // If fewer than "count" entries can be read, return false. In this case,
+    // the output vector *x will still have those entries that were read. Call
+    // x->size() to obtain the number of entries read.
+    // The optional parameter chunkSize specifies how many entries should be
+    // read from the data source at one time into a temporary buffer. Increasing
+    // chunkSize can improve the performance at the cost of extra memory usage.
+    // The default value for chunkSize is set to read at least 4k bytes at a
+    // time, depending on sizeof(T).
+    template <typename T>
+    bool getVector(off64_t offset, Vector<T>* x, size_t count,
+                   size_t chunkSize = (4095 / sizeof(T)) + 1);
 
     // May return ERROR_UNSUPPORTED.
     virtual status_t getSize(off64_t *size);
@@ -97,16 +146,58 @@ public:
 protected:
     virtual ~DataSource() {}
 
-private:
-    static Mutex gSnifferMutex;
-    static List<SnifferFunc> gSniffers;
-    static bool gSniffersRegistered;
+    sp<Sniffer> mSniffer;
 
     static void RegisterSniffer_l(SnifferFunc func);
 
     DataSource(const DataSource &);
     DataSource &operator=(const DataSource &);
 };
+
+template <typename T>
+bool DataSource::getVector(off64_t offset, Vector<T>* x, size_t count,
+                           size_t chunkSize)
+{
+    x->clear();
+    if (chunkSize == 0) {
+        return false;
+    }
+    if (count == 0) {
+        return true;
+    }
+
+    T tmp[chunkSize];
+    ssize_t numBytesRead;
+    size_t numBytesPerChunk = chunkSize * sizeof(T);
+    size_t i;
+
+    for (i = 0; i + chunkSize < count; i += chunkSize) {
+        // This loops is executed when more than chunkSize records need to be
+        // read.
+        numBytesRead = this->readAt(offset, (void*)&tmp, numBytesPerChunk);
+        if (numBytesRead == -1) { // If readAt() returns -1, there is an error.
+            return false;
+        }
+        if (numBytesRead < numBytesPerChunk) {
+            // This case is triggered when the stream ends before the whole
+            // chunk is read.
+            x->appendArray(tmp, (size_t)numBytesRead / sizeof(T));
+            return false;
+        }
+        x->appendArray(tmp, chunkSize);
+        offset += numBytesPerChunk;
+    }
+
+    // There are (count - i) more records to read.
+    // Right now, (count - i) <= chunkSize.
+    // We do the same thing as above, but with chunkSize replaced by count - i.
+    numBytesRead = this->readAt(offset, (void*)&tmp, (count - i) * sizeof(T));
+    if (numBytesRead == -1) {
+        return false;
+    }
+    x->appendArray(tmp, (size_t)numBytesRead / sizeof(T));
+    return x->size() == count;
+}
 
 }  // namespace android
 

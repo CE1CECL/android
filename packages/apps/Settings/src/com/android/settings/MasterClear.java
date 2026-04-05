@@ -20,8 +20,10 @@ import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AuthenticatorDescription;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -56,7 +58,9 @@ public class MasterClear extends Fragment {
 
     private static final int KEYGUARD_REQUEST = 55;
     private static final int PIN_REQUEST = 56;
+    private static final int LOCK_REQUEST = 57;
 
+    static final String WIPE_MEDIA_EXTRA = "wipe_media";
     static final String ERASE_EXTERNAL_EXTRA = "erase_sd";
 
     private View mContentView;
@@ -97,6 +101,11 @@ public class MasterClear extends Fragment {
                 mPinConfirmed = true;
             }
             return;
+        } else if (requestCode == LOCK_REQUEST) {
+            if (resultCode != Activity.RESULT_OK) {
+                getActivity().finish();
+            }
+            return;
         } else if (requestCode != KEYGUARD_REQUEST) {
             return;
         }
@@ -114,7 +123,14 @@ public class MasterClear extends Fragment {
         Preference preference = new Preference(getActivity());
         preference.setFragment(MasterClearConfirm.class.getName());
         preference.setTitle(R.string.master_clear_confirm_title);
-        preference.getExtras().putBoolean(ERASE_EXTERNAL_EXTRA, mExternalStorage.isChecked());
+        if (mExternalStorage.isChecked()) {
+            if (Environment.isExternalStorageEmulated()) {
+                preference.getExtras().putBoolean(WIPE_MEDIA_EXTRA, true);
+            }
+            else {
+                preference.getExtras().putBoolean(ERASE_EXTERNAL_EXTRA, true);
+            }
+        }
         ((PreferenceActivity) getActivity()).onPreferenceStartFragment(null, preference);
     }
 
@@ -162,8 +178,9 @@ public class MasterClear extends Fragment {
          * encrypted, and will also need to be wiped.
          */
         boolean isExtStorageEmulated = Environment.isExternalStorageEmulated();
-        if (isExtStorageEmulated
-                || (!Environment.isExternalStorageRemovable() && isExtStorageEncrypted())) {
+        /* CM's recovery (and most custom ones) does NOT clear emulated
+         * storage when asked for a reset  */
+        if (!Environment.isExternalStorageRemovable() && isExtStorageEncrypted()) {
             mExternalStorageContainer.setVisibility(View.GONE);
 
             final View externalOption = mContentView.findViewById(R.id.erase_external_option_text);
@@ -183,6 +200,24 @@ public class MasterClear extends Fragment {
                     mExternalStorage.toggle();
                 }
             });
+
+            final TextView wipeStorage =
+                    (TextView)mContentView.findViewById(R.id.erase_external_option_text);
+            wipeStorage.setText(isExtStorageEmulated ?
+                    R.string.master_clear_desc_erase_internal_storage :
+                    R.string.master_clear_desc_erase_external_storage);
+
+            final TextView wipeStorageTitle =
+                    (TextView)mContentView.findViewById(R.id.erase_storage_checkbox_title);
+            wipeStorageTitle.setText(isExtStorageEmulated ?
+                    R.string.erase_internal_storage :
+                    R.string.erase_external_storage);
+
+            final TextView wipeStorageDescription =
+                    (TextView)mContentView.findViewById(R.id.erase_storage_checkbox_description);
+            wipeStorageDescription.setText(isExtStorageEmulated ?
+                    R.string.erase_internal_storage_description :
+                    R.string.erase_external_storage_description);
         }
 
         loadAccountList();
@@ -271,6 +306,28 @@ public class MasterClear extends Fragment {
             if (!runKeyguardConfirmation(KEYGUARD_REQUEST)) {
                 showFinalConfirmation();
             }
+        }
+
+        if (SecuritySettings.isDeviceLocked()) {
+            new AlertDialog.Builder(getActivity())
+                    .setMessage(R.string.lock_to_cyanogen_master_clear_warning)
+                    .setNegativeButton(R.string.wizard_back, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            getActivity().finish();
+                        }
+                    })
+                    .setPositiveButton(R.string.lockpassword_continue_label, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            SecuritySettings.updateCyanogenDeviceLockState(MasterClear.this,
+                                    false, LOCK_REQUEST);
+                        }
+                    })
+                    .setCancelable(false)
+                    .create()
+                    .show();
+
         }
     }
 }

@@ -84,7 +84,9 @@ ifeq ($(USE_SYSDEPS_WIN32),)
 	LOCAL_STATIC_LIBRARIES += libcutils
 endif
 
-include $(BUILD_HOST_EXECUTABLE)
+ifneq ($(HOST_OS),windows)
+  include $(BUILD_HOST_EXECUTABLE)
+endif
 
 $(call dist-for-goals,dist_files sdk,$(LOCAL_BUILT_MODULE))
 
@@ -124,13 +126,19 @@ ifneq (,$(filter userdebug eng,$(TARGET_BUILD_VARIANT)))
 LOCAL_CFLAGS += -DALLOW_ADBD_ROOT=1
 endif
 
+ifeq ($(BOARD_ALWAYS_INSECURE),true)
+	LOCAL_CFLAGS += -DBOARD_ALWAYS_INSECURE
+endif
+
+LOCAL_C_INCLUDES += external/openssl/include
+
 LOCAL_MODULE := adbd
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT_SBIN)
 LOCAL_UNSTRIPPED_PATH := $(TARGET_ROOT_OUT_SBIN_UNSTRIPPED)
 
-LOCAL_STATIC_LIBRARIES := liblog libcutils libc libmincrypt
+LOCAL_STATIC_LIBRARIES := liblog libcutils libc libmincrypt libselinux
 include $(BUILD_EXECUTABLE)
 
 

@@ -49,6 +49,10 @@
 #define VENDOR_LIB_RUNTIME_TUNING_ENABLED   FALSE
 #endif
 
+#ifndef USE_AXI_BRIDGE_LOCK
+#define USE_AXI_BRIDGE_LOCK FALSE
+#endif
+
 /* Run-time configuration file */
 #ifndef VENDOR_LIB_CONF_FILE
 #define VENDOR_LIB_CONF_FILE "/etc/bluetooth/bt_vendor.conf"
@@ -66,6 +70,15 @@
 
 #ifndef UART_TARGET_BAUD_RATE
 #define UART_TARGET_BAUD_RATE           3000000
+#endif
+
+#ifndef FW_PRE_PATCH
+#define FW_PRE_PATCH ""
+#endif
+
+/* Force use of two stop bits */
+#ifndef UART_FORCE_TWO_STOPBITS
+#define UART_FORCE_TWO_STOPBITS FALSE
 #endif
 
 /* The millisecond delay pauses on HCI transport after firmware patches

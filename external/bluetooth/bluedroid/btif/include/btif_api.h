@@ -74,6 +74,17 @@ bt_status_t btif_disable_bluetooth(void);
 
 /*******************************************************************************
 **
+** Function         btif_ssr_cleanup
+**
+** Description      Inititates ssr clean during Disable timeout.
+**
+** Returns          void
+**
+*******************************************************************************/
+void btif_ssr_cleanup(void);
+
+/*******************************************************************************
+**
 ** Function         btif_shutdown_bluetooth
 **
 ** Description      Finalizes BT scheduler shutdown and terminates BTIF
@@ -155,6 +166,72 @@ bt_status_t btif_get_remote_device_properties( bt_bdaddr_t *remote_addr);
 *******************************************************************************/
 bt_status_t btif_set_remote_device_property( bt_bdaddr_t *remote_addr,
                                              const bt_property_t *property);
+
+/*******************************************************************************
+**
+** Function         btif_set_le_adv_params
+**
+** Description      Sets the LE adv properties namely
+**                  min interval, max interval,
+**                  and direct addr and type for Firected advertisement
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_adv_params( uint16_t int_min, uint16_t int_max, const bt_bdaddr_t *bd_addr,
+                                    uint8_t addr_type);
+
+/*******************************************************************************
+**
+** Function         btif_set_le_adv_data_mask
+**
+** Description      Sets the LE adv data mask for
+**                  including in the adv: services, bdName, Tx Power
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_adv_data_mask(uint16_t dmask);
+
+/*******************************************************************************
+**
+** Function         btif_set_le_scan_resp_mask
+**
+** Description      Sets the LE scan resp mask for
+**                  including in the adv: services, bdName, Tx Power
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_scan_resp_mask(uint16_t dmask);
+
+/*******************************************************************************
+**
+** Function         btif_set_le_manu_data
+**
+** Description      sets manufacturer specific data for
+**                  adv data and scan resp data
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_manu_data(uint8_t *p_buff, uint8_t len);
+
+/*******************************************************************************
+**
+** Function         btif_set_le_service_data
+**
+** Description      sets service data for
+**                  adv data and scan resp data
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_service_data(uint8_t *p_buff, uint8_t len);
+
+
+
+
 
 /*******************************************************************************
 **
@@ -327,6 +404,17 @@ bt_status_t btif_dut_mode_send(uint16_t opcode, uint8_t *buf, uint8_t len);
 
 /*******************************************************************************
 **
+** Function         btif_hci_cmd_send
+**
+** Description      Sends a HCI Raw command to the controller
+**
+** Returns          BT_STATUS_SUCCESS on success
+**
+*******************************************************************************/
+bt_status_t btif_hci_cmd_send(uint16_t opcode, uint8_t *buf, uint8_t len);
+
+/*******************************************************************************
+**
 ** Function         btif_le_test_mode
 **
 ** Description     Sends a HCI BLE Test command to the Controller
@@ -346,4 +434,15 @@ bt_status_t btif_le_test_mode(uint16_t opcode, uint8_t *buf, uint8_t len);
 **
 *******************************************************************************/
 bt_status_t btif_config_hci_snoop_log(uint8_t enable);
+
+/*******************************************************************************
+** Function         btif_dm_cancel_hid_bond
+**
+** Description      Cancels bonding to HID device if in progress
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_dm_cancel_hid_bond(const bt_bdaddr_t *bd_addr);
+
 #endif /* BTIF_API_H */

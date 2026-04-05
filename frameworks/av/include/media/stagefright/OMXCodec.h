@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2009 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +36,10 @@ class MemoryDealer;
 struct OMXCodecObserver;
 struct CodecProfileLevel;
 class SkipCutBuffer;
+
+#ifdef MTK_HARDWARE
+struct OMXCodecBufferAllocator;
+#endif
 
 struct OMXCodec : public MediaSource,
                   public MediaBufferObserver {
@@ -100,6 +107,16 @@ struct OMXCodec : public MediaSource,
         kSupportsMultipleFramesPerInputBuffer = 1024,
         kRequiresLargerEncoderOutputBuffer    = 2048,
         kOutputBuffersAreUnreadable           = 4096,
+#ifdef MTK_HARDWARE
+        kAvoidMemcopyInputRecordingFrames     = 8192,
+#endif
+#if defined(OMAP_ENHANCEMENT)
+        kAvoidMemcopyInputRecordingFrames     = 0x20000000,
+#endif
+        kRequiresGlobalFlush                  = 0x20000000, // 2^29
+#ifdef QCOM_HARDWARE
+        kRequiresWMAProComponent              = 0x40000000, //2^30
+#endif
     };
 
     struct CodecNameAndQuirks {
@@ -127,6 +144,10 @@ private:
     // Make sure mLock is accessible to OMXCodecObserver
     friend class OMXCodecObserver;
 
+#ifdef MTK_HARDWARE
+    friend struct OMXCodecBufferAllocator;
+#endif
+
     // Call this with mLock hold
     void on_message(const omx_message &msg);
 
@@ -139,10 +160,14 @@ private:
         EXECUTING_TO_IDLE,
         IDLE_TO_LOADED,
         RECONFIGURING,
+        PAUSING,
+        FLUSHING,
+        PAUSED,
         ERROR
     };
 
     enum {
+        kPortIndexBoth   = -1,
         kPortIndexInput  = 0,
         kPortIndexOutput = 1
     };
@@ -169,6 +194,7 @@ private:
         size_t mSize;
         void *mData;
         MediaBuffer *mMediaBuffer;
+        bool mOutputCropChanged;
     };
 
     struct CodecSpecificData {
@@ -215,7 +241,6 @@ private:
     Condition mAsyncCompletion;
 
     bool mPaused;
-
     sp<ANativeWindow> mNativeWindow;
 
     // The index in each of the mPortBuffers arrays of the buffer that will be
@@ -230,6 +255,11 @@ private:
     // Used to record the decoding time for an output picture from
     // a video encoder.
     List<int64_t> mDecodingTimeList;
+
+#ifdef MTK_HARDWARE
+    OMXCodecBufferAllocator *mMtkBufferAllocator;
+#endif
+
 
     OMXCodec(const sp<IOMX> &omx, IOMX::node_id node,
              uint32_t quirks, uint32_t flags,
@@ -255,7 +285,7 @@ private:
             OMX_VIDEO_CODINGTYPE compressionFormat,
             OMX_COLOR_FORMATTYPE colorFormat);
 
-    void setVideoInputFormat(
+    status_t setVideoInputFormat(
             const char *mime, const sp<MetaData>& meta);
 
     status_t setupBitRate(int32_t bitRate);
@@ -289,8 +319,29 @@ private:
     void setRawAudioFormat(
             OMX_U32 portIndex, int32_t sampleRate, int32_t numChannels);
 
+    //video
+    status_t setWMVFormat(const sp<MetaData> &inputFormat);
+    status_t setRVFormat(const sp<MetaData> &inputFormat);
+    status_t setFFmpegVideoFormat(const sp<MetaData> &inputFormat);
+    //audio
+    status_t setMP3Format(const sp<MetaData> &inputFormat);
+    status_t setWMAFormat(const sp<MetaData> &inputFormat);
+    status_t setVORBISFormat(const sp<MetaData> &inputFormat);
+    status_t setRAFormat(const sp<MetaData> &inputFormat);
+    status_t setFLACFormat(const sp<MetaData> &inputFormat);
+    status_t setMP2Format(const sp<MetaData> &inputFormat);
+    status_t setAC3Format(const sp<MetaData> &inputFormat);
+    status_t setAPEFormat(const sp<MetaData> &inputFormat);
+    status_t setDTSFormat(const sp<MetaData> &inputFormat);
+    status_t setFFmpegAudioFormat(const sp<MetaData> &inputFormat);
+
+    status_t getPCMOutputFormat(const sp<MetaData> &meta);
+
     status_t allocateBuffers();
     status_t allocateBuffersOnPort(OMX_U32 portIndex);
+#ifdef USE_SAMSUNG_COLORFORMAT
+    void setNativeWindowColorFormat(OMX_COLOR_FORMATTYPE &eNativeColorFormat);
+#endif
     status_t allocateOutputBuffersFromNativeWindow();
 
     status_t queueBufferToNativeWindow(BufferInfo *info);
@@ -344,9 +395,14 @@ private:
     void dumpPortStatus(OMX_U32 portIndex);
 
     status_t configureCodec(const sp<MetaData> &meta);
+#if defined(OMAP_ENHANCEMENT) || defined(MTK_HARDWARE)
+    void restorePatchedDataPointer(BufferInfo *info);
+#endif
 
     status_t applyRotation();
     status_t waitForBufferFilled_l();
+
+    status_t resumeLocked(bool drainInputBuf);
 
     int64_t getDecodingTimeUs();
 
@@ -355,9 +411,22 @@ private:
             unsigned *profile, unsigned *level);
 
     status_t stopOmxComponent_l();
+    status_t flushBuffersOnError();
+    status_t releaseMediaBuffersOn(OMX_U32 portIndex);
 
     OMXCodec(const OMXCodec &);
     OMXCodec &operator=(const OMXCodec &);
+    bool hasDisabledPorts();
+
+#ifdef QCOM_HARDWARE
+    int32_t mNumBFrames;
+#endif
+    bool mInSmoothStreamingMode;
+    bool mOutputCropChanged;
+    bool mSignalledReadTryAgain;
+    bool mReturnedRetry;
+    int64_t mLastSeekTimeUs;
+    ReadOptions::SeekMode mLastSeekMode;
 };
 
 struct CodecCapabilities {
@@ -401,7 +470,6 @@ status_t QueryCodec(
         CodecCapabilities *caps);
 
 status_t getOMXChannelMapping(size_t numChannels, OMX_AUDIO_CHANNELTYPE map[]);
-
 }  // namespace android
 
 #endif  // OMX_CODEC_H_

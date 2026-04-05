@@ -18,6 +18,7 @@ package android.net.wifi;
 
 import android.annotation.SdkConstant;
 import android.annotation.SdkConstant.SdkConstantType;
+import android.app.AppOpsManager;
 import android.content.Context;
 import android.net.DhcpInfo;
 import android.os.Binder;
@@ -546,6 +547,7 @@ public class WifiManager {
     private static final Object sThreadRefLock = new Object();
     private static int sThreadRefCount;
     private static HandlerThread sHandlerThread;
+    private final AppOpsManager mAppOps;
 
     /**
      * Create a new WifiManager instance.
@@ -561,6 +563,7 @@ public class WifiManager {
         mContext = context;
         mService = service;
         init();
+        mAppOps = (AppOpsManager)context.getSystemService(Context.APP_OPS_SERVICE);
     }
 
     /**
@@ -946,6 +949,18 @@ public class WifiManager {
     }
 
     /**
+     * Get the operational country code.
+     * @hide
+     */
+    public String getCountryCode() {
+        try {
+            return mService.getCountryCode();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
      * Set the operational frequency band.
      * @param band  One of
      *     {@link #WIFI_FREQUENCY_BAND_AUTO},
@@ -991,6 +1006,32 @@ public class WifiManager {
     }
 
     /**
+     * Check if the chipset supports IBSS (Adhoc) mode
+     * @return {@code true} if supported, {@code false} otherwise.
+     * @hide
+     */
+    public boolean isIbssSupported() {
+        try {
+            return mService.isIbssSupported();
+        } catch (RemoteException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get a list of supported channels / frequencies
+     * @return a List of WifiChannels
+     * @hide
+     */
+    public List<WifiChannel> getSupportedChannels() {
+        try {
+            return mService.getSupportedChannels();
+        } catch (RemoteException e) {
+            return null;
+        }
+    }
+
+    /**
      * Return the DHCP-assigned addresses from the last successful DHCP request,
      * if any.
      * @return the DHCP information
@@ -1010,8 +1051,11 @@ public class WifiManager {
      *         is the same as the requested state).
      */
     public boolean setWifiEnabled(boolean enabled) {
+        if (mAppOps.noteOp(AppOpsManager.OP_WIFI_CHANGE) !=
+            AppOpsManager.MODE_ALLOWED)
+            return false;
         try {
-            return mService.setWifiEnabled(enabled);
+            return mService.setWifiEnabled(mContext.getBasePackageName(), enabled);
         } catch (RemoteException e) {
             return false;
         }

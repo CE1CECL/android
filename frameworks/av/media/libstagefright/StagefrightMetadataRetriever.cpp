@@ -145,12 +145,22 @@ static VideoFrame *extractVideoFrameWithCodecFlags(
 
     sp<MetaData> format = source->getFormat();
 
+#ifndef MTK_HARDWARE
     // XXX:
     // Once all vendors support OMX_COLOR_FormatYUV420Planar, we can
     // remove this check and always set the decoder output color format
+    // skip this check for software decoders
+#ifndef QCOM_HARDWARE
     if (isYUV420PlanarSupported(client, trackMeta)) {
         format->setInt32(kKeyColorFormat, OMX_COLOR_FormatYUV420Planar);
+#else
+    if (!(flags & OMXCodec::kSoftwareCodecsOnly)) {
+        if (isYUV420PlanarSupported(client, trackMeta)) {
+            format->setInt32(kKeyColorFormat, OMX_COLOR_FormatYUV420Planar);
+        }
+#endif
     }
+#endif
 
     sp<MediaSource> decoder =
         OMXCodec::Create(
@@ -283,8 +293,20 @@ static VideoFrame *extractVideoFrameWithCodecFlags(
     int32_t srcFormat;
     CHECK(meta->findInt32(kKeyColorFormat, &srcFormat));
 
-    ColorConverter converter(
-            (OMX_COLOR_FORMATTYPE)srcFormat, OMX_COLOR_Format16bitRGB565);
+#ifdef MTK_HARDWARE
+    {
+        int32_t Stridewidth,SliceHeight;
+        CHECK(meta->findInt32(kKeyStride, &Stridewidth));
+        CHECK(meta->findInt32(kKeySliceHeight, &SliceHeight));
+        ALOGD("kKeyWidth=%d,kKeyHeight=%d",width,height);
+        ALOGD("Stridewidth=%d,SliceHeight=%d",Stridewidth,SliceHeight);
+
+        width=Stridewidth;
+        height=SliceHeight;
+    }
+#endif
+
+    ColorConverter converter((OMX_COLOR_FORMATTYPE)srcFormat, OMX_COLOR_Format16bitRGB565);
 
     if (converter.isValid()) {
         err = converter.convert(
@@ -382,7 +404,11 @@ VideoFrame *StagefrightMetadataRetriever::getFrameAtTime(
 
     VideoFrame *frame =
         extractVideoFrameWithCodecFlags(
+#ifndef QCOM_HARDWARE
                 &mClient, trackMeta, source, OMXCodec::kPreferSoftwareCodecs,
+#else
+                &mClient, trackMeta, source, OMXCodec::kSoftwareCodecsOnly,
+#endif
                 timeUs, option);
 
     if (frame == NULL) {
@@ -530,9 +556,13 @@ void StagefrightMetadataRetriever::parseMetaData() {
                 }
             } else if (!strcasecmp(mime, MEDIA_MIMETYPE_TEXT_3GPP)) {
                 const char *lang;
-                trackMeta->findCString(kKeyMediaLanguage, &lang);
-                timedTextLang.append(String8(lang));
-                timedTextLang.append(String8(":"));
+                bool success = trackMeta->findCString(kKeyMediaLanguage, &lang);
+                if (success) {
+                    timedTextLang.append(String8(lang));
+                    timedTextLang.append(String8(":"));
+                } else {
+                    ALOGE("No language found for timed text");
+                }
             }
         }
     }

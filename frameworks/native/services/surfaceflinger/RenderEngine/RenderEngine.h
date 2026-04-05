@@ -47,8 +47,8 @@ class RenderEngine {
     EGLContext mEGLContext;
     void setEGLContext(EGLContext ctxt);
 
-    virtual void bindImageAsFramebuffer(EGLImageKHR image, uint32_t* texName, uint32_t* fbName, uint32_t* status) = 0;
-    virtual void unbindFramebuffer(uint32_t texName, uint32_t fbName) = 0;
+    virtual void bindImageAsFramebuffer(EGLImageKHR image, uint32_t* texName, uint32_t* fbName, uint32_t* status, bool useReadPixels, int reqWidth, int reqHeight) = 0;
+    virtual void unbindFramebuffer(uint32_t texName, uint32_t fbName, bool useReadPixels) = 0;
 
 protected:
     RenderEngine();
@@ -72,12 +72,15 @@ public:
     void deleteTextures(size_t count, uint32_t const* names);
     void readPixels(size_t l, size_t b, size_t w, size_t h, uint32_t* pixels);
 
+    void setDither(bool dither);
+
     class BindImageAsFramebuffer {
         RenderEngine& mEngine;
         uint32_t mTexName, mFbName;
         uint32_t mStatus;
+        bool mUseReadPixels;
     public:
-        BindImageAsFramebuffer(RenderEngine& engine, EGLImageKHR image);
+        BindImageAsFramebuffer(RenderEngine& engine, EGLImageKHR image, bool useReadPixels, int reqWidth, int reqHeight);
         ~BindImageAsFramebuffer();
         int getStatus() const;
     };
@@ -93,6 +96,12 @@ public:
 
     virtual void disableTexturing() = 0;
     virtual void disableBlending() = 0;
+#ifdef QCOM_BSP
+    virtual void startTileComposition(int x, int y, int width,
+          int height, bool preserve){}
+    virtual void endTileComposition(unsigned int) {}
+#endif
+
 
     // drawing
     virtual void drawMesh(const Mesh& mesh) = 0;

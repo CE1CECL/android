@@ -62,6 +62,10 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final Context context, Intent intent) {
+
+        boolean fromQuickBoot = intent.getBooleanExtra("from_quickboot", false);
+        if (fromQuickBoot) return;
+
         // Log boot events in the background to avoid blocking the main thread with I/O
         new Thread() {
             @Override
@@ -120,6 +124,8 @@ public class BootReceiver extends BroadcastReceiver {
             // Negative sizes mean to take the *tail* of the file (see FileUtils.readTextFile())
             addFileToDropBox(db, prefs, headers, "/proc/last_kmsg",
                     -LOG_SIZE, "SYSTEM_LAST_KMSG");
+            addFileToDropBox(db, prefs, headers, "/sys/fs/pstore/console-ramoops",
+                    -LOG_SIZE, "SYSTEM_LAST_KMSG");
             addFileToDropBox(db, prefs, headers, "/cache/recovery/log",
                     -LOG_SIZE, "SYSTEM_RECOVERY_LOG");
             addFileToDropBox(db, prefs, headers, "/data/dontpanic/apanic_console",
@@ -162,6 +168,7 @@ public class BootReceiver extends BroadcastReceiver {
         if (db == null || !db.isTagEnabled(tag)) return;  // Logging disabled
 
         File file = new File(filename);
+        if (file.isDirectory()) return;  // Skip subdirectories (likely vendor-specific)
         long fileTime = file.lastModified();
         if (fileTime <= 0) return;  // File does not exist
 
@@ -184,6 +191,11 @@ public class BootReceiver extends BroadcastReceiver {
 
         File file = new File("/proc/last_kmsg");
         long fileTime = file.lastModified();
+        if (fileTime <= 0) {
+            file = new File("/sys/fs/pstore/console-ramoops");
+            fileTime = file.lastModified();
+        }
+
         if (fileTime <= 0) return;  // File does not exist
 
         if (prefs != null) {

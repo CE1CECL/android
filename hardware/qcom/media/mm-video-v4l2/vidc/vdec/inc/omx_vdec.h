@@ -182,7 +182,7 @@ class VideoHeap : public MemoryHeapBase
 #define DESC_BUFFER_SIZE (8192 * 16)
 
 #ifdef _ANDROID_
-#define MAX_NUM_INPUT_OUTPUT_BUFFERS 32
+#define MAX_NUM_INPUT_OUTPUT_BUFFERS 64
 #endif
 
 #define OMX_FRAMEINFO_EXTRADATA 0x00010000
@@ -721,26 +721,13 @@ class omx_vdec: public qc_omx_component
         nativebuffer native_buffer[MAX_NUM_INPUT_OUTPUT_BUFFERS];
 #endif
 
-        class auto_lock {
-            public:
-            auto_lock(pthread_mutex_t *lock)
-                : mLock(lock) {
-                if (mLock)
-                    pthread_mutex_lock(mLock);
-            }
-            ~auto_lock() {
-                if (mLock)
-                    pthread_mutex_unlock(mLock);
-            }
-            private:
-            pthread_mutex_t *mLock;
-        };
         //*************************************************************
         //*******************MEMBER VARIABLES *************************
         //*************************************************************
         pthread_mutex_t       m_lock;
         pthread_mutex_t       c_lock;
         pthread_mutex_t       e_lock;
+        pthread_mutex_t       buf_lock;
         //sem to handle the minimum procesing of commands
         sem_t                 m_cmd_lock;
         bool              m_error_propogated;

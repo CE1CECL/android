@@ -23,7 +23,7 @@ import android.provider.ContactsContract.CommonDataKinds.Phone;
 /**
  * The details of a phone call to be shown in the UI.
  */
-public class PhoneCallDetails {
+public class PhoneCallDetails implements CallDetailHeader.Data {
     /** The number of the other party involved in the call. */
     public final CharSequence number;
     /** The number presenting rules set by the network, e.g., {@link Calls#PRESENTATION_ALLOWED} */
@@ -64,12 +64,16 @@ public class PhoneCallDetails {
      */
     public final int sourceType;
 
+    /** The subscription of the call. */
+    public final int subscription;
+    public final int durationType;
+
     /** Create the details for a call with a number not associated with a contact. */
     public PhoneCallDetails(CharSequence number, int numberPresentation,
             CharSequence formattedNumber, String countryIso, String geocode,
-            int[] callTypes, long date, long duration) {
+            int[] callTypes, long date, long duration, int subscription, int durationType) {
         this(number, numberPresentation, formattedNumber, countryIso, geocode,
-                callTypes, date, duration, "", 0, "", null, null, 0);
+                callTypes, date, duration, "", 0, "", null, null, 0, subscription, durationType);
     }
 
     /** Create the details for a call with a number associated with a contact. */
@@ -77,7 +81,7 @@ public class PhoneCallDetails {
             CharSequence formattedNumber, String countryIso, String geocode,
             int[] callTypes, long date, long duration, CharSequence name,
             int numberType, CharSequence numberLabel, Uri contactUri,
-            Uri photoUri, int sourceType) {
+            Uri photoUri, int sourceType, int subscription, int durationType) {
         this.number = number;
         this.numberPresentation = numberPresentation;
         this.formattedNumber = formattedNumber;
@@ -92,5 +96,36 @@ public class PhoneCallDetails {
         this.contactUri = contactUri;
         this.photoUri = photoUri;
         this.sourceType = sourceType;
+        this.subscription = subscription;
+        this.durationType = durationType;
+    }
+
+    @Override
+    public CharSequence getName() {
+        return name;
+    }
+    @Override
+    public CharSequence getNumber() {
+        return number;
+    }
+    @Override
+    public int getNumberPresentation() {
+        return numberPresentation;
+    }
+    @Override
+    public int getNumberType() {
+        return numberType;
+    }
+    @Override
+    public CharSequence getNumberLabel() {
+        return numberLabel;
+    }
+    @Override
+    public CharSequence getFormattedNumber() {
+        return formattedNumber;
+    }
+    @Override
+    public Uri getContactUri() {
+        return contactUri;
     }
 }

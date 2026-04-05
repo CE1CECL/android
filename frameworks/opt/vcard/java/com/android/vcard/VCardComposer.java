@@ -141,6 +141,8 @@ public class VCardComposer {
     private Cursor mCursor;
     private boolean mCursorSuppliedFromOutside;
     private int mIdColumn;
+    private int mDisplayNameColumn;
+    private int mAltDisplayNameColumn;
     private Uri mContentUriForRawContactsEntity;
 
     private final String mCharset;
@@ -156,6 +158,8 @@ public class VCardComposer {
 
     private static final String[] sContactsProjection = new String[] {
         Contacts._ID,
+        Contacts.DISPLAY_NAME_PRIMARY,
+        Contacts.DISPLAY_NAME_ALTERNATIVE,
     };
 
     public VCardComposer(Context context) {
@@ -213,27 +217,7 @@ public class VCardComposer {
                 VCardConfig.isVersion30(vcardType) && UTF_8.equalsIgnoreCase(charset));
 
         if (mIsDoCoMo || shouldAppendCharsetParam) {
-            // TODO: clean up once we're sure CharsetUtils are really unnecessary any more.
             if (SHIFT_JIS.equalsIgnoreCase(charset)) {
-                /*if (mIsDoCoMo) {
-                    try {
-                        charset = CharsetUtils.charsetForVendor(SHIFT_JIS, "docomo").name();
-                    } catch (UnsupportedCharsetException e) {
-                        Log.e(LOG_TAG,
-                                "DoCoMo-specific SHIFT_JIS was not found. "
-                                + "Use SHIFT_JIS as is.");
-                        charset = SHIFT_JIS;
-                    }
-                } else {
-                    try {
-                        charset = CharsetUtils.charsetForVendor(SHIFT_JIS).name();
-                    } catch (UnsupportedCharsetException e) {
-                        // Log.e(LOG_TAG,
-                        // "Career-specific SHIFT_JIS was not found. "
-                        // + "Use SHIFT_JIS as is.");
-                        charset = SHIFT_JIS;
-                    }
-                }*/
                 mCharset = charset;
             } else {
                 /* Log.w(LOG_TAG,
@@ -242,14 +226,6 @@ public class VCardComposer {
                 if (TextUtils.isEmpty(charset)) {
                     mCharset = SHIFT_JIS;
                 } else {
-                    /*
-                    try {
-                        charset = CharsetUtils.charsetForVendor(charset).name();
-                    } catch (UnsupportedCharsetException e) {
-                        Log.i(LOG_TAG,
-                                "Career-specific \"" + charset + "\" was not found (as usual). "
-                                + "Use it as is.");
-                    }*/
                     mCharset = charset;
                 }
             }
@@ -257,13 +233,6 @@ public class VCardComposer {
             if (TextUtils.isEmpty(charset)) {
                 mCharset = UTF_8;
             } else {
-                /*try {
-                    charset = CharsetUtils.charsetForVendor(charset).name();
-                } catch (UnsupportedCharsetException e) {
-                    Log.i(LOG_TAG,
-                            "Career-specific \"" + charset + "\" was not found (as usual). "
-                            + "Use it as is.");
-                }*/
                 mCharset = charset;
             }
         }
@@ -453,6 +422,8 @@ public class VCardComposer {
             return false;
         }
         mIdColumn = mCursor.getColumnIndex(Contacts._ID);
+        mDisplayNameColumn = mCursor.getColumnIndex(Contacts.DISPLAY_NAME_PRIMARY);
+        mAltDisplayNameColumn = mCursor.getColumnIndex(Contacts.DISPLAY_NAME_ALTERNATIVE);
         return mIdColumn >= 0;
     }
 
@@ -537,6 +508,9 @@ public class VCardComposer {
                 for (NamedContentValues namedContentValues : entity.getSubValues()) {
                     ContentValues contentValues = namedContentValues.values;
                     String key = contentValues.getAsString(Data.MIMETYPE);
+                    if (StructuredName.CONTENT_ITEM_TYPE.equals(key)) {
+                        fixupStructuredNameDisplayName(contentValues);
+                    }
                     if (key != null) {
                         List<ContentValues> contentValuesList =
                                 contentValuesListMap.get(key);
@@ -555,6 +529,32 @@ public class VCardComposer {
         }
 
         return buildVCard(contentValuesListMap);
+    }
+
+    /*
+     * Enhances the DISPLAY_NAME part of the structured name data set.
+     *
+     * The DISPLAY_NAME returned by the provider has two disadvantages:
+     * - Its name ordering is unknown and depends on the data source/sync adapter
+     * - An alternative name ordering is not available
+     *
+     * Because of those, we use replace the DISPLAY_NAME value returned in
+     * the structured name by DISPLAY_NAME and DISPLAY_NAME_ALTERNATIVE in
+     * the contacts cursor, if available.
+     */
+    private void fixupStructuredNameDisplayName(final ContentValues contentValues) {
+        if (mDisplayNameColumn >= 0) {
+            final String displayName = mCursor.getString(mDisplayNameColumn);
+            if (!TextUtils.isEmpty(displayName)) {
+                contentValues.put(StructuredName.DISPLAY_NAME, displayName);
+            }
+        }
+        if (mAltDisplayNameColumn >= 0) {
+            final String altDisplayName = mCursor.getString(mAltDisplayNameColumn);
+            if (!TextUtils.isEmpty(altDisplayName)) {
+                contentValues.put(StructuredName.DISPLAY_NAME_ALTERNATIVE, altDisplayName);
+            }
+        }
     }
 
     private VCardPhoneNumberTranslationCallback mPhoneTranslationCallback;

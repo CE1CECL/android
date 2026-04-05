@@ -551,7 +551,7 @@ void BTM_BleSetPrefConnParams (BD_ADDR bd_addr,
                 if (supervision_tout != BTM_BLE_CONN_PARAM_UNDEF)
                     p_dev_rec->conn_params.supervision_tout = supervision_tout;
                 else
-                    p_dev_rec->conn_params.slave_latency = BTM_BLE_CONN_TIMEOUT_DEF;
+                    p_dev_rec->conn_params.supervision_tout = BTM_BLE_CONN_TIMEOUT_DEF;
 
             }
 
@@ -1335,6 +1335,50 @@ void btm_ble_link_encrypted(BD_ADDR bd_addr, UINT8 encr_enable)
     /* to notify GATT to send data if any request is pending */
     gatt_notify_enc_cmpl(p_dev_rec->bd_addr);
 }
+
+/*******************************************************************************
+**
+** Function         btm_ble_encryption_failure
+**
+** Description      This function is called when LE link encrption status is changed.
+**
+** Returns          void
+**
+*******************************************************************************/
+void btm_ble_encryption_failure(BD_ADDR bd_addr,UINT8 status)
+{
+    tBTM_SEC_DEV_REC    *p_dev_rec = btm_find_dev (bd_addr);
+    BOOLEAN             enc_cback;
+
+    if (!p_dev_rec)
+    {
+        BTM_TRACE_WARNING1 ("btm_ble_encryption_failure (No Device Found!) status=%d", status);
+        return;
+    }
+
+    BTM_TRACE_DEBUG1 ("btm_ble_encryption_failure status=%d", status);
+
+    enc_cback = (p_dev_rec->sec_state == BTM_SEC_STATE_ENCRYPTING);
+
+    smp_link_encrypted(bd_addr, 0);//encr_enable=0
+
+    BTM_TRACE_DEBUG1(" p_dev_rec->sec_flags=0x%x", p_dev_rec->sec_flags);
+
+    p_dev_rec->sec_state = BTM_SEC_STATE_IDLE;
+    if (p_dev_rec->p_callback && enc_cback && p_dev_rec->role_master)
+    {
+        if (status==HCI_ERR_CONN_FAILED_ESTABLISHMENT)
+            btm_sec_dev_rec_cback_event(p_dev_rec, BTM_BAD_RF);
+        else if (status == BTM_DEVICE_TIMEOUT)
+            btm_sec_dev_rec_cback_event(p_dev_rec, BTM_DEVICE_TIMEOUT);
+        else
+            btm_sec_dev_rec_cback_event(p_dev_rec, BTM_ERR_PROCESSING);
+
+    }
+    /* to notify GATT to send data if any request is pending */
+    gatt_notify_enc_cmpl(p_dev_rec->bd_addr);
+}
+
 
 /*******************************************************************************
 ** Function         btm_enc_proc_ltk

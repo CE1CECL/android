@@ -1554,6 +1554,13 @@ int ssl3_get_key_exchange(SSL *s)
 #ifndef OPENSSL_NO_RSA
 	if (alg_k & SSL_kRSA)
 		{
+		/* Temporary RSA keys only allowed in export ciphersuites */
+		if (!SSL_C_IS_EXPORT(s->s3->tmp.new_cipher))
+			{
+			al=SSL_AD_UNEXPECTED_MESSAGE;
+			SSLerr(SSL_F_SSL3_GET_SERVER_CERTIFICATE,SSL_R_UNEXPECTED_MESSAGE);
+			goto f_err;
+			}
 		if ((rsa=RSA_new()) == NULL)
 			{
 			SSLerr(SSL_F_SSL3_GET_KEY_EXCHANGE,ERR_R_MALLOC_FAILURE);
@@ -2590,6 +2597,13 @@ int ssl3_send_client_key_exchange(SSL *s)
 			EC_KEY *tkey;
 			int ecdh_clnt_cert = 0;
 			int field_size = 0;
+
+			if (s->session->sess_cert == NULL) 
+				{
+				ssl3_send_alert(s,SSL3_AL_FATAL,SSL_AD_UNEXPECTED_MESSAGE);
+				SSLerr(SSL_F_SSL3_SEND_CLIENT_KEY_EXCHANGE,SSL_R_UNEXPECTED_MESSAGE);
+				goto err;
+				}
 
 			/* Did we send out the client's
 			 * ECDH share for use in premaster

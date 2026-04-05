@@ -54,6 +54,7 @@ extern BOOLEAN BTA_PRM_CHECK_FW_VER(UINT8 *p);
 #define TT_DEV_RESET_MASK 0xff
 #endif
 
+#define MAX_FILTER_ENTRIES_AD 0x80
 /********************************************************************************/
 /*                 L O C A L    D A T A    D E F I N I T I O N S                */
 /********************************************************************************/
@@ -121,6 +122,7 @@ static void btm_set_lmp_features_host_may_support (UINT8 max_page_number);
 static void btm_get_local_features (void);
 static void btm_issue_host_support_for_lmp_features (void);
 static void btm_read_local_supported_cmds (UINT8 local_controller_id);
+static void btm_hci_vs_event_handler(UINT8 evt_len, UINT8 *p);
 
 #if BLE_INCLUDED == TRUE
 static void btm_read_ble_local_supported_features (void);
@@ -164,6 +166,7 @@ void btm_dev_init (void)
     btm_cb.first_disabled_channel = 0xff; /* To allow disabling 0th channel alone */
     btm_cb.last_disabled_channel = 0xff; /* To allow disabling 0th channel alone */
 
+    BTM_RegisterForVSEvents(btm_hci_vs_event_handler, TRUE);
 #if (BTM_AUTOMATIC_HCI_RESET == TRUE)
 
 #if (BTM_FIRST_RESET_DELAY > 0)
@@ -446,6 +449,45 @@ void btm_read_ble_wl_size(void)
     /* Send a Read Buffer Size message to the Host Controller. */
     btsnd_hcic_ble_read_white_list_size();
 }
+
+static void read_ad_white_list_complete(void *p_data)
+{
+    tBTM_VSC_CMPL *event = (tBTM_VSC_CMPL*)p_data;
+    UINT16 opcode, length;
+    UINT8 *stream, status, subcmd;
+    BTM_TRACE_EVENT1("%s enter", __FUNCTION__);
+    if(event && (stream = (UINT8*)event->p_param_buf))
+    {
+        opcode = event->opcode;
+        length = event->param_len;
+        STREAM_TO_UINT8(status, stream);
+        STREAM_TO_UINT8(subcmd, stream);
+        BTM_TRACE_EVENT4("%s: opcode: 0x%4x, status: 0x%2x, subcommand: 0x%2x", __FUNCTION__, opcode, status, subcmd);
+        if(AD_WHITE_LIST_SUBCMD_READ_SIZE == subcmd)
+        {
+            BTM_TRACE_EVENT0("Read AD White List Size complete");
+            if(HCI_SUCCESS == status)
+            {
+                STREAM_TO_UINT8(btm_cb.ble_ctr_cb.max_filter_entries_AD, stream);
+                /*btm_cb.ble_ctr_cb.num_empty_filter_AD = btm_cb.ble_ctr_cb.max_filter_entries_AD;*/
+                BTM_TRACE_EVENT1("AD White List Size: 0x%2x", btm_cb.ble_ctr_cb.max_filter_entries_AD);
+            }
+        }
+    }
+
+    btm_get_ble_buffer_size();
+    BTM_TRACE_EVENT1("%s exit", __FUNCTION__);
+}
+
+static void btm_read_ble_ad_wl_size(void)
+{
+    BTM_TRACE_DEBUG0("btm_read_ble_ad_wl_size ");
+    /*btu_start_timer (&btm_cb.devcb.reset_timer, BTU_TTYPE_BTM_DEV_CTL, BTM_DEV_REPLY_TIMEOUT);*/
+
+    /* Send a Read AD White List Size message to the Host Controller. */
+    BTM_Read_AD_White_List_Size((void*)read_ad_white_list_complete);
+}
+
 /*******************************************************************************
 **
 ** Function         btm_get_ble_buffer_size
@@ -869,7 +911,8 @@ void btm_read_white_list_size_complete(UINT8 *p, UINT16 evt_len)
         STREAM_TO_UINT8(btm_cb.ble_ctr_cb.max_filter_entries, p);
         btm_cb.ble_ctr_cb.num_empty_filter = btm_cb.ble_ctr_cb.max_filter_entries;
     }
-
+    //initialize the whitelist AD size
+    btm_cb.ble_ctr_cb.max_filter_entries_AD=MAX_FILTER_ENTRIES_AD;
     btm_get_ble_buffer_size();
 }
 
@@ -1853,6 +1896,58 @@ tBTM_DEV_STATUS_CB *BTM_RegisterForDeviceStatusNotif (tBTM_DEV_STATUS_CB *p_cb)
     return (p_prev);
 }
 
+
+/*******************************************************************************
+**
+** Function         BTM_Hci_Raw_Command
+**
+** Description      Send  HCI raw command to the controller.
+**
+** Returns
+**      BTM_SUCCESS         Command sent. Does not expect command complete
+**                              event. (command cmpl callback param is NULL)
+**      BTM_CMD_STARTED     Command sent. Waiting for command cmpl event.
+**
+**
+*******************************************************************************/
+tBTM_STATUS BTM_Hci_Raw_Command(UINT16 opcode, UINT8 param_len,
+                              UINT8 *p_param_buf, tBTM_RAW_CMPL_CB *p_cb)
+{
+    void *p_buf;
+#if HCI_RAW_CMD_INCLUDED == TRUE
+    tBTM_DEVCB  *p_devcb = &btm_cb.devcb;
+#endif
+
+    BTM_TRACE_EVENT2 ("BTM: BTM_Hci_Raw_Command: Opcode: 0x%04X, ParamLen: %i.",
+                      opcode, param_len);
+
+    /* Allocate a buffer to hold HCI command plus the callback function */
+    p_buf = GKI_getbuf((UINT16)(sizeof(BT_HDR) + sizeof (tBTM_CMPL_CB *) +
+                            param_len + HCIC_PREAMBLE_SIZE));
+    if (p_buf != NULL)
+    {
+        btsnd_hcic_raw_cmd (p_buf, opcode, param_len, p_param_buf, (void *)p_cb);
+
+        /* Return value */
+#if HCI_RAW_CMD_INCLUDED == TRUE
+        if (p_cb != NULL) {
+            if(p_cb != (p_devcb->p_hci_evt_cb)) {
+                p_devcb->p_hci_evt_cb = p_cb;
+            }
+            return BTM_CMD_STARTED;
+        }
+#else
+        if (p_cb != NULL)
+            return BTM_CMD_STARTED;
+#endif
+        else
+            return BTM_SUCCESS;
+    }
+    else
+        return BTM_NO_RESOURCES;
+
+}
+
 /*******************************************************************************
 **
 ** Function         BTM_VendorSpecificCommand
@@ -1894,6 +1989,33 @@ tBTM_STATUS BTM_VendorSpecificCommand(UINT16 opcode, UINT8 param_len,
 
 }
 
+#if HCI_RAW_CMD_INCLUDED == TRUE
+/*******************************************************************************
+**
+** Function         btm_hci_event
+**
+** Description      This function is called when HCI event is received
+**                  from the HCI layer.
+**
+** Returns          void
+**
+*******************************************************************************/
+void btm_hci_event(UINT8 *p, UINT8 event_code, UINT8 param_len)
+{
+    tBTM_DEVCB     *p_devcb = &btm_cb.devcb;
+    tBTM_RAW_CMPL  raw_cplt_params;
+
+    /* If there was a callback address for raw cmd complete, call it */
+    if (p_devcb->p_hci_evt_cb)
+    {
+        /* Pass paramters to the callback function */
+        raw_cplt_params.event_code = event_code;   /* Number of bytes in return info */
+        raw_cplt_params.param_len = param_len;    /* Number of bytes in return info */
+        raw_cplt_params.p_param_buf = p;
+        (p_devcb->p_hci_evt_cb) (&raw_cplt_params);  /* Call the cmd complete callback function */
+    }
+}
+#endif
 
 /*******************************************************************************
 **
@@ -1918,6 +2040,37 @@ void btm_vsc_complete (UINT8 *p, UINT16 opcode, UINT16 evt_len,
         vcs_cplt_params.param_len = evt_len;    /* Number of bytes in return info */
         vcs_cplt_params.p_param_buf = p;
         (*p_vsc_cplt_cback)(&vcs_cplt_params);  /* Call the VSC complete callback function */
+    }
+}
+
+/*******************************************************************************
+**
+** Function         btm_hci_vs_event_handler
+**
+** Description      This function is called when HCI Vendor Specific
+**                  event was received from the HCI.
+**
+** Returns          void
+**
+*******************************************************************************/
+static void btm_hci_vs_event_handler(UINT8 evt_len, UINT8 *p)
+{
+    UINT8 vs_sub_event;
+    STREAM_TO_UINT8(vs_sub_event, p);
+    BTM_TRACE_EVENT2("%s vendor specific sub event: 0x%2x", __FUNCTION__, vs_sub_event);
+    switch(vs_sub_event)
+    {
+#if BLE_INCLUDED == TRUE
+    case 0xFF:
+        {
+            BTM_TRACE_EVENT1("%s processing rssi threshold event", __FUNCTION__);
+            btm_handle_rssi_monitor_event(p, evt_len - 1);
+        }
+        break;
+#endif
+    default:
+        BTM_TRACE_EVENT2("%s do not handle this vendor specific event with vs_opcode: 0x%2x", __FUNCTION__, vs_sub_event);
+        break;
     }
 }
 

@@ -26,6 +26,8 @@ import android.view.animation.AccelerateInterpolator;
 
 import com.android.internal.statusbar.IStatusBarService;
 import com.android.systemui.R;
+import com.android.systemui.statusbar.phone.NavbarEditor;
+import com.android.systemui.statusbar.phone.NavbarEditor.ButtonInfo;
 import com.android.systemui.statusbar.policy.KeyButtonView;
 
 public final class NavigationBarTransitions extends BarTransitions {
@@ -36,34 +38,59 @@ public final class NavigationBarTransitions extends BarTransitions {
     private final NavigationBarView mView;
     private final IStatusBarService mBarService;
 
+    private View mStatusBarBlocker;
+
     private boolean mLightsOut;
     private boolean mVertical;
+    private boolean mLeftIfVertical;
     private int mRequestedMode;
+    private boolean mStickyTransparent;
 
     public NavigationBarTransitions(NavigationBarView view) {
-        super(view, R.drawable.nav_background);
+        super(view, R.drawable.nav_background, R.color.navigation_bar_background_opaque,
+                R.color.navigation_bar_background_semi_transparent);
         mView = view;
         mBarService = IStatusBarService.Stub.asInterface(
                 ServiceManager.getService(Context.STATUS_BAR_SERVICE));
     }
 
     public void init(boolean isVertical) {
+        mStatusBarBlocker = mView.findViewById(R.id.status_bar_blocker);
         setVertical(isVertical);
         applyModeBackground(-1, getMode(), false /*animate*/);
         applyMode(getMode(), false /*animate*/, true /*force*/);
     }
 
     public void setVertical(boolean isVertical) {
-        mVertical = isVertical;
+        if (mVertical != isVertical) {
+            mVertical = isVertical;
+            updateBackgroundResource();
+        }
+    }
+
+    public void setLeftIfVertical(boolean leftIfVertical) {
+        if (mLeftIfVertical != leftIfVertical) {
+            mLeftIfVertical = leftIfVertical;
+            updateBackgroundResource();
+        }
+    }
+
+    private void updateBackgroundResource() {
+        if (mVertical && mLeftIfVertical) {
+            setGradientResourceId(R.drawable.nav_background_land_left);
+        } else if (mVertical) {
+            setGradientResourceId(R.drawable.nav_background_land);
+        } else {
+            setGradientResourceId(R.drawable.nav_background);
+        }
         transitionTo(mRequestedMode, false /*animate*/);
     }
 
     @Override
     public void transitionTo(int mode, boolean animate) {
         mRequestedMode = mode;
-        if (mVertical && mode == MODE_TRANSLUCENT) {
-            // translucent mode not allowed when vertical
-            mode = MODE_OPAQUE;
+        if (mStickyTransparent) {
+            mode = MODE_TRANSPARENT;
         }
         super.transitionTo(mode, animate);
     }
@@ -77,17 +104,31 @@ public final class NavigationBarTransitions extends BarTransitions {
     private void applyMode(int mode, boolean animate, boolean force) {
         // apply to key buttons
         final float alpha = alphaForMode(mode);
-        setKeyButtonViewQuiescentAlpha(mView.getHomeButton(), alpha, animate);
-        setKeyButtonViewQuiescentAlpha(mView.getRecentsButton(), alpha, animate);
-        setKeyButtonViewQuiescentAlpha(mView.getMenuButton(), alpha, animate);
-
+        setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_HOME, alpha, animate);
+        setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_RECENT, alpha, animate);
+        setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_CONDITIONAL_MENU, alpha, animate);
+        setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_ALWAYS_MENU, alpha, animate);
+        setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_MENU_BIG, alpha, animate);
         setKeyButtonViewQuiescentAlpha(mView.getSearchLight(), KEYGUARD_QUIESCENT_ALPHA, animate);
         setKeyButtonViewQuiescentAlpha(mView.getCameraButton(), KEYGUARD_QUIESCENT_ALPHA, animate);
-
+        setKeyButtonViewQuiescentAlpha(mView.getApplicationWidgetButton(),
+                KEYGUARD_QUIESCENT_ALPHA, animate);
         applyBackButtonQuiescentAlpha(mode, animate);
 
         // apply to lights out
         applyLightsOut(mode == MODE_LIGHTS_OUT, animate, force);
+
+        final boolean isTranslucent = mode != MODE_OPAQUE && mode != MODE_LIGHTS_OUT;
+        fadeContent(mStatusBarBlocker, isTranslucent ? 1f : 0f);
+    }
+
+    private void setKeyButtonViewQuiescentAlpha(ButtonInfo info, float alpha, boolean animate) {
+        for (View v : mView.mRotatedViews) {
+            View button = v == null ? null : v.findViewWithTag(info);
+            if (button != null) {
+                setKeyButtonViewQuiescentAlpha(button, alpha, animate);
+            }
+        }
     }
 
     private float alphaForMode(int mode) {
@@ -99,11 +140,30 @@ public final class NavigationBarTransitions extends BarTransitions {
         float backAlpha = 0;
         backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getSearchLight());
         backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getCameraButton());
-        backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getHomeButton());
-        backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getRecentsButton());
-        backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getMenuButton());
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha, mView.getApplicationWidgetButton());
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha,
+                mView.findButton(NavbarEditor.NAVBAR_HOME));
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha,
+                mView.findButton(NavbarEditor.NAVBAR_RECENT));
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha,
+                mView.findButton(NavbarEditor.NAVBAR_CONDITIONAL_MENU));
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha,
+                mView.findButton(NavbarEditor.NAVBAR_ALWAYS_MENU));
+        backAlpha = maxVisibleQuiescentAlpha(backAlpha,
+                mView.findButton(NavbarEditor.NAVBAR_MENU_BIG));
         if (backAlpha > 0) {
-            setKeyButtonViewQuiescentAlpha(mView.getBackButton(), backAlpha, animate);
+            setKeyButtonViewQuiescentAlpha(NavbarEditor.NAVBAR_BACK, backAlpha, animate);
+        }
+    }
+
+    public void applyTransparent(boolean sticky) {
+        if (sticky != mStickyTransparent) {
+            mStickyTransparent = sticky;
+            if (!mStickyTransparent) {
+                transitionTo(mRequestedMode, false);
+            } else {
+                transitionTo(MODE_TRANSPARENT, false);
+            }
         }
     }
 
@@ -119,6 +179,7 @@ public final class NavigationBarTransitions extends BarTransitions {
         final float alpha = visible ? 1 : 0;
         fadeContent(mView.getCameraButton(), alpha);
         fadeContent(mView.getSearchLight(), alpha);
+        fadeContent(mView.getApplicationWidgetButton(), alpha);
     }
 
     private void fadeContent(View v, float alpha) {

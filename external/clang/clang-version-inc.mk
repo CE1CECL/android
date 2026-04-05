@@ -7,7 +7,7 @@ endif
 
 intermediates := $(call local-intermediates-dir)
 
-LLVMVersion := $(shell grep PACKAGE_VERSION $(LLVM_ROOT_PATH)/host/include/llvm/Config/config.h | sed -e 's/\#define PACKAGE_VERSION "\(.*\)"/\1/g')
+LLVMVersion := $(shell grep --color=auto PACKAGE_VERSION $(LLVM_ROOT_PATH)/host/include/llvm/Config/config.h | sed -e 's/\#define PACKAGE_VERSION "\(.*\)"/\1/g')
 
 # Compute the Clang version from the LLVM version, unless specified explicitly.
 # (Copy from include/clang/Basic/Makefile)

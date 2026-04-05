@@ -21,6 +21,7 @@
 #include "OMX.h"
 
 #include <utils/RefBase.h>
+#include <utils/SortedVector.h>
 #include <utils/threads.h>
 
 namespace android {
@@ -29,9 +30,17 @@ class IOMXObserver;
 struct OMXMaster;
 struct GraphicBufferSource;
 
+#ifdef MTK_HARDWARE
+struct OMXNodeInstanceBufferHandler;
+#endif
+
 struct OMXNodeInstance {
+#ifdef MTK_HARDWARE
+    friend struct OMXNodeInstanceBufferHandler;
+#endif
+
     OMXNodeInstance(
-            OMX *owner, const sp<IOMXObserver> &observer);
+            OMX *owner, const sp<IOMXObserver> &observer, const char *name);
 
     void setHandle(OMX::node_id node_id, OMX_HANDLETYPE handle);
 
@@ -64,11 +73,30 @@ struct OMXNodeInstance {
 
     status_t useBuffer(
             OMX_U32 portIndex, const sp<IMemory> &params,
-            OMX::buffer_id *buffer);
+            OMX::buffer_id *buffer, OMX_BOOL crossProcess);
 
     status_t useGraphicBuffer(
             OMX_U32 portIndex, const sp<GraphicBuffer> &graphicBuffer,
             OMX::buffer_id *buffer);
+
+#ifdef MTK_HARDWARE
+    status_t useBuffer(
+            OMX_U32 portIndex, unsigned char* virAddr, size_t size,
+            OMX::buffer_id *buffer);
+
+    status_t useBuffer(
+            OMX_U32 portIndex, unsigned char* virAddr, size_t size, OMX_U32 offset,
+            OMX::buffer_id *buffer);
+
+    status_t registerBuffer(
+            OMX_U32 portIndex, const sp<IMemoryHeap> &heap);
+
+    status_t registerBuffer2(
+            OMX_U32 portIndex, const sp<IMemoryHeap> &HeapBase);
+
+    status_t useIonBuffer(
+            OMX_U32 port_index, unsigned char* virAddr, OMX_S32 fd, size_t size, OMX::buffer_id *buffer);
+#endif
 
     status_t updateGraphicBufferInMeta(
             OMX_U32 portIndex, const sp<GraphicBuffer> &graphicBuffer,
@@ -85,7 +113,7 @@ struct OMXNodeInstance {
 
     status_t allocateBufferWithBackup(
             OMX_U32 portIndex, const sp<IMemory> &params,
-            OMX::buffer_id *buffer);
+            OMX::buffer_id *buffer, OMX_BOOL crossProcess);
 
     status_t freeBuffer(OMX_U32 portIndex, OMX::buffer_id buffer);
 
@@ -110,6 +138,10 @@ struct OMXNodeInstance {
             const void *data,
             size_t size);
 
+    bool isSecure() const {
+        return mIsSecure;
+    }
+
     void onMessage(const omx_message &msg);
     void onObserverDied(OMXMaster *master);
     void onGetHandleFailed();
@@ -124,7 +156,14 @@ private:
     OMX::node_id mNodeID;
     OMX_HANDLETYPE mHandle;
     sp<IOMXObserver> mObserver;
+#ifdef MTK_HARDWARE
+    OMXNodeInstanceBufferHandler *mMtkBufferHandler;
+#endif
     bool mDying;
+    bool mSailed;  // configuration is set (no more meta-mode changes)
+    bool mQueriedProhibitedExtensions;
+    SortedVector<OMX_INDEXTYPE> mProhibitedExtensions;
+    bool mIsSecure;
 
     // Lock only covers mGraphicBufferSource.  We can't always use mLock
     // because of rare instances where we'd end up locking it recursively.
@@ -139,11 +178,17 @@ private:
     };
     Vector<ActiveBuffer> mActiveBuffers;
 
+    // metadata mode tracking
+    bool mUsingMetadata[2];
+
     ~OMXNodeInstance();
 
     void addActiveBuffer(OMX_U32 portIndex, OMX::buffer_id id);
     void removeActiveBuffer(OMX_U32 portIndex, OMX::buffer_id id);
     void freeActiveBuffers();
+
+    bool isProhibitedIndex_l(OMX_INDEXTYPE index);
+
     status_t useGraphicBuffer2_l(
             OMX_U32 portIndex, const sp<GraphicBuffer> &graphicBuffer,
             OMX::buffer_id *buffer);

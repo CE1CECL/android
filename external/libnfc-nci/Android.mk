@@ -15,7 +15,6 @@ UDRV := src/udrv
 HALIMPL := halimpl/bcm2079x
 D_CFLAGS := -DANDROID -DBUILDCFG=1
 
-
 ######################################
 # Build shared library system/lib/libnfc-nci.so for stack code.
 
@@ -44,6 +43,13 @@ LOCAL_SRC_FILES := \
     $(call all-cpp-files-under, src/adaptation) \
     $(call all-c-files-under, src/gki) \
     src/nfca_version.c
+
+ifeq ($(BOARD_NFC_CHIPSET),pn547)
+ifeq ($(BOARD_NFC_LPM_LOSES_CONFIG),true)
+    LOCAL_CFLAGS += -DNFCC_FORCE_CONFIG_UPDATE
+endif
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 
 
@@ -52,7 +58,18 @@ include $(BUILD_SHARED_LIBRARY)
 # Android's generic HAL (libhardware.so) dynamically loads this shared library.
 
 include $(CLEAR_VARS)
-LOCAL_MODULE := nfc_nci.$(TARGET_DEVICE)
+
+ifeq ($(BOARD_NFC_CHIPSET),pn547)
+    include $(LOCAL_PATH)/halimpl/pn54x/hal.mk
+else
+
+ifneq ($(BOARD_NFC_HAL_SUFFIX),)
+    HAL_SUFFIX := $(BOARD_NFC_HAL_SUFFIX)
+else
+    HAL_SUFFIX := $(TARGET_DEVICE)
+endif
+
+LOCAL_MODULE := nfc_nci.$(HAL_SUFFIX)
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_SRC_FILES := $(call all-c-files-under, $(HALIMPL)) \
     $(call all-cpp-files-under, $(HALIMPL)) \
@@ -74,6 +91,7 @@ LOCAL_CFLAGS := $(D_CFLAGS) -DNFC_HAL_TARGET=TRUE -DNFC_RW_ONLY=TRUE
 LOCAL_CPPFLAGS := $(LOCAL_CFLAGS)
 include $(BUILD_SHARED_LIBRARY)
 
+endif # pn547
 
 ######################################
 include $(call all-makefiles-under,$(LOCAL_PATH))

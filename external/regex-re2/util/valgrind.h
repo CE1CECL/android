@@ -418,6 +418,14 @@ typedef
 
 #if defined(PLAT_arm_linux)
 
+#if defined(__thumb__) && !defined(__thumb2__)
+#  define  __SWITCH_TO_ARM \
+            ".align\n" \
+            ".arm\n"
+#else
+#  define  __SWITCH_TO_ARM   /* nothing */
+#endif
+
 typedef
    struct { 
       unsigned int nraddr; /* where's the code? */
@@ -425,7 +433,7 @@ typedef
    OrigFn;
 
 #define __SPECIAL_INSTRUCTION_PREAMBLE                            \
-            "mov r12, r12, ror #3  ; mov r12, r12, ror #13 \n\t"  \
+            __SWITCH_TO_ARM "mov r12, r12, ror #3  ; mov r12, r12, ror #13 \n\t"  \
             "mov r12, r12, ror #29 ; mov r12, r12, ror #19 \n\t"
 
 #define VALGRIND_DO_CLIENT_REQUEST(                               \

@@ -23,7 +23,7 @@
 #include <binder/BinderService.h>
 #include <binder/IAppOpsCallback.h>
 #include <camera/ICameraService.h>
-#include <hardware/camera.h>
+#include "hardware/camera.h"
 
 #include <camera/ICamera.h>
 #include <camera/ICameraClient.h>
@@ -35,7 +35,11 @@
 #include <camera/ICameraServiceListener.h>
 
 /* This needs to be increased if we can have more cameras */
+#ifdef OMAP_ENHANCEMENT
+#define MAX_CAMERAS 3
+#else
 #define MAX_CAMERAS 2
+#endif
 
 namespace android {
 
@@ -54,6 +58,9 @@ class CameraService :
 public:
     class Client;
     class BasicClient;
+
+    // Event log ID
+    static const int SN_EVENT_LOG_ID = 0x534e4554;
 
     // Implementation of BinderService<T>
     static char const* getServiceName() { return "media.camera"; }
@@ -144,7 +151,10 @@ public:
             return mRemoteBinder;
         }
 
-        virtual status_t      dump(int fd, const Vector<String16>& args) = 0;
+        // Disallows dumping over binder interface
+        virtual status_t      dump(int fd, const Vector<String16>& args);
+        // Internal dump method to be called by CameraService
+        virtual status_t      dumpClient(int fd, const Vector<String16>& args) = 0;
 
     protected:
         BasicClient(const sp<CameraService>& cameraService,
@@ -172,6 +182,9 @@ public:
         pid_t                           mClientPid;
         uid_t                           mClientUid;      // immutable after constructor
         pid_t                           mServicePid;     // immutable after constructor
+#ifdef QCOM_HARDWARE
+        int                             mBurstCnt;
+#endif
 
         // - The app-side Binder interface to receive callbacks from us
         sp<IBinder>                     mRemoteBinder;   // immutable after constructor
@@ -260,11 +273,11 @@ public:
 
         virtual void         notifyError();
 
-        // Initialized in constructor
 
         // - The app-side Binder interface to receive callbacks from us
         sp<ICameraClient>               mRemoteCallback;
 
+        bool                 mLongshotEnabled;
     }; // class Client
 
     class ProClient : public BnProCameraUser, public BasicClient {

@@ -223,7 +223,10 @@ int match_fastboot_with_serial(usb_ifc_info *info, const char *local_serial)
        (info->dev_vendor != 0x413c) &&  // DELL
        (info->dev_vendor != 0x2314) &&  // INQ Mobile
        (info->dev_vendor != 0x0b05) &&  // Asus
-       (info->dev_vendor != 0x0bb4))    // HTC
+       (info->dev_vendor != 0x0bb4) &&  // HTC
+       (info->dev_vendor != 0x0421) &&  // Nokia
+       (info->dev_vendor != 0x1ebf) &&  // Coolpad
+       (info->dev_vendor != 0x03F0))    // HP
             return -1;
     if(info->ifc_class != 0xff) return -1;
     if(info->ifc_subclass != 0x42) return -1;
@@ -503,7 +506,13 @@ static int setup_requirement_line(char *name)
 
     for(n = 0; n < count; n++) {
         out[n] = strdup(strip(val[n]));
-        if (out[n] == 0) return -1;
+        if (out[n] == 0) {
+            for(size_t i = 0; i < n; ++i) {
+                free((char*) out[i]);
+            }
+            free(out);
+            return -1;
+        }
     }
 
     fb_queue_require(prod, name, invert, n, out);

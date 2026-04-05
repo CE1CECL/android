@@ -29,7 +29,6 @@ import static com.android.server.am.ActivityManagerService.DEBUG_TRANSITION;
 import static com.android.server.am.ActivityManagerService.DEBUG_USER_LEAVING;
 import static com.android.server.am.ActivityManagerService.DEBUG_VISBILITY;
 import static com.android.server.am.ActivityManagerService.VALIDATE_TOKENS;
-
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_ADD_REMOVE;
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_APP;
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_SAVED_STATE;
@@ -40,6 +39,7 @@ import com.android.internal.os.BatteryStatsImpl;
 import com.android.internal.util.Objects;
 import com.android.server.Watchdog;
 import com.android.server.am.ActivityManagerService.ItemMatcher;
+import com.android.server.power.PowerManagerService;
 import com.android.server.wm.AppTransition;
 import com.android.server.wm.TaskGroup;
 import com.android.server.wm.WindowManagerService;
@@ -50,6 +50,7 @@ import android.app.ActivityOptions;
 import android.app.AppGlobals;
 import android.app.IActivityController;
 import android.app.IThumbnailReceiver;
+import android.app.AppOpsManager;
 import android.app.ResultInfo;
 import android.app.ActivityManager.RunningTaskInfo;
 import android.content.ComponentName;
@@ -253,6 +254,8 @@ final class ActivityStack {
 
     final Handler mHandler;
 
+    private final PowerManagerService mPowerManager;
+
     final class ActivityStackHandler extends Handler {
         //public Handler() {
         //    if (localLOGV) Slog.v(TAG, "Handler started!");
@@ -335,6 +338,7 @@ final class ActivityStack {
         mContext = context;
         mStackId = stackId;
         mCurrentUser = service.mCurrentUserId;
+        mPowerManager = service.mPowerManager;
     }
 
     boolean okToShow(ActivityRecord r) {
@@ -823,6 +827,9 @@ final class ActivityStack {
                         r.userId, System.identityHashCode(r), r.shortComponentName,
                         mPausingActivity != null
                             ? mPausingActivity.shortComponentName : "(none)");
+                if (r.finishing && r.state == ActivityState.PAUSING) {
+                    finishCurrentActivityLocked(r, FINISH_AFTER_VISIBLE, false);
+                }
             }
         }
     }
@@ -957,6 +964,14 @@ final class ActivityStack {
         next.idle = false;
         next.results = null;
         next.newIntents = null;
+
+        if (next.isHomeActivity() && next.isNotResolverActivity()) {
+            ProcessRecord app = next.task.mActivities.get(0).app;
+            if (app != null && app != mService.mHomeProcess) {
+                mService.mHomeProcess = app;
+            }
+        }
+
         if (next.nowVisible) {
             // We won't get a call to reportActivityVisibleLocked() so dismiss lockscreen now.
             mStackSupervisor.dismissKeyguard();
@@ -980,6 +995,7 @@ final class ActivityStack {
         } else {
             next.cpuTimeAtResume = 0; // Couldn't get the cpu time of process
         }
+        updatePrivacyGuardNotificationLocked(next);
     }
 
     /**
@@ -1060,6 +1076,9 @@ final class ActivityStack {
             final TaskRecord task = mTaskHistory.get(taskNdx);
             final ArrayList<ActivityRecord> activities = task.mActivities;
             for (int activityNdx = activities.size() - 1; activityNdx >= 0; --activityNdx) {
+                if(activityNdx >= activities.size()) {
+                    continue;
+                }
                 final ActivityRecord r = activities.get(activityNdx);
                 if (r.finishing) {
                     continue;
@@ -1142,10 +1161,11 @@ final class ActivityStack {
                         // At this point, nothing else needs to be shown
                         if (DEBUG_VISBILITY) Slog.v(TAG, "Fullscreen: at " + r);
                         behindFullscreen = true;
+                        showHomeBehindStack = false;
                     } else if (isActivityOverHome(r)) {
                         if (DEBUG_VISBILITY) Slog.v(TAG, "Showing home: at " + r);
                         showHomeBehindStack = true;
-                        behindFullscreen = !isHomeStack();
+                        behindFullscreen = !isHomeStack() && r.frontOfTask && task.mOnTopOfHome;
                     }
                 } else {
                     if (DEBUG_VISBILITY) Slog.v(
@@ -1335,6 +1355,9 @@ final class ActivityStack {
         next.updateOptionsLocked(options);
 
         if (DEBUG_SWITCH) Slog.v(TAG, "Resuming " + next);
+
+        // Some activities may want to alter the system power management
+        mPowerManager.activityResumed(next.intent);
 
         // If we are currently pausing an activity, then don't do anything
         // until that is done.
@@ -1679,6 +1702,29 @@ final class ActivityStack {
         mTaskHistory.add(stackNdx, task);
     }
 
+    private final void updatePrivacyGuardNotificationLocked(ActivityRecord next) {
+
+        String privacyGuardPackageName = mStackSupervisor.mPrivacyGuardPackageName;
+        if (privacyGuardPackageName != null && privacyGuardPackageName.equals(next.packageName)) {
+            return;
+        }
+
+        boolean privacy = mService.mAppOpsService.getPrivacyGuardSettingForPackage(
+                next.app.uid, next.packageName);
+
+        if (privacyGuardPackageName != null && !privacy) {
+            Message msg = mService.mHandler.obtainMessage(
+                    ActivityManagerService.CANCEL_PRIVACY_NOTIFICATION_MSG, next.userId);
+            msg.sendToTarget();
+            mStackSupervisor.mPrivacyGuardPackageName = null;
+        } else if (privacy) {
+            Message msg = mService.mHandler.obtainMessage(
+                    ActivityManagerService.POST_PRIVACY_NOTIFICATION_MSG, next);
+            msg.sendToTarget();
+            mStackSupervisor.mPrivacyGuardPackageName = next.packageName;
+        }
+    }
+
     final void startActivityLocked(ActivityRecord r, boolean newTask,
             boolean doResume, boolean keepCurTransition, Bundle options) {
         TaskRecord rTask = r.task;
@@ -1696,6 +1742,10 @@ final class ActivityStack {
             boolean startIt = true;
             for (int taskNdx = mTaskHistory.size() - 1; taskNdx >= 0; --taskNdx) {
                 task = mTaskHistory.get(taskNdx);
+                if (task.getTopActivity() == null) {
+                    // All activities in task are finishing.
+                    continue;
+                }
                 if (task == r.task) {
                     // Here it is!  Now, if this is not yet visible to the
                     // user, then just add it without starting; it will
@@ -1872,6 +1922,8 @@ final class ActivityStack {
         final int numActivities = activities.size();
         for (int i = numActivities - 1; i > 0; --i ) {
             ActivityRecord target = activities.get(i);
+            if (target.frontOfTask)
+                break;
 
             final int flags = target.info.flags;
             final boolean finishOnTaskLaunch =
@@ -2039,6 +2091,8 @@ final class ActivityStack {
         // Do not operate on the root Activity.
         for (int i = numActivities - 1; i > 0; --i) {
             ActivityRecord target = activities.get(i);
+            if (target.frontOfTask)
+                break;
 
             final int flags = target.info.flags;
             boolean finishOnTaskLaunch = (flags & ActivityInfo.FLAG_FINISH_ON_TASK_LAUNCH) != 0;
@@ -2514,6 +2568,7 @@ final class ActivityStack {
         // activity into the stopped state and then finish it.
         if (localLOGV) Slog.v(TAG, "Enqueueing pending finish: " + r);
         mStackSupervisor.mFinishingActivities.add(r);
+        r.resumeKeyDispatchingLocked();
         mStackSupervisor.getFocusedStack().resumeTopActivityLocked(null);
         return r;
     }
@@ -3148,9 +3203,7 @@ final class ActivityStack {
 
         final TaskRecord task = mResumedActivity != null ? mResumedActivity.task : null;
         if (task == tr && task.mOnTopOfHome || numTasks <= 1) {
-            if (task != null) {
-                task.mOnTopOfHome = false;
-            }
+            tr.mOnTopOfHome = false;
             return mStackSupervisor.resumeHomeActivity(null);
         }
 
@@ -3367,6 +3420,7 @@ final class ActivityStack {
     boolean forceStopPackageLocked(String name, boolean doit, boolean evenPersistent, int userId) {
         boolean didSomething = false;
         TaskRecord lastTask = null;
+        ComponentName homeActivity = null;
         for (int taskNdx = mTaskHistory.size() - 1; taskNdx >= 0; --taskNdx) {
             final ArrayList<ActivityRecord> activities = mTaskHistory.get(taskNdx).mActivities;
             int numActivities = activities.size();
@@ -3384,6 +3438,14 @@ final class ActivityStack {
                             continue;
                         }
                         return true;
+                    }
+                    if (r.isHomeActivity()) {
+                        if (homeActivity != null && homeActivity.equals(r.realActivity)) {
+                            Slog.i(TAG, "Skip force-stop again " + r);
+                            continue;
+                        } else {
+                            homeActivity = r.realActivity;
+                        }
                     }
                     didSomething = true;
                     Slog.i(TAG, "  Force finishing activity " + r);

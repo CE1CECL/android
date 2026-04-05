@@ -369,6 +369,7 @@ void l2cble_scanner_conn_comp (UINT16 handle, BD_ADDR bda, tBLE_ADDR_TYPE type,
     p_lcb->link_role  = HCI_ROLE_MASTER;
     p_lcb->is_ble_link = TRUE;
 
+#if (!defined(BTA_BLE_SKIP_CONN_UPD) || BTA_BLE_SKIP_CONN_UPD == FALSE)
     /* If there are any preferred connection parameters, set them now */
     if ( (p_dev_rec->conn_params.min_conn_int     >= BTM_BLE_CONN_INT_MIN ) &&
          (p_dev_rec->conn_params.min_conn_int     <= BTM_BLE_CONN_INT_MAX ) &&
@@ -395,7 +396,7 @@ void l2cble_scanner_conn_comp (UINT16 handle, BD_ADDR bda, tBLE_ADDR_TYPE type,
                                            0, 0);
         p_lcb->upd_status |= L2C_BLE_UPDATE_PENDING;
     }
-
+#endif
     /* Tell BTM Acl management about the link */
     btm_acl_created (bda, NULL, p_dev_rec->sec_bd_name, handle, p_lcb->link_role, TRUE);
 
@@ -622,9 +623,9 @@ BOOLEAN l2cble_init_direct_conn (tL2C_LCB *p_lcb)
         (UINT16) ((p_dev_rec->conn_params.max_conn_int != BTM_BLE_CONN_PARAM_UNDEF) ?
         p_dev_rec->conn_params.max_conn_int : BTM_BLE_CONN_INT_MAX_DEF),  /* conn_int_max  */
         (UINT16) ((p_dev_rec->conn_params.slave_latency != BTM_BLE_CONN_PARAM_UNDEF) ?
-        p_dev_rec->conn_params.slave_latency : 0), /* UINT16 conn_latency  */
+        p_dev_rec->conn_params.slave_latency : BTM_BLE_CONN_SLAVE_LATENCY_DEF), /* UINT16 conn_latency  */
         (UINT16) ((p_dev_rec->conn_params.supervision_tout != BTM_BLE_CONN_PARAM_UNDEF) ?
-        p_dev_rec->conn_params.supervision_tout : BTM_BLE_CONN_SUP_TOUT_DEF), /* conn_timeout */
+        p_dev_rec->conn_params.supervision_tout : BTM_BLE_CONN_TIMEOUT_DEF), /* conn_timeout */
                                         0,                       /* UINT16 min_len       */
                                         0))                      /* UINT16 max_len       */
     {

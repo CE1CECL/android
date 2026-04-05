@@ -38,6 +38,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.mms.MmsConfig;
 import com.android.mms.R;
 import com.android.mms.model.IModelChangedObserver;
 import com.android.mms.model.Model;
@@ -68,6 +69,7 @@ public class SlideshowEditActivity extends ListActivity {
     private final static String STATE = "state";
     private final static String SLIDE_INDEX = "slide_index";
     private final static String MESSAGE_URI = "message_uri";
+    private final static String MSG_SUBJECT_SIZE = "subject_size";
 
     private ListView mList;
     private SlideListAdapter mSlideListAdapter;
@@ -80,6 +82,7 @@ public class SlideshowEditActivity extends ListActivity {
     private Intent mResultIntent;
     private boolean mDirty;
     private View mAddSlideItem;
+    private boolean mFirstCallOnPrepareOptionsMenu = true;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -130,7 +133,7 @@ public class SlideshowEditActivity extends ListActivity {
         TextView text = (TextView) v.findViewById(R.id.slide_number_text);
         text.setText(R.string.add_slide);
 
-        text = (TextView) v.findViewById(R.id.text_preview);
+        text = (TextView) v.findViewById(R.id.text_preview_bottom);
         text.setText(R.string.add_slide_hint);
         text.setVisibility(View.VISIBLE);
 
@@ -223,8 +226,32 @@ public class SlideshowEditActivity extends ListActivity {
     }
 
     @Override
+    public void onOptionsMenuClosed(Menu menu) {
+        super.onOptionsMenuClosed(menu);
+        //When call "onPrepareOptionsMenu(Menu menu)", the param "menu" is as last shown.
+        //We remove all items of option menu here for avoiding flickering when open option
+        //menu with max number(10) slideshows added.
+        if(menu.size() > 0) {
+            menu.removeGroup(0);
+        }
+    }
+
+    @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         menu.clear();
+
+    //When first come into "SlideshowEditActivity", "onPrepareOptionsMenu(Menu menu)" is called.
+    //1.If we keep pressing "Touch to create new slide" util the number of slideshows gets to the
+    //max number(10), then press option menu, the "Add slide" option will still show.
+    //2."onPrepareOptionsMenu(Menu menu)" is called in main thread and "initSlideList()" is called
+    //in another thread, so mSlideshowModel(created in "initSlideList()") used below maybe
+    //still null here.
+    //So add a judgment. If press option menu after now, "onPrepareOptionsMenu(Menu menu)" will be
+    //called again.
+        if(mFirstCallOnPrepareOptionsMenu || mSlideshowModel == null) {
+            mFirstCallOnPrepareOptionsMenu = false;
+            return false;
+        }
 
         int position = mList.getSelectedItemPosition();
         if ((position >= 0) && (position != (mList.getCount() - 1))) {
@@ -238,12 +265,13 @@ public class SlideshowEditActivity extends ListActivity {
                         R.drawable.ic_menu_move_down);
             }
 
-            menu.add(0, MENU_ADD_SLIDE, 0, R.string.add_slide).setIcon(R.drawable.ic_menu_add_slide);
-
             menu.add(0, MENU_REMOVE_SLIDE, 0, R.string.remove_slide).setIcon(
                     android.R.drawable.ic_menu_delete);
-        } else {
-            menu.add(0, MENU_ADD_SLIDE, 0, R.string.add_slide).setIcon(R.drawable.ic_menu_add_slide);
+        }
+
+        if(mSlideshowModel.size() < MmsConfig.getMaxSlideNumber()) {
+            menu.add(0, MENU_ADD_SLIDE, 0, R.string.add_slide).setIcon(
+                    R.drawable.ic_menu_add_slide);
         }
 
         menu.add(0, MENU_DISCARD_SLIDESHOW, 0,
@@ -295,11 +323,12 @@ public class SlideshowEditActivity extends ListActivity {
         Intent intent = new Intent(this, SlideEditorActivity.class);
         intent.setData(mUri);
         intent.putExtra(SlideEditorActivity.SLIDE_INDEX, index);
+        intent.putExtra(MSG_SUBJECT_SIZE, getIntent().getIntExtra(MSG_SUBJECT_SIZE, 0));
         startActivityForResult(intent, REQUEST_CODE_EDIT_SLIDE);
     }
 
     private void adjustAddSlideVisibility() {
-        if (mSlideshowModel.size() >= SlideshowEditor.MAX_SLIDE_NUM) {
+        if (mSlideshowModel.size() >= MmsConfig.getMaxSlideNumber()) {
             mAddSlideItem.setVisibility(View.GONE);
         } else {
             mAddSlideItem.setVisibility(View.VISIBLE);
@@ -314,9 +343,6 @@ public class SlideshowEditActivity extends ListActivity {
             // Select the new slide.
             mList.requestFocus();
             mList.setSelection(mSlideshowModel.size() - 1);
-        } else {
-            Toast.makeText(this, R.string.cannot_add_slide_anymore,
-                    Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -376,6 +402,7 @@ public class SlideshowEditActivity extends ListActivity {
             SlideListItemView slideListItemView;
             slideListItemView = (SlideListItemView) mInflater.inflate(
                     resource, null);
+            slideListItemView.setLayoutModel(mSlideshow.getLayout().getLayoutType());
 
             // Show slide number.
             TextView text;

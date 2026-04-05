@@ -93,6 +93,7 @@
     <string name="select_different_media" msgid="6241623357299382183">"請選擇其他<xliff:g id="NAME">%1$s</xliff:g>。"</string>
     <string name="exceed_message_size_limitation" msgid="6027753647094742437">"已達最大簡訊長度。"</string>
     <string name="message_too_big_for_video" msgid="2639367545165352543">"訊息內容過多，無法附加影片。"</string>
+    <string name="media_size_limit" msgid="7207464170168708486">"已達到訊息大小上限，無法傳送。"</string>
     <string name="failed_to_add_media" msgid="7207464170168708485">"您無法在訊息中加入<xliff:g id="NAME">%1$s</xliff:g>。"</string>
     <string name="failed_to_resize_image" msgid="5608354151631833669">"圖片大小未改變。"</string>
     <string name="resize_image_error_information" msgid="3783200130776554475">"調整這個圖片的大小後仍然超過上限，因此無法傳送。"</string>
@@ -282,6 +283,8 @@
     <string name="download_later" msgid="5531365714424360903">"目前無法下載，請稍後再試。"</string>
     <string name="no_apn" msgid="505932916503312015">"尚未在裝置上指定 APN。"</string>
     <string name="select_audio" msgid="3528161449756771832">"選擇音訊"</string>
+    <string name="system_audio_item">"系統音訊"</string>
+    <string name="external_audio_item">"外部存儲的音訊"</string>
     <string name="copy_to_sdcard" msgid="757028609638184856">"儲存附件"</string>
     <string name="copy_to_sdcard_success" msgid="7948625615155992014">"已儲存附件。"</string>
     <string name="copy_to_sdcard_fail" msgid="4944606369631916737">"無法儲存附件。"</string>

@@ -83,11 +83,14 @@ public interface PreferenceKeys {
     // ----------------------
     static final String PREF_ENABLE_QUICK_CONTROLS = "enable_quick_controls";
     static final String PREF_FULLSCREEN = "fullscreen";
+    static final String PREF_ENABLE_WEBSOCKETS = "enable_websockets";
 
     // ----------------------
     // Keys for privacy_security_preferences.xml
     // ----------------------
     static final String PREF_ACCEPT_COOKIES = "accept_cookies";
+    static final String PREF_SITE_WHITELIST_COOKIES = "site_whitelist_cookies";
+    static final String PREF_SITE_WHITELIST_COOKIES_VERBOSE = "site_whitelist_cookies_verbose";
     static final String PREF_ENABLE_GEOLOCATION = "enable_geolocation";
     static final String PREF_PRIVACY_CLEAR_CACHE = "privacy_clear_cache";
     static final String PREF_PRIVACY_CLEAR_COOKIES = "privacy_clear_cookies";

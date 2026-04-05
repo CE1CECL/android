@@ -33,7 +33,17 @@ enum camcorder_quality {
     CAMCORDER_QUALITY_720P = 5,
     CAMCORDER_QUALITY_1080P = 6,
     CAMCORDER_QUALITY_QVGA = 7,
-    CAMCORDER_QUALITY_LIST_END = 7,
+    CAMCORDER_QUALITY_FWVGA = 8,
+    CAMCORDER_QUALITY_WVGA = 9,
+    CAMCORDER_QUALITY_VGA = 10,
+    CAMCORDER_QUALITY_WQVGA = 11,
+#ifdef QCOM_HARDWARE
+    CAMCORDER_QUALITY_4kUHD = 12,
+    CAMCORDER_QUALITY_4kDCI = 13,
+    CAMCORDER_QUALITY_LIST_END = 13,
+#else
+    CAMCORDER_QUALITY_LIST_END = 11,
+#endif
 
     CAMCORDER_QUALITY_TIME_LAPSE_LIST_START = 1000,
     CAMCORDER_QUALITY_TIME_LAPSE_LOW  = 1000,
@@ -44,7 +54,17 @@ enum camcorder_quality {
     CAMCORDER_QUALITY_TIME_LAPSE_720P = 1005,
     CAMCORDER_QUALITY_TIME_LAPSE_1080P = 1006,
     CAMCORDER_QUALITY_TIME_LAPSE_QVGA = 1007,
+#ifdef QCOM_HARDWARE
+    CAMCORDER_QUALITY_TIME_LAPSE_FWVGA = 1008,
+    CAMCORDER_QUALITY_TIME_LAPSE_WVGA = 1009,
+    CAMCORDER_QUALITY_TIME_LAPSE_VGA = 1010,
+    CAMCORDER_QUALITY_TIME_LAPSE_WQVGA = 1011,
+    CAMCORDER_QUALITY_TIME_LAPSE_4kUHD = 1012,
+    CAMCORDER_QUALITY_TIME_LAPSE_4kDCI = 1013,
+    CAMCORDER_QUALITY_TIME_LAPSE_LIST_END = 1013,
+#else
     CAMCORDER_QUALITY_TIME_LAPSE_LIST_END = 1007,
+#endif
 };
 
 /**
@@ -133,6 +153,9 @@ public:
      * enc.vid.bps.max - max bit rate in bits per second
      * enc.vid.fps.min - min frame rate in frames per second
      * enc.vid.fps.max - max frame rate in frames per second
+     * enc.vid.hfr.width.max - max hfr video frame width
+     * enc.vid.hfr.height.max - max hfr video frame height
+     * enc.vid.hfr.mode.max - max hfr mode
      */
     int getVideoEncoderParamByName(const char *name, video_encoder codec) const;
 
@@ -297,12 +320,16 @@ private:
                         int minBitRate, int maxBitRate,
                         int minFrameWidth, int maxFrameWidth,
                         int minFrameHeight, int maxFrameHeight,
-                        int minFrameRate, int maxFrameRate)
+                        int minFrameRate, int maxFrameRate,
+                        int maxHFRFrameWidth, int maxHFRFrameHeight,
+                        int maxHFRMode)
             : mCodec(codec),
               mMinBitRate(minBitRate), mMaxBitRate(maxBitRate),
               mMinFrameWidth(minFrameWidth), mMaxFrameWidth(maxFrameWidth),
               mMinFrameHeight(minFrameHeight), mMaxFrameHeight(maxFrameHeight),
-              mMinFrameRate(minFrameRate), mMaxFrameRate(maxFrameRate) {}
+              mMinFrameRate(minFrameRate), mMaxFrameRate(maxFrameRate),
+              mMaxHFRFrameWidth(maxHFRFrameWidth), mMaxHFRFrameHeight(maxHFRFrameHeight),
+              mMaxHFRMode(maxHFRMode) {}
 
          ~VideoEncoderCap() {}
 
@@ -311,6 +338,8 @@ private:
         int mMinFrameWidth, mMaxFrameWidth;
         int mMinFrameHeight, mMaxFrameHeight;
         int mMinFrameRate, mMaxFrameRate;
+        int mMaxHFRFrameWidth, mMaxHFRFrameHeight;
+        int mMaxHFRMode;
     };
 
     struct AudioEncoderCap {
@@ -456,6 +485,10 @@ private:
     static VideoEncoderCap* createDefaultH263VideoEncoderCap();
     static VideoEncoderCap* createDefaultM4vVideoEncoderCap();
     static AudioEncoderCap* createDefaultAmrNBEncoderCap();
+#ifdef QCOM_HARDWARE
+    static AudioEncoderCap* createDefaultAacEncoderCap();
+    static AudioEncoderCap* createDefaultLpcmEncoderCap();
+#endif
 
     static int findTagForName(const NameToTagMap *map, size_t nMappings, const char *name);
 

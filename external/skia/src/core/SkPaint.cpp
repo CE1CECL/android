@@ -35,6 +35,7 @@
 #include "SkTypeface.h"
 #include "SkXfermode.h"
 
+#define SIZE_OF_PAINT (76)
 
 // define this to get a printf for out-of-range parameter in setters
 // e.g. setTextSize(-1)
@@ -43,10 +44,124 @@
 #ifdef SK_BUILD_FOR_ANDROID
 #define GEN_ID_INC                  fGenerationID++
 #define GEN_ID_INC_EVAL(expression) if (expression) { fGenerationID++; }
+
+#ifdef SKPAINTOPTIONS_OPT
+#define SKPAINT_ENABLE_MUTEX
+SkPaintOptionsAndroidList::SkPaintOptionsAndroidList(const SkPaintOptionsAndroid& options){
+    SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroidList::SkPaintOptionsAndroidList this=%p", this);
+    s = SkPaintOptionsAndroid(options);
+    next = NULL;
+}
+
+//Global static pointer user to ensure a single instance of the class
+SkPaintOptionsAndroids*  SkPaintOptionsAndroids::m_pInstance = NULL;
+
+SkPaintOptionsAndroids*  SkPaintOptionsAndroids::getInstance(){
+   SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::getInstance");
+   if(SkUnlikely(!m_pInstance))
+      m_pInstance = new SkPaintOptionsAndroids();
+
+   return m_pInstance;
+}
+
+SkPaintOptionsAndroids::SkPaintOptionsAndroids(){
+    SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::SkPaintOptionsAndroids this=%p", this);
+    LocaleArray  = NULL;
+#ifdef SKPAINT_ENABLE_MUTEX
+    pthread_mutex_init(&update_mutex, NULL);
+#endif
+}
+
+SkPaintOptionsAndroidList* SkPaintOptionsAndroids::setPaintOptionsAndroid( const SkPaintOptionsAndroid& options ){
+start:
+    SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::setPaintOptionsAndroid this=%p", this);
+    if( SkUnlikely(!LocaleArray) ){
+#ifdef SKPAINT_ENABLE_MUTEX
+        pthread_mutex_lock( &update_mutex );
+#endif
+        if( SkUnlikely(!LocaleArray) ){
+            LocaleArray = new SkPaintOptionsAndroidList(options);
+#ifdef SKPAINT_ENABLE_MUTEX
+            pthread_mutex_unlock( &update_mutex );
+#endif
+            SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::setPaintOptionsAndroid Create LocaleArray=%p", LocaleArray);
+            return LocaleArray;
+        } else {
+#ifdef SKPAINT_ENABLE_MUTEX
+            pthread_mutex_unlock( &update_mutex );
+#endif
+            goto start;
+        }
+    }
+
+    SkPaintOptionsAndroidList* l = LocaleArray;
+    SkPaintOptionsAndroidList* prev = LocaleArray;
+    while( l ){
+        if( l->s == options ){
+            SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::setPaintOptionsAndroid Found a match returning");
+            return l;
+        }
+        prev = l;
+        l = l->next;
+    }
+
+#ifdef SKPAINT_ENABLE_MUTEX
+    pthread_mutex_lock( &update_mutex );
+
+    //Within mutex, restart from beginning
+    l = LocaleArray;
+    prev = LocaleArray;
+    while( l ){
+        if( l->s == options ){
+            pthread_mutex_unlock( &update_mutex );
+            SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::setPaintOptionsAndroid Found a match returning inside LOCK");
+            return l;
+        }
+        prev = l;
+        l = l->next;
+    }
+#endif
+
+    SkPaintOptDebugf("SKPAINT_OPT SkPaintOptionsAndroids::setPaintOptionsAndroid Create a new SkPaintOptionsAndroidList and add and ret");
+    l = new SkPaintOptionsAndroidList(options);
+    prev->next = l;
+
+#ifdef SKPAINT_ENABLE_MUTEX
+    pthread_mutex_unlock( &update_mutex );
+#endif
+    return l;
+}
+#endif //SKPAINTOPTIONS_OPT
 #else
 #define GEN_ID_INC
 #define GEN_ID_INC_EVAL(expression)
 #endif
+
+extern "C" {
+    inline void memcpy_paint_opt(int* src, int* dst) {
+#ifdef ARCH_ARM
+    __asm__ volatile
+   (
+        "cpy            r4, %1 \n\t"
+        "cpy            r5, %0  \n\t"
+        "vld1.8         {q0, q1}, [r4]! \n\t"
+        "vst1.8         {q0, q1}, [r5]! \n\t"
+        "vld1.8         {q0, q1}, [r4]! \n\t"
+        "vst1.8         {q0, q1}, [r5]! \n\t"
+        "vld1.8         {d0},     [r4]! \n\t"
+        "vst1.8         {d0},    [r5]! \n\t"
+        "ldr            ip, [r4]        \n\t"
+        "str            ip, [r5]        \n\t"
+        :
+        : "r" (src), "r" (dst)
+        : "r4","r5","ip","d0","q0","q1","d3"
+        );
+#else
+    // just use the non-optimized copy
+    memcpy(src, dst, SIZE_OF_PAINT);
+#endif /* ARCH_ARM */
+    }
+}
 
 SkPaint::SkPaint() {
     // since we may have padding, we zero everything so that our memcmp() call
@@ -81,13 +196,21 @@ SkPaint::SkPaint() {
     fTextEncoding = kUTF8_TextEncoding;
     fHinting    = SkPaintDefaults_Hinting;
 #ifdef SK_BUILD_FOR_ANDROID
+#ifndef SKPAINTOPTIONS_OPT
     new (&fPaintOptionsAndroid) SkPaintOptionsAndroid;
     fGenerationID = 0;
+#else
+    fpPaintOptionsAndroid = NULL;
+    fGenerationID = 0;
+#endif
 #endif
 }
 
 SkPaint::SkPaint(const SkPaint& src) {
-    memcpy(this, &src, sizeof(src));
+    if (sizeof(src) == SIZE_OF_PAINT)
+        memcpy_paint_opt((int*)this, (int*)&src);
+    else
+        memcpy((int*)this, (int*)&src, sizeof(src));
 
     SkSafeRef(fTypeface);
     SkSafeRef(fPathEffect);
@@ -101,8 +224,12 @@ SkPaint::SkPaint(const SkPaint& src) {
     SkSafeRef(fAnnotation);
 
 #ifdef SK_BUILD_FOR_ANDROID
+#ifndef SKPAINTOPTIONS_OPT
     new (&fPaintOptionsAndroid) SkPaintOptionsAndroid(src.fPaintOptionsAndroid);
-#endif
+#else
+    fpPaintOptionsAndroid = src.fpPaintOptionsAndroid;
+#endif //End of  SKPAINTOPTIONS_OPT
+#endif //End of SK_BUILD_FOR_ANDROID
 }
 
 SkPaint::~SkPaint() {
@@ -144,16 +271,24 @@ SkPaint& SkPaint::operator=(const SkPaint& src) {
     SkSafeUnref(fAnnotation);
 
 #ifdef SK_BUILD_FOR_ANDROID
+#ifndef SKPAINTOPTIONS_OPT
     fPaintOptionsAndroid.~SkPaintOptionsAndroid();
-
+#endif
     uint32_t oldGenerationID = fGenerationID;
 #endif
+
     memcpy(this, &src, sizeof(src));
+
 #ifdef SK_BUILD_FOR_ANDROID
+#ifndef SKPAINTOPTIONS_OPT
     fGenerationID = oldGenerationID + 1;
 
     new (&fPaintOptionsAndroid) SkPaintOptionsAndroid(src.fPaintOptionsAndroid);
-#endif
+#else
+    fGenerationID = oldGenerationID + 1;
+    fpPaintOptionsAndroid = src.fpPaintOptionsAndroid;
+#endif //End of  SKPAINTOPTIONS_OPT
+#endif //End of SK_BUILD_FOR_ANDROID
 
     return *this;
 }
@@ -194,13 +329,43 @@ unsigned SkPaint::getBaseGlyphCount(SkUnichar text) const {
     return cache->getBaseGlyphCount(text);
 }
 
+#ifdef  SKPAINTOPTIONS_OPT
+const SkPaintOptionsAndroid& SkPaint::getPaintOptionsAndroid() const{
+    if( SkUnlikely (fpPaintOptionsAndroid == NULL)){
+        SkPaintOptDebugf("SKPAINT_OPT g1 this=%p", this);
+        //Add the default empty SkPaintOptionsAndroid
+        //We shouldn't go through this path anyway
+        SkPaintOptionsAndroid emptyPaintOptions;
+        //We can NOT assign the return pointer to fpPaintOptionsAndroid as the API is
+        //defined on the READ-ONLY object.
+        SkPaintOptionsAndroidList*  fpl;
+        fpl = SkPaintOptionsAndroids::getInstance()->setPaintOptionsAndroid(emptyPaintOptions);
+        //This is persistent object in the global array,
+        //So there is no memory leak
+        return (fpl->s);
+    } else {
+       SkPaintOptDebugf("SKPAINT_OPT g2 this=%p", this);
+       return fpPaintOptionsAndroid->s;
+    }
+}
+
+void SkPaint::setPaintOptionsAndroid(const SkPaintOptionsAndroid& options){
+    SkPaintOptDebugf("SKPAINT_OPT s1 this=%p", this);
+    SkPaintOptionsAndroidList* oldOptions = fpPaintOptionsAndroid;
+    fpPaintOptionsAndroid = SkPaintOptionsAndroids::getInstance()->setPaintOptionsAndroid(options);
+    if(oldOptions != fpPaintOptionsAndroid){
+       GEN_ID_INC;
+    }
+}
+#else
 void SkPaint::setPaintOptionsAndroid(const SkPaintOptionsAndroid& options) {
     if (options != fPaintOptionsAndroid) {
         fPaintOptionsAndroid = options;
         GEN_ID_INC;
     }
 }
-#endif
+#endif //End of  SKPAINTOPTIONS_OPT
+#endif //End of SK_BUILD_FOR_ANDROID
 
 SkPaint::FilterLevel SkPaint::getFilterLevel() const {
     int level = 0;
@@ -1869,7 +2034,11 @@ void SkPaint::descriptorProc(const SkDeviceProperties* deviceProperties,
 
 #ifdef SK_BUILD_FOR_ANDROID
     SkOrderedWriteBuffer androidBuffer(128);
+#ifdef SKPAINTOPTIONS_OPT
+    getPaintOptionsAndroid().flatten(androidBuffer);
+#else
     fPaintOptionsAndroid.flatten(androidBuffer);
+#endif
     descSize += androidBuffer.size();
     entryCount += 1;
 #endif

@@ -20,9 +20,11 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -48,6 +50,7 @@ import com.android.common.widget.CompositeCursorAdapter.Partition;
 import com.android.contacts.common.ContactPhotoManager;
 import com.android.contacts.common.R;
 import com.android.contacts.common.preference.ContactsPreferences;
+import com.android.internal.telephony.TelephonyIntents;
 
 import java.util.Locale;
 
@@ -68,6 +71,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     private static final String KEY_SECTION_HEADER_DISPLAY_ENABLED = "sectionHeaderDisplayEnabled";
     private static final String KEY_PHOTO_LOADER_ENABLED = "photoLoaderEnabled";
     private static final String KEY_QUICK_CONTACT_ENABLED = "quickContactEnabled";
+    private static final String KEY_QUICK_CALL_BUTTON_ENABLED = "quickCallButtonEnabled";
     private static final String KEY_INCLUDE_PROFILE = "includeProfile";
     private static final String KEY_SEARCH_MODE = "searchMode";
     private static final String KEY_VISIBLE_SCROLLBAR_ENABLED = "visibleScrollbarEnabled";
@@ -92,6 +96,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     private boolean mSectionHeaderDisplayEnabled;
     private boolean mPhotoLoaderEnabled;
     private boolean mQuickContactEnabled = true;
+    private boolean mQuickCallButtonEnabled = false;
     private boolean mIncludeProfile;
     private boolean mSearchMode;
     private boolean mVisibleScrollbarEnabled;
@@ -140,6 +145,13 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     private Context mContext;
 
     private LoaderManager mLoaderManager;
+
+    private BroadcastReceiver mSIMStateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context arg0, Intent arg1) {
+            reloadData();
+        }
+    };
 
     private Handler mDelayedDirectorySearchHandler = new Handler() {
         @Override
@@ -224,6 +236,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         outState.putBoolean(KEY_SECTION_HEADER_DISPLAY_ENABLED, mSectionHeaderDisplayEnabled);
         outState.putBoolean(KEY_PHOTO_LOADER_ENABLED, mPhotoLoaderEnabled);
         outState.putBoolean(KEY_QUICK_CONTACT_ENABLED, mQuickContactEnabled);
+        outState.putBoolean(KEY_QUICK_CALL_BUTTON_ENABLED, mQuickCallButtonEnabled);
         outState.putBoolean(KEY_INCLUDE_PROFILE, mIncludeProfile);
         outState.putBoolean(KEY_SEARCH_MODE, mSearchMode);
         outState.putBoolean(KEY_VISIBLE_SCROLLBAR_ENABLED, mVisibleScrollbarEnabled);
@@ -246,6 +259,11 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         mAdapter = createListAdapter();
         mContactsPrefs = new ContactsPreferences(mContext);
         restoreSavedState(savedState);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
+        mContext.registerReceiver(mSIMStateReceiver, filter);
     }
 
     public void restoreSavedState(Bundle savedState) {
@@ -256,6 +274,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         mSectionHeaderDisplayEnabled = savedState.getBoolean(KEY_SECTION_HEADER_DISPLAY_ENABLED);
         mPhotoLoaderEnabled = savedState.getBoolean(KEY_PHOTO_LOADER_ENABLED);
         mQuickContactEnabled = savedState.getBoolean(KEY_QUICK_CONTACT_ENABLED);
+        mQuickCallButtonEnabled = savedState.getBoolean(KEY_QUICK_CALL_BUTTON_ENABLED);
         mIncludeProfile = savedState.getBoolean(KEY_INCLUDE_PROFILE);
         mSearchMode = savedState.getBoolean(KEY_SEARCH_MODE);
         mVisibleScrollbarEnabled = savedState.getBoolean(KEY_VISIBLE_SCROLLBAR_ENABLED);
@@ -409,6 +428,11 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
     }
 
     public void onLoaderReset(Loader<Cursor> loader) {
+        if (loader.getId() >= 0) {
+            mAdapter.changeCursor(loader.getId(), null);
+        } else {
+            mAdapter.changeCursor(null);
+        }
     }
 
     protected void onPartitionLoaded(int partitionIndex, Cursor data) {
@@ -452,6 +476,11 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         mAdapter.clearPartitions();
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mContext.unregisterReceiver(mSIMStateReceiver);
+    }
     protected void reloadData() {
         removePendingDirectorySearchRequests();
         mAdapter.onDataReload();
@@ -558,6 +587,10 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
 
     public void setQuickContactEnabled(boolean flag) {
         this.mQuickContactEnabled = flag;
+    }
+
+    public void setQuickCallButtonEnabled(boolean flag) {
+        this.mQuickCallButtonEnabled = flag;
     }
 
     public void setIncludeProfile(boolean flag) {
@@ -697,7 +730,6 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         mAdapter.setSearchMode(searchMode);
         mAdapter.configureDefaultPartition(false, searchMode);
         mAdapter.setPhotoLoader(mPhotoManager);
-        mListView.setAdapter(mAdapter);
 
         if (!isSearchMode()) {
             mListView.setFocusableInTouchMode(true);
@@ -717,6 +749,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
                     "'android.R.id.list'");
         }
 
+        mListView.setAdapter(mAdapter);
         View emptyView = mView.findViewById(android.R.id.empty);
         if (emptyView != null) {
             mListView.setEmptyView(emptyView);
@@ -758,6 +791,7 @@ public abstract class ContactEntryListFragment<T extends ContactEntryListAdapter
         }
 
         mAdapter.setQuickContactEnabled(mQuickContactEnabled);
+        mAdapter.setQuickCallButtonEnabled(mQuickCallButtonEnabled);
         mAdapter.setIncludeProfile(mIncludeProfile);
         mAdapter.setQueryString(mQueryString);
         mAdapter.setDirectorySearchMode(mDirectorySearchMode);

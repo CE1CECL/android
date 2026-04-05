@@ -72,7 +72,7 @@ public class AccountSettingsEditQuickResponsesFragment extends Fragment {
         // startPreferencePanel launches this fragment with the right title initially, but
         // if the device is rotated we must set the title ourselves
         if (savedInstanceState != null) {
-            getActivity().setTitle(savedInstanceState.getString(BUNDLE_KEY_ACTIVITY_TITLE));
+            getActivity().setTitle(savedInstanceState.getInt(BUNDLE_KEY_ACTIVITY_TITLE));
         }
 
         final SimpleCursorAdapter adapter = new SimpleCursorAdapter(getActivity(),
@@ -105,7 +105,9 @@ public class AccountSettingsEditQuickResponsesFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
-        outState.putString(BUNDLE_KEY_ACTIVITY_TITLE, (String) getActivity().getTitle());
+        // save the resource id instead of the string.
+        outState.putInt(BUNDLE_KEY_ACTIVITY_TITLE,
+                R.string.account_settings_edit_quick_responses_label);
     }
 
     @Override
@@ -148,6 +150,13 @@ public class AccountSettingsEditQuickResponsesFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.quick_response_prefs_fragment_menu, menu);
+
+        MenuItem feedbackMenuItem = menu.findItem(R.id.feedback_menu_item);
+        Uri feedbackUri = Utils.getValidUri(getString(R.string.email_feedback_uri));
+
+        if (feedbackMenuItem != null) {
+            feedbackMenuItem.setVisible(!Uri.EMPTY.equals(feedbackUri));
+        }
     }
 
     @Override

@@ -17,7 +17,9 @@
 package com.android.incallui;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -48,10 +50,15 @@ public class CallHandlerService extends Service {
     private static final int ON_POST_CHAR_WAIT = 8;
     private static final int ON_START = 9;
     private static final int ON_DESTROY = 10;
+    private static final int ON_ACTIVE_SUB_CHANGE = 11;
+    private static final int ON_UNSOL_CALLMODIFY = 12;
+    private static final int ON_SUPP_SERVICE_FAIL = 13;
 
-    private static final int LARGEST_MSG_ID = ON_DESTROY;
+    private static final int LARGEST_MSG_ID = ON_SUPP_SERVICE_FAIL;
 
+    private static final String VOLUME_BOOST = "volume_boost";
 
+    private AudioManager mAudioManager;
     private CallList mCallList;
     private Handler mMainHandler;
     private Object mHandlerInitLock = new Object();
@@ -59,10 +66,13 @@ public class CallHandlerService extends Service {
     private AudioModeProvider mAudioModeProvider;
     private boolean mServiceStarted = false;
 
+    private final String LOG_TAG = "CallHandlerService";
+
     @Override
     public void onCreate() {
         Log.i(TAG, "onCreate");
         super.onCreate();
+        mAudioManager = (AudioManager) getSystemService (Context.AUDIO_SERVICE);
 
         synchronized(mHandlerInitLock) {
             if (mMainHandler == null) {
@@ -184,6 +194,27 @@ public class CallHandlerService extends Service {
             mMainHandler.sendMessage(mMainHandler.obtainMessage(ON_POST_CHAR_WAIT, callId, 0,
                     chars));
         }
+
+        @Override
+        public void onModifyCall(Call call) {
+            try {
+                Log.i(TAG, "onModifyCallResponse: " + call);
+                mMainHandler.sendMessage(mMainHandler.obtainMessage(ON_UNSOL_CALLMODIFY, call));
+            } catch (Exception e) {
+                Log.e(TAG, "Error processing onDisconnect() call.", e);
+            }
+        }
+
+        @Override
+        public void onActiveSubChanged(int activeSub) {
+            mMainHandler.sendMessage(mMainHandler.obtainMessage(ON_ACTIVE_SUB_CHANGE, activeSub));
+        }
+
+        @Override
+        public void onSuppServiceFailed(int service) {
+            mMainHandler.sendMessage(mMainHandler.obtainMessage(ON_SUPP_SERVICE_FAIL, service));
+        }
+
     };
 
     private void doStart(ICallCommandService service) {
@@ -204,6 +235,7 @@ public class CallHandlerService extends Service {
         mInCallPresenter = InCallPresenter.getInstance();
 
         mInCallPresenter.setUp(getApplicationContext(), mCallList, mAudioModeProvider);
+        CallRecorder.getInstance().setUp(getApplicationContext());
 
         mServiceStarted = true;
     }
@@ -225,6 +257,19 @@ public class CallHandlerService extends Service {
         mInCallPresenter.tearDown();
         mInCallPresenter = null;
         mAudioModeProvider = null;
+    }
+
+    public void doModifyCall(Call call) {
+        Log.d(TAG, "doModifyCall: Call:" + call);
+        if (call != null && mInCallPresenter != null && mCallList != null) {
+            Log.d(TAG, "doModifyCall: Updating CallList:" + mCallList.getCall(call.getCallId()));
+            mCallList.onUpdate(call);
+            mInCallPresenter.onModifyCallRequest(call);
+        } else {
+            Log.e(TAG, "doModifyCall: isCallValid=" + (call != null));
+            Log.e(TAG, "doModifyCall: isInCallPresenterValid=" + (mInCallPresenter != null));
+            Log.e(TAG, "doModifyCall: isCallListValid=" + (mCallList != null));
+        }
     }
 
     /**
@@ -282,11 +327,16 @@ public class CallHandlerService extends Service {
             case ON_AUDIO_MODE:
                 Log.i(TAG, "ON_AUDIO_MODE: " +
                         AudioMode.toString(msg.arg1) + ", muted (" + (msg.arg2 == 1) + ")");
+
+                updateVBStatus(msg.arg1);
+
                 mAudioModeProvider.onAudioModeChange(msg.arg1, msg.arg2 == 1);
                 break;
             case ON_SUPPORTED_AUDIO_MODE:
                 Log.i(TAG, "ON_SUPPORTED_AUDIO_MODE: " + AudioMode.toString(
                         msg.arg1));
+
+                updateVBStatus(msg.arg1);
 
                 mAudioModeProvider.onSupportedAudioModeChange(msg.arg1);
                 break;
@@ -302,8 +352,38 @@ public class CallHandlerService extends Service {
             case ON_DESTROY:
                 doStop();
                 break;
+            case ON_UNSOL_CALLMODIFY:
+                Call call = (Call) msg.obj;
+                Log.i(TAG, "ON_UNSOL_CALLMODIFY: Call=" + call);
+                doModifyCall(call);
+                break;
+            case ON_ACTIVE_SUB_CHANGE:
+                Log.i(TAG, "ON_ACTIVE_SUB_CHANGE: " + msg.obj);
+                mCallList.onActiveSubChanged((Integer) msg.obj);
+                break;
+            case ON_SUPP_SERVICE_FAIL:
+                Log.i(TAG, "ON_SUPP_SERVICE_FAIL: ");
+                mInCallPresenter.onSuppServiceFailed((Integer) msg.obj);
+                break;
+
             default:
                 break;
+        }
+    }
+
+    /**
+     * Whenever call audio device change, turn off volume boost function.
+     * */
+    private void updateVBStatus(int newMode) {
+        /* When normal call audio mode changed, disable the volume boost */
+        if (!(newMode == AudioMode.EARPIECE || newMode == AudioMode.BLUETOOTH
+                || newMode == AudioMode.WIRED_HEADSET || newMode == AudioMode.SPEAKER)) {
+            return;
+        }
+
+        if (newMode != mAudioModeProvider.getAudioMode()
+                && mAudioManager.getParameters(VOLUME_BOOST).contains("=on")) {
+            mAudioManager.setParameters(VOLUME_BOOST + "=off");
         }
     }
 }

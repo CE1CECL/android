@@ -6,22 +6,22 @@ include $(CLEAR_VARS)
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := \
-    acss.c authfd.c authfile.c bufaux.c bufbn.c buffer.c \
-    canohost.c channels.c cipher.c cipher-acss.c cipher-aes.c \
+    authfd.c authfile.c bufaux.c bufbn.c buffer.c \
+    canohost.c channels.c cipher.c cipher-aes.c \
     cipher-bf1.c cipher-ctr.c cipher-3des1.c cleanup.c \
     compat.c compress.c crc32.c deattack.c fatal.c hostfile.c \
-    log.c match.c md-sha256.c moduli.c nchan.c packet.c \
-    readpass.c rsa.c ttymodes.c xmalloc.c addrmatch.c \
+    log.c match.c md-sha256.c moduli.c nchan.c packet.c roaming_common.c \
+    roaming_serv.c readpass.c rsa.c ttymodes.c xmalloc.c addrmatch.c \
     atomicio.c key.c dispatch.c kex.c mac.c uidswap.c uuencode.c misc.c \
     monitor_fdpass.c rijndael.c ssh-dss.c ssh-ecdsa.c ssh-rsa.c dh.c \
     kexdh.c kexgex.c kexdhc.c kexgexc.c bufec.c kexecdh.c kexecdhc.c \
-    msg.c progressmeter.c dns.c entropy.c gss-genr.c umac.c jpake.c \
-    schnorr.c ssh-pkcs11.c roaming_dummy.c \
+    msg.c progressmeter.c dns.c entropy.c gss-genr.c umac.c umac128.c \
+    jpake.c schnorr.c ssh-pkcs11.c krl.c \
     openbsd-compat/strtonum.c openbsd-compat/bsd-misc.c \
     openbsd-compat/timingsafe_bcmp.c openbsd-compat/bsd-getpeereid.c \
     openbsd-compat/readpassphrase.c openbsd-compat/vis.c \
     openbsd-compat/port-tun.c openbsd-compat/setproctitle.c \
-    openbsd-compat/bsd-closefrom.c  openbsd-compat/getopt.c \
+    openbsd-compat/bsd-closefrom.c  openbsd-compat/getopt_long.c \
     openbsd-compat/rresvport.c openbsd-compat/bindresvport.c \
     openbsd-compat/bsd-statvfs.c openbsd-compat/xmmap.c \
     openbsd-compat/port-linux.c openbsd-compat/strmode.c \
@@ -106,7 +106,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := \
-    sshd.c auth-rhosts.c auth-rsa.c auth-rh-rsa.c \
+	sshd.c auth-rhosts.c auth-rsa.c auth-rh-rsa.c \
 	audit.c audit-bsm.c audit-linux.c platform.c \
 	sshpty.c sshlogin.c servconf.c serverloop.c \
 	auth.c auth1.c auth2.c auth-options.c session.c \
@@ -119,7 +119,8 @@ LOCAL_SRC_FILES := \
 	loginrec.c auth-pam.c auth-shadow.c auth-sia.c md5crypt.c \
 	sftp-server.c sftp-common.c \
 	roaming_common.c roaming_serv.c \
-	sandbox-null.c sandbox-rlimit.c sandbox-systrace.c sandbox-darwin.o
+	sandbox-null.c sandbox-rlimit.c sandbox-systrace.c \
+	sandbox-seccomp-filter.c
 
 # auth-passwd.c
 
@@ -128,7 +129,25 @@ LOCAL_MODULE := sshd
 LOCAL_C_INCLUDES := external/openssl/include external/zlib
 PRIVATE_C_INCLUDES := external/openssl/openbsd-compat
 
-LOCAL_SHARED_LIBRARIES += libssh libssl libcrypto libdl libz libcutils
+LOCAL_SHARED_LIBRARIES += libssh libssl libcrypto libdl libz
+
+include $(BUILD_EXECUTABLE)
+
+###################### sftp-server ######################
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE_TAGS := optional
+
+LOCAL_SRC_FILES := \
+       sftp-server.c sftp-common.c sftp-server-main.c
+
+LOCAL_MODULE := sftp-server
+
+LOCAL_C_INCLUDES := external/openssl/include
+PRIVATE_C_INCLUDES := external/openssl/openbsd-compat
+
+LOCAL_SHARED_LIBRARIES += libssh libssl libcrypto libdl libz
 
 include $(BUILD_EXECUTABLE)
 

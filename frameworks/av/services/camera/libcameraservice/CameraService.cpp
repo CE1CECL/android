@@ -37,6 +37,7 @@
 #include <utils/Log.h>
 #include <utils/String16.h>
 
+#include <system/camera.h>
 #include "CameraService.h"
 #include "api1/CameraClient.h"
 #include "api1/Camera2Client.h"
@@ -424,8 +425,8 @@ status_t CameraService::connect(
 
     sp<Client> client;
     {
-        Mutex::Autolock lock(mServiceLock);
         sp<BasicClient> clientTmp;
+        Mutex::Autolock lock(mServiceLock);
         if (!canConnectUnsafe(cameraId, clientPackageName,
                               cameraClient->asBinder(),
                               /*out*/clientTmp)) {
@@ -541,8 +542,8 @@ status_t CameraService::connectPro(
           case CAMERA_DEVICE_API_VERSION_2_0:
           case CAMERA_DEVICE_API_VERSION_2_1:
           case CAMERA_DEVICE_API_VERSION_3_0:
-            client = new ProCamera2Client(this, cameraCb, String16(),
-                    cameraId, facing, callingPid, USE_CALLING_UID, getpid());
+            client = new ProCamera2Client(this, cameraCb, clientPackageName,
+                    cameraId, facing, callingPid, clientUid, getpid());
             break;
           case -1:
             ALOGE("Invalid camera id %d", cameraId);
@@ -619,8 +620,8 @@ status_t CameraService::connectDevice(
           case CAMERA_DEVICE_API_VERSION_2_0:
           case CAMERA_DEVICE_API_VERSION_2_1:
           case CAMERA_DEVICE_API_VERSION_3_0:
-            client = new CameraDeviceClient(this, cameraCb, String16(),
-                    cameraId, facing, callingPid, USE_CALLING_UID, getpid());
+            client = new CameraDeviceClient(this, cameraCb, clientPackageName,
+                    cameraId, facing, callingPid, clientUid, getpid());
             break;
           case -1:
             ALOGE("Invalid camera id %d", cameraId);
@@ -834,6 +835,7 @@ status_t CameraService::onTransact(
     switch (code) {
         case BnCameraService::CONNECT:
         case BnCameraService::CONNECT_PRO:
+        case BnCameraService::CONNECT_DEVICE:
             const int pid = getCallingPid();
             const int self_pid = getpid();
             if (pid != self_pid) {
@@ -891,8 +893,18 @@ void CameraService::loadSound() {
     LOG1("CameraService::loadSound ref=%d", mSoundRef);
     if (mSoundRef++) return;
 
-    mSoundPlayer[SOUND_SHUTTER] = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
-    mSoundPlayer[SOUND_RECORDING] = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
+    char value[PROPERTY_VALUE_MAX];
+    property_get("persist.camera.shutter.disable", value, "0");
+    int disableSound = atoi(value);
+
+    if(!disableSound) {
+        mSoundPlayer[SOUND_SHUTTER] = newMediaPlayer("/system/media/audio/ui/camera_click.ogg");
+        mSoundPlayer[SOUND_RECORDING] = newMediaPlayer("/system/media/audio/ui/VideoRecord.ogg");
+    }
+    else {
+        mSoundPlayer[SOUND_SHUTTER] = NULL;
+        mSoundPlayer[SOUND_RECORDING] = NULL;
+    }
 }
 
 void CameraService::releaseSound() {
@@ -936,6 +948,7 @@ CameraService::Client::Client(const sp<CameraService>& cameraService,
     LOG1("Client::Client E (pid %d, id %d)", callingPid, cameraId);
 
     mRemoteCallback = cameraClient;
+    mLongshotEnabled = false;
 
     cameraService->setCameraBusy(cameraId);
     cameraService->loadSound();
@@ -970,6 +983,9 @@ CameraService::BasicClient::BasicClient(const sp<CameraService>& cameraService,
     mServicePid = servicePid;
     mOpsActive = false;
     mDestructionStarted = false;
+#ifdef QCOM_HARDWARE
+    mBurstCnt = 0;
+#endif
 }
 
 CameraService::BasicClient::~BasicClient() {
@@ -982,6 +998,14 @@ void CameraService::BasicClient::disconnect() {
     mCameraService->removeClientByRemote(mRemoteBinder);
     // client shouldn't be able to call into us anymore
     mClientPid = 0;
+}
+
+status_t CameraService::BasicClient::dump(int, const Vector<String16>&) {
+    // No dumping of clients directly over Binder,
+    // must go through CameraService::dump
+    android_errorWriteWithInfoLog(SN_EVENT_LOG_ID, "26265403",
+            IPCThreadState::self()->getCallingUid(), NULL, 0);
+    return OK;
 }
 
 status_t CameraService::BasicClient::startCameraOps() {
@@ -1221,7 +1245,7 @@ status_t CameraService::dump(int fd, const Vector<String16>& args) {
             hasClient = true;
             result = String8::format("  Device is open. Client instance dump:\n");
             write(fd, result.string(), result.size());
-            client->dump(fd, args);
+            client->dumpClient(fd, args);
         }
         if (!hasClient) {
             result = String8::format("\nNo active camera clients yet.\n");

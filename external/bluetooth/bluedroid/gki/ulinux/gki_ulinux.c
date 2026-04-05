@@ -24,12 +24,17 @@
 **              settop projects that already use pthreads and not pth.
 **
 *****************************************************************************/
+//#define BT_AUDIO_SYSTRACE_LOG
+
+#ifdef BT_AUDIO_SYSTRACE_LOG
+#define ATRACE_TAG ATRACE_TAG_ALWAYS
+#endif
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <errno.h>
 #include <sys/times.h>
-
+#include "btu.h"
 #include <pthread.h>  /* must be 1st header defined  */
 #include <time.h>
 #include "gki_int.h"
@@ -38,6 +43,11 @@
 #define LOG_TAG "GKI_LINUX"
 
 #include <utils/Log.h>
+
+#ifdef BT_AUDIO_SYSTRACE_LOG
+#include <cutils/trace.h>
+#define PERF_SYSTRACE 1
+#endif
 
 /*****************************************************************************
 **  Constants & Macros
@@ -76,6 +86,9 @@
 
 #define WAKE_LOCK_ID "brcm_btld"
 #define PARTIAL_WAKE_LOCK 1
+
+#define WAKE_ON 1
+#define WAKE_OFF 0
 
 #if GKI_DYNAMIC_MEMORY == FALSE
 tGKI_CB   gki_cb;
@@ -311,8 +324,10 @@ UINT8 GKI_create_task (TASKPTR task_entry, UINT8 task_id, INT8 *taskname, UINT16
          {
              /* check if define in gki_int.h is correct for this compile environment! */
              policy = GKI_LINUX_BASE_POLICY;
-#if (GKI_LINUX_BASE_POLICY!=GKI_SCHED_NORMAL)
+#if (GKI_LINUX_BASE_POLICY != GKI_SCHED_NORMAL)
              param.sched_priority = GKI_LINUX_BASE_PRIORITY - task_id - 2;
+#else
+             param.sched_priority = 0;
 #endif
          }
          pthread_setschedparam(gki_cb.os.thread_id[task_id], policy, &param);
@@ -370,7 +385,7 @@ void GKI_destroy_task(UINT8 task_id)
         i = 0;
 
         while ((gki_cb.com.OSWaitEvt[task_id] != 0) && (++i < 10))
-            usleep(100 * 1000);
+            TEMP_FAILURE_RETRY(usleep(100 * 1000));
 #else
         result = pthread_join( gki_cb.os.thread_id[task_id], NULL );
         if ( result < 0 )
@@ -491,7 +506,7 @@ void GKI_shutdown(void)
             i = 0;
 
             while ((gki_cb.com.OSWaitEvt[task_id - 1] != 0) && (++i < 10))
-                usleep(100 * 1000);
+                TEMP_FAILURE_RETRY(usleep(100 * 1000));
 #else
             result = pthread_join( gki_cb.os.thread_id[task_id-1], NULL );
 
@@ -524,7 +539,9 @@ void GKI_shutdown(void)
     if (g_GkiTimerWakeLockOn)
     {
         GKI_TRACE("GKI_shutdown :  release_wake_lock(brcm_btld)");
-        release_wake_lock(WAKE_LOCK_ID);
+        /*TODO: Because of permission issue below API is not able to hold the wake lock*/
+        //release_wake_lock(WAKE_LOCK_ID);
+        btu_hcif_wake_event(WAKE_OFF);
         g_GkiTimerWakeLockOn = 0;
     }
 }
@@ -565,15 +582,19 @@ void gki_system_tick_start_stop_cback(BOOLEAN start)
 
             GKI_TIMER_TRACE(">>> STOP GKI_timer_update(), wake_lock_count:%d", --wake_lock_count);
 
-            release_wake_lock(WAKE_LOCK_ID);
+            /*TODO: Because of permission issue below API is not able to hold the wake lock*/
+            //release_wake_lock(WAKE_LOCK_ID);
+            btu_hcif_wake_event(WAKE_OFF);
+
             g_GkiTimerWakeLockOn = 0;
         }
     }
     else
     {
-        /* restart GKI_timer_update() loop */
-        acquire_wake_lock(PARTIAL_WAKE_LOCK, WAKE_LOCK_ID);
+        /* restart GKI_timer_update() loop TODO: Because of permission issue below API is not able to hold the wake lock*/
+        /*acquire_wake_lock(PARTIAL_WAKE_LOCK, WAKE_LOCK_ID);*/
 
+        btu_hcif_wake_event(WAKE_ON);
         g_GkiTimerWakeLockOn = 1;
         *p_run_cond = GKI_TIMER_TICK_RUN_COND;
 
@@ -615,6 +636,9 @@ void* timer_thread(void *arg)
     int restart;
     tGKI_OS         *p_os = &gki_cb.os;
     int  *p_run_cond = &p_os->no_timer_suspend;
+    #ifdef BT_AUDIO_SYSTRACE_LOG
+    char trace_buf[512];
+    #endif
 
     /* Indicate that tick is just starting */
     restart = 1;
@@ -689,8 +713,24 @@ void* timer_thread(void *arg)
                (more than 5 ticks) */
             if (timeout_ns < GKI_TICKS_TO_MS(-5) * 1000000)
             {
+                #ifdef BT_AUDIO_SYSTRACE_LOG
+                snprintf(trace_buf, 32, "GKI TMR DELAYED by %d ns", timeout_ns);
+
+                if (PERF_SYSTRACE)
+                {
+                    ATRACE_BEGIN(trace_buf);
+                }
+                #endif
+
                 GKI_ERROR_LOG("tick delayed > 5 slots (%d,%d) -- cpu overload ? ",
                         timeout_ns, GKI_TICKS_TO_MS(-5) * 1000000);
+
+                #ifdef BT_AUDIO_SYSTRACE_LOG
+                if (PERF_SYSTRACE)
+                {
+                    ATRACE_END();
+                }
+                #endif
             }
         }
         else
@@ -701,7 +741,7 @@ void* timer_thread(void *arg)
         do
         {
             /* [u]sleep can't be used because it uses SIGALRM */
-            err = nanosleep(&timeout, &timeout);
+            err = TEMP_FAILURE_RETRY(nanosleep(&timeout, &timeout));
         } while (err < 0 && errno == EINTR);
 
         /* Increment the GKI time value by one tick and update internal timers */
@@ -826,7 +866,7 @@ void GKI_run (void *p_task_id)
             /* [u]sleep can't be used because it uses SIGALRM */
             do
             {
-                err = nanosleep(&delay, &delay);
+                err = TEMP_FAILURE_RETRY(nanosleep(&delay, &delay));
             } while (err < 0 && errno == EINTR);
 
             /* the unit should be alsways 1 (1 tick). only if you vary for some reason heart beat tick
@@ -1017,7 +1057,7 @@ void GKI_delay (UINT32 timeout)
     /* [u]sleep can't be used because it uses SIGALRM */
 
     do {
-        err = nanosleep(&delay, &delay);
+        err = TEMP_FAILURE_RETRY(nanosleep(&delay, &delay));
     } while (err < 0 && errno ==EINTR);
 
     /* Check if task was killed while sleeping */

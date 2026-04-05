@@ -15,11 +15,17 @@
  */
 package com.android.deskclock.alarms;
 
+import android.app.Profile;
+import android.app.ProfileManager;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
+import android.os.Vibrator;
+import android.provider.Settings;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 
@@ -89,9 +95,63 @@ public class AlarmService extends Service {
             if (state != TelephonyManager.CALL_STATE_IDLE && state != mInitialCallState) {
                 sendBroadcast(AlarmStateManager.createStateChangeIntent(AlarmService.this,
                         "AlarmService", mCurrentAlarm, AlarmInstance.MISSED_STATE));
+                stopCurrentAlarm();
             }
         }
     };
+
+    /**
+     * Workaround for com.android.server.VibratorService shutting down all
+     * vibrations when the screen is turned off.
+     */
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (mCurrentAlarm != null) {
+                if (mCurrentAlarm.mVibrate) {
+                    Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+                    vibrator.vibrate(AlarmKlaxon.sVibratePattern, 0);
+                }
+            }
+        }
+    };
+
+    private void changeToProfile(final Context context, final AlarmInstance instance) {
+        // The alarm is defined to change the active profile?
+        if (instance.mProfile.equals(ProfileManager.NO_PROFILE)) {
+            Log.v("Alarm doesn't define a profile to change to");
+            return;
+        }
+
+        final ProfileManager profileManager =
+                (ProfileManager) context.getSystemService(Context.PROFILE_SERVICE);
+        boolean isProfilesEnabled = Settings.System.getInt(context.getContentResolver(),
+                Settings.System.SYSTEM_PROFILES_ENABLED, 1) == 1;
+        if (!isProfilesEnabled) {
+            Log.v("Profiles are disabled");
+            return;
+        }
+
+        // Ensure that the profile still exists
+        Profile profile = profileManager.getProfile(instance.mProfile);
+        if (profile == null) {
+            Log.e("The profile \"" + instance.mProfile
+                    + "\" does not exist. Can't change to this profile");
+            return;
+        }
+
+        // Is the current profile different?
+        Profile activeProfile = profileManager.getActiveProfile();
+        if (activeProfile == null || !profile.getUuid().equals(activeProfile.getUuid())) {
+            // Change to profile
+            Log.i("Changing to profile \"" + profile.getName() + "\" (" + profile.getUuid()
+                    + ") requested by alarm \"" + instance.mLabel + "\" (" + instance.mId + ")");
+            profileManager.setActiveProfile(profile.getUuid());
+        } else {
+            Log.v("The profile \"" + profile.getName() + "\" (" + profile.getUuid()
+                    + " is already active. No need to change to");
+        }
+    }
 
     private void startAlarm(AlarmInstance instance) {
         Log.v("AlarmService.start with instance: " + instance.mId);
@@ -107,6 +167,7 @@ public class AlarmService extends Service {
         mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
         boolean inCall = mInitialCallState != TelephonyManager.CALL_STATE_IDLE;
         AlarmKlaxon.start(this, mCurrentAlarm, inCall);
+        changeToProfile(this, mCurrentAlarm);
         sendBroadcast(new Intent(ALARM_ALERT_ACTION));
     }
 
@@ -128,6 +189,11 @@ public class AlarmService extends Service {
     public void onCreate() {
         super.onCreate();
         mTelephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
+        intentFilter.addAction(Intent.ACTION_SCREEN_ON);
+        registerReceiver(mBroadcastReceiver, intentFilter);
     }
 
     @Override
@@ -166,6 +232,7 @@ public class AlarmService extends Service {
     public void onDestroy() {
         Log.v("AlarmService.onDestroy() called");
         super.onDestroy();
+        unregisterReceiver(mBroadcastReceiver);
         stopCurrentAlarm();
     }
 

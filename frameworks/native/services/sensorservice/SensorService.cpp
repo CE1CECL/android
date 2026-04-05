@@ -80,6 +80,8 @@ void SensorService::onFirstRef()
         if (count > 0) {
             ssize_t orientationIndex = -1;
             bool hasGyro = false;
+            bool hasMagnetometer = false;
+            bool hasAccelerometer = false;
             uint32_t virtualSensorsNeeds =
                     (1<<SENSOR_TYPE_GRAVITY) |
                     (1<<SENSOR_TYPE_LINEAR_ACCELERATION) |
@@ -95,6 +97,12 @@ void SensorService::onFirstRef()
                     case SENSOR_TYPE_GYROSCOPE:
                     case SENSOR_TYPE_GYROSCOPE_UNCALIBRATED:
                         hasGyro = true;
+                        break;
+                    case SENSOR_TYPE_MAGNETIC_FIELD:
+                        hasMagnetometer = true;
+                        break;
+                    case SENSOR_TYPE_ACCELEROMETER:
+                        hasAccelerometer = true;
                         break;
                     case SENSOR_TYPE_GRAVITY:
                     case SENSOR_TYPE_LINEAR_ACCELERATION:
@@ -112,7 +120,7 @@ void SensorService::onFirstRef()
             // build the sensor list returned to users
             mUserSensorList = mSensorList;
 
-            if (hasGyro) {
+            if (hasGyro && hasMagnetometer && hasAccelerometer) {
                 Sensor aSensor;
 
                 // Add Android virtual sensors if they're not already
@@ -135,9 +143,14 @@ void SensorService::onFirstRef()
 
                 aSensor = registerVirtualSensor( new OrientationSensor() );
                 if (virtualSensorsNeeds & (1<<SENSOR_TYPE_ROTATION_VECTOR)) {
-                    // if we are doing our own rotation-vector, also add
-                    // the orientation sensor and remove the HAL provided one.
-                    mUserSensorList.replaceAt(aSensor, orientationIndex);
+                    if (orientationIndex == -1) {
+                        // some sensor HALs don't provide an orientation sensor.
+                        mUserSensorList.add(aSensor);
+                    } else {
+                        // if we are doing our own rotation-vector, also add
+                        // the orientation sensor and remove the HAL provided one.
+                        mUserSensorList.replaceAt(aSensor, orientationIndex);
+                    }
                 }
 
                 // virtual debugging sensors are not added to mUserSensorList
@@ -595,19 +608,29 @@ status_t SensorService::enable(const sp<SensorEventConnection>& connection,
 
     status_t err = sensor->batch(connection.get(), handle, reservedFlags, samplingPeriodNs,
                                  maxBatchReportLatencyNs);
+
+    const SensorDevice& device(SensorDevice::getInstance());
+
     if (err == NO_ERROR) {
-        connection->setFirstFlushPending(handle, true);
-        status_t err_flush = sensor->flush(connection.get(), handle);
-        // Flush may return error if the sensor is not activated or the underlying h/w sensor does
-        // not support flush.
-        if (err_flush != NO_ERROR) {
-            connection->setFirstFlushPending(handle, false);
+        if (device.getHalDeviceVersion() >= SENSORS_DEVICE_API_VERSION_1_1) {
+            connection->setFirstFlushPending(handle, true);
+            status_t err_flush = sensor->flush(connection.get(), handle);
+            // Flush may return error if the sensor is not activated or the underlying h/w sensor does
+            // not support flush.
+            if (err_flush != NO_ERROR) {
+                connection->setFirstFlushPending(handle, false);
+            }
         }
     }
 
     if (err == NO_ERROR) {
         ALOGD_IF(DEBUG_CONNECTIONS, "Calling activate on %d", handle);
         err = sensor->activate(connection.get(), true);
+    }
+
+    if (device.getHalDeviceVersion() < SENSORS_DEVICE_API_VERSION_1_1) {
+        // Pre-1.1 sensor HALs had no flush method, and relied on setDelay at init
+        sensor->setDelay(connection.get(), handle, samplingPeriodNs);
     }
 
     if (err != NO_ERROR) {

@@ -9,16 +9,16 @@ echo "ro.build.version.incremental=$BUILD_NUMBER"
 echo "ro.build.version.sdk=$PLATFORM_SDK_VERSION"
 echo "ro.build.version.codename=$PLATFORM_VERSION_CODENAME"
 echo "ro.build.version.release=$PLATFORM_VERSION"
+echo "ro.build.version.security_patch=$PLATFORM_SECURITY_PATCH"
+echo "ro.build.version.base_os=$PLATFORM_BASE_OS"
 echo "ro.build.date=`date`"
 echo "ro.build.date.utc=`date +%s`"
 echo "ro.build.type=$TARGET_BUILD_TYPE"
 echo "ro.build.user=$USER"
 echo "ro.build.host=`hostname`"
 echo "ro.build.tags=$BUILD_VERSION_TAGS"
-echo "ro.product.model=$PRODUCT_MODEL"
 echo "ro.product.brand=$PRODUCT_BRAND"
 echo "ro.product.name=$PRODUCT_NAME"
-echo "ro.product.device=$TARGET_DEVICE"
 echo "ro.product.board=$TARGET_BOOTLOADER_BOARD_NAME"
 echo "ro.product.cpu.abi=$TARGET_CPU_ABI"
 if [ -n "$TARGET_CPU_ABI2" ] ; then
@@ -36,10 +36,15 @@ echo "ro.board.platform=$TARGET_BOARD_PLATFORM"
 
 echo "# ro.build.product is obsolete; use ro.product.device"
 echo "ro.build.product=$TARGET_DEVICE"
-
-echo "# Do not try to parse ro.build.description or .fingerprint"
-echo "ro.build.description=$PRIVATE_BUILD_DESC"
-echo "ro.build.fingerprint=$BUILD_FINGERPRINT"
+if [ "$TARGET_UNIFIED_DEVICE" == "" ] ; then
+  echo "ro.product.model=$PRODUCT_MODEL"
+  echo "ro.product.device=$TARGET_DEVICE"
+  echo "# Do not try to parse ro.build.description or .fingerprint"
+  echo "ro.build.description=$PRIVATE_BUILD_DESC"
+  echo "ro.build.fingerprint=$BUILD_FINGERPRINT"
+fi
 echo "ro.build.characteristics=$TARGET_AAPT_CHARACTERISTICS"
+
+echo "ro.cm.device=$CM_DEVICE"
 
 echo "# end build properties"

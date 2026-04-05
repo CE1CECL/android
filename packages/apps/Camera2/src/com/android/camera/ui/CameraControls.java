@@ -18,6 +18,7 @@ package com.android.camera.ui;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -34,6 +35,13 @@ public class CameraControls extends RotatableLayout {
     private View mMenu;
     private View mIndicators;
     private View mPreview;
+    private View mSceneDetect;
+    private View mBurstMode;
+    private View mSpinner;
+
+    private final boolean mHasTranslucentNavigationBar =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+    private final Rect mInsets = new Rect();
 
     public CameraControls(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -46,6 +54,14 @@ public class CameraControls extends RotatableLayout {
     }
 
     @Override
+    protected boolean fitSystemWindows(Rect insets) {
+        if (mHasTranslucentNavigationBar) {
+            mInsets.set(insets);
+        }
+        return false;
+    }
+
+    @Override
     public void onFinishInflate() {
         super.onFinishInflate();
         mBackgroundView = findViewById(R.id.blocker);
@@ -54,6 +70,9 @@ public class CameraControls extends RotatableLayout {
         mMenu = findViewById(R.id.menu);
         mIndicators = findViewById(R.id.on_screen_indicators);
         mPreview = findViewById(R.id.preview_thumb);
+        mSceneDetect = findViewById(R.id.scene_detect_icon);
+        mBurstMode = findViewById(R.id.burst_mode_icon);
+        mSpinner = findViewById(R.id.wait_spinner);
     }
 
     @Override
@@ -64,13 +83,17 @@ public class CameraControls extends RotatableLayout {
         adjustBackground();
         // As l,t,r,b are positions relative to parents, we need to convert them
         // to child's coordinates
-        r = r - l;
-        b = b - t;
+        r = r - l - mInsets.right;
+        b = b - t - mInsets.bottom;
         l = 0;
         t = 0;
         for (int i = 0; i < getChildCount(); i++) {
             View v = getChildAt(i);
-            v.layout(l, t, r, b);
+            if (v == mBackgroundView) {
+                v.layout(l, t, r + mInsets.right, b + mInsets.bottom);
+            } else {
+                v.layout(l, t, r, b);
+            }
         }
         Rect shutter = new Rect();
         topRight(mPreview, l, t, r, b);
@@ -89,8 +112,10 @@ public class CameraControls extends RotatableLayout {
                 break;
             }
         }
+        center(mSpinner, new Rect(l, t, r, b), orientation);
         center(mShutter, l, t, r, b, orientation, rotation, shutter);
-        center(mBackgroundView, l, t, r, b, orientation, rotation, new Rect());
+        center(mBackgroundView, l, t, r + mInsets.right, b + mInsets.bottom,
+                orientation, rotation, new Rect());
         toLeft(mSwitcher, shutter, rotation);
         toRight(mMenu, shutter, rotation);
         toRight(mIndicators, shutter, rotation);
@@ -101,6 +126,39 @@ public class CameraControls extends RotatableLayout {
             toLeft(cancel, shutter, rotation);
             View done = findViewById(R.id.btn_done);
             toRight(done, shutter, rotation);
+        }
+
+        switch (rotation) {
+            case 0:
+                if (mBurstMode.getVisibility() == View.GONE) {
+                    topLeft(mSceneDetect, l, t, r, b);
+                } else {
+                    topLeft(mBurstMode, l, t, r, b);
+                    toRight(mSceneDetect, new Rect(mBurstMode.getLeft(),
+                                mBurstMode.getTop(), mBurstMode.getRight(),
+                                mBurstMode.getBottom()), rotation);
+                }
+                break;
+            case 90:
+                if (mBurstMode.getVisibility() == View.GONE) {
+                    topLeft(mSceneDetect, l, t, r, b);
+                } else {
+                    topLeft(mBurstMode, l, t, r, b);
+                    toLeft(mSceneDetect, new Rect(mBurstMode.getLeft(),
+                                mBurstMode.getTop(), mBurstMode.getRight(),
+                                mBurstMode.getBottom()), rotation);
+                }
+                break;
+            case 270:
+                if (mBurstMode.getVisibility() == View.GONE) {
+                    topRight(mSceneDetect, l, t, r, b);
+                } else {
+                    topRight(mBurstMode, l, t, r, b);
+                    toRight(mSceneDetect, new Rect(mBurstMode.getLeft(),
+                                mBurstMode.getTop(), mBurstMode.getRight(),
+                                mBurstMode.getBottom()), rotation);
+                }
+                break;
         }
     }
 
@@ -234,6 +292,13 @@ public class CameraControls extends RotatableLayout {
         int mt = getContext().getResources().getDimensionPixelSize(R.dimen.capture_margin_top);
         int mr = getContext().getResources().getDimensionPixelSize(R.dimen.capture_margin_right);
         v.layout(r - v.getMeasuredWidth() - mr, t + mt, r - mr, t + mt + v.getMeasuredHeight());
+    }
+
+    private void topLeft(View v, int l, int t, int r, int b) {
+        // layout using the specific margins; the rotation code messes up the others
+        int mt = getContext().getResources().getDimensionPixelSize(R.dimen.capture_margin_top);
+        int ml = getContext().getResources().getDimensionPixelSize(R.dimen.capture_margin_left);
+        v.layout(l + ml, t + mt, l + v.getMeasuredWidth() + ml, t + mt + v.getMeasuredHeight());
     }
 
     private void adjustBackground() {

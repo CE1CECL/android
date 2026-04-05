@@ -43,6 +43,7 @@ public class ListPreference extends CameraPreference {
     private CharSequence[] mEntries;
     private CharSequence[] mEntryValues;
     private CharSequence[] mLabels;
+    private int mIconId;
     private boolean mLoaded = false;
 
     public ListPreference(Context context, AttributeSet attrs) {
@@ -73,6 +74,8 @@ public class ListPreference extends CameraPreference {
                 R.styleable.ListPreference_entryValues));
         setLabels(a.getTextArray(
                 R.styleable.ListPreference_labelList));
+        mIconId = a.getResourceId(
+                R.styleable.ListPreference_icon, 0);
         a.recycle();
     }
 
@@ -90,6 +93,10 @@ public class ListPreference extends CameraPreference {
 
     public CharSequence[] getLabels() {
         return mLabels;
+    }
+
+    public int getIcon() {
+        return mIconId;
     }
 
     public void setEntries(CharSequence entries[]) {
@@ -128,7 +135,9 @@ public class ListPreference extends CameraPreference {
     }
 
     public void setValue(String value) {
-        if (findIndexOfValue(value) < 0) throw new IllegalArgumentException();
+        if (findIndexOfValue(value) < 0) {
+            value = findSupportedDefaultValue();
+        }
         mValue = value;
         persistStringValue(value);
     }

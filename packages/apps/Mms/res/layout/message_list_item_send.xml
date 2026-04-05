@@ -53,7 +53,18 @@
                 android:background="@drawable/hairline_right"
                 android:orientation="vertical" >
 
-                <TextView android:id="@+id/text_view"
+                <TextView
+                    android:id="@+id/sim_message_address"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="@dimen/message_item_text_padding_left_right"
+                    android:paddingTop="@dimen/message_item_text_padding_top"
+                    android:gravity="right"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="#ff000000"
+                    android:textSize="16sp"
+                    android:visibility="gone"/>
+                <TextView android:id="@+id/text_view_top"
                     android:autoLink="all"
                     android:paddingLeft="@dimen/message_item_text_padding_left_right"
                     android:paddingRight="@dimen/message_item_text_padding_left_right"
@@ -63,8 +74,9 @@
                     android:linksClickable="false"
                     android:gravity="right"
                     android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:textColor="#ff000000"
-                    android:textSize="16sp" />
+                    android:textColor="@color/message_sent"
+                    android:textSize="16sp"
+                    android:visibility="gone"/>
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -98,8 +110,15 @@
                         android:src="@drawable/ic_sms_mms_details"
                         android:visibility="gone" />
 
+                    <ImageView
+                        android:id="@+id/sim_indicator_icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingRight="3dip"
+                        android:visibility="gone"
+                        android:layout_gravity="center_vertical" />
+
                     <TextView android:id="@+id/date_view"
-                        android:background="@drawable/listitem_background"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textAppearance="?android:attr/textAppearanceSmall"
@@ -110,6 +129,19 @@
                     android:layout="@layout/mms_layout_view"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"/>
+                <TextView android:id="@+id/text_view_buttom"
+                    android:autoLink="all"
+                    android:paddingLeft="@dimen/message_item_text_padding_left_right"
+                    android:paddingRight="@dimen/message_item_text_padding_left_right"
+                    android:paddingTop="@dimen/message_item_text_padding_top"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:linksClickable="false"
+                    android:gravity="right"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="@color/message_sent"
+                    android:textSize="16sp"
+                    android:visibility="gone"/>
             </LinearLayout>
         </RelativeLayout>
     </LinearLayout>

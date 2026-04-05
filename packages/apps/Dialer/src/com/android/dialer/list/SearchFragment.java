@@ -18,22 +18,27 @@ package com.android.dialer.list;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.text.TextUtils;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.Toast;
 
 import com.android.contacts.common.list.ContactEntryListAdapter;
 import com.android.contacts.common.list.ContactListItemView;
+import com.android.contacts.common.list.DirectoryPartition;
 import com.android.contacts.common.list.OnPhoneNumberPickerActionListener;
 import com.android.contacts.common.list.PhoneNumberPickerFragment;
 import com.android.dialer.DialtactsActivity;
 import com.android.dialer.R;
+import com.android.dialer.cmstats.DialerStats;
 import com.android.dialer.dialpad.DialpadFragment;
 import com.android.dialer.list.OnListFragmentScrolledListener;
 
 public class SearchFragment extends PhoneNumberPickerFragment {
 
     private OnListFragmentScrolledListener mActivityScrollListener;
+
+    private String mRegularQueryString;
 
     @Override
     public void onAttach(Activity activity) {
@@ -95,15 +100,24 @@ public class SearchFragment extends PhoneNumberPickerFragment {
         final int shortcutType = adapter.getShortcutTypeFromPosition(position);
 
         if (shortcutType == DialerPhoneNumberListAdapter.SHORTCUT_INVALID) {
+            DirectoryPartition partition =
+                    (DirectoryPartition)adapter.getPartition(adapter.getPartitionForPosition(position));
+            if (TextUtils.equals(partition.getLabel(),
+                    getResources().getString(R.string.nearby_places))) {
+                DialerStats.sendEvent(getContext(), "lookup", "nearby_lookup");
+            }
             super.onItemClick(position, id);
         } else if (shortcutType == DialerPhoneNumberListAdapter.SHORTCUT_DIRECT_CALL) {
             final OnPhoneNumberPickerActionListener listener =
                     getOnPhoneNumberPickerListener();
             if (listener != null) {
+                DialerStats.sendEvent(getContext(),
+                        DialerStats.Categories.INITIATE_CALL, "call_from_direct_dial_search");
                 listener.onCallNumberDirectly(getQueryString());
             }
         } else if (shortcutType == DialerPhoneNumberListAdapter.SHORTCUT_ADD_NUMBER_TO_CONTACTS) {
-            final String number = adapter.getFormattedQueryString();
+            final String number = mRegularQueryString != null ? mRegularQueryString
+                    : adapter.getFormattedQueryString();
             final Intent intent = DialtactsActivity.getAddNumberToContactIntent(number);
             startActivityWithErrorToast(intent);
         }
@@ -117,5 +131,9 @@ public class SearchFragment extends PhoneNumberPickerFragment {
                     Toast.LENGTH_SHORT);
             toast.show();
         }
+    }
+
+    public void setRegularQueryString(String query) {
+        mRegularQueryString = query;
     }
 }

@@ -88,6 +88,11 @@ public class CallLogProvider extends ContentProvider {
         sCallsProjectionMap.put(Calls.CACHED_NORMALIZED_NUMBER, Calls.CACHED_NORMALIZED_NUMBER);
         sCallsProjectionMap.put(Calls.CACHED_PHOTO_ID, Calls.CACHED_PHOTO_ID);
         sCallsProjectionMap.put(Calls.CACHED_FORMATTED_NUMBER, Calls.CACHED_FORMATTED_NUMBER);
+
+        // To match the multisim, add the subscription for the call log to mark the call log state.
+        sCallsProjectionMap.put(Calls.SUBSCRIPTION, Calls.SUBSCRIPTION);
+
+        sCallsProjectionMap.put(Calls.DURATION_TYPE, Calls.DURATION_TYPE);
     }
 
     private ContactsDatabaseHelper mDbHelper;
@@ -288,6 +293,11 @@ public class CallLogProvider extends ContentProvider {
             case CALLS:
                 return getDatabaseModifier(db).delete(Tables.CALLS,
                         selectionBuilder.build(), selectionArgs);
+            case CALLS_ID:
+                return getDatabaseModifier(db).delete(Tables.CALLS,
+                        new SelectionBuilder(Calls._ID + "=?").build(), new String[] {
+                            uri.getLastPathSegment()
+                        });
             default:
                 throw new UnsupportedOperationException("Cannot delete that URL: " + uri);
         }

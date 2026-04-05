@@ -29,10 +29,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.SystemClock;
 import android.os.SystemProperties;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Connection;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.services.telephony.common.Call;
 
 import java.util.List;
@@ -120,13 +122,14 @@ public class BluetoothManager implements CallModeler.Listener {
             List<BluetoothDevice> deviceList = mBluetoothHeadset.getConnectedDevices();
 
             if (deviceList.size() > 0) {
-                BluetoothDevice device = deviceList.get(0);
                 isConnected = true;
-
-                if (VDBG) log("  - headset state = " +
-                              mBluetoothHeadset.getConnectionState(device));
-                if (VDBG) log("  - headset address: " + device);
-                if (VDBG) log("  - isConnected: " + isConnected);
+                if (VDBG) {
+                    for (int i = 0; i < deviceList.size(); i++) {
+                        BluetoothDevice device = deviceList.get(i);
+                        log("state = " + mBluetoothHeadset.getConnectionState(device)
+                                + "for headset: " + device);
+                    }
+                }
             }
         }
 
@@ -147,10 +150,17 @@ public class BluetoothManager implements CallModeler.Listener {
         if (deviceList.isEmpty()) {
             return false;
         }
-        BluetoothDevice device = deviceList.get(0);
-        boolean isAudioOn = mBluetoothHeadset.isAudioConnected(device);
-        if (VDBG) log("isBluetoothAudioConnected: ==> isAudioOn = " + isAudioOn);
-        return isAudioOn;
+
+        for (int i = 0; i < deviceList.size(); i++) {
+            BluetoothDevice device = deviceList.get(i);
+            boolean isAudioOn = mBluetoothHeadset.isAudioConnected(device);
+            if (VDBG) log("isBluetoothAudioConnected: ==> isAudioOn = " + isAudioOn
+                    + "for headset: " + device);
+            if (isAudioOn) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -298,8 +308,18 @@ public class BluetoothManager implements CallModeler.Listener {
         // (b) The not-so-obvious case: if an incoming call is ringing,
         //     and we expect that audio *will* be routed to a bluetooth
         //     headset once the call is answered.
+        PhoneConstants.State state = cm.getState();
 
-        switch (cm.getState()) {
+        //check the call states on both subscriptions in case of DSDA
+        if (MSimTelephonyManager.getDefault().getMultiSimConfiguration()
+                == MSimTelephonyManager.MultiSimVariants.DSDA) {
+            if (state == PhoneConstants.State.IDLE) {
+                int sub = cm.getActiveSubscription() ^ 1;
+                state = cm.getState(sub);
+            }
+        }
+
+        switch (state) {
             case OFFHOOK:
                 // This covers normal active calls, and also the case if
                 // the foreground call is DIALING or ALERTING.  In this
@@ -418,6 +438,21 @@ public class BluetoothManager implements CallModeler.Listener {
 
     @Override
     public void onPostDialAction(Connection.PostDialState state, int callId, String chars, char c) {
+        // no-op
+    }
+
+    @Override
+    public void onModifyCall(Call call) {
+        // no-op
+    }
+
+    @Override
+    public void onSuppServiceFailed(int service) {
+        // no-op
+    }
+
+    @Override
+    public void onActiveSubChanged(int activeSub) {
         // no-op
     }
 

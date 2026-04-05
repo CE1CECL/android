@@ -39,15 +39,7 @@ import com.android.camera.util.ApiHelper;
 public class Storage {
     private static final String TAG = "CameraStorage";
 
-    public static final String DCIM =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString();
-
-    public static final String DIRECTORY = DCIM + "/Camera";
     public static final String JPEG_POSTFIX = ".jpg";
-
-    // Match the code in MediaProvider.computeBucketValues().
-    public static final String BUCKET_ID =
-            String.valueOf(DIRECTORY.toLowerCase().hashCode());
 
     public static final long UNAVAILABLE = -1L;
     public static final long PREPARING = -2L;
@@ -63,19 +55,42 @@ public class Storage {
         }
     }
 
-    public static void writeFile(String path, byte[] jpeg, ExifInterface exif) {
-        if (exif != null) {
+    private String mRoot = Environment.getExternalStorageDirectory().toString();
+    private static Storage sStorage;
+
+    private Storage() { }
+
+    public static Storage getInstance() {
+        if (sStorage == null) {
+            sStorage = new Storage();
+        }
+        return sStorage;
+    }
+
+    public void setRoot(String root) {
+        mRoot = root;
+    }
+
+    public int writeFile(String path, byte[] jpeg, ExifInterface exif,
+            String mimeType) {
+        if (exif != null && (mimeType == null ||
+            mimeType.equalsIgnoreCase("jpeg"))) {
             try {
-                exif.writeExif(jpeg, path);
+                return exif.writeExif(jpeg, path);
             } catch (Exception e) {
                 Log.e(TAG, "Failed to write data", e);
             }
-        } else {
-            writeFile(path, jpeg);
+        } else if (jpeg != null) {
+            if (!(mimeType.equalsIgnoreCase("jpeg") || mimeType == null)) {
+                 File dir = new File(generateRawDirectory());
+                 dir.mkdirs();
+            }
+            return jpeg.length;
         }
+        return 0;
     }
 
-    public static void writeFile(String path, byte[] data) {
+    public void writeFile(String path, byte[] data) {
         FileOutputStream out = null;
         try {
             out = new FileOutputStream(path);
@@ -91,36 +106,33 @@ public class Storage {
         }
     }
 
-    // Save the image and add it to the MediaStore.
-    public static Uri addImage(ContentResolver resolver, String title, long date,
-            Location location, int orientation, ExifInterface exif, byte[] jpeg, int width,
-            int height) {
-
-        return addImage(resolver, title, date, location, orientation, exif, jpeg, width, height,
-                LocalData.MIME_TYPE_JPEG);
-    }
-
     // Save the image with a given mimeType and add it the MediaStore.
-    public static Uri addImage(ContentResolver resolver, String title, long date,
+    public Uri addImage(ContentResolver resolver, String title, long date,
             Location location, int orientation, ExifInterface exif, byte[] jpeg, int width,
             int height, String mimeType) {
 
-        String path = generateFilepath(title);
-        writeFile(path, jpeg, exif);
+        String path = generateFilepath(title, mimeType);
+        int size = writeFile(path, jpeg, exif, mimeType);
         return addImage(resolver, title, date, location, orientation,
-                jpeg.length, path, width, height, mimeType);
+                size, path, width, height, mimeType);
     }
 
     // Get a ContentValues object for the given photo data
-    public static ContentValues getContentValuesForData(String title,
+    public ContentValues getContentValuesForData(String title,
             long date, Location location, int orientation, int jpegLength,
             String path, int width, int height, String mimeType) {
-
-        ContentValues values = new ContentValues(11);
+        // Insert into MediaStore.
+        ContentValues values = new ContentValues(9);
         values.put(ImageColumns.TITLE, title);
-        values.put(ImageColumns.DISPLAY_NAME, title + JPEG_POSTFIX);
+        if (mimeType.equalsIgnoreCase("jpeg") ||
+            mimeType.equalsIgnoreCase("image/jpeg") ||
+            mimeType == null) {
+            values.put(ImageColumns.DISPLAY_NAME, title + ".jpg");
+        } else {
+            values.put(ImageColumns.DISPLAY_NAME, title + ".raw");
+        }
         values.put(ImageColumns.DATE_TAKEN, date);
-        values.put(ImageColumns.MIME_TYPE, mimeType);
+        values.put(ImageColumns.MIME_TYPE, "image/jpeg");
         // Clockwise rotation in degrees. 0, 90, 180, or 270.
         values.put(ImageColumns.ORIENTATION, orientation);
         values.put(ImageColumns.DATA, path);
@@ -136,7 +148,7 @@ public class Storage {
     }
 
     // Add the image to media store.
-    public static Uri addImage(ContentResolver resolver, String title,
+    public Uri addImage(ContentResolver resolver, String title,
             long date, Location location, int orientation, int jpegLength,
             String path, int width, int height, String mimeType) {
         // Insert into MediaStore.
@@ -149,18 +161,18 @@ public class Storage {
 
     // Overwrites the file and updates the MediaStore, or inserts the image if
     // one does not already exist.
-    public static void updateImage(Uri imageUri, ContentResolver resolver, String title, long date,
+    public void updateImage(Uri imageUri, ContentResolver resolver, String title, long date,
             Location location, int orientation, ExifInterface exif, byte[] jpeg, int width,
             int height, String mimeType) {
-        String path = generateFilepath(title);
-        writeFile(path, jpeg, exif);
+        String path = generateFilepath(title, mimeType);
+        writeFile(path, jpeg, exif, mimeType);
         updateImage(imageUri, resolver, title, date, location, orientation, jpeg.length, path,
                 width, height, mimeType);
     }
 
     // Updates the image values in MediaStore, or inserts the image if one does
     // not already exist.
-    public static void updateImage(Uri imageUri, ContentResolver resolver, String title,
+    public void updateImage(Uri imageUri, ContentResolver resolver, String title,
             long date, Location location, int orientation, int jpegLength,
             String path, int width, int height, String mimeType) {
 
@@ -182,7 +194,7 @@ public class Storage {
         }
     }
 
-    public static void deleteImage(ContentResolver resolver, Uri uri) {
+    public void deleteImage(ContentResolver resolver, Uri uri) {
         try {
             resolver.delete(uri, null, null);
         } catch (Throwable th) {
@@ -190,12 +202,37 @@ public class Storage {
         }
     }
 
-    public static String generateFilepath(String title) {
-        return DIRECTORY + '/' + title + ".jpg";
+    public String generateFilepath(String title, String pictureFormat) {
+        if (pictureFormat.equalsIgnoreCase("jpeg") || pictureFormat == null) {
+            return generateDirectory() + '/' + title + ".jpg";
+        } else {
+            return generateRawDirectory() + '/' + title + ".raw";
+        }
     }
 
-    public static long getAvailableSpace() {
-        String state = Environment.getExternalStorageState();
+    private String generateDCIM() {
+        return new File(mRoot, Environment.DIRECTORY_DCIM).toString();
+    }
+
+    public String generateDirectory() {
+        return generateDCIM() + "/Camera";
+    }
+
+    public String generateRawDirectory() {
+        return generateDirectory() + "/raw";
+    }
+
+    public String generateBucketId() {
+        return String.valueOf(generateBucketIdInt());
+    }
+
+    public int generateBucketIdInt() {
+        return generateDirectory().toLowerCase().hashCode();
+    }
+
+    public long getAvailableSpace() {
+        File dir = new File(generateDirectory());
+        String state = Environment.getStorageState(dir);
         Log.d(TAG, "External storage state=" + state);
         if (Environment.MEDIA_CHECKING.equals(state)) {
             return PREPARING;
@@ -204,14 +241,13 @@ public class Storage {
             return UNAVAILABLE;
         }
 
-        File dir = new File(DIRECTORY);
         dir.mkdirs();
         if (!dir.isDirectory() || !dir.canWrite()) {
             return UNAVAILABLE;
         }
 
         try {
-            StatFs stat = new StatFs(DIRECTORY);
+            StatFs stat = new StatFs(generateDirectory());
             return stat.getAvailableBlocks() * (long) stat.getBlockSize();
         } catch (Exception e) {
             Log.i(TAG, "Fail to access external storage", e);
@@ -223,8 +259,8 @@ public class Storage {
      * OSX requires plugged-in USB storage to have path /DCIM/NNNAAAAA to be
      * imported. This is a temporary fix for bug#1655552.
      */
-    public static void ensureOSXCompatible() {
-        File nnnAAAAA = new File(DCIM, "100ANDRO");
+    public void ensureOSXCompatible() {
+        File nnnAAAAA = new File(generateDCIM(), "100ANDRO");
         if (!(nnnAAAAA.exists() || nnnAAAAA.mkdirs())) {
             Log.e(TAG, "Failed to create " + nnnAAAAA.getPath());
         }

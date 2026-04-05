@@ -362,6 +362,10 @@ status_t IPCThreadState::clearLastError()
     return err;
 }
 
+extern "C" int _ZN7android14IPCThreadState13getCallingPidEv(IPCThreadState *state) {
+    return state->getCallingPid();
+}
+
 int IPCThreadState::getCallingPid() const
 {
     return mCallingPid;
@@ -1022,15 +1026,16 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
                 "Not enough command data for brTRANSACTION");
             if (result != NO_ERROR) break;
             
+            const pid_t origPid = mCallingPid;
+            const uid_t origUid = mCallingUid;
+            Parcel reply;
+            {
             Parcel buffer;
             buffer.ipcSetDataReference(
                 reinterpret_cast<const uint8_t*>(tr.data.ptr.buffer),
                 tr.data_size,
                 reinterpret_cast<const size_t*>(tr.data.ptr.offsets),
                 tr.offsets_size/sizeof(size_t), freeBuffer, this);
-            
-            const pid_t origPid = mCallingPid;
-            const uid_t origUid = mCallingUid;
             
             mCallingPid = tr.sender_pid;
             mCallingUid = tr.sender_euid;
@@ -1057,7 +1062,6 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
 
             //ALOGI(">>>> TRANSACT from pid %d uid %d\n", mCallingPid, mCallingUid);
             
-            Parcel reply;
             IF_LOG_TRANSACTIONS() {
                 TextOutput::Bundle _b(alog);
                 alog << "BR_TRANSACTION thr " << (void*)pthread_self()
@@ -1070,13 +1074,23 @@ status_t IPCThreadState::executeCommand(int32_t cmd)
                     << reinterpret_cast<const size_t*>(tr.data.ptr.offsets) << endl;
             }
             if (tr.target.ptr) {
-                sp<BBinder> b((BBinder*)tr.cookie);
-                const status_t error = b->transact(tr.code, buffer, &reply, tr.flags);
-                if (error < NO_ERROR) reply.setError(error);
+                // We only have a weak reference on the target object, so we must first try to
+                // safely acquire a strong reference before doing anything else with it.
+                if (reinterpret_cast<RefBase::weakref_type*>(
+                        tr.target.ptr)->attemptIncStrong(this)) {
+                    const status_t error = reinterpret_cast<BBinder*>(tr.cookie)->transact(tr.code, buffer,
+                            &reply, tr.flags);
+                    reinterpret_cast<BBinder*>(tr.cookie)->decStrong(this);
+                    if (error < NO_ERROR) reply.setError(error);
+                } else {
+                    const status_t error = UNKNOWN_TRANSACTION;
+                    if (error < NO_ERROR) reply.setError(error);
+                }
 
             } else {
                 const status_t error = the_context_object->transact(tr.code, buffer, &reply, tr.flags);
                 if (error < NO_ERROR) reply.setError(error);
+            }
             }
             
             //ALOGI("<<<< TRANSACT from pid %d restore pid %d uid %d\n",

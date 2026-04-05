@@ -13,7 +13,8 @@ LOCAL_EMMA_COVERAGE_FILTER := +com.android.calendar.*
 
 LOCAL_MODULE_TAGS := optional
 
-LOCAL_SRC_FILES := $(call all-java-files-under,$(src_dirs))
+LOCAL_SRC_FILES := $(call all-java-files-under,$(src_dirs)) \
+        src/com/android/lunar/ILunarService.aidl
 
 # bundled
 #LOCAL_STATIC_JAVA_LIBRARIES += \
@@ -30,8 +31,6 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         android-opt-timezonepicker \
         android-support-v4 \
         calendar-common
-
-LOCAL_SDK_VERSION := current
 
 LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
 

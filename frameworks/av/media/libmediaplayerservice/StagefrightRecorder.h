@@ -23,6 +23,7 @@
 #include <utils/String8.h>
 
 #include <system/audio.h>
+#include <binder/AppOpsManager.h>
 
 namespace android {
 
@@ -37,6 +38,10 @@ struct AudioSource;
 class MediaProfiles;
 class IGraphicBufferProducer;
 class SurfaceMediaSource;
+
+#ifdef MTK_HARDWARE
+struct StagefrightRecorderMemoryHandler;
+#endif
 
 struct StagefrightRecorder : public MediaRecorderBase {
     StagefrightRecorder();
@@ -60,6 +65,7 @@ struct StagefrightRecorder : public MediaRecorderBase {
     virtual status_t prepare();
     virtual status_t start();
     virtual status_t pause();
+    virtual status_t setSourcePause(bool pause);
     virtual status_t stop();
     virtual status_t close();
     virtual status_t reset();
@@ -69,6 +75,7 @@ struct StagefrightRecorder : public MediaRecorderBase {
     virtual sp<IGraphicBufferProducer> querySurfaceMediaSource() const;
 
 private:
+    AppOpsManager mAppOpsManager;
     sp<ICamera> mCamera;
     sp<ICameraRecordingProxy> mCameraProxy;
     sp<IGraphicBufferProducer> mPreviewSurface;
@@ -78,6 +85,9 @@ private:
     sp<MediaWriter> mWriter;
     int mOutputFd;
     sp<AudioSource> mAudioSourceNode;
+    sp<MediaSource> mVideoSourceNode;
+    sp<MediaSource> mVideoEncoderOMX;
+    sp<MediaSource> mAudioEncoderOMX;
 
     audio_source_t mAudioSource;
     video_source mVideoSource;
@@ -118,11 +128,15 @@ private:
     MediaProfiles *mEncoderProfiles;
 
     bool mStarted;
+    bool mRecPaused;
     // Needed when GLFrames are encoded.
     // An <IGraphicBufferProducer> pointer
     // will be sent to the client side using which the
     // frame buffers will be queued and dequeued
     sp<SurfaceMediaSource> mSurfaceMediaSource;
+#ifdef MTK_HARDWARE
+    StagefrightRecorderMemoryHandler *mMtkMemoryHandler;
+#endif
 
     status_t setupMPEG4Recording(
         int outputFd,
@@ -135,6 +149,9 @@ private:
     status_t startMPEG4Recording();
     status_t startAMRRecording();
     status_t startAACRecording();
+#ifdef QCOM_HARDWARE
+    status_t startWAVERecording();
+#endif
     status_t startRawAudioRecording();
     status_t startRTPRecording();
     status_t startMPEG2TSRecording();
@@ -191,6 +208,9 @@ private:
 
     StagefrightRecorder(const StagefrightRecorder &);
     StagefrightRecorder &operator=(const StagefrightRecorder &);
+#ifdef ENABLE_AV_ENHANCEMENTS
+    status_t startExtendedRecording();
+#endif
 };
 
 }  // namespace android

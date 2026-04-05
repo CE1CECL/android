@@ -2,6 +2,7 @@ package SQLite;
 
 import java.sql.*;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 public class JDBCDriver implements java.sql.Driver {
 
@@ -141,4 +142,8 @@ public class JDBCDriver implements java.sql.Driver {
     public boolean jdbcCompliant() {
 	return false;
     }
+
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		throw new UnsupportedOperationException();
+	}
 }

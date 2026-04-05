@@ -123,7 +123,7 @@
         <item>Baku</item>
         <item>Bangkok</item>
         <item>Beirut</item>
-        <item>Calcutta</item>
+        <item>Kolkata</item>
         <item>Damascus</item>
         <item>Dhaka</item>
         <item>Dubai</item>
@@ -315,6 +315,39 @@
         <item>Tegucigalpa</item>
         <item>Paramaribo</item>
         <item>Quito</item>
+        <item>@string/city_marshall_islands</item>
+        <item>@string/city_midway_island</item>
+        <item>@string/city_regina</item>
+        <item>@string/city_manaus</item>
+        <item>@string/city_araguaina</item>
+        <item>@string/city_godthab</item>
+        <item>@string/city_south_georgia</item>
+        <item>@string/city_azores</item>
+        <item>@string/city_windhoek</item>
+        <item>@string/city_tbilisi</item>
+        <item>@string/city_yerevan</item>
+        <item>@string/city_oral</item>
+        <item>@string/city_yekaterinburg</item>
+        <item>@string/city_krasnoyarsk</item>
+        <item>@string/city_irkutsk</item>
+        <item>@string/city_yakutsk</item>
+        <item>@string/city_hobart</item>
+        <item>@string/city_magadan</item>
+        <item>@string/city_tongatapu</item>
+        <item>@string/city_aklavik</item>
+        <item>@string/city_montgomery</item>
+        <item>@string/city_geneva</item>
+        <item>@string/city_odesa</item>
+        <item>@string/city_aden</item>
+        <item>@string/city_abu_dhabi</item>
+        <item>@string/city_tashkent</item>
+        <item>@string/city_new_delhi</item>
+        <item>@string/city_suva</item>
+        <item>@string/city_wellington</item>
+        <item>@string/city_chatham</item>
+        <item>@string/city_vladivostok</item>
+        <item>@string/city_kamchatka</item>
+        <item>@string/city_chennai</item>
     </string-array>
 
     <string-array name="cities_tz" translatable="false">
@@ -617,6 +650,39 @@
         <item>America/Tegucigalpa</item>
         <item>America/Paramaribo</item>
         <item>America/Panama</item>
+        <item>Pacific/Majuro</item>
+        <item>Pacific/Midway</item>
+        <item>America/Regina</item>
+        <item>America/Manaus</item>
+        <item>America/Araguaina</item>
+        <item>America/Godthab</item>
+        <item>Atlantic/South_Georgia</item>
+        <item>Atlantic/Azores</item>
+        <item>Africa/Windhoek</item>
+        <item>Asia/Tbilisi</item>
+        <item>Asia/Yerevan</item>
+        <item>Asia/Oral</item>
+        <item>Asia/Yekaterinburg</item>
+        <item>Asia/Krasnoyarsk</item>
+        <item>Asia/Irkutsk</item>
+        <item>Asia/Yakutsk</item>
+        <item>Australia/Hobart</item>
+        <item>Asia/Magadan</item>
+        <item>Pacific/Tongatapu</item>
+        <item>America/Yellowknife</item>
+        <item>America/Chicago</item>
+        <item>Europe/Zurich</item>
+        <item>Europe/Kiev</item>
+        <item>Asia/Aden</item>
+        <item>Asia/Dubai</item>
+        <item>Asia/Tashkent</item>
+        <item>Asia/Kolkata</item>
+        <item>Pacific/Fiji</item>
+        <item>Pacific/Auckland</item>
+        <item>Pacific/Chatham</item>
+        <item>Asia/Vladivostok</item>
+        <item>Asia/Kamchatka</item>
+        <item>Asia/Kolkata</item>
     </string-array>
 
     <string-array name="cities_id" translatable="false">
@@ -877,7 +943,7 @@
         <item>C255</item>
         <item>C256</item>
         <item>C257</item>
-        <item>C258</item>
+        <item>C0</item>
         <item>C259</item>
         <item>C260</item>
         <item>C261</item>
@@ -908,7 +974,7 @@
         <item>C286</item>
         <item>C287</item>
         <item>C288</item>
-        <item>C289</item>
+        <item>C0</item>
         <item>C290</item>
         <item>C291</item>
         <item>C292</item>
@@ -919,6 +985,39 @@
         <item>C297</item>
         <item>C298</item>
         <item>C299</item>
+        <item>C300</item>
+        <item>C301</item>
+        <item>C302</item>
+        <item>C303</item>
+        <item>C304</item>
+        <item>C305</item>
+        <item>C306</item>
+        <item>C307</item>
+        <item>C308</item>
+        <item>C309</item>
+        <item>C310</item>
+        <item>C311</item>
+        <item>C312</item>
+        <item>C313</item>
+        <item>C314</item>
+        <item>C315</item>
+        <item>C316</item>
+        <item>C317</item>
+        <item>C318</item>
+        <item>C319</item>
+        <item>C320</item>
+        <item>C321</item>
+        <item>C322</item>
+        <item>C323</item>
+        <item>C324</item>
+        <item>C325</item>
+        <item>C326</item>
+        <item>C327</item>
+        <item>C328</item>
+        <item>C329</item>
+        <item>C330</item>
+        <item>C331</item>
+        <item>C332</item>
     </string-array>
 
     <array name="snooze_dismiss_drawables">

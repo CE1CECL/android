@@ -23,15 +23,21 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.text.method.HideReturnsTransformationMethod;
+import android.text.util.Linkify;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.AbsoluteLayout;
 import android.widget.FrameLayout;
@@ -51,10 +57,15 @@ import com.android.mms.layout.LayoutManager;
 public class SlideView extends AbsoluteLayout implements
         AdaptableSlideViewInterface {
     private static final String TAG = "SlideView";
+    private static final String SMS_FONTSIZE = "smsfontsize";
     private static final boolean DEBUG = false;
     private static final boolean LOCAL_LOGV = false;
     // FIXME: Need getHeight from mAudioInfoView instead of constant AUDIO_INFO_HEIGHT.
     private static final int AUDIO_INFO_HEIGHT = 82;
+    private static final float FONTSIZESTEP = 9f;
+    private static final float FONTSIZEMAX = 48f;
+    private static final float FONTSIZEMIN = 18f;
+    private static final float FONTSIZE_DEFAULT = 27f;
 
     private View mAudioInfoView;
     private ImageView mImageView;
@@ -72,6 +83,8 @@ public class SlideView extends AbsoluteLayout implements
     // Indicates whether the view is in MMS conformance mode.
     private boolean mConformanceMode;
     private MediaController mMediaController;
+    private ScaleGestureDetector mScaleDetector;
+    private Context mContext;
 
     MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         public void onPrepared(MediaPlayer mp) {
@@ -97,10 +110,113 @@ public class SlideView extends AbsoluteLayout implements
 
     public SlideView(Context context) {
         super(context);
+        init(context);
     }
 
     public SlideView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init(context);
+    }
+
+    private void init(Context context) {
+        mContext = context;
+        mScaleDetector = new ScaleGestureDetector(mContext, new MyScaleListener());
+    }
+
+    private class MyScaleListener
+            extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+
+        private float mScaleFactor = 1;
+
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            float scale = detector.getScaleFactor();
+            if(scale < 0.999999 || scale > 1.00001){
+                mScaleFactor = scale;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            float scale = detector.getScaleFactor();
+            if (mScaleFactor > 1.0) {
+                zoomIn();
+            } else if (mScaleFactor < 1.0) {
+                zoomOut();
+            }
+        }
+    }
+
+    private void zoomIn() {
+        float curFontSet = getCurrentTextSize(mContext);
+        if (curFontSet >= FONTSIZEMAX) {
+            curFontSet = FONTSIZEMAX;
+        } else {
+            curFontSet = (curFontSet + FONTSIZESTEP) > FONTSIZEMAX
+                            ? FONTSIZEMAX : (curFontSet + FONTSIZESTEP);
+        }
+        setCurrentTextSet(mContext, curFontSet);
+        if (mTextView != null) {
+            mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,curFontSet);
+        }
+    }
+
+    private void zoomOut() {
+        float curFontSet = getCurrentTextSize(mContext);
+        if (curFontSet <= FONTSIZEMIN) {
+            curFontSet = FONTSIZEMIN;
+        } else {
+            curFontSet = (curFontSet - FONTSIZESTEP) < FONTSIZEMIN
+                            ? FONTSIZEMIN : (curFontSet - FONTSIZESTEP) ;
+        }
+        setCurrentTextSet(mContext, curFontSet);
+        if (mTextView != null) {
+            mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX,curFontSet);
+        }
+    }
+
+    private float getCurrentTextSize(Context context) {
+        SharedPreferences prefsms = PreferenceManager.
+                                    getDefaultSharedPreferences(context);
+        String textSize = prefsms.getString(SMS_FONTSIZE, String.valueOf(FONTSIZE_DEFAULT));
+        return Float.parseFloat(textSize);
+    }
+
+    private void setCurrentTextSet(Context context, float value){
+        SharedPreferences prefsms = PreferenceManager.getDefaultSharedPreferences(context);
+        prefsms.edit().putString(SMS_FONTSIZE, String.valueOf(value)).commit();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_UP:
+                if (mMediaController != null) {
+                    mMediaController.show();
+                }
+                break;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        mScaleDetector.onTouchEvent(ev);
+        switch (ev.getAction()) {
+            case MotionEvent.ACTION_UP:
+                if (mMediaController != null) {
+                    mMediaController.show();
+                }
+                break;
+        }
+        return false;
     }
 
     public void setImage(String name, Bitmap bitmap) {
@@ -243,10 +359,19 @@ public class SlideView extends AbsoluteLayout implements
             }
             mScrollText.requestFocus();
         }
+        mTextView.setAutoLinkMask(Linkify.ALL);
+        mTextView.setLinksClickable(false);
         mTextView.setVisibility(View.VISIBLE);
         mTextView.setText(text);
+        mTextView.setTextSize(TypedValue.COMPLEX_UNIT_PX, getCurrentTextSize(mContext));
         // Let the text in Mms can be selected.
         mTextView.setTextIsSelectable(true);
+        mTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MessageUtils.onMessageContentClick(mContext, (TextView)v);
+            }
+        });
     }
 
     public void setTextRegion(int left, int top, int width, int height) {
@@ -485,13 +610,6 @@ public class SlideView extends AbsoluteLayout implements
             mViewPort = new LinearLayout(mContext);
             mViewPort.setOrientation(LinearLayout.VERTICAL);
             mViewPort.setGravity(Gravity.CENTER);
-            mViewPort.setOnClickListener(new OnClickListener() {
-                public void onClick(View v) {
-                    if (mMediaController != null) {
-                        mMediaController.show();
-                    }
-                }
-            });
             mScrollViewPort.addView(mViewPort, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,
                     LayoutParams.WRAP_CONTENT));
             addView(mScrollViewPort);
@@ -531,19 +649,32 @@ public class SlideView extends AbsoluteLayout implements
             // region. So, put the VideoView below the ImageView.
             mVideoView = new VideoView(mContext);
             viewsByPosition.put(new Position(imageLeft + 1, imageTop), mVideoView);
+
+            // Put the AudioInfoView below the ImageView.
+            LayoutInflater factory = LayoutInflater.from(getContext());
+            mAudioInfoView = factory.inflate(R.layout.playing_audio_info, null);
+            viewsByPosition.put(new Position(imageLeft + 2, imageTop), mAudioInfoView);
         }
         for (View view : viewsByPosition.values()) {
             if (view instanceof VideoView) {
                 mViewPort.addView(view, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
                         LayoutManager.getInstance().getLayoutParameters().getHeight()));
-            } else {
+            } else if (view instanceof TextView || view instanceof ImageView) {
                 mViewPort.addView(view, new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
                         LayoutParams.WRAP_CONTENT));
+            } else {
+                // Add AudioInfoView
+                mViewPort.addView(view, new LinearLayout.LayoutParams(
+                        LayoutParams.MATCH_PARENT, AUDIO_INFO_HEIGHT));
             }
             view.setVisibility(View.GONE);
         }
     }
 
     public void setVideoThumbnail(String name, Bitmap bitmap) {
+    }
+
+    @Override
+    public void setVcard(Uri lookupUri, String name) {
     }
 }

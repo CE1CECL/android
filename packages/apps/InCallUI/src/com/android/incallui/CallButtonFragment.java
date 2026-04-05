@@ -1,4 +1,8 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution, Apache license notifications and license are retained
+ * for attribution purposes only.
+ *
  * Copyright (C) 2013 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +35,9 @@ import android.widget.PopupMenu.OnDismissListener;
 import android.widget.PopupMenu.OnMenuItemClickListener;
 import android.widget.ToggleButton;
 
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.services.telephony.common.AudioMode;
+import com.android.services.telephony.common.Call;
 
 /**
  * Fragment for call control buttons
@@ -48,6 +54,13 @@ public class CallButtonFragment
     private ImageButton mMergeButton;
     private ImageButton mAddCallButton;
     private ImageButton mSwapButton;
+    private ImageButton mBlacklistButton;
+    private ImageButton mAddParticipantButton;
+    private ImageButton mModifyCallButton;
+    private CallRecordingButton mRecordButton;
+
+    private View mBlacklistSpacer;
+    private View mRecordSpacer;
 
     private PopupMenu mAudioModePopup;
     private boolean mAudioModePopupVisible;
@@ -55,6 +68,8 @@ public class CallButtonFragment
     private View mExtraRowButton;
     private View mManageConferenceButton;
     private View mGenericMergeButton;
+
+    private int mHideMode = View.GONE;
 
     @Override
     CallButtonPresenter createPresenter() {
@@ -141,6 +156,26 @@ public class CallButtonFragment
         mMergeButton.setOnClickListener(this);
         mSwapButton = (ImageButton) parent.findViewById(R.id.swapButton);
         mSwapButton.setOnClickListener(this);
+        mAddParticipantButton = (ImageButton) parent.findViewById(R.id.addParticipant);
+        mAddParticipantButton.setOnClickListener(this);
+
+        // "Add to black list" button
+        mBlacklistButton = (ImageButton) parent.findViewById(R.id.addBlacklistButton);
+        mBlacklistSpacer = parent.findViewById(R.id.blacklistSpacer);
+        if (BlacklistUtils.isBlacklistEnabled(getActivity())) {
+            mBlacklistButton.setVisibility(View.VISIBLE);
+            mBlacklistButton.setOnClickListener(this);
+            mBlacklistSpacer.setVisibility(View.VISIBLE);
+        } else {
+            mBlacklistButton.setVisibility(View.GONE);
+            mBlacklistSpacer.setVisibility(View.GONE);
+        }
+
+        mModifyCallButton = (ImageButton) parent.findViewById(R.id.modifyCallButton);
+        mModifyCallButton.setOnClickListener(this);
+
+        mRecordButton = (CallRecordingButton) parent.findViewById(R.id.recordButton);
+        mRecordSpacer = parent.findViewById(R.id.recordSpacer);
 
         return parent;
     }
@@ -183,6 +218,15 @@ public class CallButtonFragment
             case R.id.dialpadButton:
                 getPresenter().showDialpadClicked(mShowDialpadButton.isChecked());
                 break;
+            case R.id.addBlacklistButton:
+                getPresenter().blacklistClicked(getActivity());
+                break;
+            case R.id.addParticipant:
+                getPresenter().addParticipantClicked();
+                break;
+            case R.id.modifyCallButton:
+                getPresenter().modifyCallButtonClicked();
+                break;
             default:
                 Log.wtf(this, "onClick: unexpected");
                 break;
@@ -190,11 +234,8 @@ public class CallButtonFragment
     }
 
     @Override
-    public void setEnabled(boolean isEnabled) {
-        View view = getView();
-        if (view.getVisibility() != View.VISIBLE) {
-            view.setVisibility(View.VISIBLE);
-        }
+    public void setEnabled(boolean isEnabled, boolean isVisible) {
+        getView().setVisibility(isVisible ? View.VISIBLE : mHideMode);
 
         // The main end-call button spanning across the screen.
         mEndCallButton.setEnabled(isEnabled);
@@ -207,6 +248,9 @@ public class CallButtonFragment
         mMergeButton.setEnabled(isEnabled);
         mAddCallButton.setEnabled(isEnabled);
         mSwapButton.setEnabled(isEnabled);
+        mBlacklistButton.setEnabled(isEnabled);
+        mAddParticipantButton.setEnabled(isEnabled);
+        mRecordButton.setEnabled(isEnabled);
     }
 
     @Override
@@ -245,6 +289,12 @@ public class CallButtonFragment
     }
 
     @Override
+    public void showRecording(boolean show) {
+        mRecordButton.setVisibility(show ? View.VISIBLE : View.GONE);
+        mRecordSpacer.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    @Override
     public void showAddCall(boolean show) {
         mAddCallButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
@@ -252,6 +302,11 @@ public class CallButtonFragment
     @Override
     public void enableAddCall(boolean enabled) {
         mAddCallButton.setEnabled(enabled);
+    }
+
+    @Override
+    public void enableAddParticipant(boolean show) {
+        mAddParticipantButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     @Override
@@ -296,6 +351,23 @@ public class CallButtonFragment
         getPresenter().setAudioMode(mode);
 
         return true;
+    }
+
+    @Override
+    public void displayModifyCallOptions(int callId) {
+        if (getActivity() != null && getActivity() instanceof InCallActivity) {
+            ((InCallActivity) getActivity()).displayModifyCallOptions(callId);
+        }
+    }
+
+    @Override
+    public void enableModifyCall(boolean enabled) {
+        mModifyCallButton.setEnabled(enabled);
+    }
+
+    @Override
+    public void showModifyCall(boolean show) {
+        mModifyCallButton.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     // PopupMenu.OnDismissListener implementation; see showAudioModePopup().
@@ -544,5 +616,13 @@ public class CallButtonFragment
     @Override
     public void hideExtraRow() {
        mExtraRowButton.setVisibility(View.GONE);
+    }
+
+    public void setHideMode(int hideMode) {
+        mHideMode = hideMode;
+        View v = getView();
+        if (v != null && v.getVisibility() != View.VISIBLE) {
+            v.setVisibility(hideMode);
+        }
     }
 }

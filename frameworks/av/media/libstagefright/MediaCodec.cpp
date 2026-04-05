@@ -35,6 +35,10 @@
 #include <media/stagefright/MediaDefs.h>
 #include <media/stagefright/MediaErrors.h>
 #include <media/stagefright/MetaData.h>
+#ifdef QCOM_HARDWARE
+#include <media/stagefright/ExtendedCodec.h>
+#include "include/ExtendedUtils.h"
+#endif
 #include <media/stagefright/NativeWindowWrapper.h>
 
 #include "include/avc_utils.h"
@@ -79,6 +83,9 @@ MediaCodec::MediaCodec(const sp<ALooper> &looper)
 
 MediaCodec::~MediaCodec() {
     CHECK_EQ(mState, UNINITIALIZED);
+#ifdef ENABLE_AV_ENHANCEMENTS
+    ExtendedUtils::drainSecurePool();
+#endif
 }
 
 // static
@@ -108,6 +115,9 @@ status_t MediaCodec::init(const char *name, bool nameIsType, bool encoder) {
     } else {
         AString tmp = name;
         if (tmp.endsWith(".secure")) {
+#ifdef ENABLE_AV_ENHANCEMENTS
+            ExtendedUtils::prefetchSecurePool();
+#endif
             tmp.erase(tmp.size() - 7, 7);
         }
         const MediaCodecList *mcl = MediaCodecList::getInstance();
@@ -618,7 +628,8 @@ void MediaCodec::onMessageReceived(const sp<AMessage> &msg) {
 
                     CHECK(msg->findString("componentName", &mComponentName));
 
-                    if (mComponentName.startsWith("OMX.google.")) {
+                    if (mComponentName.startsWith("OMX.google.") ||
+                            mComponentName.startsWith("OMX.ffmpeg.")) {
                         mFlags |= kFlagIsSoftwareCodec;
                     } else {
                         mFlags &= ~kFlagIsSoftwareCodec;
@@ -1414,6 +1425,20 @@ void MediaCodec::extractCSD(const sp<AMessage> &format) {
         mCSD.push_back(csd);
         ++i;
     }
+
+#ifdef QCOM_HARDWARE
+    sp<ABuffer> extendedCSD = ExtendedCodec::getRawCodecSpecificData(format);
+    if (extendedCSD != NULL) {
+        ALOGV("pushing extended CSD of size %d", extendedCSD->size());
+        mCSD.push_back(extendedCSD);
+    }
+
+    sp<ABuffer> aacCSD = ExtendedCodec::getAacCodecSpecificData(format);
+    if (aacCSD != NULL) {
+        ALOGV("pushing AAC CSD of size %d", aacCSD->size());
+        mCSD.push_back(aacCSD);
+    }
+#endif
 
     ALOGV("Found %u pieces of codec specific data.", mCSD.size());
 }

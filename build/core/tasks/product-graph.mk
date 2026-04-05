@@ -61,7 +61,7 @@ define emit-product-node-props
 $(hide) echo \"$(1)\" [ \
 label=\"$(dir $(1))\\n$(notdir $(1))\\n\\n$(subst $(close_parenthesis),,$(subst $(open_parethesis),,$(PRODUCTS.$(strip $(1)).PRODUCT_MODEL)))\\n$(PRODUCTS.$(strip $(1)).PRODUCT_DEVICE)\" \
 $(if $(filter $(1),$(PRIVATE_PRODUCTS_FILTER)), style=\"filled\" fillcolor=\"#FFFDB0\",) \
-fontcolor=\"darkblue\" href=\"products/$(1).html\" \
+colorscheme=\"svg\" fontcolor=\"darkblue\" href=\"products/$(1).html\" \
 ] >> $(2)
 
 endef
@@ -70,7 +70,7 @@ $(products_graph): PRIVATE_PRODUCTS := $(really_all_products)
 $(products_graph): PRIVATE_PRODUCTS_FILTER := $(products_list)
 
 $(products_graph): $(this_makefile)
-	@echo Product graph DOT: $@ for $(PRIVATE_PRODUCTS_FILTER)
+	@echo -e ${CL_GRN}"Product graph DOT:"${CL_RST}" $@ for $(PRIVATE_PRODUCTS_FILTER)"
 	$(hide) echo 'digraph {' > $@.in
 	$(hide) echo 'graph [ ratio=.5 ];' >> $@.in
 	$(hide) $(foreach p,$(PRIVATE_PRODUCTS), \
@@ -89,7 +89,7 @@ endef
 # $(1) product file
 define transform-product-debug
 $(OUT_DIR)/products/$(strip $(1)).txt: $(this_makefile)
-	@echo Product debug info file: $$@
+	@echo -e ${CL_GRN}"Product debug info file:"${CL_RST}" $$@"
 	$(hide) rm -f $$@
 	$(hide) mkdir -p $$(dir $$@)
 	$(hide) echo 'FILE=$(strip $(1))' >> $$@
@@ -105,6 +105,7 @@ $(OUT_DIR)/products/$(strip $(1)).txt: $(this_makefile)
 	$(hide) echo 'PRODUCT_DEFAULT_PROPERTY_OVERRIDES=$$(PRODUCTS.$(strip $(1)).PRODUCT_DEFAULT_PROPERTY_OVERRIDES)' >> $$@
 	$(hide) echo 'PRODUCT_CHARACTERISTICS=$$(PRODUCTS.$(strip $(1)).PRODUCT_CHARACTERISTICS)' >> $$@
 	$(hide) echo 'PRODUCT_COPY_FILES=$$(PRODUCTS.$(strip $(1)).PRODUCT_COPY_FILES)' >> $$@
+	$(hide) echo 'PRODUCT_COPY_FILES_OVERRIDES=$$(PRODUCTS.$(strip $(1)).PRODUCT_COPY_FILES_OVERRIDES)' >> $$@
 	$(hide) echo 'PRODUCT_OTA_PUBLIC_KEYS=$$(PRODUCTS.$(strip $(1)).PRODUCT_OTA_PUBLIC_KEYS)' >> $$@
 	$(hide) echo 'PRODUCT_EXTRA_RECOVERY_KEYS=$$(PRODUCTS.$(strip $(1)).PRODUCT_EXTRA_RECOVERY_KEYS)' >> $$@
 	$(hide) echo 'PRODUCT_PACKAGE_OVERLAYS=$$(PRODUCTS.$(strip $(1)).PRODUCT_PACKAGE_OVERLAYS)' >> $$@
@@ -124,7 +125,7 @@ $(call product-debug-filename, $(p)): \
 			$(OUT_DIR)/products/$(strip $(1)).txt \
 			build/tools/product_debug.py \
 			$(this_makefile)
-	@echo Product debug html file: $$@
+	@echo -e ${CL_GRN}"Product debug html file:"${CL_RST}" $$@"
 	$(hide) mkdir -p $$(dir $$@)
 	$(hide) cat $$< | build/tools/product_debug.py > $$@
 endef
@@ -136,11 +137,11 @@ $(foreach p,$(really_all_products), \
    )
 
 $(products_pdf): $(products_graph)
-	@echo Product graph PDF: $@
+	@echo -e ${CL_GRN}"Product graph PDF:"${CL_RST}" $@"
 	dot -Tpdf -Nshape=box -o $@ $<
 
 $(products_svg): $(products_graph) $(product_debug_files)
-	@echo Product graph SVG: $@
+	@echo -e ${CL_GRN}"Product graph SVG:"${CL_RST}" $@"
 	dot -Tsvg -Nshape=box -o $@ $<
 
 product-graph: $(products_pdf) $(products_svg)

@@ -21,6 +21,7 @@
 #include <stdio.h>
 
 #include <cutils/log.h>
+#include <safe_iop.h>
 
 #include <utils/Errors.h>
 #include <utils/SharedBuffer.h>
@@ -85,14 +86,19 @@ VectorImpl& VectorImpl::operator = (const VectorImpl& rhs)
 void* VectorImpl::editArrayImpl()
 {
     if (mStorage) {
-        SharedBuffer* sb = SharedBuffer::bufferFromData(mStorage)->attemptEdit();
-        if (sb == 0) {
-            sb = SharedBuffer::alloc(capacity() * mItemSize);
-            if (sb) {
-                _do_copy(sb->data(), mStorage, mCount);
-                release_storage();
-                mStorage = sb->data();
-            }
+        const SharedBuffer* sb = SharedBuffer::bufferFromData(mStorage);
+        SharedBuffer* editable = sb->attemptEdit();
+        if (editable == 0) {
+            // If we're here, we're not the only owner of the buffer.
+            // We must make a copy of it.
+            editable = SharedBuffer::alloc(sb->size());
+            // Fail instead of returning a pointer to storage that's not
+            // editable. Otherwise we'd be editing the contents of a buffer
+            // for which we're not the only owner, which is undefined behaviour.
+            LOG_ALWAYS_FATAL_IF(editable == NULL);
+            _do_copy(editable->data(), mStorage, mCount);
+            release_storage();
+            mStorage = editable->data();
         }
     }
     return mStorage;
@@ -141,6 +147,8 @@ ssize_t VectorImpl::insertAt(const void* item, size_t index, size_t numItems)
 {
     if (index > size())
         return BAD_INDEX;
+    if (numItems < 1)
+        return index;
     void* where = _grow(index, numItems);
     if (where) {
         if (item) {
@@ -325,13 +333,15 @@ const void* VectorImpl::itemLocation(size_t index) const
 
 ssize_t VectorImpl::setCapacity(size_t new_capacity)
 {
-    size_t current_capacity = capacity();
-    ssize_t amount = new_capacity - size();
-    if (amount <= 0) {
-        // we can't reduce the capacity
-        return current_capacity;
-    } 
-    SharedBuffer* sb = SharedBuffer::alloc(new_capacity * mItemSize);
+    // The capacity must always be greater than or equal to the size
+    // of this vector.
+    if (new_capacity <= size()) {
+        return capacity();
+    }
+
+    size_t new_allocation_size = 0;
+    LOG_ALWAYS_FATAL_IF(!safe_mul(&new_allocation_size, new_capacity, mItemSize));
+    SharedBuffer* sb = SharedBuffer::alloc(new_allocation_size);
     if (sb) {
         void* array = sb->data();
         _do_copy(array, mStorage, size());
@@ -373,9 +383,28 @@ void* VectorImpl::_grow(size_t where, size_t amount)
             "[%p] _grow: where=%d, amount=%d, count=%d",
             this, (int)where, (int)amount, (int)mCount); // caller already checked
 
-    const size_t new_size = mCount + amount;
+    size_t new_size;
+    LOG_ALWAYS_FATAL_IF(!safe_add(&new_size, mCount, amount), "new_size overflow");
+
     if (capacity() < new_size) {
-        const size_t new_capacity = max(kMinVectorCapacity, ((new_size*3)+1)/2);
+        // NOTE: This implementation used to resize vectors as per ((3*x + 1) / 2)
+        // (sigh..). Also note, the " + 1" was necessary to handle the special case
+        // where x == 1, where the resized_capacity will be equal to the old
+        // capacity without the +1. The old calculation wouldn't work properly
+        // if x was zero.
+        //
+        // This approximates the old calculation, using (x + (x/2) + 1) instead.
+        size_t new_capacity = 0;
+        LOG_ALWAYS_FATAL_IF(!safe_add(&new_capacity, new_size, (new_size / 2)),
+                            "new_capacity overflow");
+        LOG_ALWAYS_FATAL_IF(!safe_add(&new_capacity, new_capacity, static_cast<size_t>(1u)),
+                            "new_capacity overflow");
+        new_capacity = max(kMinVectorCapacity, new_capacity);
+
+        size_t new_alloc_size = 0;
+        LOG_ALWAYS_FATAL_IF(!safe_mul(&new_alloc_size, new_capacity, mItemSize),
+                            "new_alloc_size overflow");
+
 //        ALOGV("grow vector %p, new_capacity=%d", this, (int)new_capacity);
         if ((mStorage) &&
             (mCount==where) &&
@@ -383,10 +412,14 @@ void* VectorImpl::_grow(size_t where, size_t amount)
             (mFlags & HAS_TRIVIAL_DTOR))
         {
             const SharedBuffer* cur_sb = SharedBuffer::bufferFromData(mStorage);
-            SharedBuffer* sb = cur_sb->editResize(new_capacity * mItemSize);
-            mStorage = sb->data();
+            SharedBuffer* sb = cur_sb->editResize(new_alloc_size);
+            if (sb) {
+                mStorage = sb->data();
+            } else {
+                return NULL;
+            }
         } else {
-            SharedBuffer* sb = SharedBuffer::alloc(new_capacity * mItemSize);
+            SharedBuffer* sb = SharedBuffer::alloc(new_alloc_size);
             if (sb) {
                 void* array = sb->data();
                 if (where != 0) {
@@ -399,6 +432,8 @@ void* VectorImpl::_grow(size_t where, size_t amount)
                 }
                 release_storage();
                 mStorage = const_cast<void*>(array);
+            } else {
+                return NULL;
             }
         }
     } else {
@@ -426,17 +461,30 @@ void VectorImpl::_shrink(size_t where, size_t amount)
             "[%p] _shrink: where=%d, amount=%d, count=%d",
             this, (int)where, (int)amount, (int)mCount); // caller already checked
 
-    const size_t new_size = mCount - amount;
-    if (new_size*3 < capacity()) {
-        const size_t new_capacity = max(kMinVectorCapacity, new_size*2);
-//        ALOGV("shrink vector %p, new_capacity=%d", this, (int)new_capacity);
+    size_t new_size;
+    LOG_ALWAYS_FATAL_IF(!safe_sub(&new_size, mCount, amount));
+
+    if (new_size < (capacity() / 2)) {
+        // NOTE: (new_size * 2) is safe because capacity didn't overflow and
+        // new_size < (capacity / 2)).
+        const size_t new_capacity = max(kMinVectorCapacity, new_size * 2);
+
+        // NOTE: (new_capacity * mItemSize), (where * mItemSize) and
+        // ((where + amount) * mItemSize) beyond this point are safe because
+        // we are always reducing the capacity of the underlying SharedBuffer.
+        // In other words, (old_capacity * mItemSize) did not overflow, and
+        // where < (where + amount) < new_capacity < old_capacity.
         if ((where == new_size) &&
             (mFlags & HAS_TRIVIAL_COPY) &&
             (mFlags & HAS_TRIVIAL_DTOR))
         {
             const SharedBuffer* cur_sb = SharedBuffer::bufferFromData(mStorage);
             SharedBuffer* sb = cur_sb->editResize(new_capacity * mItemSize);
-            mStorage = sb->data();
+            if (sb) {
+                mStorage = sb->data();
+            } else {
+                return;
+            }
         } else {
             SharedBuffer* sb = SharedBuffer::alloc(new_capacity * mItemSize);
             if (sb) {
@@ -451,6 +499,8 @@ void VectorImpl::_shrink(size_t where, size_t amount)
                 }
                 release_storage();
                 mStorage = const_cast<void*>(array);
+            } else{
+                return;
             }
         }
     } else {
@@ -503,6 +553,17 @@ void VectorImpl::_do_move_forward(void* dest, const void* from, size_t num) cons
 void VectorImpl::_do_move_backward(void* dest, const void* from, size_t num) const {
     do_move_backward(dest, from, num);
 }
+
+#ifdef NEEDS_VECTORIMPL_SYMBOLS
+void VectorImpl::reservedVectorImpl1() { }
+void VectorImpl::reservedVectorImpl2() { }
+void VectorImpl::reservedVectorImpl3() { }
+void VectorImpl::reservedVectorImpl4() { }
+void VectorImpl::reservedVectorImpl5() { }
+void VectorImpl::reservedVectorImpl6() { }
+void VectorImpl::reservedVectorImpl7() { }
+void VectorImpl::reservedVectorImpl8() { }
+#endif
 
 /*****************************************************************************/
 
@@ -618,6 +679,17 @@ ssize_t SortedVectorImpl::remove(const void* item)
     }
     return i;
 }
+
+#ifdef NEEDS_VECTORIMPL_SYMBOLS
+void SortedVectorImpl::reservedSortedVectorImpl1() { };
+void SortedVectorImpl::reservedSortedVectorImpl2() { };
+void SortedVectorImpl::reservedSortedVectorImpl3() { };
+void SortedVectorImpl::reservedSortedVectorImpl4() { };
+void SortedVectorImpl::reservedSortedVectorImpl5() { };
+void SortedVectorImpl::reservedSortedVectorImpl6() { };
+void SortedVectorImpl::reservedSortedVectorImpl7() { };
+void SortedVectorImpl::reservedSortedVectorImpl8() { };
+#endif
 
 /*****************************************************************************/
 

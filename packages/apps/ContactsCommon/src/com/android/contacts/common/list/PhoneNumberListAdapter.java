@@ -29,6 +29,8 @@ import android.provider.ContactsContract.ContactCounts;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.Directory;
+import android.provider.ContactsContract.RawContacts;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,6 +41,8 @@ import com.android.contacts.common.ContactPhotoManager.DefaultImageRequest;
 import com.android.contacts.common.extensions.ExtendedPhoneDirectoriesManager;
 import com.android.contacts.common.extensions.ExtensionsFactory;
 import com.android.contacts.common.util.Constants;
+import com.android.contacts.common.model.account.SimAccountType;
+import com.android.contacts.common.MoreContactUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -175,6 +179,13 @@ public class PhoneNumberListAdapter extends ContactEntryListAdapter {
 
             // Remove duplicates when it is possible.
             builder.appendQueryParameter(ContactsContract.REMOVE_DUPLICATE_ENTRIES, "true");
+
+            // Do not show contacts in disabled SIM card
+            String disabledSimFilter = MoreContactUtils.getDisabledSimFilter();
+            if (!TextUtils.isEmpty(disabledSimFilter)) {
+                String disabledSimName = getDisabledSimNumber(disabledSimFilter);
+                loader.setSelection(RawContacts.ACCOUNT_NAME+ "<>" + disabledSimName);
+            }
             loader.setUri(builder.build());
 
             // TODO a projection that includes the search snippet
@@ -219,6 +230,12 @@ public class PhoneNumberListAdapter extends ContactEntryListAdapter {
             case ContactListFilter.FILTER_TYPE_CUSTOM: {
                 selection.append(Contacts.IN_VISIBLE_GROUP + "=1");
                 selection.append(" AND " + Contacts.HAS_PHONE_NUMBER + "=1");
+                break;
+            }
+            case ContactListFilter.FILTER_TYPE_ALL_WITHOUT_SIM: {
+                uriBuilder.appendQueryParameter(RawContacts.ACCOUNT_TYPE,
+                        SimAccountType.ACCOUNT_TYPE).appendQueryParameter(DefaultContactListAdapter
+                        .WITHOUT_SIM_FLAG, "true").build();
                 break;
             }
             case ContactListFilter.FILTER_TYPE_ACCOUNT: {
@@ -521,5 +538,22 @@ public class PhoneNumberListAdapter extends ContactEntryListAdapter {
                         String.valueOf(directoryId))
                 .encodedFragment(cursor.getString(lookUpKeyColumn))
                 .build();
+    }
+
+    private String getDisabledSimNumber(String disabledSimFilter){
+        String[] disabledSimArray = disabledSimFilter.split(",");//it will never be null
+        String disabledSimName = "";
+        for (int i = 0; i < disabledSimArray.length; i++) {
+            if (i < disabledSimArray.length -1) {
+                //If disabledSimArray[i] is not the last one of the array,
+                //add "or" after every member of the array.
+                disabledSimName = disabledSimName + "'" + disabledSimArray[i] + "'" + "or";
+            } else {
+                //If disabledSimArray[i] is the last one of the array,
+                //should not add anything after it.
+                disabledSimName = disabledSimName + "'" + disabledSimArray[i] + "'";
+            }
+        }
+        return disabledSimName;
     }
 }

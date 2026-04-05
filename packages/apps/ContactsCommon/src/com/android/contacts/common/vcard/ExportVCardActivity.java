@@ -33,6 +33,7 @@ import android.os.Messenger;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.R;
 
 import java.io.File;
@@ -48,6 +49,7 @@ public class ExportVCardActivity extends Activity implements ServiceConnection,
         DialogInterface.OnClickListener, DialogInterface.OnCancelListener {
     private static final String LOG_TAG = "VCardExport";
     private static final boolean DEBUG = VCardService.DEBUG;
+    private String selExport = "";
 
     /**
      * Handler used when some Message has come from {@link VCardService}.
@@ -137,6 +139,7 @@ public class ExportVCardActivity extends Activity implements ServiceConnection,
                 }
                 final ExportRequest request = new ExportRequest(mDestinationUri);
                 // The connection object will call finish().
+                mService.setSelExport(selExport);
                 mService.handleExportRequest(request, new NotificationImportExportListener(
                         ExportVCardActivity.this));
             }
@@ -169,6 +172,11 @@ public class ExportVCardActivity extends Activity implements ServiceConnection,
                 .getString(VCardCommonArguments.ARG_CALLING_ACTIVITY);
         Intent intent = new Intent(this, VCardService.class);
         intent.putExtra(VCardCommonArguments.ARG_CALLING_ACTIVITY, callingActivity);
+        if (MoreContactUtils.sdCardExist(this)) {
+            intent.putExtra(VCardService.STORAGE_PATH,VCardService.EXTERNAL_PATH);
+        } else {
+            intent.putExtra(VCardService.STORAGE_PATH,VCardService.INTERNAL_PATH);
+        }
 
         if (startService(intent) == null) {
             Log.e(LOG_TAG, "Failed to start vCard service");
@@ -183,6 +191,10 @@ public class ExportVCardActivity extends Activity implements ServiceConnection,
             showDialog(R.id.dialog_fail_to_export_with_reason);
         }
         // Continued to onServiceConnected()
+        Intent selExportIntent = getIntent();
+        if(selExportIntent != null) {
+            selExport = selExportIntent.getStringExtra("SelExport");
+        }
     }
 
     @Override

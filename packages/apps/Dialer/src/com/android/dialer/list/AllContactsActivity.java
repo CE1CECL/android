@@ -20,16 +20,19 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.telephony.PhoneNumberUtils;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.TypefaceSpan;
 import android.util.Log;
 
 import com.android.contacts.common.CallUtil;
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.activity.TransactionSafeActivity;
 import com.android.contacts.common.list.OnPhoneNumberPickerActionListener;
 import com.android.dialer.DialtactsActivity;
 import com.android.dialer.R;
+import com.android.dialer.cmstats.DialerStats;
 import com.android.dialer.interactions.PhoneNumberInteraction;
 
 public class AllContactsActivity extends TransactionSafeActivity {
@@ -42,6 +45,9 @@ public class AllContactsActivity extends TransactionSafeActivity {
             new OnPhoneNumberPickerActionListener() {
                 @Override
                 public void onPickPhoneNumberAction(Uri dataUri) {
+                    DialerStats.sendEvent(AllContactsActivity.this,
+                            DialerStats.Categories.INITIATE_CALL, "call_from_all_contacts");
+
                     // Specify call-origin so that users will see the previous tab instead of
                     // CallLog screen (search UI will be automatically exited).
                     PhoneNumberInteraction.startInteractionForPhoneCall(
@@ -50,7 +56,18 @@ public class AllContactsActivity extends TransactionSafeActivity {
 
                 @Override
                 public void onCallNumberDirectly(String phoneNumber) {
-                final Intent intent = CallUtil.getCallIntent(phoneNumber, null);
+                    Intent intent;
+                    if (MoreContactUtils.getEnabledSimCount() > 1) {
+                        if (PhoneNumberUtils.isUriNumber(phoneNumber)) {
+                            intent = new Intent(Intent.ACTION_DIAL,
+                                    Uri.fromParts(CallUtil.SCHEME_SIP, phoneNumber, null));
+                        } else {
+                            intent = new Intent(Intent.ACTION_DIAL,
+                                    Uri.fromParts(CallUtil.SCHEME_TEL, phoneNumber, null));
+                        }
+                    } else {
+                        intent = CallUtil.getCallIntent(phoneNumber, null);
+                    }
                     startActivity(intent);
                 }
 

@@ -42,6 +42,10 @@
 
 #include "SoftapController.h"
 
+#ifndef HOSTAPD_DRIVER_NAME
+#define HOSTAPD_DRIVER_NAME "nl80211"
+#endif
+
 static const char HOSTAPD_CONF_FILE[]    = "/data/misc/wifi/hostapd.conf";
 static const char HOSTAPD_BIN_FILE[]    = "/system/bin/hostapd";
 
@@ -136,7 +140,7 @@ int SoftapController::setSoftap(int argc, char *argv[]) {
             channel = AP_CHANNEL_DEFAULT;
     }
 
-    asprintf(&wbuf, "interface=%s\ndriver=nl80211\nctrl_interface="
+    asprintf(&wbuf, "interface=%s\ndriver=" HOSTAPD_DRIVER_NAME "\nctrl_interface="
             "/data/misc/wifi/hostapd\nssid=%s\nchannel=%d\nieee80211n=1\n"
             "hw_mode=g\nignore_broadcast_ssid=%d\n",
             argv[2], argv[3], channel, hidden);
@@ -203,6 +207,10 @@ int SoftapController::fwReloadSoftap(int argc, char *argv[])
 {
     int i = 0;
     char *fwpath = NULL;
+
+#ifdef SINGLE_WIFI_FW
+    return ResponseCode::CommandOkay;
+#endif
 
     if (argc < 4) {
         ALOGE("SoftAP fwreload is missing arguments. Please use: softap <wlan iface> <AP|P2P|STA>");

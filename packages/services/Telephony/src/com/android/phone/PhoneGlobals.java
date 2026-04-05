@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,6 +44,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.IPowerManager;
 import android.os.Message;
+import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -48,8 +52,11 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UpdateLock;
 import android.os.UserHandle;
+import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
+import android.preference.PreferenceScreen;
 import android.provider.Settings.System;
+import android.telephony.MSimTelephonyManager;
 import android.telephony.ServiceState;
 import android.text.TextUtils;
 import android.util.Log;
@@ -67,11 +74,22 @@ import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.cdma.TtyIntent;
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.phone.common.CallLogAsync;
 import com.android.phone.OtaUtils.CdmaOtaScreenState;
 import com.android.phone.WiredHeadsetManager.WiredHeadsetListener;
 import com.android.server.sip.SipService;
 import com.android.services.telephony.common.AudioMode;
+
+import org.codeaurora.ims.IImsService;
+import org.codeaurora.ims.IImsServiceListener;
+
+import static com.android.internal.telephony.MSimConstants.DEFAULT_SUBSCRIPTION;
+import static com.android.internal.telephony.MSimConstants.SUBSCRIPTION_KEY;
+import org.codeaurora.ims.csvt.CallForwardInfoP;
+import org.codeaurora.ims.csvt.ICsvtService;
+import org.codeaurora.ims.csvt.ICsvtServiceListener;
+import java.util.List;
 
 /**
  * Global state for the telephony subsystem when running in the primary
@@ -96,28 +114,32 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
      *
      * ***** DO NOT SUBMIT WITH DBG_LEVEL > 0 *************
      */
-    /* package */ static final int DBG_LEVEL = 0;
+    /* package */ static final int DBG_LEVEL = 2;
 
     private static final boolean DBG =
             (PhoneGlobals.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     private static final boolean VDBG = (PhoneGlobals.DBG_LEVEL >= 2);
+    protected static final String PROPERTY_AIRPLANE_MODE_ON = "persist.radio.airplane_mode_on";
 
     // Message codes; see mHandler below.
-    private static final int EVENT_SIM_NETWORK_LOCKED = 3;
-    private static final int EVENT_SIM_STATE_CHANGED = 8;
+    protected static final int EVENT_PERSO_LOCKED = 3;
+    protected static final int EVENT_SIM_STATE_CHANGED = 8;
     private static final int EVENT_DATA_ROAMING_DISCONNECTED = 10;
     private static final int EVENT_DATA_ROAMING_OK = 11;
     private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 12;
     private static final int EVENT_DOCK_STATE_CHANGED = 13;
-    private static final int EVENT_TTY_PREFERRED_MODE_CHANGED = 14;
+    protected static final int EVENT_TTY_PREFERRED_MODE_CHANGED = 14;
     private static final int EVENT_TTY_MODE_GET = 15;
     private static final int EVENT_TTY_MODE_SET = 16;
-    private static final int EVENT_START_SIP_SERVICE = 17;
+    protected static final int EVENT_START_SIP_SERVICE = 17;
+    protected static final int EVENT_QUERY_SERVICE_STATUS = 18;
 
     // The MMI codes are also used by the InCallScreen.
     public static final int MMI_INITIATE = 51;
     public static final int MMI_COMPLETE = 52;
     public static final int MMI_CANCEL = 53;
+
+    public static final int CALL_WAITING = 7;
     // Don't use message codes larger than 99 here; those are reserved for
     // the individual Activities of the Phone UI.
 
@@ -155,10 +177,16 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     public static final String ACTION_SEND_SMS_FROM_NOTIFICATION =
             "com.android.phone.ACTION_SEND_SMS_FROM_NOTIFICATION";
 
-    private static PhoneGlobals sMe;
+    /**
+     * Intent extra used for emergency calls on IMS.
+     */
+    public static final String EXTRA_IMS_PHONE = "ims_phone";
+
+    protected static PhoneGlobals sMe;
 
     // A few important fields we expose to the rest of the package
     // directly (rather than thru set/get methods) for efficiency.
+    Phone mImsPhone;
     CallController callController;
     CallManager mCM;
     CallNotifier notifier;
@@ -167,21 +195,25 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     Phone phone;
     PhoneInterfaceManager phoneMgr;
 
-    private AudioRouter audioRouter;
-    private BluetoothManager bluetoothManager;
-    private CallCommandService callCommandService;
-    private CallGatewayManager callGatewayManager;
-    private CallHandlerServiceProxy callHandlerServiceProxy;
-    private CallModeler callModeler;
-    private CallStateMonitor callStateMonitor;
-    private DTMFTonePlayer dtmfTonePlayer;
-    private IBluetoothHeadsetPhone mBluetoothPhone;
-    private Ringer ringer;
-    private WiredHeadsetManager wiredHeadsetManager;
+    protected AudioRouter audioRouter;
+    protected BluetoothManager bluetoothManager;
+    protected CallCommandService callCommandService;
+    protected CallGatewayManager callGatewayManager;
+    protected CallHandlerServiceProxy callHandlerServiceProxy;
+    protected CallModeler callModeler;
+    protected CallStateMonitor callStateMonitor;
+    protected DTMFTonePlayer dtmfTonePlayer;
+    protected IBluetoothHeadsetPhone mBluetoothPhone;
+    protected Ringer ringer;
+    protected WiredHeadsetManager wiredHeadsetManager;
 
     static int mDockState = Intent.EXTRA_DOCK_STATE_UNDOCKED;
     static boolean sVoiceCapable = true;
 
+    public static IImsService mImsService;
+    public static ICsvtService mCsvtService;
+    private static int sImsVoiceSrvStatus = PhoneUtils.IMS_SRV_STATUS_NOT_SUPPORTED;
+    private static int sImsVideoSrvStatus = PhoneUtils.IMS_SRV_STATUS_NOT_SUPPORTED;
     // Internal PhoneApp Call state tracker
     CdmaPhoneCallState cdmaPhoneCallState;
 
@@ -189,7 +221,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     // Normally, these are the Emergency Dialer and the subsequent
     // progress dialog.  null if there is are no such objects in
     // the foreground.
-    private Activity mPUKEntryActivity;
+    protected Activity mPUKEntryActivity;
     private ProgressDialog mPUKEntryProgressDialog;
 
     private boolean mIsSimPinEnabled;
@@ -199,17 +231,17 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     private boolean mBeginningCall;
 
     // Last phone state seen by updatePhoneState()
-    private PhoneConstants.State mLastPhoneState = PhoneConstants.State.IDLE;
+    protected PhoneConstants.State mLastPhoneState = PhoneConstants.State.IDLE;
 
     private WakeState mWakeState = WakeState.SLEEP;
 
-    private PowerManager mPowerManager;
-    private IPowerManager mPowerManagerService;
-    private PowerManager.WakeLock mWakeLock;
-    private PowerManager.WakeLock mPartialWakeLock;
-    private KeyguardManager mKeyguardManager;
+    protected PowerManager mPowerManager;
+    protected IPowerManager mPowerManagerService;
+    protected PowerManager.WakeLock mWakeLock;
+    protected PowerManager.WakeLock mPartialWakeLock;
+    protected KeyguardManager mKeyguardManager;
 
-    private UpdateLock mUpdateLock;
+    protected UpdateLock mUpdateLock;
 
     // Broadcast receiver for various intent broadcasts (see onCreate())
     private final BroadcastReceiver mReceiver = new PhoneAppBroadcastReceiver();
@@ -218,7 +250,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     private final BroadcastReceiver mMediaButtonReceiver = new MediaButtonBroadcastReceiver();
 
     /** boolean indicating restoring mute state on InCallScreen.onResume() */
-    private boolean mShouldRestoreMuteOnInCallResume;
+    protected boolean mShouldRestoreMuteOnInCallResume;
 
     /**
      * The singleton OtaUtils instance used for OTASP calls.
@@ -241,9 +273,15 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     public OtaUtils.CdmaOtaInCallScreenUiState cdmaOtaInCallScreenUiState;
 
     // TTY feature enabled on this platform
-    private boolean mTtyEnabled;
+    protected boolean mTtyEnabled;
     // Current TTY operating mode selected by user
-    private int mPreferredTtyMode = Phone.TTY_MODE_OFF;
+    protected int mPreferredTtyMode = Phone.TTY_MODE_OFF;
+
+    // For adding to Blacklist from call log
+    private static final String REMOVE_BLACKLIST = "com.android.phone.REMOVE_BLACKLIST";
+    private static final String EXTRA_NUMBER = "number";
+    private static final String EXTRA_TYPE = "type";
+    private static final String EXTRA_FROM_NOTIFICATION = "fromNotification";
 
     /**
      * Set the restore mute state flag. Used when we are setting the mute state
@@ -269,19 +307,21 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
 
                 // TODO: This event should be handled by the lock screen, just
                 // like the "SIM missing" and "Sim locked" cases (bug 1804111).
-                case EVENT_SIM_NETWORK_LOCKED:
-                    if (getResources().getBoolean(R.bool.ignore_sim_network_locked_events)) {
+                case EVENT_PERSO_LOCKED:
+                    if (getResources().getBoolean(R.bool.ignore_perso_locked_events) ||
+                        getResources().getBoolean(R.bool.ignore_sim_network_locked_events)) {
                         // Some products don't have the concept of a "SIM network lock"
-                        Log.i(LOG_TAG, "Ignoring EVENT_SIM_NETWORK_LOCKED event; "
-                              + "not showing 'SIM network unlock' PIN entry screen");
+                        Log.i(LOG_TAG, "Ignoring EVENT_PERSO_LOCKED event; "
+                              + "not showing 'PERSO unlock' PIN entry screen");
                     } else {
-                        // Normal case: show the "SIM network unlock" PIN entry screen.
+                        // Normal case: show the "PERSO unlock" PIN entry screen.
                         // The user won't be able to do anything else until
-                        // they enter a valid SIM network PIN.
-                        Log.i(LOG_TAG, "show sim depersonal panel");
-                        IccNetworkDepersonalizationPanel ndpPanel =
-                                new IccNetworkDepersonalizationPanel(PhoneGlobals.getInstance());
-                        ndpPanel.show();
+                        // they enter a valid PERSO PIN.
+                        Log.i(LOG_TAG, "show depersonal panel");
+                        int subtype = (Integer)((AsyncResult)msg.obj).result;
+                        IccDepersonalizationPanel dpPanel =
+                                new IccDepersonalizationPanel(PhoneGlobals.getInstance(), subtype);
+                        dpPanel.show();
                     }
                     break;
 
@@ -362,6 +402,13 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
                 case EVENT_TTY_MODE_SET:
                     handleSetTTYModeResponse(msg);
                     break;
+
+                case EVENT_QUERY_SERVICE_STATUS:
+                    AsyncResult ar = (AsyncResult) msg.obj;
+                    if (ar != null && ar.exception != null) {
+                        Log.e(LOG_TAG, msg.what + " failed " + ar.exception.toString());
+                    }
+                    break;
             }
         }
     };
@@ -399,6 +446,10 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
 
             mCM = CallManager.getInstance();
             mCM.registerPhone(phone);
+
+            createImsService();
+
+            createCsvtService();
 
             // Create the NotificationMgr singleton, which is used to display
             // status bar icons and control other status bar behavior.
@@ -478,6 +529,9 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
 
             ringer = Ringer.init(this, bluetoothManager);
 
+            // Convert old blacklist to new format
+            Blacklist.migrateOldDataIfPresent(this);
+
             // Audio router
             audioRouter = new AudioRouter(this, bluetoothManager, wiredHeadsetManager, mCM);
 
@@ -503,7 +557,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
             IccCard sim = phone.getIccCard();
             if (sim != null) {
                 if (VDBG) Log.v(LOG_TAG, "register for ICC status");
-                sim.registerForNetworkLocked(mHandler, EVENT_SIM_NETWORK_LOCKED, null);
+                sim.registerForPersoLocked(mHandler, EVENT_PERSO_LOCKED, null);
             }
 
             // register for MMI/USSD
@@ -528,6 +582,8 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
                 intentFilter.addAction(TtyIntent.TTY_PREFERRED_MODE_CHANGE_ACTION);
             }
             intentFilter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
+            intentFilter.addAction(REMOVE_BLACKLIST);
+
             registerReceiver(mReceiver, intentFilter);
 
             // Use a separate receiver for ACTION_MEDIA_BUTTON broadcasts,
@@ -598,6 +654,148 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
         }
    }
 
+    public void createImsService() {
+        try {
+            // send intent to start ims service n get phone from ims service
+            boolean bound = bindService(new Intent("org.codeaurora.ims.IImsService"),
+                    ImsServiceConnection, Context.BIND_AUTO_CREATE);
+            Log.d(LOG_TAG, "IMSService bound request : " + bound);
+        } catch (NoClassDefFoundError e) {
+            Log.w(LOG_TAG, "Ignoring IMS class not found exception " + e);
+        }
+    }
+
+    private ServiceConnection ImsServiceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //Get handle to IImsService.Stub.asInterface(service);
+            mImsService = IImsService.Stub.asInterface(service);
+            Log.d(LOG_TAG,"Ims Service Connected" + mImsService);
+            if (mImsService != null) {
+                try {
+                    int result = mImsService.registerCallback(imsServListener);
+                    if (result == 0) {
+                        Log.d(LOG_TAG, "Callback registered successfully");
+                        mImsService.queryImsServiceStatus(
+                                EVENT_QUERY_SERVICE_STATUS, new Messenger(mHandler));
+                    }
+                } catch (RemoteException e) {
+                    Log.e(LOG_TAG, "Remote Exception in mImsService.registerCallback");
+                }
+            }
+        }
+
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.w(LOG_TAG,"Ims Service onServiceDisconnected");
+            sImsVoiceSrvStatus = PhoneUtils.IMS_SRV_STATUS_NOT_SUPPORTED;
+            sImsVideoSrvStatus = PhoneUtils.IMS_SRV_STATUS_NOT_SUPPORTED;
+            mImsService = null;
+        }
+    };
+
+    public static int getImsServiceStatus (int service) {
+        int status = PhoneUtils.IMS_SRV_STATUS_NOT_SUPPORTED;
+        switch (service) {
+            case Phone.CALL_TYPE_VOICE:
+                status = sImsVoiceSrvStatus;
+                break;
+            case Phone.CALL_TYPE_VT:
+                status = sImsVideoSrvStatus;
+                break;
+            default:
+                Log.e(LOG_TAG, "Unsupported service for API usage");
+                break;
+        }
+        return status;
+    }
+
+    IImsServiceListener imsServListener = new IImsServiceListener.Stub() {
+        public void imsUpdateServiceStatus(int service, int status) {
+            Log.v(LOG_TAG, "imsUpdateServiceStatus response service " + service + "status = "
+                    + status);
+            if (service == Phone.CALL_TYPE_VOICE) {
+                sImsVoiceSrvStatus = status;
+            } else if (service == Phone.CALL_TYPE_VT) {
+                sImsVideoSrvStatus = status;
+            }
+        }
+
+        public void imsRegStateChanged(int imsRegState) {
+        }
+
+        public void imsRegStateChangeReqFailed() {
+        }
+    };
+
+    public boolean isCsvtActive(){
+        boolean result = false;
+        if (mCsvtService != null){
+            try{
+                result = mCsvtService.isActive();
+                Log.d(LOG_TAG, "mCsvtService.isActive = " + result);
+            } catch (RemoteException e) {
+                Log.e(LOG_TAG, Log.getStackTraceString(new Throwable()));
+            }
+        }
+        return result;
+    }
+
+    public void createCsvtService() {
+        if (PhoneUtils.isCallOnCsvtEnabled()) {
+            try {
+                Intent intent = new Intent("org.codeaurora.ims.csvt.ICsvtService");
+                boolean bound = bindService(intent,
+                        mCsvtServiceConnection, Context.BIND_AUTO_CREATE);
+                Log.d(LOG_TAG, "ICsvtService bound request : " + bound);
+            } catch (NoClassDefFoundError e) {
+                //csvt is not supported so ignore creating csvt service.
+                Log.w(LOG_TAG, "Ignoring ICsvtService class not found exception "
+                        + e);
+            }
+        }
+    }
+
+    private static ServiceConnection mCsvtServiceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mCsvtService = ICsvtService.Stub.asInterface(service);
+            Log.d(LOG_TAG,"Csvt Service Connected: " + mCsvtService);
+            if (mCsvtService != null) {
+                try{
+                    mCsvtService.registerListener(mCsvtServiceListener);
+                    Log.d(LOG_TAG, "Csvt Service register ICsvtServiceListener");
+                } catch (RemoteException e) {
+                    Log.e(LOG_TAG, Log.getStackTraceString(new Throwable()));
+                }
+            }
+        }
+
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.w(LOG_TAG,"Csvt Service onServiceDisconnected");
+            mCsvtService = null;
+        }
+    };
+
+    private static ICsvtServiceListener mCsvtServiceListener = new ICsvtServiceListener.Stub() {
+        public void onPhoneStateChanged(int state) {
+            Log.d(LOG_TAG, "onPhoneStateChanged");
+            Intent intent = new Intent("intent.action.CSVT_PRECISE_CALL_STATE_CHANGED");
+            PhoneGlobals.getInstance().sendBroadcast(intent);
+        }
+
+        public void onCallStatus(int result) {
+        }
+
+        public void onCallWaiting(boolean enabled) {
+        }
+
+        public void onCallForwardingOptions(List<CallForwardInfoP> fi) {
+        }
+
+        public void onRingbackTone(boolean playTone) {
+        }
+
+    };
+
+
     /**
      * Returns the singleton instance of the PhoneApp.
      */
@@ -621,6 +819,12 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
      */
     static Phone getPhone() {
         return getInstance().phone;
+    }
+
+    // gets the Phone correspoding to a subscription
+    Phone getPhone(int subscription) {
+        // PhoneGlobals: discard the subscription.
+        return phone;
     }
 
     Ringer getRinger() {
@@ -695,6 +899,35 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
                 Uri.fromParts(Constants.SCHEME_SMSTO, number, null),
                 context, NotificationBroadcastReceiver.class);
         return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
+
+    /* package */ static PendingIntent getUnblockNumberFromNotificationPendingIntent(
+            Context context, String number, int type) {
+        Intent intent = new Intent(REMOVE_BLACKLIST);
+        intent.setClass(context, NotificationBroadcastReceiver.class);
+        intent.putExtra(EXTRA_NUMBER, number);
+        intent.putExtra(EXTRA_FROM_NOTIFICATION, true);
+        intent.putExtra(EXTRA_TYPE, type);
+        return PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    /* package */ static void initCallWaitingPref(PreferenceActivity activity, int subscription) {
+        PreferenceScreen prefCWAct = (PreferenceScreen)
+                activity.findPreference("button_cw_act_key");
+        PreferenceScreen prefCWDeact = (PreferenceScreen)
+                activity.findPreference("button_cw_deact_key");
+
+        CdmaCallOptionsSetting callOptionSettings = new CdmaCallOptionsSetting(activity,
+                CALL_WAITING, subscription);
+
+        prefCWAct.getIntent().putExtra(SUBSCRIPTION_KEY, subscription)
+                .setData(Uri.fromParts("tel", callOptionSettings.getActivateNumber(), null));
+        prefCWAct.setSummary(callOptionSettings.getActivateNumber());
+
+        prefCWDeact.getIntent().putExtra(SUBSCRIPTION_KEY, subscription)
+                .setData(Uri.fromParts("tel", callOptionSettings.getDeactivateNumber(), null));
+        prefCWDeact.setSummary(callOptionSettings.getDeactivateNumber());
+
     }
 
     boolean isSimPinEnabled() {
@@ -883,7 +1116,8 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
         //
         boolean isRinging = (state == PhoneConstants.State.RINGING);
         boolean isDialing = (phone.getForegroundCall().getState() == Call.State.DIALING);
-        boolean keepScreenOn = isRinging || isDialing;
+        boolean isVideoCallActive = PhoneUtils.isImsVideoCallActive(mCM.getActiveFgCall());
+        boolean keepScreenOn = isRinging || isDialing || isVideoCallActive;
         // keepScreenOn == true means we'll hold a full wake lock:
         requestWakeState(keepScreenOn ? WakeState.FULL : WakeState.SLEEP);
     }
@@ -937,7 +1171,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
         return mKeyguardManager;
     }
 
-    private void onMMIComplete(AsyncResult r) {
+    protected void onMMIComplete(AsyncResult r) {
         if (VDBG) Log.d(LOG_TAG, "onMMIComplete()...");
         MmiCode mmiCode = (MmiCode) r.result;
         PhoneUtils.displayMMIComplete(phone, getInstance(), mmiCode, null, null);
@@ -988,7 +1222,6 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
             if (DBG) Log.d(LOG_TAG, "Update registration for ICC status...");
 
             //Register all events new to the new active phone
-            sim.registerForNetworkLocked(mHandler, EVENT_SIM_NETWORK_LOCKED, null);
         }
     }
 
@@ -1009,13 +1242,21 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     /**
      * Receiver for misc intent broadcasts the Phone app cares about.
      */
-    private class PhoneAppBroadcastReceiver extends BroadcastReceiver {
+    protected class PhoneAppBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action.equals(Intent.ACTION_AIRPLANE_MODE_CHANGED)) {
                 boolean enabled = System.getInt(getContentResolver(),
                         System.AIRPLANE_MODE_ON, 0) == 0;
+
+                // Set the airplane mode property for RIL to read on boot up
+                // to know if the phone is in airplane mode so that RIL can
+                // power down the ICC card.
+                Log.d(LOG_TAG, "Setting property " + PROPERTY_AIRPLANE_MODE_ON);
+                // enabled here implies airplane mode is OFF from above condition
+                SystemProperties.set(PROPERTY_AIRPLANE_MODE_ON, (enabled ? "0" : "1"));
+
                 phone.setRadioPower(enabled);
             } else if (action.equals(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED)) {
                 if (VDBG) Log.d(LOG_TAG, "mReceiver: ACTION_ANY_DATA_CONNECTION_STATE_CHANGED");
@@ -1049,12 +1290,19 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
             } else if (action.equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
                 handleServiceStateChanged(intent);
             } else if (action.equals(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED)) {
-                if (TelephonyCapabilities.supportsEcm(phone)) {
+                boolean isImsPhone = intent.getBooleanExtra(EXTRA_IMS_PHONE, false);
+
+                if (isImsPhone) {
+                    mImsPhone = PhoneUtils.getImsPhone(PhoneGlobals.getInstance().mCM);
+                }
+                if (TelephonyCapabilities.supportsEcm(phone) ||
+                        TelephonyCapabilities.supportsEcm(mImsPhone)) {
                     Log.d(LOG_TAG, "Emergency Callback Mode arrived in PhoneApp.");
                     // Start Emergency Callback Mode service
-                    if (intent.getBooleanExtra("phoneinECMState", false)) {
+                    if (intent.getBooleanExtra(PhoneConstants.PHONE_IN_ECM_STATE, false)) {
                         context.startService(new Intent(context,
-                                EmergencyCallbackModeService.class));
+                                    EmergencyCallbackModeService.class).putExtra(
+                                            EXTRA_IMS_PHONE, isImsPhone));
                     }
                 } else {
                     // It doesn't make sense to get ACTION_EMERGENCY_CALLBACK_MODE_CHANGED
@@ -1092,12 +1340,17 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
      * adjust its IntentFilter's priority (to make sure we get these
      * intents *before* the media player.)
      */
-    private class MediaButtonBroadcastReceiver extends BroadcastReceiver {
+    protected class MediaButtonBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             KeyEvent event = (KeyEvent) intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
             if (VDBG) Log.d(LOG_TAG,
                            "MediaButtonBroadcastReceiver.onReceive()...  event = " + event);
+            if (getSendingUserId() != UserHandle.USER_ALL) {
+                Log.w(LOG_TAG, "Ignore media keys from the non-system app userId="
+                        + getSendingUserId());
+                return;
+            }
             if ((event != null)
                 && (event.getKeyCode() == KeyEvent.KEYCODE_HEADSETHOOK)) {
                 if (VDBG) Log.d(LOG_TAG, "MediaButtonBroadcastReceiver: HEADSETHOOK");
@@ -1152,6 +1405,15 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
                 Intent smsIntent = new Intent(Intent.ACTION_SENDTO, intent.getData());
                 smsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(smsIntent);
+            } else if (action.equals(REMOVE_BLACKLIST)) {
+                if (intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false)) {
+                    // Dismiss the notification that brought us here
+                    int blacklistType = intent.getIntExtra(EXTRA_TYPE, 0);
+                    NotificationMgr.init(PhoneGlobals.getInstance())
+                            .cancelBlacklistedNotification(blacklistType);
+                    BlacklistUtils.addOrUpdate(context, intent.getStringExtra(EXTRA_NUMBER),
+                            0, blacklistType);
+                }
             } else {
                 Log.w(LOG_TAG, "Received hang-up request from notification,"
                         + " but there's no call the system can hang up.");
@@ -1183,7 +1445,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
 
         if (ss != null) {
             int state = ss.getState();
-            notificationMgr.updateNetworkSelection(state);
+            notificationMgr.updateNetworkSelection(state, phone);
         }
     }
 
@@ -1264,6 +1526,10 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
         phone.queryTTYMode(mHandler.obtainMessage(EVENT_TTY_MODE_GET));
     }
 
+    /* package */ PhoneConstants.State getPhoneState(int subscription) {
+        return mLastPhoneState;
+    }
+
     /**
      * "Call origin" may be used by Contacts app to specify where the phone call comes from.
      * Currently, the only permitted value for this extra is {@link #ALLOWED_EXTRA_CALL_ORIGIN}.
@@ -1283,7 +1549,7 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
     private static final long CALL_ORIGIN_EXPIRATION_MILLIS = 30 * 1000;
 
     /** Service connection */
-    private final ServiceConnection mBluetoothPhoneConnection = new ServiceConnection() {
+    protected final ServiceConnection mBluetoothPhoneConnection = new ServiceConnection() {
 
         /** Handle the task of binding the local object to the service */
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -1298,4 +1564,38 @@ public class PhoneGlobals extends ContextWrapper implements WiredHeadsetListener
         }
     };
 
+    /**
+     * Gets the default subscription
+     */
+    public int getDefaultSubscription() {
+        return DEFAULT_SUBSCRIPTION;
+    }
+
+    /**
+     * Gets User preferred Voice subscription setting
+     */
+    public int getVoiceSubscription() {
+        return DEFAULT_SUBSCRIPTION;
+    }
+
+    /**
+     * Get the subscription that has service
+     */
+    public int getVoiceSubscriptionInService() {
+        return DEFAULT_SUBSCRIPTION;
+    }
+
+    /*
+     * Gets current Data subscription setting
+     */
+    public int getDataSubscription() {
+        return DEFAULT_SUBSCRIPTION;
+    }
+
+    /*
+     * Gets default/user preferred Data subscription setting
+     */
+    public int getDefaultDataSubscription() {
+        return DEFAULT_SUBSCRIPTION;
+    }
 }

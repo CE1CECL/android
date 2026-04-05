@@ -1,14 +1,15 @@
 /*
+ * Copyright (C) 2014 The CyanogenMod Project
  * Copyright (C) 2008 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the 'License');
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
+ * distributed under the License is distributed on an 'AS IS' BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
@@ -16,39 +17,42 @@
 
 package com.android.calculator2;
 
-import android.view.LayoutInflater;
-import android.view.ViewGroup;
-import android.view.View;
+import java.util.Vector;
+
 import android.content.Context;
+import android.text.Html;
+import android.text.Spanned;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import java.util.Vector;
-
-import org.javia.arity.SyntaxException;
+import com.android.calculator2.view.HistoryLine;
 
 class HistoryAdapter extends BaseAdapter {
-    private Vector<HistoryEntry> mEntries;
-    private LayoutInflater mInflater;
-    private Logic mEval;
-    
-    HistoryAdapter(Context context, History history, Logic evaluator) {
+    private final Context mContext;
+    private final Vector<HistoryEntry> mEntries;
+    private final EquationFormatter mEquationFormatter;
+    private final History mHistory;
+
+    HistoryAdapter(Context context, History history) {
+        mContext = context;
         mEntries = history.mEntries;
-        mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        mEval = evaluator;
+        mEquationFormatter = new EquationFormatter();
+        mHistory = history;
     }
 
-    // @Override
+    @Override
     public int getCount() {
         return mEntries.size() - 1;
     }
 
-    // @Override
+    @Override
     public Object getItem(int position) {
         return mEntries.elementAt(position);
     }
 
-    // @Override
+    @Override
     public long getItemId(int position) {
         return position;
     }
@@ -58,30 +62,41 @@ class HistoryAdapter extends BaseAdapter {
         return true;
     }
 
-    // @Override
+    @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        View view;
+        HistoryLine view;
         if (convertView == null) {
-            view = mInflater.inflate(R.layout.history_item, parent, false);
+            view = createView();
         } else {
-            view = convertView;
+            view = (HistoryLine) convertView;
         }
-
-        TextView expr   = (TextView) view.findViewById(R.id.historyExpr);
-        TextView result = (TextView) view.findViewById(R.id.historyResult);
 
         HistoryEntry entry = mEntries.elementAt(position);
-        String base = entry.getBase();
-        expr.setText(entry.getBase());
-
-        try {
-            String res = mEval.evaluate(base);
-            result.setText("= " + res);
-        } catch (SyntaxException e) {
-            result.setText("");
-        }
+        view.setHistoryEntry(entry);
+        view.setHistory(mHistory);
+        view.setAdapter(this);
+        updateView(entry, view);
 
         return view;
     }
-}
 
+    public Context getContext() {
+        return mContext;
+    }
+
+    protected HistoryLine createView() {
+        return (HistoryLine) View.inflate(getContext(), R.layout.history_entry, null);
+    }
+
+    protected void updateView(HistoryEntry entry, HistoryLine view) {
+        TextView expr = (TextView) view.findViewById(R.id.historyExpr);
+        TextView result = (TextView) view.findViewById(R.id.historyResult);
+
+        expr.setText(formatText(entry.getBase()));
+        result.setText(entry.getEdited());
+    }
+
+    protected Spanned formatText(String text) {
+        return Html.fromHtml(mEquationFormatter.insertSupscripts(text));
+    }
+}

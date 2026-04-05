@@ -678,7 +678,7 @@
     <string name="wifi_tether_enabled_subtext" msgid="8948641212931906143">"Flyttbar trådløs sone <xliff:g id="NETWORK_SSID">%1$s</xliff:g> er aktiv"</string>
     <string name="wifi_tether_failed_subtext" msgid="1484941858530919002">"Feil med flyttbar Wi-Fi-sone"</string>
     <string name="wifi_tether_configure_ap_text" msgid="7974681394041609308">"Konfigurer Wi-Fi-sone"</string>
-    <string name="wifi_tether_configure_subtext" msgid="7957547035983257748">"<xliff:g id="NETWORK_SSID">%1$s</xliff:g><xliff:g id="NETWORK_SECURITY">%2$s</xliff:g> flyttbar Wi-Fi-sone"</string>
+    <string name="wifi_tether_configure_subtext" msgid="7957547035983257748">"<xliff:g id="NETWORK_SSID">%1$s</xliff:g> <xliff:g id="NETWORK_SECURITY">%2$s</xliff:g> flyttbar Wi-Fi-sone"</string>
     <string name="wifi_tether_configure_ssid_default" msgid="8467525402622138547">"AndroidHotspot"</string>
     <string name="home_settings" msgid="212375129455718176">"Startside"</string>
     <string name="display_settings_title" msgid="1708697328627382561">"Skjerm"</string>
@@ -791,6 +791,7 @@
     <string name="system_update_settings_list_item_title" msgid="3342887311059985961">"Systemoppdateringer"</string>
     <string name="system_update_settings_list_item_summary" msgid="3853057315907710747"></string>
     <string name="firmware_version" msgid="4801135784886859972">"Android-versjon"</string>
+    <string name="security_patch" msgid="8438384045870296634">"Nivå for patch (feilretting) av sikkerhet på Android"</string>
     <string name="model_number" msgid="3765737700545384794">"Modellnummer"</string>
     <string name="fcc_equipment_id" msgid="149114368246356737">"Utstyrs-ID"</string>
     <string name="baseband_version" msgid="1848990160763524801">"Basisbåndversjon"</string>

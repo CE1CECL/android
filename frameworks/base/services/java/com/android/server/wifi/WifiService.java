@@ -34,6 +34,7 @@ import android.net.wifi.IWifiManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.BatchedScanResult;
 import android.net.wifi.BatchedScanSettings;
+import android.net.wifi.WifiChannel;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiConfiguration.ProxySettings;
 import android.net.wifi.WifiInfo;
@@ -331,7 +332,7 @@ public final class WifiService extends IWifiManager.Stub {
 
         // If we are already disabled (could be due to airplane mode), avoid changing persist
         // state here
-        if (wifiEnabled) setWifiEnabled(wifiEnabled);
+        if (wifiEnabled) setWifiEnabled(mContext.getBasePackageName(), wifiEnabled);
 
         mWifiWatchdogStateMachine = WifiWatchdogStateMachine.
                makeWifiWatchdogStateMachine(mContext);
@@ -588,8 +589,15 @@ public final class WifiService extends IWifiManager.Stub {
      * @return {@code true} if the enable/disable operation was
      *         started or is already in the queue.
      */
-    public synchronized boolean setWifiEnabled(boolean enable) {
+    public synchronized boolean setWifiEnabled(String callingPackage, boolean enable) {
         enforceChangePermission();
+
+        int uid = Binder.getCallingUid();
+        if (mAppOps.noteOp(AppOpsManager.OP_WIFI_CHANGE, uid, callingPackage)
+                != AppOpsManager.MODE_ALLOWED) {
+            return false;
+        }
+
         Slog.d(TAG, "setWifiEnabled: " + enable + " pid=" + Binder.getCallingPid()
                     + ", uid=" + Binder.getCallingUid());
         if (DBG) {
@@ -880,6 +888,15 @@ public final class WifiService extends IWifiManager.Stub {
     }
 
     /**
+     * Get the operational country code
+     */
+    public String getCountryCode() {
+        enforceAccessPermission();
+        return mWifiStateMachine.getCountryCode();
+    }
+
+
+    /**
      * Set the operational frequency band
      * @param band One of
      *     {@link WifiManager#WIFI_FREQUENCY_BAND_AUTO},
@@ -914,6 +931,31 @@ public final class WifiService extends IWifiManager.Stub {
         //TODO: Should move towards adding a driver API that checks at runtime
         return mContext.getResources().getBoolean(
                 com.android.internal.R.bool.config_wifi_dual_band_support);
+    }
+
+    /**
+     * Is Ad-Hoc (IBSS) mode supported by the driver?
+     * Will only return correct results when we have reached WIFI_STATE_ENABLED
+     * @return {@code true} if IBSS mode is supported, {@code false} if not
+     */
+    public boolean isIbssSupported() {
+        enforceAccessPermission();
+        if (mWifiStateMachineChannel != null) {
+            return (mWifiStateMachine.syncIsIbssSupported(mWifiStateMachineChannel) == 1);
+        } else {
+            Slog.e(TAG, "mWifiStateMachineChannel is not initialized");
+            return false;
+        }
+    }
+
+    public List<WifiChannel> getSupportedChannels() {
+        enforceAccessPermission();
+        if (mWifiStateMachineChannel != null) {
+            return (mWifiStateMachine.syncGetSupportedChannels(mWifiStateMachineChannel));
+        } else {
+            Slog.e(TAG, "mWifiStateMachineChannel is not initialized");
+            return null;
+        }
     }
 
     /**

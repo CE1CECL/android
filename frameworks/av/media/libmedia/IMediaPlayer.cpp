@@ -57,6 +57,8 @@ enum {
     SET_RETRANSMIT_ENDPOINT,
     GET_RETRANSMIT_ENDPOINT,
     SET_NEXT_PLAYER,
+    SUSPEND,
+    RESUME,
 };
 
 class BpMediaPlayer: public BpInterface<IMediaPlayer>
@@ -338,6 +340,22 @@ public:
 
         return err;
     }
+
+    status_t suspend()
+    {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMediaPlayer::getInterfaceDescriptor());
+        remote()->transact(SUSPEND, data, &reply);
+        return reply.readInt32();
+     }
+
+     status_t resume()
+     {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMediaPlayer::getInterfaceDescriptor());
+        remote()->transact(RESUME, data, &reply);
+        return reply.readInt32();
+     }
 };
 
 IMPLEMENT_META_INTERFACE(MediaPlayer, "android.media.IMediaPlayer");
@@ -423,7 +441,7 @@ status_t BnMediaPlayer::onTransact(
         } break;
         case GET_CURRENT_POSITION: {
             CHECK_INTERFACE(IMediaPlayer, data, reply);
-            int msec;
+            int msec = 0;
             status_t ret = getCurrentPosition(&msec);
             reply->writeInt32(msec);
             reply->writeInt32(ret);
@@ -431,7 +449,7 @@ status_t BnMediaPlayer::onTransact(
         } break;
         case GET_DURATION: {
             CHECK_INTERFACE(IMediaPlayer, data, reply);
-            int msec;
+            int msec = 0;
             status_t ret = getDuration(&msec);
             reply->writeInt32(msec);
             reply->writeInt32(ret);
@@ -510,6 +528,7 @@ status_t BnMediaPlayer::onTransact(
             CHECK_INTERFACE(IMediaPlayer, data, reply);
 
             struct sockaddr_in endpoint;
+            memset(&endpoint, 0, sizeof(endpoint));
             int amt = data.readInt32();
             if (amt == sizeof(endpoint)) {
                 data.read(&endpoint, sizeof(struct sockaddr_in));
@@ -524,6 +543,7 @@ status_t BnMediaPlayer::onTransact(
             CHECK_INTERFACE(IMediaPlayer, data, reply);
 
             struct sockaddr_in endpoint;
+            memset(&endpoint, 0, sizeof(endpoint));
             status_t res = getRetransmitEndpoint(&endpoint);
 
             reply->writeInt32(res);
@@ -535,6 +555,18 @@ status_t BnMediaPlayer::onTransact(
             CHECK_INTERFACE(IMediaPlayer, data, reply);
             reply->writeInt32(setNextPlayer(interface_cast<IMediaPlayer>(data.readStrongBinder())));
 
+            return NO_ERROR;
+        } break;
+        case SUSPEND: {
+            CHECK_INTERFACE(IMediaPlayer, data, reply);
+            status_t ret = suspend();
+            reply->writeInt32(ret);
+            return NO_ERROR;
+        } break;
+        case RESUME: {
+            CHECK_INTERFACE(IMediaPlayer, data, reply);
+            status_t ret = resume();
+            reply->writeInt32(ret);
             return NO_ERROR;
         } break;
         default:

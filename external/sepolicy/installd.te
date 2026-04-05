@@ -16,18 +16,31 @@ allow installd apk_data_file:file r_file_perms;
 allow installd apk_tmp_file:file r_file_perms;
 allow installd system_file:file x_file_perms;
 allow installd cgroup:dir create_dir_perms;
-allow installd download_file:dir { r_dir_perms write remove_name };
-allow installd download_file:file { r_file_perms unlink };
 dontaudit installd self:capability sys_admin;
 # Check validity of SELinux context before use.
 selinux_check_context(installd)
 # Read /seapp_contexts and /data/security/seapp_contexts
 security_access_policy(installd)
 # ASEC
-allow installd platform_app_data_file:lnk_file { create setattr };
 allow installd app_data_file:lnk_file { create setattr };
 allow installd asec_apk_file:file r_file_perms;
 allow installd bluetooth_data_file:lnk_file { create setattr };
 allow installd nfc_data_file:lnk_file { create setattr };
 allow installd radio_data_file:lnk_file { create setattr };
 allow installd shell_data_file:lnk_file { create setattr };
+# restorecon /data/data
+allow installd unlabeled:dir relabelfrom;
+allow installd unlabeled:notdevfile_class_set relabelfrom;
+allow installd system_data_file:dir { relabelfrom relabelto };
+allow installd system_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd bluetooth_data_file:dir { relabelfrom relabelto };
+allow installd bluetooth_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd nfc_data_file:dir { relabelfrom relabelto };
+allow installd nfc_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd radio_data_file:dir { relabelfrom relabelto };
+allow installd radio_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd app_data_file:dir { relabelfrom relabelto };
+allow installd app_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd shell_data_file:dir { relabelfrom relabelto };
+allow installd shell_data_file:notdevfile_class_set { relabelfrom relabelto };
+allow installd app_data_file:file { rename setattr };

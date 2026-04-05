@@ -25,6 +25,13 @@
 #ifndef SQLITE_API
 # define SQLITE_API
 #endif
+#ifdef QC_PERF
+extern void sqlite3_androidopt_init(void*, const char*) __attribute__((weak));
+extern void sqlite3_androidopt_open(void*, const char*, unsigned, int*) __attribute__((weak));
+extern void sqlite3_androidopt_close(void*) __attribute__((weak));
+extern int  sqlite3_androidopt_handle_pragma(void*, char*, char*) __attribute__((weak));
+#endif
+
 /************** Begin file sqliteInt.h ***************************************/
 /*
 ** 2001 September 15
@@ -659,7 +666,7 @@ extern "C" {
 */
 #define SQLITE_VERSION        "3.7.11"
 #define SQLITE_VERSION_NUMBER 3007011
-#define SQLITE_SOURCE_ID      "2012-03-20 11:35:50 00bb9c9ce4f465e6ac321ced2a9d0062dc364669"
+#define SQLITE_SOURCE_ID      "2015-05-21 02:24:35 000197cc4e3874711388d79d9ad5af6f0aba6cf9"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -9816,6 +9823,7 @@ struct sqlite3 {
   void (*xUnlockNotify)(void **, int);  /* Unlock notify callback */
   sqlite3 *pNextBlocked;        /* Next in list of all blocked connections */
 #endif
+  u8 isSettingOverride;         /* True if db settings have been overridden */
 };
 
 /*
@@ -11253,7 +11261,7 @@ struct Trigger {
  * orconf    -> stores the ON CONFLICT algorithm
  * pSelect   -> If this is an INSERT INTO ... SELECT ... statement, then
  *              this stores a pointer to the SELECT statement. Otherwise NULL.
- * target    -> A token holding the quoted name of the table to insert into.
+ * zTarget   -> Dequoted name of the table to insert into.
  * pExprList -> If this is an INSERT INTO ... VALUES ... statement, then
  *              this stores values to be inserted. Otherwise NULL.
  * pIdList   -> If this is an INSERT INTO ... (<column-names>) VALUES ... 
@@ -11261,12 +11269,12 @@ struct Trigger {
  *              inserted into.
  *
  * (op == TK_DELETE)
- * target    -> A token holding the quoted name of the table to delete from.
+ * zTarget   -> Dequoted name of the table to delete from.
  * pWhere    -> The WHERE clause of the DELETE statement if one is specified.
  *              Otherwise NULL.
  * 
  * (op == TK_UPDATE)
- * target    -> A token holding the quoted name of the table to update rows of.
+ * zTarget   -> Dequoted name of the table to update.
  * pWhere    -> The WHERE clause of the UPDATE statement if one is specified.
  *              Otherwise NULL.
  * pExprList -> A list of the columns to update and the expressions to update
@@ -11278,8 +11286,8 @@ struct TriggerStep {
   u8 op;               /* One of TK_DELETE, TK_UPDATE, TK_INSERT, TK_SELECT */
   u8 orconf;           /* OE_Rollback etc. */
   Trigger *pTrig;      /* The trigger that this step is a part of */
-  Select *pSelect;     /* SELECT statment or RHS of INSERT INTO .. SELECT ... */
-  Token target;        /* Target table for DELETE, UPDATE, INSERT */
+  Select *pSelect;     /* SELECT statement or RHS of INSERT INTO SELECT ... */
+  char *zTarget;       /* Target table for DELETE, UPDATE, INSERT */
   Expr *pWhere;        /* The WHERE clause for DELETE or UPDATE steps */
   ExprList *pExprList; /* SET clause for UPDATE.  VALUES clause for INSERT */
   IdList *pIdList;     /* Column names for INSERT */
@@ -24853,13 +24861,6 @@ SQLITE_API int sqlite3_os_end(void){
 */
 #if SQLITE_OS_UNIX              /* This file is used on unix only */
 
-/* Use posix_fallocate() if it is available
-*/
-#if !defined(HAVE_POSIX_FALLOCATE) \
-      && (_XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L)
-# define HAVE_POSIX_FALLOCATE 1
-#endif
-
 /*
 ** There are various methods for file locking used for concurrency
 ** control:
@@ -28491,7 +28492,7 @@ static int unixFileSize(sqlite3_file *id, i64 *pSize){
   SimulateIOError( rc=1 );
   if( rc!=0 ){
     ((unixFile*)id)->lastErrno = errno;
-    return unixLogError(SQLITE_IOERR_FSTAT, "fstat", ((unixFile*)id)->zPath);
+    return SQLITE_IOERR_FSTAT;
   }
   *pSize = buf.st_size;
 
@@ -28526,9 +28527,7 @@ static int fcntlSizeHint(unixFile *pFile, i64 nByte){
     i64 nSize;                    /* Required file size */
     struct stat buf;              /* Used to hold return values of fstat() */
    
-    if( osFstat(pFile->h, &buf) ) {
-      return unixLogError(SQLITE_IOERR_FSTAT, "fstat", pFile->zPath);
-    }
+    if( osFstat(pFile->h, &buf) ) return SQLITE_IOERR_FSTAT;
 
     nSize = ((nByte+pFile->szChunk-1) / pFile->szChunk) * pFile->szChunk;
     if( nSize>(i64)buf.st_size ){
@@ -28926,7 +28925,7 @@ static int unixOpenSharedMemory(unixFile *pDbFd){
     ** with the same permissions.
     */
     if( osFstat(pDbFd->h, &sStat) && pInode->bProcessLock==0 ){
-      rc = unixLogError(SQLITE_IOERR_FSTAT, "fstat", pDbFd->zPath);
+      rc = SQLITE_IOERR_FSTAT;
       goto shm_open_err;
     }
 
@@ -29098,19 +29097,11 @@ static int unixShmMap(
         ** the requested memory region.
         */
         if( !bExtend ) goto shmpage_out;
-#if defined(HAVE_POSIX_FALLOCATE) && HAVE_POSIX_FALLOCATE
-        if( osFallocate(pShmNode->h, sStat.st_size, nByte)!=0 ){
-          rc = unixLogError(SQLITE_FULL, "fallocate",
-                            pShmNode->zFilename);
-          goto shmpage_out;
-        }
-#else
         if( robust_ftruncate(pShmNode->h, nByte) ){
           rc = unixLogError(SQLITE_IOERR_SHMSIZE, "ftruncate",
                             pShmNode->zFilename);
           goto shmpage_out;
         }
-#endif
       }
     }
 
@@ -30023,7 +30014,7 @@ static int findCreateFileMode(
       *pUid = sStat.st_uid;
       *pGid = sStat.st_gid;
     }else{
-      rc = unixLogError(SQLITE_IOERR_FSTAT, "stat", zDb);
+      rc = SQLITE_IOERR_FSTAT;
     }
   }else if( flags & SQLITE_OPEN_DELETEONCLOSE ){
     *pMode = 0600;
@@ -72614,14 +72605,6 @@ static int createFile(JournalFile *p){
         assert(p->iSize<=p->nBuf);
         rc = sqlite3OsWrite(p->pReal, p->zBuf, p->iSize, 0);
       }
-      if( rc!=SQLITE_OK ){
-        /* If an error occurred while writing to the file, close it before
-        ** returning. This way, SQLite uses the in-memory journal data to
-        ** roll back changes made to the internal page-cache before this
-        ** function was called.  */
-        sqlite3OsClose(pReal);
-        p->pReal = 0;
-      }
     }
   }
   return rc;
@@ -88795,10 +88778,10 @@ static Trigger *fkActionTrigger(
       ** parent table are used for the comparison. */
       pEq = sqlite3PExpr(pParse, TK_EQ,
           sqlite3PExpr(pParse, TK_DOT, 
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tOld),
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol)
+            sqlite3ExprAlloc(db, TK_ID, &tOld, 0),
+            sqlite3ExprAlloc(db, TK_ID, &tToCol, 0)
           , 0),
-          sqlite3PExpr(pParse, TK_ID, 0, 0, &tFromCol)
+          sqlite3ExprAlloc(db, TK_ID, &tFromCol, 0)
       , 0);
       pWhere = sqlite3ExprAnd(db, pWhere, pEq);
 
@@ -88810,12 +88793,12 @@ static Trigger *fkActionTrigger(
       if( pChanges ){
         pEq = sqlite3PExpr(pParse, TK_IS,
             sqlite3PExpr(pParse, TK_DOT, 
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tOld),
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol),
+              sqlite3ExprAlloc(db, TK_ID, &tOld, 0),
+              sqlite3ExprAlloc(db, TK_ID, &tToCol, 0),
               0),
             sqlite3PExpr(pParse, TK_DOT, 
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tNew),
-              sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol),
+              sqlite3ExprAlloc(db, TK_ID, &tNew, 0),
+              sqlite3ExprAlloc(db, TK_ID, &tToCol, 0),
               0),
             0);
         pWhen = sqlite3ExprAnd(db, pWhen, pEq);
@@ -88825,8 +88808,8 @@ static Trigger *fkActionTrigger(
         Expr *pNew;
         if( action==OE_Cascade ){
           pNew = sqlite3PExpr(pParse, TK_DOT, 
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tNew),
-            sqlite3PExpr(pParse, TK_ID, 0, 0, &tToCol)
+            sqlite3ExprAlloc(db, TK_ID, &tNew, 0),
+            sqlite3ExprAlloc(db, TK_ID, &tToCol, 0)
           , 0);
         }else if( action==OE_SetDflt ){
           Expr *pDflt = pFKey->pFrom->aCol[iFromCol].pDflt;
@@ -88873,13 +88856,12 @@ static Trigger *fkActionTrigger(
     pTrigger = (Trigger *)sqlite3DbMallocZero(db, 
         sizeof(Trigger) +         /* struct Trigger */
         sizeof(TriggerStep) +     /* Single step in trigger program */
-        nFrom + 1                 /* Space for pStep->target.z */
+        nFrom + 1                 /* Space for pStep->zTarget */
     );
     if( pTrigger ){
       pStep = pTrigger->step_list = (TriggerStep *)&pTrigger[1];
-      pStep->target.z = (char *)&pStep[1];
-      pStep->target.n = nFrom;
-      memcpy((char *)pStep->target.z, zFrom, nFrom);
+      pStep->zTarget = (char *)&pStep[1];
+      memcpy((char *)pStep->zTarget, zFrom, nFrom);
   
       pStep->pWhere = sqlite3ExprDup(db, pWhere, EXPRDUP_REDUCE);
       pStep->pExprList = sqlite3ExprListDup(db, pList, EXPRDUP_REDUCE);
@@ -92448,6 +92430,14 @@ SQLITE_PRIVATE void sqlite3Pragma(
     goto pragma_out;
   }
 
+#ifdef QC_PERF
+  if( sqlite3_androidopt_handle_pragma ) {
+    if( sqlite3_androidopt_handle_pragma(db, zLeft, zRight) == 1 ) {
+      goto pragma_out;
+    }
+  }
+#endif
+
   /* Send an SQLITE_FCNTL_PRAGMA file-control to the underlying VFS
   ** connection.  If it returns SQLITE_OK, then assume that the VFS
   ** handled the pragma and generate a no-op prepared statement.
@@ -92695,6 +92685,11 @@ SQLITE_PRIVATE void sqlite3Pragma(
         /* If the "=MODE" part does not match any known journal mode,
         ** then do a query */
         eMode = PAGER_JOURNALMODE_QUERY;
+      }else if( db->isSettingOverride==1 ){
+        /* Skip journal mode changes if override in effect */
+        sqlite3VdbeAddOp4(v, OP_String, strlen(zMode), 1, 1, zMode, P4_STATIC);
+        sqlite3VdbeAddOp2(v, OP_ResultRow, 1, 1);
+        goto pragma_out;
       }
     }
     if( eMode==PAGER_JOURNALMODE_QUERY && pId2->n==0 ){
@@ -93740,7 +93735,7 @@ SQLITE_PRIVATE int sqlite3InitCallback(void *pInit, int argc, char **argv, char 
   if( argv==0 ) return 0;   /* Might happen if EMPTY_RESULT_CALLBACKS are on */
   if( argv[1]==0 ){
     corruptSchema(pData, argv[0], 0);
-  }else if( argv[2] && argv[2][0] ){
+  }else if( argv[2] && sqlite3_strnicmp(argv[2],"create ",7)==0 ){
     /* Call the parser to process a CREATE TABLE, INDEX or VIEW.
     ** But because db->init.busy is set to 1, no VDBE code is generated
     ** or executed.  All the parser does is build the internal data
@@ -93771,8 +93766,8 @@ SQLITE_PRIVATE int sqlite3InitCallback(void *pInit, int argc, char **argv, char 
       }
     }
     sqlite3_finalize(pStmt);
-  }else if( argv[0]==0 ){
-    corruptSchema(pData, 0, 0);
+  }else if( argv[0]==0 || (argv[2]!=0 && argv[2][0]!=0) ){
+    corruptSchema(pData, argv[0], 0);
   }else{
     /* If the SQL column is blank it means this is an index that
     ** was created to be the PRIMARY KEY or to fulfill a UNIQUE
@@ -99723,12 +99718,12 @@ static TriggerStep *triggerStepAllocate(
 ){
   TriggerStep *pTriggerStep;
 
-  pTriggerStep = sqlite3DbMallocZero(db, sizeof(TriggerStep) + pName->n);
+  pTriggerStep = sqlite3DbMallocZero(db, sizeof(TriggerStep) + pName->n + 1);
   if( pTriggerStep ){
     char *z = (char*)&pTriggerStep[1];
     memcpy(z, pName->z, pName->n);
-    pTriggerStep->target.z = z;
-    pTriggerStep->target.n = pName->n;
+    sqlite3Dequote(z);
+    pTriggerStep->zTarget = z;
     pTriggerStep->op = op;
   }
   return pTriggerStep;
@@ -100017,7 +100012,7 @@ SQLITE_PRIVATE Trigger *sqlite3TriggersExist(
 }
 
 /*
-** Convert the pStep->target token into a SrcList and return a pointer
+** Convert the pStep->zTarget string into a SrcList and return a pointer
 ** to that SrcList.
 **
 ** This routine adds a specific database name, if needed, to the target when
@@ -100030,17 +100025,17 @@ static SrcList *targetSrcList(
   Parse *pParse,       /* The parsing context */
   TriggerStep *pStep   /* The trigger containing the target token */
 ){
+  sqlite3 *db = pParse->db;
   int iDb;             /* Index of the database to use */
   SrcList *pSrc;       /* SrcList to be returned */
 
-  pSrc = sqlite3SrcListAppend(pParse->db, 0, &pStep->target, 0);
+  pSrc = sqlite3SrcListAppend(db, 0, 0, 0);
   if( pSrc ){
     assert( pSrc->nSrc>0 );
-    assert( pSrc->a!=0 );
-    iDb = sqlite3SchemaToIndex(pParse->db, pStep->pTrig->pSchema);
+    pSrc->a[pSrc->nSrc-1].zName = sqlite3DbStrDup(db, pStep->zTarget);
+    iDb = sqlite3SchemaToIndex(db, pStep->pTrig->pSchema);
     if( iDb==0 || iDb>=2 ){
-      sqlite3 *db = pParse->db;
-      assert( iDb<pParse->db->nDb );
+      assert( iDb<db->nDb );
       pSrc->a[pSrc->nSrc-1].zDatabase = sqlite3DbStrDup(db, db->aDb[iDb].zName);
     }
   }
@@ -101523,6 +101518,8 @@ end_of_vacuum:
 struct VtabCtx {
   Table *pTab;
   VTable *pVTable;
+  VtabCtx *pPrior;    /* Parent context (if any) */
+  int bDeclared;      /* True after sqlite3_declare_vtab() is called */
 };
 
 /*
@@ -101952,8 +101949,20 @@ static int vtabCallConstructor(
   const char *const*azArg = (const char *const*)pTab->azModuleArg;
   int nArg = pTab->nModuleArg;
   char *zErr = 0;
-  char *zModuleName = sqlite3MPrintf(db, "%s", pTab->zName);
+  char *zModuleName;
+  VtabCtx *pCtx;
 
+  /* Check that the virtual-table is not already being initialized */
+  for(pCtx=db->pVtabCtx; pCtx; pCtx=pCtx->pPrior){
+    if( pCtx->pTab==pTab ){
+      *pzErr = sqlite3MPrintf(db, 
+          "vtable constructor called recursively: %s", pTab->zName
+      );
+      return SQLITE_LOCKED;
+    }
+  }
+
+  zModuleName = sqlite3MPrintf(db, "%s", pTab->zName);
   if( !zModuleName ){
     return SQLITE_NOMEM;
   }
@@ -101971,10 +101980,13 @@ static int vtabCallConstructor(
   assert( xConstruct );
   sCtx.pTab = pTab;
   sCtx.pVTable = pVTable;
+  sCtx.pPrior = db->pVtabCtx;
+  sCtx.bDeclared = 0;
   db->pVtabCtx = &sCtx;
   rc = xConstruct(db, pMod->pAux, nArg, azArg, &pVTable->pVtab, &zErr);
-  db->pVtabCtx = 0;
+  db->pVtabCtx = sCtx.pPrior;
   if( rc==SQLITE_NOMEM ) db->mallocFailed = 1;
+  assert( sCtx.pTab==pTab );
 
   if( SQLITE_OK!=rc ){
     if( zErr==0 ){
@@ -101989,7 +102001,7 @@ static int vtabCallConstructor(
     ** the sqlite3_vtab object if successful.  */
     pVTable->pVtab->pModule = pMod->pModule;
     pVTable->nRef = 1;
-    if( sCtx.pTab ){
+    if( sCtx.bDeclared==0 ){
       const char *zFormat = "vtable constructor did not declare schema: %s";
       *pzErr = sqlite3MPrintf(db, zFormat, pTab->zName);
       sqlite3VtabUnlock(pVTable);
@@ -102159,18 +102171,19 @@ SQLITE_PRIVATE int sqlite3VtabCallCreate(sqlite3 *db, int iDb, const char *zTab,
 ** virtual table module.
 */
 SQLITE_API int sqlite3_declare_vtab(sqlite3 *db, const char *zCreateTable){
+  VtabCtx *pCtx = db->pVtabCtx;
   Parse *pParse;
-
   int rc = SQLITE_OK;
   Table *pTab;
   char *zErr = 0;
 
   sqlite3_mutex_enter(db->mutex);
-  if( !db->pVtabCtx || !(pTab = db->pVtabCtx->pTab) ){
+  if( !pCtx || pCtx->bDeclared ){
     sqlite3Error(db, SQLITE_MISUSE, 0);
     sqlite3_mutex_leave(db->mutex);
     return SQLITE_MISUSE_BKPT;
   }
+  pTab = pCtx->pTab;
   assert( (pTab->tabFlags & TF_Virtual)!=0 );
 
   pParse = sqlite3StackAllocZero(db, sizeof(*pParse));
@@ -102193,7 +102206,7 @@ SQLITE_API int sqlite3_declare_vtab(sqlite3 *db, const char *zCreateTable){
         pParse->pNewTable->nCol = 0;
         pParse->pNewTable->aCol = 0;
       }
-      db->pVtabCtx->pTab = 0;
+      pCtx->bDeclared = 1;
     }else{
       sqlite3Error(db, SQLITE_ERROR, (zErr ? "%s" : 0), zErr);
       sqlite3DbFree(db, zErr);
@@ -112423,7 +112436,7 @@ SQLITE_API int sqlite3_complete16(const void *zSql){
 extern "C" {
 #endif  /* __cplusplus */
 
-SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db);
+SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db, const char* registerAs); // Android Change
 
 #if 0
 }  /* extern "C" */
@@ -113205,6 +113218,11 @@ SQLITE_API int sqlite3_close(sqlite3 *db){
   if( !sqlite3SafetyCheckSickOrOk(db) ){
     return SQLITE_MISUSE_BKPT;
   }
+#ifdef QC_PERF
+  if (sqlite3_androidopt_close) {
+    sqlite3_androidopt_close(db);
+  }
+#endif
   sqlite3_mutex_enter(db->mutex);
 
   /* Force xDestroy calls on all virtual tables */
@@ -114636,6 +114654,11 @@ static int openDatabase(
     }
   }
   sqlite3_mutex_enter(db->mutex);
+#ifdef QC_PERF
+  if( sqlite3_androidopt_init ) {
+    sqlite3_androidopt_init(db, zFilename);
+  }
+#endif
   db->errMask = 0xff;
   db->nDb = 2;
   db->magic = SQLITE_MAGIC_BUSY;
@@ -114753,9 +114776,24 @@ static int openDatabase(
 #endif
 
 #ifdef SQLITE_ENABLE_FTS3
+  // Begin Android change
+  #ifdef SQLITE_ENABLE_FTS3_BACKWARDS
+    /* Also register as fts1 and fts2, for backwards compatability on
+    ** systems known to have never seen a pre-fts3 database.
+    */
     if( !db->mallocFailed && rc==SQLITE_OK ){
-      rc = sqlite3Fts3Init(db);
+      rc = sqlite3Fts3Init(db, "fts1");
     }
+
+    if( !db->mallocFailed && rc==SQLITE_OK ){
+      rc = sqlite3Fts3Init(db, "fts2");
+    }
+  #endif
+
+    if( !db->mallocFailed && rc==SQLITE_OK ){
+      rc = sqlite3Fts3Init(db, "fts3");
+    }
+  // End Android change
 #endif
 
 #ifdef SQLITE_ENABLE_ICU
@@ -114801,6 +114839,14 @@ opendb_out:
     db = 0;
   }else if( rc!=SQLITE_OK ){
     db->magic = SQLITE_MAGIC_SICK;
+  }else {
+#ifdef QC_PERF
+    if (sqlite3_androidopt_open) {
+      int override = 0;
+      sqlite3_androidopt_open(db, zFilename, flags, &override);
+      db->isSettingOverride = override;
+    }
+#endif
   }
   *ppDb = db;
   return sqlite3ApiExit(0, rc);
@@ -117591,7 +117637,6 @@ static int fts3PrefixParameter(
 
   aIndex = sqlite3_malloc(sizeof(struct Fts3Index) * nIndex);
   *apIndex = aIndex;
-  *pnIndex = nIndex;
   if( !aIndex ){
     return SQLITE_NOMEM;
   }
@@ -117603,11 +117648,17 @@ static int fts3PrefixParameter(
     for(i=1; i<nIndex; i++){
       int nPrefix;
       if( fts3GobbleInt(&p, &nPrefix) ) return SQLITE_ERROR;
-      aIndex[i].nPrefix = nPrefix;
+      if( nPrefix<=0 ){
+        nIndex--;
+        i--;
+      }else{
+        aIndex[i].nPrefix = nPrefix;
+      }
       p++;
     }
   }
 
+  *pnIndex = nIndex;
   return SQLITE_OK;
 }
 
@@ -117642,7 +117693,8 @@ static int fts3ContentColumns(
   const char *zTbl,               /* Name of content table */
   const char ***pazCol,           /* OUT: Malloc'd array of column names */
   int *pnCol,                     /* OUT: Size of array *pazCol */
-  int *pnStr                      /* OUT: Bytes of string content */
+  int *pnStr,                     /* OUT: Bytes of string content */
+  char **pzErr                    /* OUT: error message */
 ){
   int rc = SQLITE_OK;             /* Return code */
   char *zSql;                     /* "SELECT *" statement on zTbl */  
@@ -117653,6 +117705,9 @@ static int fts3ContentColumns(
     rc = SQLITE_NOMEM;
   }else{
     rc = sqlite3_prepare(db, zSql, -1, &pStmt, 0);
+    if( rc!=SQLITE_OK ){
+      *pzErr = sqlite3_mprintf("%s", sqlite3_errmsg(db));
+    }
   }
   sqlite3_free(zSql);
 
@@ -117886,7 +117941,7 @@ static int fts3InitVtab(
     if( nCol==0 ){
       sqlite3_free((void*)aCol); 
       aCol = 0;
-      rc = fts3ContentColumns(db, argv[1], zContent, &aCol, &nCol, &nString);
+      rc = fts3ContentColumns(db, argv[1], zContent,&aCol,&nCol,&nString,pzErr);
 
       /* If a languageid= option was specified, remove the language id
       ** column from the aCol[] array. */ 
@@ -120179,7 +120234,7 @@ SQLITE_PRIVATE void sqlite3Fts3IcuTokenizerModule(sqlite3_tokenizer_module const
 ** SQLite. If fts3 is built as a dynamically loadable extension, this
 ** function is called by the sqlite3_extension_init() entry point.
 */
-SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db){
+SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db, const char* registerAs){ // Android Change
   int rc = SQLITE_OK;
   Fts3Hash *pHash = 0;
   const sqlite3_tokenizer_module *pSimple = 0;
@@ -120232,28 +120287,19 @@ SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db){
   ** module with sqlite.
   */
   if( SQLITE_OK==rc 
-#ifndef ANDROID    /* fts3_tokenizer disabled for security reasons */
    && SQLITE_OK==(rc = sqlite3Fts3InitHashTable(db, pHash, "fts3_tokenizer"))
-#endif
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "snippet", -1))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "offsets", 1))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "matchinfo", 1))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "matchinfo", 2))
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "optimize", 1))
   ){
-#ifdef SQLITE_ENABLE_FTS3_BACKWARDS
     rc = sqlite3_create_module_v2(
-        db, "fts1", &fts3Module, (void *)pHash, 0
-        );
-    if(rc) return rc;
-    rc = sqlite3_create_module_v2(
-        db, "fts2", &fts3Module, (void *)pHash, 0
-        );
-    if(rc) return rc;
-#endif
-    rc = sqlite3_create_module_v2(
-        db, "fts3", &fts3Module, (void *)pHash, hashDestroy
-        );
+        // Begin Android change
+        // Also register as fts1 and fts2
+        db, registerAs, &fts3Module, (void *)pHash, hashDestroy
+        // End Android change
+    );
     if( rc==SQLITE_OK ){
       rc = sqlite3_create_module_v2(
           db, "fts4", &fts3Module, (void *)pHash, 0

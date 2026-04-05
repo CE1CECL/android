@@ -32,7 +32,6 @@
 #include <log/logger.h>
 #include <cutils/properties.h>
 
-#include <corkscrew/demangle.h>
 #include <corkscrew/backtrace.h>
 
 #include <sys/socket.h>
@@ -260,8 +259,7 @@ static void dump_stack_segment(const ptrace_context_t* context, log_t* log, pid_
         find_symbol_ptrace(context, stack_content, &mi, &symbol);
 
         if (symbol) {
-            char* demangled_name = demangle_symbol_name(symbol->name);
-            const char* symbol_name = demangled_name ? demangled_name : symbol->name;
+            const char* symbol_name = symbol->name;
             uint32_t offset = stack_content - (mi->start + symbol->start);
             if (!i && label >= 0) {
                 if (offset) {
@@ -280,7 +278,6 @@ static void dump_stack_segment(const ptrace_context_t* context, log_t* log, pid_
                             *sp, stack_content, mi ? mi->name : "", symbol_name);
                 }
             }
-            free(demangled_name);
         } else {
             if (!i && label >= 0) {
                 _LOG(log, scopeFlags, "    #%02d  %08x  %08x  %s\n",
@@ -462,7 +459,7 @@ static bool dump_sibling_thread_report(const ptrace_context_t* context,
         }
 
         /* Skip this thread if cannot ptrace it */
-        if (ptrace(PTRACE_ATTACH, new_tid, 0, 0) < 0) {
+        if (!ptrace_attach_thread(pid, new_tid)) {
             continue;
         }
 
@@ -759,7 +756,7 @@ static char* find_and_open_tombstone(int* fd)
         if (errno != ENOENT)
             continue;
 
-        *fd = open(path, O_CREAT | O_EXCL | O_WRONLY, 0600);
+        *fd = open(path, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0600);
         if (*fd < 0)
             continue;   /* raced ? */
 
@@ -769,7 +766,7 @@ static char* find_and_open_tombstone(int* fd)
 
     /* we didn't find an available file, so we clobber the oldest one */
     snprintf(path, sizeof(path), TOMBSTONE_DIR"/tombstone_%02d", oldest);
-    *fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, 0600);
+    *fd = open(path, O_CREAT | O_TRUNC | O_WRONLY | O_NOFOLLOW | O_CLOEXEC, 0600);
     if (*fd < 0) {
         LOG("failed to open tombstone file '%s': %s\n", path, strerror(errno));
         return NULL;
@@ -810,14 +807,6 @@ static int activity_manager_connect() {
 char* engrave_tombstone(pid_t pid, pid_t tid, int signal, uintptr_t abort_msg_address,
         bool dump_sibling_threads, bool quiet, bool* detach_failed,
         int* total_sleep_time_usec) {
-    mkdir(TOMBSTONE_DIR, 0755);
-    chown(TOMBSTONE_DIR, AID_SYSTEM, AID_SYSTEM);
-
-    if (selinux_android_restorecon(TOMBSTONE_DIR) == -1) {
-        *detach_failed = false;
-        return NULL;
-    }
-
     int fd;
     char* path = find_and_open_tombstone(&fd);
     if (!path) {

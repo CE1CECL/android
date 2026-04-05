@@ -26,6 +26,7 @@ import org.w3c.dom.smil.Time;
 import org.w3c.dom.smil.TimeList;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.mms.LogTag;
@@ -37,13 +38,16 @@ import com.google.android.mms.pdu.PduPart;
 
 public class MediaModelFactory {
     private static final String TAG = "Mms:media";
+    // Consider oct-strean as the content type of vCard
+    private static final String OCT_STREAM = "application/oct-stream";
+    private static final String VCARD = "vcf";
 
     public static MediaModel getMediaModel(Context context,
-            SMILMediaElement sme, LayoutModel layouts, PduBody pb)
+            SMILMediaElement sme, LayoutModel layouts, PduBody pb, int index)
             throws IOException, IllegalArgumentException, MmsException {
         String tag = sme.getTagName();
         String src = sme.getSrc();
-        PduPart part = findPart(pb, src);
+        PduPart part = findPart(pb, src, index);
 
         if (sme instanceof SMILRegionMediaElement) {
             return getRegionMediaModel(
@@ -54,7 +58,7 @@ public class MediaModelFactory {
         }
     }
 
-    private static PduPart findPart(PduBody pb, String src) {
+    private static PduPart findPart(PduBody pb, String src, int partIndex) {
         PduPart part = null;
 
         if (src != null) {
@@ -67,12 +71,27 @@ public class MediaModelFactory {
                     part = pb.getPartByFileName(src);
                     if (part == null) {
                         part = pb.getPartByContentLocation(src);
+                        if (part == null) {
+                            Log.v(TAG, "findPart Remove the "
+                                    + "src suffix, src="+src);
+                            int index = src.lastIndexOf(".");
+                            if (index != -1) {
+                                src = src.substring(0, index);
+                                part = pb.getPartByContentLocation(src);
+                            }
+                        }
                     }
                 }
             }
         }
 
         if (part != null) {
+            return part;
+        }
+
+        // deal with some exception, couldn't get the right name for the part.
+        if (partIndex < pb.getPartsNum()) {
+            part = pb.getPart(partIndex);
             return part;
         }
 
@@ -144,8 +163,30 @@ public class MediaModelFactory {
         } else if (tag.equals(SmilHelper.ELEMENT_TAG_AUDIO)) {
             media = new AudioModel(context, contentType, src,
                     part.getDataUri());
+            // Add the extras value for the audio when load draft and
+            // build the MMS included the audio.
+            String artist = sme.getAttribute("artist");
+            String album = sme.getAttribute("album");
+            if (!TextUtils.isEmpty(artist)) {
+                ((AudioModel) media).getExtras().put("artist", unescapeXML(artist));
+            }
+
+            if (!TextUtils.isEmpty(album)) {
+                ((AudioModel) media).getExtras().put("album", unescapeXML(album));
+            }
         } else if (tag.equals(SmilHelper.ELEMENT_TAG_REF)) {
-            if (ContentType.isTextType(contentType)) {
+            if (OCT_STREAM.equals(contentType.toLowerCase())) {
+                int index = src.lastIndexOf('.');
+                if (index > 0) {
+                    String extension = src.substring(index + 1, src.length());
+                    if (VCARD.equals(extension.toLowerCase())) {
+                        contentType = ContentType.TEXT_VCARD;
+                    }
+                }
+            }
+
+            if (ContentType.isTextType(contentType)
+                    && !contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
                 media = new TextModel(context, contentType, src,
                         part.getCharset(), part.getData(), regionModel);
             } else if (ContentType.isImageType(contentType)) {
@@ -157,11 +198,21 @@ public class MediaModelFactory {
             } else if (ContentType.isAudioType(contentType)) {
                 media = new AudioModel(context, contentType, src,
                         part.getDataUri());
+            } else if (contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                media = new VcardModel(context, contentType, src,
+                        part.getDataUri());
             } else {
                 Log.d(TAG, "[MediaModelFactory] getGenericMediaModel Unsupported Content-Type: "
                         + contentType);
                 media = createEmptyTextModel(context, regionModel);
             }
+        } else if (tag.toLowerCase().contains("vcard")) {
+            /**
+             *  Caused by the SMIL doesn't support the tag named as 'vcard', but maybe someone will
+             *  use it to share the vcard, so we need to deal with the tag contains 'vcard'.
+             */
+            media = new VcardModel(context, ContentType.TEXT_VCARD, src,
+                    part.getDataUri());
         } else {
             throw new IllegalArgumentException("Unsupported TAG: " + tag);
         }

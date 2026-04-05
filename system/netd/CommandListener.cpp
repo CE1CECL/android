@@ -1,5 +1,9 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ *
+ * Not a Contribution. Apache license notifications and license are
+ * retained for attribution purposes only.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +28,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 #include <linux/if.h>
 
 #define LOG_TAG "CommandListener"
@@ -41,6 +46,16 @@
 #include "NetdConstants.h"
 #include "FirewallController.h"
 
+#ifndef INET_ADDRSTRLEN
+#define INET_ADDRSTRLEN 16
+#endif
+
+#ifdef QSAP_WLAN
+#include "qsap_api.h"
+#endif
+
+#define INVALID_TABLE_NUMBER -1
+
 TetherController *CommandListener::sTetherCtrl = NULL;
 NatController *CommandListener::sNatCtrl = NULL;
 PppController *CommandListener::sPppCtrl = NULL;
@@ -52,6 +67,7 @@ ResolverController *CommandListener::sResolverCtrl = NULL;
 SecondaryTableController *CommandListener::sSecondaryTableCtrl = NULL;
 FirewallController *CommandListener::sFirewallCtrl = NULL;
 ClatdController *CommandListener::sClatdCtrl = NULL;
+RouteController *CommandListener::sRouteCtrl = NULL;
 
 /**
  * List of module chains to be created, along with explicit ordering. ORDERING
@@ -129,6 +145,48 @@ static void createChildChains(IptablesTarget target, const char* table, const ch
     } while (*(++childChain) != NULL);
 }
 
+/**
+ * Check if string is a valid interface name.
+ * Utilize if_nametoindex, on success it returns ifindex, and on error 0.
+ */
+static bool isValidIface(const char* iface) {
+    return (0 != if_nametoindex(iface));
+}
+
+/**
+ * Check if string is a valid IPv4 or IPv6 address
+ * Utilize inet_pton, on success it returns 1, and on error it returns 0 or -1.
+ * Error -1 means af is not a valid address family, but since v4/v6 is used, this is not applicable.
+ * Error 0 means string is not a valid address, and only this is applicable.
+ */
+static bool isValidIp(const char* str, const char* af) {
+    int ret;
+    unsigned char c;
+    if (!strcmp(af, "v4")) {
+        struct in_addr addr;
+        ret = inet_pton(AF_INET, str, &addr);
+    }
+    else if (!strcmp(af, "v6")) {
+        struct in6_addr addr6;
+        ret = inet_pton(AF_INET6, str, &addr6);
+    }
+    if ( ret == 1 )
+    {
+        /* There is limitation on inet_pton which on success case it allows trailing
+           character of '\0' or space. The '\0' is ensured not to be accepted by the caller,
+           but the spacing should be caught here.
+         */
+         c = *str;
+         while (c)
+         {
+             if ( isspace(c) ) return false;
+             c = *++str;
+         }
+         return true;
+    }
+    return false;
+}
+
 CommandListener::CommandListener(UidMarkMap *map) :
                  FrameworkListener("netd", true) {
     registerCmd(new InterfaceCmd());
@@ -137,17 +195,22 @@ CommandListener::CommandListener(UidMarkMap *map) :
     registerCmd(new NatCmd());
     registerCmd(new ListTtysCmd());
     registerCmd(new PppdCmd());
+#ifdef QSAP_WLAN
+    registerCmd(new QsoftapCmd());
+#else /* QSAP_WLAN */
     registerCmd(new SoftapCmd());
+#endif /* QSAP_WLAN */
     registerCmd(new BandwidthControlCmd());
     registerCmd(new IdletimerControlCmd());
     registerCmd(new ResolverCmd());
     registerCmd(new FirewallCmd());
     registerCmd(new ClatdCmd());
+    registerCmd(new RouteCmd());
 
     if (!sSecondaryTableCtrl)
         sSecondaryTableCtrl = new SecondaryTableController(map);
     if (!sTetherCtrl)
-        sTetherCtrl = new TetherController();
+        sTetherCtrl = new TetherController(sSecondaryTableCtrl);
     if (!sNatCtrl)
         sNatCtrl = new NatController(sSecondaryTableCtrl);
     if (!sPppCtrl)
@@ -166,6 +229,8 @@ CommandListener::CommandListener(UidMarkMap *map) :
         sInterfaceCtrl = new InterfaceController();
     if (!sClatdCtrl)
         sClatdCtrl = new ClatdController();
+    if (!sRouteCtrl)
+        sRouteCtrl = new RouteController();
 
     /*
      * This is the only time we touch top-level chains in iptables; controllers
@@ -704,6 +769,8 @@ int CommandListener::TetherCmd::runCommand(SocketClient *cli,
                                                       int argc, char **argv) {
     int rc = 0;
 
+    ALOGD("TetherCmd::runCommand. argc: %d. argv[0]: %s", argc, argv[0]);
+
     if (argc < 2) {
         cli->sendMsg(ResponseCode::CommandSyntaxError, "Missing argument", false);
         return 0;
@@ -744,9 +811,14 @@ int CommandListener::TetherCmd::runCommand(SocketClient *cli,
         }
 
         if (!strcmp(argv[1], "start")) {
+            int lease_time = 0;
             if (argc % 2 == 1) {
-                cli->sendMsg(ResponseCode::CommandSyntaxError, "Bad number of arguments", false);
-                return 0;
+                if (!(lease_time = atoi(argv[argc-1]))) {
+                    cli->sendMsg(ResponseCode::CommandParameterError, "Invalid lease time",
+                        false);
+                    return 0;
+                }
+                argc--;
             }
 
             int num_addrs = argc - 2;
@@ -760,14 +832,28 @@ int CommandListener::TetherCmd::runCommand(SocketClient *cli,
                     return 0;
                 }
             }
-            rc = sTetherCtrl->startTethering(num_addrs, addrs);
+            if (lease_time)
+                rc = sTetherCtrl->startTethering(num_addrs, addrs, lease_time);
+            else
+                rc = sTetherCtrl->startTethering(num_addrs, addrs);
             free(addrs);
         } else if (!strcmp(argv[1], "interface")) {
             if (!strcmp(argv[2], "add")) {
                 rc = sTetherCtrl->tetherInterface(argv[3]);
             } else if (!strcmp(argv[2], "remove")) {
                 rc = sTetherCtrl->untetherInterface(argv[3]);
-            /* else if (!strcmp(argv[2], "list")) handled above */
+            } else if (!strcmp(argv[2], "list")) {
+                InterfaceCollection *ilist = sTetherCtrl->getTetheredInterfaceList();
+                InterfaceCollection::iterator it;
+
+                for (it = ilist->begin(); it != ilist->end(); ++it) {
+                    cli->sendMsg(ResponseCode::TetherInterfaceListResult, *it, false);
+                }
+            } else if (!strcmp(argv[2], "add_upstream")) {
+                ALOGD("command %s %s %s %s", argv[0], argv[1], argv[2], argv[3]);
+                rc = sTetherCtrl->addUpstreamInterface(argv[3]);
+            } else if (!strcmp(argv[2], "remove_upstream")) {
+                rc = sTetherCtrl->removeUpstreamInterface(argv[3]);
             } else {
                 cli->sendMsg(ResponseCode::CommandParameterError,
                              "Unknown tether interface operation", false);
@@ -796,6 +882,77 @@ int CommandListener::TetherCmd::runCommand(SocketClient *cli,
 
     return 0;
 }
+
+
+
+CommandListener::V6RtrAdvCmd::V6RtrAdvCmd() :
+                 NetdCommand("v6rtradv") {
+}
+
+int CommandListener::V6RtrAdvCmd::runCommand(SocketClient *cli,
+                                                      int argc, char **argv) {
+    int rc = 0;
+
+    if (argc < 2) {
+        cli->sendMsg(ResponseCode::CommandSyntaxError, "Missing argument", false);
+        return 0;
+    }
+
+    if (!strcmp(argv[1], "stop")) {
+        rc = sTetherCtrl->stopV6RtrAdv();
+    } else if (!strcmp(argv[1], "status")) {
+        char *tmp = NULL;
+
+        asprintf(&tmp, "IPv6 Router Advertisement service %s",
+                 (sTetherCtrl->isV6RtrAdvStarted() ? "started" : "stopped"));
+        cli->sendMsg(ResponseCode::V6RtrAdvResult, tmp, false);
+        free(tmp);
+        return 0;
+    } else {
+        /*
+         * These commands take a minimum of 4 arguments
+         */
+        if (argc < 4) {
+            cli->sendMsg(ResponseCode::CommandSyntaxError, "Missing argument", false);
+            return 0;
+        }
+
+        if (!strcmp(argv[1], "start")) {
+            int num_ifaces = argc - 2;
+            int arg_index = 2;
+            rc = sTetherCtrl->startV6RtrAdv(num_ifaces, &argv[arg_index], INVALID_TABLE_NUMBER);
+        } else if (!strcmp(argv[1], "interface")) {
+            if (!strcmp(argv[2], "add")) {
+                rc = sTetherCtrl->tetherInterface(argv[3]);
+            } else if (!strcmp(argv[2], "remove")) {
+                rc = sTetherCtrl->untetherInterface(argv[3]);
+            } else if (!strcmp(argv[2], "list")) {
+                InterfaceCollection *ilist = sTetherCtrl->getTetheredInterfaceList();
+                InterfaceCollection::iterator it;
+
+                for (it = ilist->begin(); it != ilist->end(); ++it) {
+                    cli->sendMsg(ResponseCode::TetherInterfaceListResult, *it, false);
+                }
+            } else {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                             "Unknown tether interface operation", false);
+                return 0;
+            }
+        } else {
+            cli->sendMsg(ResponseCode::CommandSyntaxError, "Unknown v6rtradv cmd", false);
+            return 0;
+        }
+    }
+
+    if (!rc) {
+        cli->sendMsg(ResponseCode::CommandOkay, "V6RtrAdv operation succeeded", false);
+    } else {
+        cli->sendMsg(ResponseCode::OperationFailed, "V6RtrAdv operation failed", true);
+    }
+
+    return 0;
+}
+
 
 CommandListener::NatCmd::NatCmd() :
                  NetdCommand("nat") {
@@ -1577,5 +1734,313 @@ int CommandListener::ClatdCmd::runCommand(SocketClient *cli, int argc,
         cli->sendMsg(ResponseCode::OperationFailed, "Clatd operation failed", false);
     }
 
+    return 0;
+}
+
+CommandListener::RouteCmd::RouteCmd() :
+                 NetdCommand("route") {
+}
+
+int CommandListener::RouteCmd::runCommand(SocketClient *cli, int argc, char **argv) {
+    if (argc < 5) {
+        cli->sendMsg(ResponseCode::CommandSyntaxError,
+                    "Missing argument", false);
+        return 0;
+    }
+
+    const char *ipVer = NULL;
+    int domain;
+
+    if (!strcmp(argv[3], "v4")) {
+        ipVer = "-4";
+        domain = AF_INET;
+    } else if (!strcmp(argv[3], "v6")) {
+        ipVer = "-6";
+        domain = AF_INET6;
+    } else {
+        cli->sendMsg(ResponseCode::CommandSyntaxError,
+                     "Supported family v4|v6",false);
+        return 0;
+    }
+
+    if (!strcmp(argv[2], "src")) {
+        /* source based routing */
+        if (!strcmp(argv[1], "replace")) {
+            if (argc != 7 && argc != 8) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                   "Usage: route replace src inet_family <interface>"
+                   " <ipaddr> <routeId> [<gateway>]", false);
+                return 0;
+            }
+
+            char* end;
+            long int rid =  strtol(argv[6], &end, 10);
+            if (*end != '\0')
+            {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "RouteID: invalid numerical value", false);
+                return 0;
+            }
+            if ((rid < 1) || (rid > 252)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "0 < RouteID < 253", false);
+                return 0;
+            }
+
+            struct in_addr addr;
+            int prefix_length;
+            unsigned flags = 0;
+
+            ifc_init();
+            ifc_get_info(argv[4], &addr.s_addr, &prefix_length, &flags);
+            ifc_close();
+
+            char *iface = argv[4],
+                 *srcPrefix = argv[5],
+                 *routeId = argv[6],
+                 *network = NULL,
+                 *gateway = NULL;
+
+            if (false == isValidIface(iface)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid interface", false);
+                return 0;
+            }
+
+            if (false == isValidIp(srcPrefix, argv[3]) ) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid IP address", false);
+                return 0;
+            }
+
+            if (argc > 7) {
+                gateway = argv[7];
+                if (false == isValidIp(gateway, argv[3]) ) {
+                    cli->sendMsg(ResponseCode::CommandParameterError,
+                            "invalid gateway", false);
+                    return 0;
+                }
+            }
+
+            // compute the network block in CIDR notation (for IPv4 only)
+            if (domain == AF_INET) {
+                struct in_addr net;
+                in_addr_t mask = prefixLengthToIpv4Netmask(prefix_length);
+                net.s_addr = (addr.s_addr & mask);
+
+
+                char net_s[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(net.s_addr), net_s, INET_ADDRSTRLEN);
+                asprintf(&network, "%s/%d", net_s, prefix_length);
+            }
+
+            std::string res = sRouteCtrl->repSrcRoute( iface,
+                                                       srcPrefix,
+                                                       gateway,
+                                                       routeId,
+                                                       ipVer);
+            if (!res.empty()) {
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                if (network != NULL) {
+                     //gateway is null for link local route, metric is 0
+                    res = sRouteCtrl->addDstRoute(iface,
+                                network, NULL, 0, routeId);
+                    if (res.empty()) {
+                        res = "source route replace & local subnet "
+                              "route add succeeded for rid: ";
+                        res += routeId;
+                    }
+                    cli->sendMsg(ResponseCode::CommandOkay, res.c_str(), false);
+                } else {
+                    res = "source route replace succeeded for rid:";
+                    res += routeId;
+                    cli->sendMsg(ResponseCode::CommandOkay, res.c_str(), false);
+                }
+            }
+            free(network);
+        } else if (!strcmp(argv[1], "del")) {
+            if (argc != 5) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                            "Usage: route del src v[4|6] <routeId>", false);
+                return 0;
+            }
+
+            char* end;
+            long int rid =  strtol(argv[4], &end, 10);
+            if (*end != '\0')
+            {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                        "RouteID: invalid numerical value", false);
+                return 0;
+            }
+            if ((rid < 1) || (rid > 252)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                            "RouteID: between 0 and 253", false);
+                return 0;
+            }
+
+            std::string res = sRouteCtrl->delSrcRoute(argv[4], ipVer);
+            if (!res.empty()) {
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                res = "source route delete succeeded for rid:";
+                res += argv[4];
+                cli->sendMsg(ResponseCode::CommandOkay, res.c_str(), false);
+            }
+        } else {
+            cli->sendMsg(ResponseCode::CommandSyntaxError,
+                        "permitted operation for src routes: <replace|del>",
+                        false);
+        }
+    } else if (!strcmp(argv[2], "def")) {
+        /* default route configuration */
+        if (!strcmp(argv[1], "replace")) {
+            if ((argc != 5) && (argc != 6)) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                        "Usage: route replace def v[4|6]"
+                        " <interface> [<gateway>]", false);
+                return 0;
+            }
+
+            char *iface = argv[4],
+                 *gateway = NULL;
+
+            if (false == isValidIface(iface)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid interface", false);
+                return 0;
+            }
+
+            if (argc > 5) {
+                gateway = argv[5];
+                if (false == isValidIp(gateway, argv[3]) ) {
+                    cli->sendMsg(ResponseCode::CommandParameterError,
+                            "invalid gateway", false);
+                    return 0;
+                }
+            }
+
+            std::string res =
+                sRouteCtrl->replaceDefRoute(iface, gateway, ipVer);
+            if (!res.empty()) {
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                cli->sendMsg(ResponseCode::CommandOkay,
+                            "default route replace succeeded", false);
+            }
+        } else if (!strcmp(argv[1], "add")) {
+            if ((argc !=6) && (argc != 7)) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                        "Usage: route add def v[4|6]"
+                        " <interface> <metric> [<gateway>]", false);
+                return 0;
+            }
+
+            char *iface = argv[4],
+                 *gateway = NULL;
+            int metric = atoi(argv[5]);
+
+            if (false == isValidIface(iface)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid interface", false);
+                return 0;
+            }
+
+            if (argc > 6) {
+                gateway = argv[6];
+                if (false == isValidIp(gateway, argv[3]) ) {
+                    cli->sendMsg(ResponseCode::CommandParameterError,
+                            "invalid gateway", false);
+                    return 0;
+                }
+            }
+
+            std::string res =
+                sRouteCtrl->addDefRoute(iface, gateway, ipVer, metric);
+            if (!res.empty()) {
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                cli->sendMsg(ResponseCode::CommandOkay,
+                            "default route add with metric succeeded", false);
+            }
+        } else {
+            cli->sendMsg(ResponseCode::CommandSyntaxError,
+                         "Permitted action for def routes <replace|add>",
+                         false);
+        }
+    } else if (!strcmp(argv[2], "dst")) {
+        /* destination based route configuration */
+        if (!strcmp(argv[1], "add")) {
+            if (argc != 7 && argc != 8) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                   "Usage: route add dst v[4|6]"
+                   " <interface> <metric> <dstIpAddr> [<gateway>]", false);
+                return 0;
+            }
+
+            char *iface = argv[4],
+                 *dstPrefix = argv[6],
+                 *gateway = NULL;
+            int metric = atoi(argv[5]);
+
+            if (false == isValidIface(iface)) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid interface", false);
+                return 0;
+            }
+
+            if (false == isValidIp(dstPrefix, argv[3]) ) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid IP address", false);
+                return 0;
+            }
+
+            if (argc > 7) {
+                gateway = argv[7];
+                if (false == isValidIp(gateway, argv[3]) ) {
+                    cli->sendMsg(ResponseCode::CommandParameterError,
+                            "invalid gateway", false);
+                    return 0;
+                }
+            }
+
+            std::string res =
+                sRouteCtrl->addDstRoute(iface, dstPrefix, gateway, metric);
+            if (!res.empty()) {
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                cli->sendMsg(ResponseCode::CommandOkay,
+                            "destination route add succeeded", false);
+            }
+        } else if (!strcmp(argv[1], "del")) {
+            if (argc != 5) {
+                cli->sendMsg(ResponseCode::CommandSyntaxError,
+                             "Usage: route del dst v[4|6] <ipaddr>", false);
+                return 0;
+            }
+
+            if (false == isValidIp(argv[4], argv[3]) ) {
+                cli->sendMsg(ResponseCode::CommandParameterError,
+                                "invalid IP address", false);
+                return 0;
+            }
+
+            std::string res = sRouteCtrl->delDstRoute(argv[4]);
+            if (!res.empty()){
+                cli->sendMsg(ResponseCode::OperationFailed, res.c_str(), false);
+            } else {
+                cli->sendMsg(ResponseCode::CommandOkay,
+                            "destination route delete succeeded", false);
+            }
+        } else {
+            cli->sendMsg(ResponseCode::CommandSyntaxError,
+                         "permitted operation for dst routes: <add|del>",
+                         false);
+        }
+    } else {
+        cli->sendMsg(ResponseCode::CommandParameterError,
+                     "allowed route types: <src|dst|def>", false);
+    }
     return 0;
 }

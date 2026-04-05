@@ -31,6 +31,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.mms.R;
 import com.android.mms.ui.MessageUtils;
 import com.android.mms.ui.MessagingPreferenceActivity;
 
@@ -54,7 +55,7 @@ public class MmsConfig {
      * Whether to hide MMS functionality from the user (i.e. SMS only).
      */
     private static boolean mTransIdEnabled = false;
-    private static int mMmsEnabled = 1;                         // default to true
+    private static boolean mMmsEnabled = true;                  // default to true
     private static int mMaxMessageSize = 300 * 1024;            // default to 300k max size
     private static String mUserAgent = DEFAULT_USER_AGENT;
     private static String mUaProfTagName = DEFAULT_HTTP_KEY_X_WAP_PROFILE;
@@ -65,7 +66,7 @@ public class MmsConfig {
     private static int mMaxImageHeight = MAX_IMAGE_HEIGHT;      // default value
     private static int mMaxImageWidth = MAX_IMAGE_WIDTH;        // default value
     private static int mRecipientLimit = Integer.MAX_VALUE;     // default value
-    private static int mDefaultSMSMessagesPerThread = 10000;    // default value
+    private static int mDefaultSMSMessagesPerThread = 1000;     // default value
     private static int mDefaultMMSMessagesPerThread = 1000;     // default value
     private static int mMinMessageCountPerThread = 2;           // default value
     private static int mMaxMessageCountPerThread = 5000;        // default value
@@ -80,6 +81,12 @@ public class MmsConfig {
     // than a single segment (i.e. 140 chars), then the message will turn into and be sent
     // as an mms message. This feature exists for carriers that don't support multi-part sms's.
     private static boolean mEnableMultipartSMS = true;
+    
+    // By default, the radio splits multipart sms, not the application. If the carrier or radio
+    // does not support this, and the recipient gets garbled text, set this to true. If this is
+    // true and mEnableMultipartSMS is false, the mSmsToMmsTextThreshold will be observed,
+    // converting to mms if we reach the required number of segments.
+    private static boolean mEnableSplitSMS = false;
 
     // If mEnableMultipartSMS is true and mSmsToMmsTextThreshold > 1, then multi-part SMS messages
     // will be converted into a single mms message. For example, if the mms_config.xml file
@@ -112,6 +119,8 @@ public class MmsConfig {
     // activity.
     private static boolean mEnableGroupMms = true;
 
+    private static int MAX_SLIDE_NUM = 10;
+
     public static void init(Context context) {
         if (LOCAL_LOGV) {
             Log.v(TAG, "MmsConfig.init()");
@@ -121,6 +130,11 @@ public class MmsConfig {
                 android.os.SystemProperties.get(TelephonyProperties.PROPERTY_ICC_OPERATOR_NUMERIC));
 
         loadMmsSettings(context);
+        MAX_SLIDE_NUM = context.getResources().getInteger(R.integer.max_slide_num);
+    }
+
+    public static int getMaxSlideNumber() {
+        return MAX_SLIDE_NUM;
     }
 
     public static boolean isSmsEnabled(Context context) {
@@ -150,12 +164,16 @@ public class MmsConfig {
         return intent;
     }
 
-    public static int getSmsToMmsTextThreshold() {
+    public static int getSmsToMmsTextThreshold(Context context) {
+        int limitCount = context.getResources().getInteger(R.integer.limit_count);
+        if (limitCount != 0) {
+            return limitCount;
+        }
         return mSmsToMmsTextThreshold;
     }
 
     public static boolean getMmsEnabled() {
-        return mMmsEnabled == 1 ? true : false;
+        return mMmsEnabled;
     }
 
     public static int getMaxMessageSize() {
@@ -240,6 +258,10 @@ public class MmsConfig {
 
     public static boolean getMultipartSmsEnabled() {
         return mEnableMultipartSMS;
+    }
+
+    public static boolean getSplitSmsEnabled() {
+        return mEnableSplitSMS;
     }
 
     public static boolean getSlideDurationEnabled() {
@@ -344,7 +366,7 @@ public class MmsConfig {
                     if ("bool".equals(tag)) {
                         // bool config tags go here
                         if ("enabledMMS".equalsIgnoreCase(value)) {
-                            mMmsEnabled = "true".equalsIgnoreCase(text) ? 1 : 0;
+                            mMmsEnabled = "true".equalsIgnoreCase(text);
                         } else if ("enabledTransID".equalsIgnoreCase(value)) {
                             mTransIdEnabled = "true".equalsIgnoreCase(text);
                         } else if ("enabledNotifyWapMMSC".equalsIgnoreCase(value)) {
@@ -355,6 +377,8 @@ public class MmsConfig {
                             mAllowAttachAudio = "true".equalsIgnoreCase(text);
                         } else if ("enableMultipartSMS".equalsIgnoreCase(value)) {
                             mEnableMultipartSMS = "true".equalsIgnoreCase(text);
+                        } else if ("enableSplitSMS".equalsIgnoreCase(value)) {
+                            mEnableSplitSMS = "true".equalsIgnoreCase(text);
                         } else if ("enableSlideDuration".equalsIgnoreCase(value)) {
                             mEnableSlideDuration = "true".equalsIgnoreCase(text);
                         } else if ("enableMMSReadReports".equalsIgnoreCase(value)) {
@@ -398,7 +422,10 @@ public class MmsConfig {
                         } else if ("aliasMaxChars".equalsIgnoreCase(value)) {
                             mAliasRuleMaxChars = Integer.parseInt(text);
                         } else if ("smsToMmsTextThreshold".equalsIgnoreCase(value)) {
-                            mSmsToMmsTextThreshold = Integer.parseInt(text);
+                            int maxSmstomms = context.getResources().getInteger(R.integer
+                                    .config_max_smstomms);
+                            mSmsToMmsTextThreshold = (maxSmstomms == 0) ? Integer.parseInt(text)
+                                    : maxSmstomms;
                         } else if ("maxMessageTextSize".equalsIgnoreCase(value)) {
                             mMaxTextLength = Integer.parseInt(text);
                         } else if ("maxSubjectLength".equalsIgnoreCase(value)) {

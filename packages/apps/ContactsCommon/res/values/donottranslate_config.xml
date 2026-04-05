@@ -84,4 +84,12 @@
     <!-- Flag indicating whether Contacts app is allowed to share contacts with devices outside -->
     <bool name="config_allow_share_visible_contacts">true</bool>
 
+    <!-- Flag indicating whether or not display Internet call when edit contacts-->
+    <bool name="hide_voip">false</bool>
+
+    <!-- Flag indicating btn style,true means two btn,false means one btn-->
+    <bool name="btn_style">true</bool>
+
+    <!-- Flag indicating whether to include all contacts in custom view -->
+    <bool name="config_custom_contact_default_state">false</bool>
 </resources>

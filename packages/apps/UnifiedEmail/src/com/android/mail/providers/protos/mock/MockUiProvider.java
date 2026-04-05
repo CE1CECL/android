@@ -231,14 +231,14 @@ public final class MockUiProvider extends ContentProvider {
                 "firstUnread", "last");
         for (int i = 0; i < messageCount; i++) {
             if (i % 2 == 0) {
-                info.addMessage(new MessageInfo(false, false,
+                info.addMessage(new MessageInfo(false, false, false,
                         i + "Test <testsender@test.com>", -1, "testsender@test.com"));
             } else if (i % 3 == 0) {
-                info.addMessage(new MessageInfo(true, false, i + "sender@test.com", -1,
-                        "sender@test.com"));
+                info.addMessage(new MessageInfo(true, false, false,
+                        i + "sender@test.com", -1, "sender@test.com"));
             } else {
-                info.addMessage(new MessageInfo(false, false, MessageInfo.SENDER_LIST_TOKEN_ELIDED,
-                        -1, null));
+                info.addMessage(new MessageInfo(false, false, false,
+                        MessageInfo.SENDER_LIST_TOKEN_ELIDED, -1, null));
             }
         }
         return info.toBlob();
@@ -327,7 +327,8 @@ public final class MockUiProvider extends ContentProvider {
                         AccountCapabilities.SMART_REPLY |
                         AccountCapabilities.LOCAL_SEARCH |
                         AccountCapabilities.THREADED_CONVERSATIONS |
-                        AccountCapabilities.MULTIPLE_FOLDERS_PER_CONV));
+                        AccountCapabilities.MULTIPLE_FOLDERS_PER_CONV |
+                        AccountCapabilities.SMART_FORWARD));
         JSONArray replyFroms = new JSONArray();
         ArrayList<ReplyFromAccount> list = new ArrayList<ReplyFromAccount>();
         list.add(new ReplyFromAccount(null, Uri.parse(accountUri), "customAddress1@custom.com",
@@ -375,6 +376,9 @@ public final class MockUiProvider extends ContentProvider {
         accountMap.put(SettingsColumns.CONFIRM_DELETE, 1);
         accountMap.put(SettingsColumns.CONFIRM_ARCHIVE, 1);
         accountMap.put(SettingsColumns.CONFIRM_SEND, 1);
+        accountMap.put(SettingsColumns.CONFIRM_FORWARD, 1);
+        accountMap.put(SettingsColumns.ADD_ATTACHMENT, 1);
+        accountMap.put(SettingsColumns.SELECT_RECIPIENTS, 1);
         accountMap.put(SettingsColumns.DEFAULT_INBOX, defaultInbox);
         accountMap.put(SettingsColumns.DEFAULT_INBOX_NAME, "Inbox");
         accountMap.put(SettingsColumns.FORCE_REPLY_FROM_DEFAULT, 1);

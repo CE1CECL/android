@@ -48,6 +48,10 @@ ifeq ($(ARCH_ARM_HAVE_NEON),true)
 	LOCAL_CFLAGS += -D__ARM_HAVE_NEON
 endif
 
+# Enable Neon assembler optimized version of S32A_Opaque_BlitRow32 and
+# S32A_Blend_Blitrow32. Overrides the intrinsic blitter below.
+LOCAL_CFLAGS += -DENABLE_OPTIMIZED_S32A_BLITTERS
+
 LOCAL_CFLAGS += -DDCT_IFAST_SUPPORTED
 
 # using freetype's embolden allows us to adjust fake bold settings at
@@ -516,7 +520,15 @@ LOCAL_SRC_FILES += \
 ifeq ($(TARGET_ARCH),arm)
 
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
+
+LOCAL_CFLAGS += -DNEON_BLIT_ANTI_H
+ifneq ($(TARGET_HAVE_QC_PERF),true)
+    LOCAL_CFLAGS += -DNEON_BLIT_H
+endif
+
 LOCAL_SRC_FILES += \
+	src/opts/S32A_Opaque_BlitRow32_neon.S \
+	src/opts/S32A_Blend_BlitRow32_neon.S \
 	src/opts/memset16_neon.S \
 	src/opts/memset32_neon.S \
 	src/opts/SkBitmapProcState_arm_neon.cpp \
@@ -525,7 +537,9 @@ LOCAL_SRC_FILES += \
 	src/opts/SkBlitRow_opts_arm_neon.cpp \
 	src/opts/SkBlurImage_opts_neon.cpp \
 	src/opts/SkMorphology_opts_neon.cpp \
-	src/opts/SkXfermode_opts_arm_neon.cpp
+	src/opts/SkXfermode_opts_arm_neon.cpp \
+	src/opts/ext/S32_Opaque_D32_filter_DX_shaderproc_neon.cpp \
+    src/core/asm/SkBlitter_RGB16_NEON.S
 endif
 
 LOCAL_SRC_FILES += \
@@ -550,6 +564,7 @@ endif
 
 LOCAL_SHARED_LIBRARIES := \
 	liblog \
+	libdl \
 	libcutils \
 	libft2 \
 	libjpeg \
@@ -565,6 +580,12 @@ LOCAL_STATIC_LIBRARIES := \
 	libgif \
 	libwebp-decode \
 	libwebp-encode
+
+ifeq ($(call is-vendor-board-platform,QCOM),true)
+ifeq ($(TARGET_HAVE_QC_PERF),true)
+	LOCAL_WHOLE_STATIC_LIBRARIES += libqc-skia
+endif
+endif
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/include/core \
@@ -608,6 +629,12 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := \
 	$(LOCAL_PATH)/include/ports \
 	$(LOCAL_PATH)/include/utils \
 	$(LOCAL_PATH)/include/lazy
+
+# SkTextBox used by Samsung's libtvout
+ifeq ($(BOARD_USES_SKTEXTBOX),true)
+LOCAL_SRC_FILES += src/views/SkTextBox.cpp
+LOCAL_C_INCLUDES += $(LOCAL_PATH)/include/views
+endif
 
 # Add SFTNLY support for PDF (which in turns depends on ICU)
 LOCAL_C_INCLUDES += external/sfntly/cpp/src

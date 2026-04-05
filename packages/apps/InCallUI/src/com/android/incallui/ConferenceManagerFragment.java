@@ -16,6 +16,7 @@
 
 package com.android.incallui;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -77,6 +78,11 @@ public class ConferenceManagerFragment
             @Override
             public void onClick(View v) {
                 getPresenter().manageConferenceDoneClicked();
+
+                final Activity activity = getActivity();
+                if (activity instanceof InCallActivity) {
+                    ((InCallActivity) activity).onManageConferenceDoneClicked();
+                }
             }
         });
 
@@ -152,6 +158,17 @@ public class ConferenceManagerFragment
                 public void onClick(View v) {
                     getPresenter().endConferenceConnection(rowId);
                 }
+        });
+    }
+
+   @Override
+    public void setupEndButtonForRowWithUrl(final int rowId, final String url) {
+        View endButton = mConferenceCallList[rowId].findViewById(R.id.conferenceCallerDisconnect);
+        endButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getPresenter().endConferenceConnectionUrl(rowId, url);
+            }
         });
     }
 

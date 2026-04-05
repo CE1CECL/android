@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <utime.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -60,6 +61,8 @@
 
 #define CACHE_DIR_POSTFIX      "/cache"
 
+#define DATA_SUBDIR             "data/" // sub-directory under ANDROID_DATA
+
 #define APP_SUBDIR             "app/" // sub-directory under ANDROID_DATA
 
 #define APP_LIB_SUBDIR         "app-lib/" // sub-directory under ANDROID_DATA
@@ -72,8 +75,12 @@
 
 #define DALVIK_CACHE_PREFIX    "/data/dalvik-cache/"
 #define DALVIK_CACHE_POSTFIX   "/classes.dex"
+#define DALVIK_SYSTEM_CACHE_PREFIX "/cache/dalvik-cache/"
 
 #define UPDATE_COMMANDS_DIR_PREFIX  "/system/etc/updatecmds/"
+
+#define IDMAP_PREFIX           "/data/resource-cache/"
+#define IDMAP_SUFFIX           "@idmap"
 
 #define PKG_NAME_MAX  128   /* largest allowed package name */
 #define PKG_PATH_MAX  256   /* max size of any path we use */
@@ -94,6 +101,7 @@ extern dir_rec_t android_app_dir;
 extern dir_rec_t android_app_private_dir;
 extern dir_rec_t android_app_lib_dir;
 extern dir_rec_t android_data_dir;
+extern dir_rec_t android_datadata_dir;
 extern dir_rec_t android_asec_dir;
 extern dir_rec_t android_media_dir;
 extern dir_rec_array_t android_system_dirs;
@@ -124,6 +132,15 @@ typedef struct {
     int8_t* curMemBlockAvail;
     int8_t* curMemBlockEnd;
 } cache_t;
+
+pthread_mutex_t io_mutex;
+pthread_cond_t io_wait;
+
+typedef struct {
+    int s;
+    char cmd[1024];
+    int id;
+} thread_parm;
 
 /* util.c */
 
@@ -194,7 +211,7 @@ int uninstall(const char *pkgname, userid_t userid);
 int renamepkg(const char *oldpkgname, const char *newpkgname);
 int fix_uid(const char *pkgname, uid_t uid, gid_t gid);
 int delete_user_data(const char *pkgname, userid_t userid);
-int make_user_data(const char *pkgname, uid_t uid, userid_t userid);
+int make_user_data(const char *pkgname, uid_t uid, userid_t userid, const char* seinfo);
 int delete_user(userid_t userid);
 int delete_cache(const char *pkgname, userid_t userid);
 int move_dex(const char *src, const char *dst);
@@ -207,3 +224,9 @@ int free_cache(int64_t free_size);
 int dexopt(const char *apk_path, uid_t uid, int is_public);
 int movefiles();
 int linklib(const char* target, const char* source, int userId);
+int restorecon_data();
+int idmap(const char *target_path, const char *overlay_path, uid_t uid,
+          uint32_t target_hash, uint32_t overlay_hash, const char *redirections);
+int aapt(const char *source_apk, const char *internal_path, const char *out_restable, uid_t uid,
+         int pkgId, const char *common_res_path);
+

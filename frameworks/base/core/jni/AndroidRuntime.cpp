@@ -142,6 +142,7 @@ extern int register_android_os_SystemProperties(JNIEnv *env);
 extern int register_android_os_SystemClock(JNIEnv* env);
 extern int register_android_os_Trace(JNIEnv* env);
 extern int register_android_os_FileObserver(JNIEnv *env);
+extern int register_android_os_FileUtils(JNIEnv *env);
 extern int register_android_os_UEventObserver(JNIEnv* env);
 extern int register_android_os_MemoryFile(JNIEnv* env);
 extern int register_android_net_LocalSocketImpl(JNIEnv* env);
@@ -432,7 +433,7 @@ void AndroidRuntime::parseExtraOpts(char* extraOptsBuf)
  *
  * Returns 0 on success.
  */
-int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
+int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv, bool zygote)
 {
     int result = -1;
     JavaVMInitArgs initArgs;
@@ -633,11 +634,15 @@ int AndroidRuntime::startVm(JavaVM** pJavaVM, JNIEnv** pEnv)
         }
     }
 
-    /* enable debugging; set suspend=y to pause during VM init */
-    /* use android ADB transport */
-    opt.optionString =
-        "-agentlib:jdwp=transport=dt_android_adb,suspend=n,server=y";
-    mOptions.add(opt);
+    /*
+     * Enable debugging only for apps forked from zygote.
+     * Set suspend=y to pause during VM init and use android ADB transport.
+     */
+    if (zygote) {
+        opt.optionString =
+            "-agentlib:jdwp=transport=dt_android_adb,suspend=n,server=y";
+        mOptions.add(opt);
+    }
 
     ALOGD("CheckJNI is %s\n", checkJni ? "ON" : "OFF");
     if (checkJni) {
@@ -802,7 +807,7 @@ char* AndroidRuntime::toSlashClassName(const char* className)
  * Passes the main function two arguments, the class name and the specified
  * options string.
  */
-void AndroidRuntime::start(const char* className, const char* options)
+void AndroidRuntime::start(const char* className, const char* options, bool zygote)
 {
     ALOGD("\n>>>>>> AndroidRuntime START %s <<<<<<\n",
             className != NULL ? className : "(unknown)");
@@ -835,7 +840,7 @@ void AndroidRuntime::start(const char* className, const char* options)
     JniInvocation jni_invocation;
     jni_invocation.Init(NULL);
     JNIEnv* env;
-    if (startVm(&mJavaVM, &env) != 0) {
+    if (startVm(&mJavaVM, &env, zygote) != 0) {
         return;
     }
     onVmCreated(env);
@@ -1168,6 +1173,7 @@ static const RegJNIRec gRegJNI[] = {
     REG_JNI(register_android_database_SQLiteDebug),
     REG_JNI(register_android_os_Debug),
     REG_JNI(register_android_os_FileObserver),
+    REG_JNI(register_android_os_FileUtils),
     REG_JNI(register_android_os_MessageQueue),
     REG_JNI(register_android_os_SELinux),
     REG_JNI(register_android_os_Trace),

@@ -123,6 +123,9 @@ public class KeyguardAppWidgetPickActivity extends Activity
         mAppWidgetAdapter = new AppWidgetAdapter(this, mItems);
         mGridView.setAdapter(mAppWidgetAdapter);
         mGridView.setOnItemClickListener(this);
+        mGridView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
 
         mLockPatternUtils = new LockPatternUtils(this); // TEMP-- we want to delete this
     }
@@ -519,9 +522,11 @@ public class KeyguardAppWidgetPickActivity extends Activity
                 if (mAddingToKeyguard && mAppWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
                     // Found in KeyguardHostView.java
                     final int KEYGUARD_HOST_ID = 0x4B455947;
+                    final String keyguardPackage = getString(
+                            com.android.internal.R.string.config_keyguardPackage);
                     int userId = ActivityManager.getCurrentUser();
                     mAppWidgetId = AppWidgetHost.allocateAppWidgetIdForPackage(KEYGUARD_HOST_ID,
-                            userId, "com.android.keyguard");
+                            userId, keyguardPackage);
                 }
                 mAppWidgetManager.bindAppWidgetId(
                         mAppWidgetId, intent.getComponent(), mExtraConfigureOptions);

@@ -189,8 +189,8 @@ int LE_init(LoudnessEnhancerContext *pContext)
 //
 
 int LELib_Create(const effect_uuid_t *uuid,
-                         int32_t sessionId,
-                         int32_t ioId,
+                         int32_t sessionId __unused,
+                         int32_t ioId __unused,
                          effect_handle_t *pHandle) {
     ALOGV("LELib_Create()");
     int ret;
@@ -327,7 +327,7 @@ int LE_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         break;
     case EFFECT_CMD_SET_CONFIG:
         if (pCmdData == NULL || cmdSize != sizeof(effect_config_t)
-                || pReplyData == NULL || *replySize != sizeof(int)) {
+                || pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         *(int *) pReplyData = LE_setConfig(pContext,
@@ -344,7 +344,7 @@ int LE_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
         LE_reset(pContext);
         break;
     case EFFECT_CMD_ENABLE:
-        if (pReplyData == NULL || *replySize != sizeof(int)) {
+        if (pReplyData == NULL || replySize == NULL || *replySize != sizeof(int)) {
             return -EINVAL;
         }
         if (pContext->mState != LOUDNESS_ENHANCER_STATE_INITIALIZED) {
@@ -368,7 +368,7 @@ int LE_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
     case EFFECT_CMD_GET_PARAM: {
         if (pCmdData == NULL ||
             cmdSize != (int)(sizeof(effect_param_t) + sizeof(uint32_t)) ||
-            pReplyData == NULL ||
+            pReplyData == NULL || replySize == NULL ||
             *replySize < (int)(sizeof(effect_param_t) + sizeof(uint32_t) + sizeof(uint32_t))) {
             return -EINVAL;
         }
@@ -394,7 +394,7 @@ int LE_command(effect_handle_t self, uint32_t cmdCode, uint32_t cmdSize,
     case EFFECT_CMD_SET_PARAM: {
         if (pCmdData == NULL ||
             cmdSize != (int)(sizeof(effect_param_t) + sizeof(uint32_t) + sizeof(uint32_t)) ||
-            pReplyData == NULL || *replySize != sizeof(int32_t)) {
+            pReplyData == NULL || replySize == NULL || *replySize != sizeof(int32_t)) {
             return -EINVAL;
         }
         *(int32_t *)pReplyData = 0;
@@ -453,13 +453,13 @@ const struct effect_interface_s gLEInterface = {
 // This is the only symbol that needs to be exported
 __attribute__ ((visibility ("default")))
 audio_effect_library_t AUDIO_EFFECT_LIBRARY_INFO_SYM = {
-    tag : AUDIO_EFFECT_LIBRARY_TAG,
-    version : EFFECT_LIBRARY_API_VERSION,
-    name : "Loudness Enhancer Library",
-    implementor : "The Android Open Source Project",
-    create_effect : LELib_Create,
-    release_effect : LELib_Release,
-    get_descriptor : LELib_GetDescriptor,
+    .tag = AUDIO_EFFECT_LIBRARY_TAG,
+    .version = EFFECT_LIBRARY_API_VERSION,
+    .name = "Loudness Enhancer Library",
+    .implementor = "The Android Open Source Project",
+    .create_effect = LELib_Create,
+    .release_effect = LELib_Release,
+    .get_descriptor = LELib_GetDescriptor,
 };
 
 }; // extern "C"

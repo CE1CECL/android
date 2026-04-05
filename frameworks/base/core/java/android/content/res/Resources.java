@@ -16,12 +16,16 @@
 
 package android.content.res;
 
+import android.app.ComposedIconInfo;
+import android.app.IconPackHelper;
 import com.android.internal.util.XmlUtils;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import android.app.IconPackHelper.IconCustomizer;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageItemInfo;
 import android.graphics.Movie;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ColorDrawable;
@@ -34,9 +38,9 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Slog;
+import android.util.SparseArray;
 import android.util.TypedValue;
 import android.util.LongSparseArray;
-import android.view.DisplayAdjustments;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -80,6 +84,20 @@ public class Resources {
 
     private static final int ID_OTHER = 0x01000004;
 
+    // Package IDs for themes. Aapt will compile the res table with this id.
+    /** @hide */
+    public static final int THEME_FRAMEWORK_PKG_ID = 0x60;
+    /** @hide */
+    public static final int THEME_APP_PKG_ID = 0x61;
+    /** @hide */
+    public static final int THEME_ICON_PKG_ID = 0x62;
+    /**
+     * The common resource pkg id needs to be less than the THEME_FRAMEWORK_PKG_ID
+     * otherwise aapt will complain and fail
+     * @hide
+     */
+    public static final int THEME_COMMON_PKG_ID = THEME_FRAMEWORK_PKG_ID - 1;
+
     private static final Object sSync = new Object();
     /*package*/ static Resources mSystem = null;
 
@@ -122,6 +140,9 @@ public class Resources {
 
     private CompatibilityInfo mCompatibilityInfo = CompatibilityInfo.DEFAULT_COMPATIBILITY_INFO;
     private WeakReference<IBinder> mToken;
+
+    private SparseArray<PackageItemInfo> mIcons;
+    private ComposedIconInfo mComposedIconInfo;
 
     static {
         sPreloadedDrawables = new LongSparseArray[2];
@@ -687,6 +708,16 @@ public class Resources {
      * @return Drawable An object that can be used to draw this resource.
      */
     public Drawable getDrawable(int id) throws NotFoundException {
+        return getDrawable(id, true);
+    }
+    /** @hide */
+    public Drawable getDrawable(int id, boolean supportComposedIcons) throws NotFoundException {
+        //Check if an icon is themed
+        PackageItemInfo info = mIcons != null ? mIcons.get(id) : null;
+        if (info != null && info.themedIcon != 0) {
+            id = info.themedIcon;
+        }
+
         TypedValue value;
         synchronized (mAccessLock) {
             value = mTmpValue;
@@ -695,9 +726,24 @@ public class Resources {
             } else {
                 mTmpValue = null;
             }
-            getValue(id, value, true);
+            getValue(id, value, true, supportComposedIcons);
         }
-        Drawable res = loadDrawable(value, id);
+        Drawable res = null;
+        try {
+            res = loadDrawable(value, id);
+        } catch (NotFoundException e) {
+            // The below statement will be true if we were trying to load a composed icon.
+            // Since we received a NotFoundException, try to load the original if this
+            // condition is true, otherwise throw the original exception.
+            if (supportComposedIcons && mComposedIconInfo != null && info != null &&
+                    info.themedIcon == 0) {
+                Log.e(TAG, "Failed to retrieve composed icon.", e);
+                getValue(id, value, true, false);
+                res = loadDrawable(value, id);
+            } else {
+                throw e;
+            }
+        }
         synchronized (mAccessLock) {
             if (mTmpValue == null) {
                 mTmpValue = value;
@@ -726,6 +772,17 @@ public class Resources {
      * @return Drawable An object that can be used to draw this resource.
      */
     public Drawable getDrawableForDensity(int id, int density) throws NotFoundException {
+        return getDrawableForDensity(id, density, true);
+    }
+    /** @hide */
+    public Drawable getDrawableForDensity(int id, int density, boolean supportComposedIcons)
+            throws NotFoundException {
+        //Check if an icon was themed
+        PackageItemInfo info = mIcons != null ? mIcons.get(id) : null;
+        if (info != null && info.themedIcon != 0) {
+            id = info.themedIcon;
+        }
+
         TypedValue value;
         synchronized (mAccessLock) {
             value = mTmpValue;
@@ -734,7 +791,7 @@ public class Resources {
             } else {
                 mTmpValue = null;
             }
-            getValueForDensity(id, density, value, true);
+            getValueForDensity(id, density, value, true, supportComposedIcons);
 
             /*
              * Pretend the requested density is actually the display density. If
@@ -1116,8 +1173,23 @@ public class Resources {
      */
     public void getValue(int id, TypedValue outValue, boolean resolveRefs)
             throws NotFoundException {
+        getValue(id, outValue, resolveRefs, true);
+    }
+    /** @hide */
+    public void getValue(int id, TypedValue outValue, boolean resolveRefs,
+                         boolean supportComposedIcons) throws NotFoundException {
+        //Check if an icon was themed
+        PackageItemInfo info = mIcons != null ? mIcons.get(id) : null;
+        if (info != null && info.themedIcon != 0) {
+            id = info.themedIcon;
+        }
         boolean found = mAssets.getResourceValue(id, 0, outValue, resolveRefs);
         if (found) {
+            if (supportComposedIcons && IconPackHelper.shouldComposeIcon(mComposedIconInfo)
+                    && info != null && info.themedIcon == 0) {
+                Drawable dr = loadDrawable(outValue, id);
+                IconCustomizer.getValue(this, id, outValue, dr);
+            }
             return;
         }
         throw new NotFoundException("Resource ID #0x"
@@ -1139,8 +1211,43 @@ public class Resources {
      */
     public void getValueForDensity(int id, int density, TypedValue outValue, boolean resolveRefs)
             throws NotFoundException {
+        getValueForDensity(id, density, outValue, resolveRefs, true);
+    }
+    /** @hide */
+    public void getValueForDensity(int id, int density, TypedValue outValue, boolean resolveRefs,
+                                   boolean supportComposedIcons) throws NotFoundException {
+        //Check if an icon was themed
+        PackageItemInfo info = mIcons != null ? mIcons.get(id) : null;
+        if (info != null && info.themedIcon != 0) {
+            id = info.themedIcon;
+        }
         boolean found = mAssets.getResourceValue(id, density, outValue, resolveRefs);
         if (found) {
+            if (supportComposedIcons && IconPackHelper.shouldComposeIcon(mComposedIconInfo) &&
+                    info != null && info.themedIcon == 0) {
+                int tmpDensity = outValue.density;
+                /*
+                 * Pretend the requested density is actually the display density. If
+                 * the drawable returned is not the requested density, then force it
+                 * to be scaled later by dividing its density by the ratio of
+                 * requested density to actual device density. Drawables that have
+                 * undefined density or no density don't need to be handled here.
+                 */
+                if (outValue.density > 0 && outValue.density != TypedValue.DENSITY_NONE) {
+                    if (outValue.density == density) {
+                        outValue.density = mMetrics.densityDpi;
+                    } else {
+                        outValue.density = (outValue.density * mMetrics.densityDpi) / density;
+                    }
+                }
+                Drawable dr = loadDrawable(outValue, id);
+
+                // Return to original density. If we do not do this then
+                // the caller will get the wrong density for the given id and perform
+                // more of its own scaling in loadDrawable
+                outValue.density = tmpDensity;
+                IconCustomizer.getValue(this, id, outValue, dr);
+            }
             return;
         }
         throw new NotFoundException("Resource ID #0x" + Integer.toHexString(id));
@@ -1555,7 +1662,15 @@ public class Resources {
                     mTmpConfig.setLayoutDirection(mTmpConfig.locale);
                 }
                 configChanges = mConfiguration.updateFrom(mTmpConfig);
-                configChanges = ActivityInfo.activityInfoConfigToNative(configChanges);
+
+                /* This is ugly, but modifying the activityInfoConfigToNative
+                 * adapter would be messier */
+                if ((configChanges & ActivityInfo.CONFIG_THEME_RESOURCE) != 0) {
+                    configChanges = ActivityInfo.activityInfoConfigToNative(configChanges);
+                    configChanges |= ActivityInfo.CONFIG_THEME_RESOURCE;
+                } else {
+                    configChanges = ActivityInfo.activityInfoConfigToNative(configChanges);
+                }
             }
             if (mConfiguration.locale == null) {
                 mConfiguration.locale = Locale.getDefault();
@@ -1622,6 +1737,18 @@ public class Resources {
     private void clearDrawableCacheLocked(
             LongSparseArray<WeakReference<ConstantState>> cache,
             int configChanges) {
+        /*
+         * Quick test to find out if the config change that occurred should
+         * trigger a full cache wipe.
+         */
+        if (Configuration.needNewResources(configChanges, 0)) {
+            if (DEBUG_CONFIG) {
+                Log.d(TAG, "Clear drawable cache from config changes: 0x"
+                        + Integer.toHexString(configChanges));
+            }
+            cache.clear();
+            return;
+        }
         int N = cache.size();
         if (DEBUG_CONFIG) {
             Log.d(TAG, "Cleaning up drawables config changes: 0x"
@@ -1990,14 +2117,19 @@ public class Resources {
         return sPreloadedDrawables[0];
     }
 
+    static private final int CONFIG_FONT_SCALE = ActivityInfo.activityInfoConfigToNative(
+            ActivityInfo.CONFIG_FONT_SCALE);
+    static private final int CONFIG_DENSITY = ActivityInfo.activityInfoConfigToNative(
+            ActivityInfo.CONFIG_DENSITY);
+    static private final int SPEC_PUBLIC = 0x40000000;
+
     private boolean verifyPreloadConfig(int changingConfigurations, int allowVarying,
             int resourceId, String name) {
         // We allow preloading of resources even if they vary by font scale (which
         // doesn't impact resource selection) or density (which we handle specially by
         // simply turning off all preloading), as well as any other configs specified
         // by the caller.
-        if (((changingConfigurations&~(ActivityInfo.CONFIG_FONT_SCALE |
-                ActivityInfo.CONFIG_DENSITY)) & ~allowVarying) != 0) {
+        if (((changingConfigurations&~(CONFIG_FONT_SCALE | CONFIG_DENSITY | SPEC_PUBLIC)) & ~allowVarying) != 0) {
             String resName;
             try {
                 resName = getResourceName(resourceId);
@@ -2025,6 +2157,13 @@ public class Resources {
 
     static private final int LAYOUT_DIR_CONFIG = ActivityInfo.activityInfoConfigToNative(
             ActivityInfo.CONFIG_LAYOUT_DIRECTION);
+
+    /** @hide */
+    public final void updateStringCache() {
+        synchronized (mAccessLock) {
+            mAssets.recreateStringBlocks();
+        }
+    }
 
     /*package*/ Drawable loadDrawable(TypedValue value, int id)
             throws NotFoundException {
@@ -2398,6 +2537,21 @@ public class Resources {
                     new int[len*AssetManager.STYLE_NUM_ENTRIES],
                     new int[1+len], len);
         }
+    }
+
+    /** @hide */
+    public void setIconResources(SparseArray<PackageItemInfo> icons) {
+        mIcons = icons;
+    }
+
+    /** @hide */
+    public void setComposedIconInfo(ComposedIconInfo iconInfo) {
+        mComposedIconInfo = iconInfo;
+    }
+
+    /** @hide */
+    public ComposedIconInfo getComposedIconInfo() {
+        return mComposedIconInfo;
     }
 
     private Resources() {

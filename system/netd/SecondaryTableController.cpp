@@ -261,6 +261,14 @@ int SecondaryTableController::modifyFromRule(int tableIndex, const char *action,
 int SecondaryTableController::modifyLocalRoute(int tableIndex, const char *action,
         const char *iface, const char *addr) {
     char tableIndex_str[11];
+    char action_local[IPARGSIZ];
+    /* append ensures that routes are successfully added for
+    the same address but with different interface names */
+    if ( strcmp( action, ADD ) == 0 ) {
+      strncpy(action_local, APPEND, strlen(APPEND)+1);
+    } else {
+      strncpy(action_local, action, IPARGSIZ);
+    }
 
     if (verifyTableIndex(tableIndex)) {
         return -1;
@@ -273,7 +281,7 @@ int SecondaryTableController::modifyLocalRoute(int tableIndex, const char *actio
     const char *cmd[] = {
             IP_PATH,
             "route",
-            action,
+            action_local,
             addr,
             "dev",
             iface,
@@ -373,9 +381,26 @@ int SecondaryTableController::setFwmarkRule(const char *iface, bool add) {
         "table",
         mark_str
     };
-    ret = runCmd(ARRAY_SIZE(route6_cmd), route6_cmd);
-    // The command might fail during delete if the iface is gone
-    if (add && ret) return ret;
+    // Best effort. If the MTU of iface is too low, this will fail, since v6 requires a min MTU of
+    // 1280. This must mean that the iface will only be used for v4, so don't fail on a v6 error.
+    runCmd(ARRAY_SIZE(route6_cmd), route6_cmd);
+
+    if (add) {
+        const char *fwmark6_cmd[] = {
+            IP_PATH,
+            "-6",
+            "rule",
+            "add",
+            "prio",
+            RULE_PRIO,
+            "fwmark",
+            mark_str,
+            "table",
+            mark_str
+        };
+        ret = runCmd(ARRAY_SIZE(fwmark6_cmd), fwmark6_cmd);
+        if (ret) return ret;
+    }
 
     /* Best effort, because some kernels might not have the needed TCPMSS */
     execIptables(V4V6,

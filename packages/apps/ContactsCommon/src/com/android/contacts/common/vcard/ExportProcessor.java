@@ -56,6 +56,7 @@ public class ExportProcessor extends ProcessorBase {
 
     private volatile boolean mCanceled;
     private volatile boolean mDone;
+    private String selExport = "";
 
     public ExportProcessor(VCardService service, ExportRequest exportRequest, int jobId,
             String callingActivity) {
@@ -143,7 +144,7 @@ public class ExportProcessor extends ProcessorBase {
                     .build();
             // TODO: should provide better selection.
             if (!composer.init(Contacts.CONTENT_URI, new String[] {Contacts._ID},
-                    null, null,
+                    selExport, null,
                     null, contentUriForRawContactsEntity)) {
                 final String errorReason = composer.getErrorReason();
                 Log.e(LOG_TAG, "initialization of vCard composer failed: " + errorReason);
@@ -218,6 +219,10 @@ public class ExportProcessor extends ProcessorBase {
         }
     }
 
+    public void setSelExport(String sel) {
+        selExport = sel;
+    }
+
     private String translateComposerError(String errorMessage) {
         final Resources resources = mService.getResources();
         if (VCardComposer.FAILURE_REASON_FAILED_TO_GET_DATABASE_INFO.equals(errorMessage)) {
@@ -260,8 +265,8 @@ public class ExportProcessor extends ProcessorBase {
         final Intent intent = new Intent();
         intent.setClassName(mService, mCallingActivity);
         final Notification notification =
-                NotificationImportExportListener.constructFinishNotification(mService, title,
-                        description, intent);
+                NotificationImportExportListener.constructFinishNotification(mService,
+                        VCardService.TYPE_EXPORT, title, description, intent);
         mNotificationManager.notify(NotificationImportExportListener.DEFAULT_NOTIFICATION_TAG,
                 mJobId, notification);
     }

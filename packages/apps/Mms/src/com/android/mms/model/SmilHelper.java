@@ -29,6 +29,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.w3c.dom.events.EventTarget;
 import org.w3c.dom.smil.SMILDocument;
@@ -239,6 +240,11 @@ public class SmilHelper {
                         ELEMENT_TAG_AUDIO, document, part.generateLocation());
                 par.appendChild(audioElement);
                 hasMedia = true;
+            } else if (contentType.toLowerCase().equals(ContentType.TEXT_VCARD.toLowerCase())) {
+                SMILMediaElement vcardElement = createMediaElement(
+                        ELEMENT_TAG_REF, document, part.generateLocation());
+                par.appendChild(vcardElement);
+                hasMedia = true;
             } else {
                 // TODO: handle other media types.
                 Log.w(TAG, "unsupport media type");
@@ -342,6 +348,20 @@ public class SmilHelper {
                                                          imgRegionPresentInLayout);
                 } else if (media instanceof AudioModel) {
                     sme = SmilHelper.createMediaElement(SmilHelper.ELEMENT_TAG_AUDIO, document, src);
+                    Map<String, String> extras = ((AudioModel) media).getExtras();
+                    // Add the album and artist of audio into the "Audio"
+                    // element if it's the audio.
+                    String artist = extras.get("artist");
+                    String album = extras.get("album");
+                    if (!TextUtils.isEmpty(artist)) {
+                        sme.setAttribute("artist", escapeXML(artist));
+                    }
+
+                    if (!TextUtils.isEmpty(album)) {
+                        sme.setAttribute("album", escapeXML(album));
+                    }
+                } else if (media instanceof VcardModel) {
+                    sme = SmilHelper.createMediaElement(SmilHelper.ELEMENT_TAG_REF, document, src);
                 } else {
                     Log.w(TAG, "Unsupport media: " + media);
                     continue;

@@ -28,8 +28,18 @@
             android:id="@+id/dialpad_key_number"
             style="@style/DialpadKeyNumberStyle" />
 
-        <TextView
-            android:id="@+id/dialpad_key_letters"
-            style="@style/DialpadKeyLettersStyle" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_gravity="center">
+          <TextView
+              android:id="@+id/dialpad_key_letters"
+              style="@style/DialpadKeyLettersStyle" />
+          <TextView
+              android:id="@+id/dialpad_key2_letters"
+              style="@style/DialpadKeyLettersStyle" />
+        </LinearLayout>
     </LinearLayout>
 </com.android.dialer.dialpad.DialpadKeyButton>

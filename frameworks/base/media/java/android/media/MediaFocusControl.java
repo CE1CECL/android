@@ -40,6 +40,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.IBinder.DeathRecipient;
@@ -318,7 +319,6 @@ public class MediaFocusControl implements OnFinished {
     //==========================================================================================
 
     // event handler messages
-    private static final int MSG_PERSIST_MEDIABUTTONRECEIVER = 0;
     private static final int MSG_RCDISPLAY_CLEAR = 1;
     private static final int MSG_RCDISPLAY_UPDATE = 2;
     private static final int MSG_REEVALUATE_REMOTE = 3;
@@ -359,9 +359,6 @@ public class MediaFocusControl implements OnFinished {
         @Override
         public void handleMessage(Message msg) {
             switch(msg.what) {
-                case MSG_PERSIST_MEDIABUTTONRECEIVER:
-                    onHandlePersistMediaButtonReceiver( (ComponentName) msg.obj );
-                    break;
 
                 case MSG_RCDISPLAY_CLEAR:
                     onRcDisplayClear();
@@ -642,6 +639,12 @@ public class MediaFocusControl implements OnFinished {
             return AudioManager.AUDIOFOCUS_REQUEST_FAILED;
         }
 
+        AudioManager am = (AudioManager)mContext.getSystemService(Context.AUDIO_SERVICE);
+        if (am.getStreamVolume(AudioManager.STREAM_NOTIFICATION) == 0
+                && mainStreamType == AudioManager.STREAM_NOTIFICATION) {
+            return AudioManager.AUDIOFOCUS_REQUEST_FAILED;
+        }
+
         synchronized(mAudioFocusLock) {
             if (!canReassignAudioFocus()) {
                 return AudioManager.AUDIOFOCUS_REQUEST_FAILED;
@@ -754,7 +757,13 @@ public class MediaFocusControl implements OnFinished {
             synchronized(mRCStack) {
                 if ((mMediaReceiverForCalls != null) &&
                         (mIsRinging || (mAudioService.getMode() == AudioSystem.MODE_IN_CALL))) {
-                    dispatchMediaKeyEventForCalls(keyEvent, needWakeLock);
+                    if (Binder.getCallingUid() != Process.SYSTEM_UID) {
+                        // Prevent dispatching key event to the global priority session.
+                        Slog.i(TAG, "Only the system can dispatch media key event "
+                                + "to the global priority session.");
+                    } else {
+                        dispatchMediaKeyEventForCalls(keyEvent, needWakeLock);
+                    }
                     return;
                 }
             }
@@ -1427,47 +1436,7 @@ public class MediaFocusControl implements OnFinished {
                         }
                     }
                 }
-                if (mRCStack.empty()) {
-                    // no saved media button receiver
-                    mEventHandler.sendMessage(
-                            mEventHandler.obtainMessage(MSG_PERSIST_MEDIABUTTONRECEIVER, 0, 0,
-                                    null));
-                } else if (oldTop != mRCStack.peek()) {
-                    // the top of the stack has changed, save it in the system settings
-                    // by posting a message to persist it; only do this however if it has
-                    // a concrete component name (is not a transient registration)
-                    RemoteControlStackEntry rcse = mRCStack.peek();
-                    if (rcse.mReceiverComponent != null) {
-                        mEventHandler.sendMessage(
-                                mEventHandler.obtainMessage(MSG_PERSIST_MEDIABUTTONRECEIVER, 0, 0,
-                                        rcse.mReceiverComponent));
-                    }
-                }
             }
-        }
-    }
-
-    /**
-     * Helper function:
-     * Restore remote control receiver from the system settings.
-     */
-    protected void restoreMediaButtonReceiver() {
-        String receiverName = Settings.System.getStringForUser(mContentResolver,
-                Settings.System.MEDIA_BUTTON_RECEIVER, UserHandle.USER_CURRENT);
-        if ((null != receiverName) && !receiverName.isEmpty()) {
-            ComponentName eventReceiver = ComponentName.unflattenFromString(receiverName);
-            if (eventReceiver == null) {
-                // an invalid name was persisted
-                return;
-            }
-            // construct a PendingIntent targeted to the restored component name
-            // for the media button and register it
-            Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-            //     the associated intent will be handled by the component being registered
-            mediaButtonIntent.setComponent(eventReceiver);
-            PendingIntent pi = PendingIntent.getBroadcast(mContext,
-                    0/*requestCode, ignored*/, mediaButtonIntent, 0/*flags*/);
-            registerMediaButtonIntent(pi, eventReceiver, null);
         }
     }
 
@@ -1509,12 +1478,6 @@ public class MediaFocusControl implements OnFinished {
         }
         mRCStack.push(rcse); // rcse is never null
 
-        // post message to persist the default media button receiver
-        if (target != null) {
-            mEventHandler.sendMessage( mEventHandler.obtainMessage(
-                    MSG_PERSIST_MEDIABUTTONRECEIVER, 0, 0, target/*obj*/) );
-        }
-
         // RC stack was modified
         return true;
     }
@@ -1553,12 +1516,6 @@ public class MediaFocusControl implements OnFinished {
         return false;
     }
 
-    private void onHandlePersistMediaButtonReceiver(ComponentName receiver) {
-        Settings.System.putStringForUser(mContentResolver,
-                                         Settings.System.MEDIA_BUTTON_RECEIVER,
-                                         receiver == null ? "" : receiver.flattenToString(),
-                                         UserHandle.USER_CURRENT);
-    }
 
     //==========================================================================================
     // Remote control display / client
@@ -1639,10 +1596,37 @@ public class MediaFocusControl implements OnFinished {
         }
     }
 
+
+    //==========================================================================================
+    // Remote control display / client
+    //==========================================================================================
+    /**
+     * Update the remote control displays with the new "focused" client generation
+     */
+    private void updateDisplaysOnRCCUpdate_syncRcsCurrc(
+                        RemoteControlStackEntry rcse, boolean isFocussed, boolean isAvailable) {
+        synchronized(mRCStack) {
+            try {
+                Intent intent = new Intent(AudioManager.RCC_CHANGED_ACTION);
+                intent.putExtra(AudioManager.EXTRA_CALLING_PACKAGE_NAME, rcse.mCallingPackageName);
+                intent.putExtra(AudioManager.EXTRA_FOCUS_CHANGED_VALUE, isFocussed);
+                intent.putExtra(AudioManager.EXTRA_AVAILABLITY_CHANGED_VALUE, isAvailable);
+                mAudioService.sendBroadcastToAll(intent);
+                Log.v(TAG, "updating focussed RCC change to RCD: CallingPackageName:"
+                        + rcse.mCallingPackageName + " isFocussed:" + isFocussed + " isAvailable:"
+                        + isAvailable);
+            } catch (Exception e) {
+                Log.e(TAG, "Error while updating focussed RCC change",e);
+            }
+        }
+    }
+
+
     /**
      * Called when processing MSG_RCDISPLAY_UPDATE event
      */
     private void onRcDisplayUpdate(RemoteControlStackEntry rcse, int flags /* USED ?*/) {
+        if (DEBUG_RC) Log.d(TAG, "onRcDisplayUpdate:");
         synchronized(mRCStack) {
             synchronized(mCurrentRcLock) {
                 if ((mCurrentRcClient != null) && (mCurrentRcClient.equals(rcse.mRcClient))) {
@@ -1654,7 +1638,8 @@ public class MediaFocusControl implements OnFinished {
                     setNewRcClient_syncRcsCurrc(mCurrentRcClientGen,
                             rcse.mMediaIntent /*newMediaIntent*/,
                             false /*clearing*/);
-
+                    updateDisplaysOnRCCUpdate_syncRcsCurrc(rcse, true, true);
+                    if (DEBUG_RC) Log.v(TAG, "update RCC focus change in onRcDisplayUpdate");
                     // tell the current client that it needs to send info
                     try {
                         //TODO change name to informationRequestForAllDisplays()
@@ -1955,6 +1940,8 @@ public class MediaFocusControl implements OnFinished {
                             // 1/ give the new client the displays (if any)
                             if (mRcDisplays.size() > 0) {
                                 plugRemoteControlDisplaysIntoClient_syncRcStack(rcse.mRcClient);
+                                updateDisplaysOnRCCUpdate_syncRcsCurrc(rcse, false, true);
+                                if (DEBUG_RC) Log.v(TAG, "update on RCC availability");
                             }
                             // 2/ monitor the new client's death
                             IBinder b = rcse.mRcClient.asBinder();
@@ -2004,6 +1991,9 @@ public class MediaFocusControl implements OnFinished {
                             // we found the IRemoteControlClient to unregister
                             // stop monitoring its death
                             rcse.unlinkToRcClientDeath();
+                            // update RCD on the unavailability of new RCC
+                            updateDisplaysOnRCCUpdate_syncRcsCurrc(rcse, false, false);
+                            if (DEBUG_RC) Log.v(TAG, "update on RCC availability from unregister");
                             // reset the client-related fields
                             rcse.mRcClient = null;
                             rcse.mCallingPackageName = null;
@@ -2185,11 +2175,30 @@ public class MediaFocusControl implements OnFinished {
                     if(rcse.mRcClient != null) {
                         try {
                             rcse.mRcClient.plugRemoteControlDisplay(rcd, w, h);
+                            // Notify newly launched RCD regarding availability of Launched RCCs
+                            if (DEBUG_RC) Log.v(TAG, "update RCD on RCC availability");
+                            if (DEBUG_RC) Log.v(TAG, "packageName:" + rcse.mCallingPackageName);
+                            updateDisplaysOnRCCUpdate_syncRcsCurrc(rcse, false, true);
                         } catch (RemoteException e) {
                             Log.e(TAG, "Error connecting RCD to client: ", e);
                         }
                     }
                 }
+                try {
+                    // As top of RCC stack entry represents the focussed RCC, intimate RCD regarding the same
+                    RemoteControlStackEntry rcse = mRCStack.peek();
+                    if (rcse != null && rcse.mCallingPackageName != null) {
+                        // Notify newly launched RCD regarding Focussed RCC
+                        if (DEBUG_RC) Log.v(TAG, "update RCD on RCC focus change");
+                        if (DEBUG_RC) Log.v(TAG, "packageName:" + rcse.mCallingPackageName);
+                        updateDisplaysOnRCCUpdate_syncRcsCurrc(rcse, true, true);
+                    } else {
+                        if (DEBUG_RC) Log.v(TAG, "top of RCC stack not found");
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error updating focussed RCC to RCD ", e);
+                }
+
 
                 // we have a new display, of which all the clients are now aware: have it be
                 // initialized wih the current gen ID and the current client info, do not

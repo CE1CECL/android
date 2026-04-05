@@ -61,6 +61,11 @@ public class Preferences {
     @Deprecated
     private static final String REPLY_ALL = "reply_all";
 
+    // Enhancement settings
+    private static final String CONFIRM_FORWARD = "confirm_forward";
+    private static final String ADD_ATTACHMENT = "add_attachment";
+    private static final String SELECT_RECIPIENTS = "select_recipients";
+
     public static final int AUTO_ADVANCE_NEWER = 0;
     public static final int AUTO_ADVANCE_OLDER = 1;
     public static final int AUTO_ADVANCE_MESSAGE_LIST = 2;
@@ -81,6 +86,10 @@ public class Preferences {
     public static final String CONV_LIST_ICON_SENDER_IMAGE = "senderimage";
     public static final String CONV_LIST_ICON_NONE = "none";
     public static final String CONV_LIST_ICON_DEFAULT = CONV_LIST_ICON_SENDER_IMAGE;
+
+    private static final boolean CONFIRM_FORWARD_DEFAULT = false;
+    private static final boolean ADD_ATTACHMENT_DEFAULT = true;
+    private static final boolean SELECT_RECIPIENTS_DEFAULT = true;
 
     private static Preferences sPreferences;
 
@@ -237,6 +246,30 @@ public class Preferences {
     @Deprecated
     public boolean getReplyAll() {
         return mSharedPreferences.getBoolean(REPLY_ALL, false);
+    }
+
+    public boolean getConfirmForward() {
+        return mSharedPreferences.getBoolean(CONFIRM_FORWARD, CONFIRM_FORWARD_DEFAULT);
+    }
+
+    public void setConfirmForward(boolean set) {
+        mSharedPreferences.edit().putBoolean(CONFIRM_FORWARD, set).apply();
+    }
+
+    public boolean getAddAttachmentEnabled() {
+        return mSharedPreferences.getBoolean(ADD_ATTACHMENT, ADD_ATTACHMENT_DEFAULT);
+    }
+
+    public void setAddAttachmentEnabled(boolean enabled) {
+        mSharedPreferences.edit().putBoolean(ADD_ATTACHMENT, enabled).apply();
+    }
+
+    public boolean getSelectRecipientsEnabled() {
+        return mSharedPreferences.getBoolean(SELECT_RECIPIENTS, SELECT_RECIPIENTS_DEFAULT);
+    }
+
+    public void setSelectRecipientsEnabled(boolean enabled) {
+        mSharedPreferences.edit().putBoolean(SELECT_RECIPIENTS, enabled).apply();
     }
 
     public int getTextZoom() {

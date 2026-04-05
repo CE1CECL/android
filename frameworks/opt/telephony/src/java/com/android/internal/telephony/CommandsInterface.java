@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -190,6 +193,16 @@ public interface CommandsInterface {
     void unregisterForInCallVoicePrivacyOn(Handler h);
     void registerForInCallVoicePrivacyOff(Handler h, int what, Object obj);
     void unregisterForInCallVoicePrivacyOff(Handler h);
+
+    /**
+     * Handlers for subscription status change indications.
+     *
+     * @param h Handler for subscription status change messages.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void registerForSubscriptionStatusChanged(Handler h, int what, Object obj);
+    void unregisterForSubscriptionStatusChanged(Handler h);
 
     /**
      * unlike the register* methods, there's only one new 3GPP format SMS handler.
@@ -394,6 +407,29 @@ public interface CommandsInterface {
      */
     void setSuppServiceNotifications(boolean enable, Message result);
     //void unSetSuppServiceNotifications(Handler h);
+
+    /**
+     * Sets the handler for Alpha Notification during STK Call Control.
+     * Unlike the register* methods, there's only one notification handler
+     *
+     * @param h Handler for notification message.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void setOnCatCcAlphaNotify(Handler h, int what, Object obj);
+    void unSetOnCatCcAlphaNotify(Handler h);
+
+    /**
+     * Sets the handler for notifying Suplementary Services (SS)
+     * Data during STK Call Control.
+     * Unlike the register* methods, there's only one notification handler
+     *
+     * @param h Handler for notification message.
+     * @param what User-defined message code.
+     * @param obj User object.
+     */
+    void setOnSs(Handler h, int what, Object obj);
+    void unSetOnSs(Handler h);
 
     /**
      * Sets the handler for Event Notifications for CDMA Display Info.
@@ -723,7 +759,7 @@ public interface CommandsInterface {
 
     void changeBarringPassword(String facility, String oldPwd, String newPwd, Message result);
 
-    void supplyNetworkDepersonalization(String netpin, Message result);
+    void supplyDepersonalization(String netpin, String type, Message result);
 
     /**
      *  returned message
@@ -1031,6 +1067,17 @@ public interface CommandsInterface {
     void sendSMS (String smscPDU, String pdu, Message response);
 
     /**
+     * Send an SMS message, Identical to sendSMS,
+     * except that more messages are expected to be sent soon.
+     * smscPDU is smsc address in PDU form GSM BCD format prefixed
+     *      by a length byte (as expected by TS 27.005) or NULL for default SMSC
+     * pdu is SMS in PDU format as an ASCII hex string
+     *      less the SMSC address
+     */
+    void sendSMSExpectMore (String smscPDU, String pdu, Message response);
+
+
+    /**
      * @param pdu is CDMA-SMS in internal pseudo-PDU format
      * @param response sent when operation completes
      */
@@ -1202,6 +1249,20 @@ public interface CommandsInterface {
     void setNetworkSelectionModeAutomatic(Message response);
 
     void setNetworkSelectionModeManual(String operatorNumeric, Message response);
+
+
+    /**
+     * SmartCard API related exports
+     */
+    void iccExchangeApdu(int cla, int command, int channel, int p1, int p2,
+            int p3, String data, Message response);
+
+    void iccOpenChannel(String aid, Message response);
+
+    void iccCloseChannel(int channel, Message response);
+
+    void iccGetAtr(Message response);
+
 
     /**
      * Queries whether the current network selection mode is automatic
@@ -1623,6 +1684,24 @@ public interface CommandsInterface {
     public int getLteOnCdmaMode();
 
     /**
+     * Get the data call profile information from the modem
+     *
+     * @param appType
+     *          Callback message containing the count and the list of {@link
+     *          RIL_DataCallProfileInfo}
+     *
+     * @param result
+     *          Callback message
+     */
+    public void getDataCallProfile(int appType, Message result);
+
+    /**
+     * Return if the current radio is LTE on GSM
+     * @hide
+     */
+    public int getLteOnGsmMode();
+
+    /**
      * Request the ISIM application on the UICC to perform the AKA
      * challenge/response algorithm for IMS authentication. The nonce string
      * and challenge response are Base64 encoded Strings.
@@ -1655,11 +1734,11 @@ public interface CommandsInterface {
      * Sets the minimum time in milli-seconds between when RIL_UNSOL_CELL_INFO_LIST
      * should be invoked.
      *
-     * The default, 0, means invoke RIL_UNSOL_CELL_INFO_LIST when any of the reported 
+     * The default, 0, means invoke RIL_UNSOL_CELL_INFO_LIST when any of the reported
      * information changes. Setting the value to INT_MAX(0x7fffffff) means never issue
      * A RIL_UNSOL_CELL_INFO_LIST.
      *
-     * 
+     *
 
      * @param rateInMillis is sent back to handler and result.obj is a AsyncResult
      * @param response.obj is AsyncResult ar when sent to associated handler
@@ -1705,4 +1784,71 @@ public interface CommandsInterface {
      * @return version of the ril.
      */
     int getRilVersion();
+
+   /**
+     * Sets user selected subscription at Modem.
+     *
+     * @param slotId
+     *          Slot.
+     * @param appIndex
+     *          Application index in the card.
+     * @param subId
+     *          Indicates subscription 0 or subscription 1.
+     * @param subStatus
+     *          Activation status, 1 = activate and 0 = deactivate.
+     * @param result
+     *          Callback message contains the information of SUCCESS/FAILURE.
+     */
+    public void setUiccSubscription(int slotId, int appIndex, int subId, int subStatus,
+            Message result);
+
+    /**
+     * Set Data Subscription preference at Modem.
+     *
+     * @param result
+     *          Callback message contains the information of SUCCESS/FAILURE.
+     */
+    public void setDataSubscription (Message result);
+
+    /**
+     * Request to enable or disable the tune away state.
+     * @param tuneAway true to enable, false to disable
+     * @param response is callback message
+     */
+    void setTuneAway(boolean tuneAway, Message response);
+
+    /**
+     * Sets the provided subIndex as priority subscription index.
+     * @param subIndex Subscription index
+     * @param response is callback message
+     */
+    void setPrioritySub(int subIndex, Message response);
+
+    /**
+     * Set the default voice subscription id.
+     * @param subIndex subscription index
+     * @param response is callback message
+     */
+    void setDefaultVoiceSub(int subIndex, Message response);
+
+    /**
+     * Request to update the current local call hold state.
+     * @param lchStatus, true if call is in lch state
+     * @param response is callback message
+     */
+    void setLocalCallHold(int lchStatus, Message response);
+
+    /**
+     * @hide
+     * CM-specific: Ask the RIL about the presence of back-compat flags
+     */
+    public boolean needsOldRilFeature(String feature);
+
+    /**
+     * @hide
+     * samsung stk service implementation - set up registrant for sending
+     * sms send result from modem(RIL) to catService
+     */
+    void setOnCatSendSmsResult(Handler h, int what, Object obj);
+    void unSetOnCatSendSmsResult(Handler h);
 }

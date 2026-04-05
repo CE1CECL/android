@@ -45,11 +45,13 @@ struct import {
     const char *filename;
 };
 
-static void *parse_service(struct parse_state *state, int nargs, char **args);
+static void *parse_service(struct parse_state *state, int nargs, char **args, bool redefine);
 static void parse_line_service(struct parse_state *state, int nargs, char **args);
 
 static void *parse_action(struct parse_state *state, int nargs, char **args);
 static void parse_line_action(struct parse_state *state, int nargs, char **args);
+
+void add_environment(const char *name, const char *value);
 
 #define SECTION 0x01
 #define COMMAND 0x02
@@ -100,6 +102,7 @@ int lookup_keyword(const char *s)
     case 'e':
         if (!strcmp(s, "xec")) return K_exec;
         if (!strcmp(s, "xport")) return K_export;
+        if (!strcmp(s, "xport_rc")) return K_export_rc;
         break;
     case 'g':
         if (!strcmp(s, "roup")) return K_group;
@@ -135,12 +138,14 @@ int lookup_keyword(const char *s)
     case 'r':
         if (!strcmp(s, "estart")) return K_restart;
         if (!strcmp(s, "estorecon")) return K_restorecon;
+        if (!strcmp(s, "estorecon_recursive")) return K_restorecon_recursive;
         if (!strcmp(s, "mdir")) return K_rmdir;
         if (!strcmp(s, "m")) return K_rm;
         break;
     case 's':
         if (!strcmp(s, "eclabel")) return K_seclabel;
         if (!strcmp(s, "ervice")) return K_service;
+        if (!strcmp(s, "ervice_redefine")) return K_service_redefine;
         if (!strcmp(s, "etcon")) return K_setcon;
         if (!strcmp(s, "etenforce")) return K_setenforce;
         if (!strcmp(s, "etenv")) return K_setenv;
@@ -324,7 +329,8 @@ void parse_new_section(struct parse_state *state, int kw,
            nargs > 1 ? args[1] : "");
     switch(kw) {
     case K_service:
-        state->context = parse_service(state, nargs, args);
+    case K_service_redefine:
+        state->context = parse_service(state, nargs, args, (kw == K_service_redefine));
         if (state->context) {
             state->parse_line = parse_line_service;
             return;
@@ -409,6 +415,63 @@ int init_parse_config_file(const char *fn)
 
     parse_config(fn, data);
     DUMP();
+    return 0;
+}
+
+typedef enum {
+    ENV_NOTREADY,
+    ENV_NAME,
+    ENV_VALUE,
+    ENV_WAITFORNEXTLINE,
+} export_rc_state_t;
+
+int init_export_rc_file(const char *fn)
+{
+    char *data;
+    struct parse_state state;
+    char *env = NULL;
+    export_rc_state_t env_state = ENV_NOTREADY;
+
+    data = read_file(fn, 0);
+    if (!data) return -1;
+
+    state.filename = fn;
+    state.line = 0;
+    state.ptr = data;
+    state.nexttoken = 0;
+    state.parse_line = parse_line_no_op;
+    for (;;) {
+        switch (next_token(&state)) {
+        case T_EOF:
+            free(data);
+            return 0;
+        case T_NEWLINE:
+            env_state = ENV_NOTREADY;
+            break;
+        case T_TEXT:
+            switch (env_state) {
+            case ENV_NOTREADY:
+                if (strcmp(state.text, "export") == 0) {
+                    env_state = ENV_NAME;
+                } else {
+                    env_state = ENV_WAITFORNEXTLINE;
+                }
+                break;
+            case ENV_NAME:
+                env = state.text;
+                env_state = ENV_VALUE;
+                break;
+            case ENV_VALUE:
+                add_environment(env, state.text);
+                env_state = ENV_WAITFORNEXTLINE;
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+    }
+
     return 0;
 }
 
@@ -552,12 +615,14 @@ void queue_all_property_triggers()
                 if (length > PROP_NAME_MAX) {
                     ERROR("property name too long in trigger %s", act->name);
                 } else {
+                    int ret;
                     memcpy(prop_name, name, length);
                     prop_name[length] = 0;
 
                     /* does the property exist, and match the trigger value? */
-                    property_get(prop_name, value);
-                    if (!strcmp(equals + 1, value) ||!strcmp(equals + 1, "*")) {
+                    ret = property_get(prop_name, value);
+                    if (ret > 0 && (!strcmp(equals + 1, value) ||
+                                    !strcmp(equals + 1, "*"))) {
                         action_add_queue_tail(act);
                     }
                 }
@@ -610,7 +675,7 @@ int action_queue_empty()
     return list_empty(&action_queue);
 }
 
-static void *parse_service(struct parse_state *state, int nargs, char **args)
+static void *parse_service(struct parse_state *state, int nargs, char **args, bool redefine)
 {
     struct service *svc;
     if (nargs < 3) {
@@ -623,13 +688,18 @@ static void *parse_service(struct parse_state *state, int nargs, char **args)
     }
 
     svc = service_find_by_name(args[1]);
-    if (svc) {
+    if (svc && !redefine) {
         parse_error(state, "ignored duplicate definition of service '%s'\n", args[1]);
         return 0;
     }
 
     nargs -= 2;
-    svc = calloc(1, sizeof(*svc) + sizeof(char*) * nargs);
+
+    if (!svc) {
+        svc = calloc(1, sizeof(*svc) + sizeof(char*) * nargs);
+        redefine = false;
+    }
+
     if (!svc) {
         parse_error(state, "out of memory\n");
         return 0;
@@ -641,7 +711,8 @@ static void *parse_service(struct parse_state *state, int nargs, char **args)
     svc->nargs = nargs;
     svc->onrestart.name = "onrestart";
     list_init(&svc->onrestart.commands);
-    list_add_tail(&service_list, &svc->slist);
+    if (!redefine)
+        list_add_tail(&service_list, &svc->slist);
     return svc;
 }
 
@@ -771,7 +842,7 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
         svc->envvars = ei;
         break;
     }
-    case K_socket: {/* name type perm [ uid gid ] */
+    case K_socket: {/* name type perm [ uid gid context ] */
         struct socketinfo *si;
         if (nargs < 4) {
             parse_error(state, "socket option requires name, type, perm arguments\n");
@@ -794,6 +865,8 @@ static void parse_line_service(struct parse_state *state, int nargs, char **args
             si->uid = decode_uid(args[4]);
         if (nargs > 5)
             si->gid = decode_uid(args[5]);
+        if (nargs > 6)
+            si->socketcon = args[6];
         si->next = svc->sockets;
         svc->sockets = si;
         break;

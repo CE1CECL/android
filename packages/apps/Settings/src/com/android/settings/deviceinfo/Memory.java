@@ -71,8 +71,9 @@ public class Memory extends SettingsPreferenceFragment {
     // The mountToggle Preference that has last been clicked.
     // Assumes no two successive unmount event on 2 different volumes are performed before the first
     // one's preference is disabled
-    private static Preference sLastClickedMountToggle;
-    private static String sClickedMountPoint;
+    private Preference mLastClickedMountToggle;
+    private String mClickedMountPoint;
+    private StorageVolumePreferenceCategory mLastClickedCategory;
 
     // Access using getMountService()
     private IMountService mMountService;
@@ -177,8 +178,7 @@ public class Memory extends SettingsPreferenceFragment {
     public void onPrepareOptionsMenu(Menu menu) {
         final MenuItem usb = menu.findItem(R.id.storage_usb);
         UserManager um = (UserManager)getActivity().getSystemService(Context.USER_SERVICE);
-        boolean usbItemVisible = !isMassStorageEnabled()
-                && !um.hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER);
+        boolean usbItemVisible = !um.hasUserRestriction(UserManager.DISALLOW_USB_FILE_TRANSFER);
         usb.setVisible(usbItemVisible);
     }
 
@@ -235,8 +235,9 @@ public class Memory extends SettingsPreferenceFragment {
 
             final StorageVolume volume = category.getStorageVolume();
             if (volume != null && category.mountToggleClicked(preference)) {
-                sLastClickedMountToggle = preference;
-                sClickedMountPoint = volume.getPath();
+                mLastClickedCategory = category;
+                mLastClickedMountToggle = preference;
+                mClickedMountPoint = volume.getPath();
                 String state = mStorageManager.getVolumeState(volume.getPath());
                 if (Environment.MEDIA_MOUNTED.equals(state) ||
                         Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
@@ -273,34 +274,46 @@ public class Memory extends SettingsPreferenceFragment {
     public Dialog onCreateDialog(int id) {
         switch (id) {
         case DLG_CONFIRM_UNMOUNT:
-                return new AlertDialog.Builder(getActivity())
-                    .setTitle(R.string.dlg_confirm_unmount_title)
-                    .setPositiveButton(R.string.dlg_ok, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            doUnmount();
-                        }})
-                    .setNegativeButton(R.string.cancel, null)
-                    .setMessage(R.string.dlg_confirm_unmount_text)
-                    .create();
+            return new AlertDialog.Builder(getActivity())
+                .setTitle(mLastClickedCategory.isUsbStorage() ?
+                        R.string.usb_dlg_confirm_unmount_title :
+                        R.string.sd_dlg_confirm_unmount_title)
+                .setPositiveButton(R.string.dlg_ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        doUnmount();
+                    }})
+                .setNegativeButton(R.string.cancel, null)
+                .setMessage(mLastClickedCategory.isUsbStorage() ?
+                        R.string.usb_dlg_confirm_unmount_text :
+                        R.string.sd_dlg_confirm_unmount_text)
+                .create();
         case DLG_ERROR_UNMOUNT:
-                return new AlertDialog.Builder(getActivity())
-            .setTitle(R.string.dlg_error_unmount_title)
-            .setNeutralButton(R.string.dlg_ok, null)
-            .setMessage(R.string.dlg_error_unmount_text)
-            .create();
+            return new AlertDialog.Builder(getActivity())
+                .setTitle(mLastClickedCategory.isUsbStorage() ?
+                        R.string.usb_dlg_error_unmount_title :
+                        R.string.sd_dlg_error_unmount_title)
+                .setNeutralButton(R.string.dlg_ok, null)
+                .setMessage(mLastClickedCategory.isUsbStorage() ?
+                        R.string.usb_dlg_error_unmount_text :
+                        R.string.sd_dlg_error_unmount_text)
+                .create();
         }
         return null;
     }
 
     private void doUnmount() {
         // Present a toast here
-        Toast.makeText(getActivity(), R.string.unmount_inform_text, Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), mLastClickedCategory.isUsbStorage() ?
+                R.string.usb_unmount_inform_text : R.string.sd_unmount_inform_text,
+                Toast.LENGTH_SHORT).show();
         IMountService mountService = getMountService();
         try {
-            sLastClickedMountToggle.setEnabled(false);
-            sLastClickedMountToggle.setTitle(getString(R.string.sd_ejecting_title));
-            sLastClickedMountToggle.setSummary(getString(R.string.sd_ejecting_summary));
-            mountService.unmountVolume(sClickedMountPoint, true, false);
+            mLastClickedMountToggle.setEnabled(false);
+            mLastClickedMountToggle.setTitle(mLastClickedCategory.isUsbStorage() ?
+                    R.string.usb_sd_ejecting_title : R.string.sd_sd_ejecting_title);
+            mLastClickedMountToggle.setSummary(mLastClickedCategory.isUsbStorage() ?
+                    R.string.usb_sd_ejecting_summary : R.string.sd_sd_ejecting_summary);
+            mountService.unmountVolume(mClickedMountPoint, true, false);
         } catch (RemoteException e) {
             // Informative dialog to user that unmount failed.
             showDialogInner(DLG_ERROR_UNMOUNT);
@@ -314,7 +327,7 @@ public class Memory extends SettingsPreferenceFragment {
 
     private boolean hasAppsAccessingStorage() throws RemoteException {
         IMountService mountService = getMountService();
-        int stUsers[] = mountService.getStorageUsers(sClickedMountPoint);
+        int stUsers[] = mountService.getStorageUsers(mClickedMountPoint);
         if (stUsers != null && stUsers.length > 0) {
             return true;
         }
@@ -352,7 +365,7 @@ public class Memory extends SettingsPreferenceFragment {
         IMountService mountService = getMountService();
         try {
             if (mountService != null) {
-                mountService.mountVolume(sClickedMountPoint);
+                mountService.mountVolume(mClickedMountPoint);
             } else {
                 Log.e(TAG, "Mount service is null, can't mount");
             }

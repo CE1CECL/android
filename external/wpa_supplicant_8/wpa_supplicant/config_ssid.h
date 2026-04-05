@@ -33,6 +33,7 @@
 #define DEFAULT_DISABLE_MAX_AMSDU -1 /* no change */
 #define DEFAULT_AMPDU_FACTOR -1 /* no change */
 #define DEFAULT_AMPDU_DENSITY -1 /* no change */
+#define DEFAULT_USER_SELECTED_SIM 1
 
 struct psk_list_entry {
 	struct dl_list list;
@@ -490,13 +491,6 @@ struct wpa_ssid {
 	 * WPS or similar so that they may be exported.
 	 */
 	int export_keys;
-
-#ifdef ANDROID_P2P
-	/**
-	 * assoc_retry - Number of times association should be retried.
-	 */
-	int assoc_retry;
-#endif
 
 #ifdef CONFIG_HT_OVERRIDES
 	/**

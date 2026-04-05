@@ -219,6 +219,7 @@ static struct wpa_cred * wpa_config_read_cred(FILE *f, int *line, int id)
 	if (cred == NULL)
 		return NULL;
 	cred->id = id;
+	cred->sim_num = DEFAULT_USER_SELECTED_SIM;
 
 	while (wpa_config_get_line(buf, sizeof(buf), f, line, &pos)) {
 		if (os_strcmp(pos, "}") == 0) {
@@ -699,6 +700,7 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 	INT_DEF(eap_workaround, DEFAULT_EAP_WORKAROUND);
 	STR(pac_file);
 	INT_DEFe(fragment_size, DEFAULT_FRAGMENT_SIZE);
+	INT_DEFe(sim_num, DEFAULT_USER_SELECTED_SIM);
 #endif /* IEEE8021X_EAPOL */
 	INT(mode);
 	INT(frequency);
@@ -725,6 +727,8 @@ static void wpa_config_write_network(FILE *f, struct wpa_ssid *ssid)
 
 static void wpa_config_write_cred(FILE *f, struct wpa_cred *cred)
 {
+	size_t i;
+
 	if (cred->priority)
 		fprintf(f, "\tpriority=%d\n", cred->priority);
 	if (cred->pcsc)
@@ -750,10 +754,9 @@ static void wpa_config_write_cred(FILE *f, struct wpa_cred *cred)
 		fprintf(f, "\timsi=\"%s\"\n", cred->imsi);
 	if (cred->milenage)
 		fprintf(f, "\tmilenage=\"%s\"\n", cred->milenage);
-	if (cred->domain)
-		fprintf(f, "\tdomain=\"%s\"\n", cred->domain);
+	for (i = 0; i < cred->num_domain; i++)
+		fprintf(f, "\tdomain=\"%s\"\n", cred->domain[i]);
 	if (cred->roaming_consortium_len) {
-		size_t i;
 		fprintf(f, "\troaming_consortium=");
 		for (i = 0; i < cred->roaming_consortium_len; i++)
 			fprintf(f, "%02x", cred->roaming_consortium[i]);
@@ -770,7 +773,7 @@ static void wpa_config_write_cred(FILE *f, struct wpa_cred *cred)
 	if (cred->phase2)
 		fprintf(f, "\tphase2=\"%s\"\n", cred->phase2);
 	if (cred->excluded_ssid) {
-		size_t i, j;
+		size_t j;
 		for (i = 0; i < cred->num_excluded_ssid; i++) {
 			struct excluded_ssid *e = &cred->excluded_ssid[i];
 			fprintf(f, "\texcluded_ssid=");
@@ -779,6 +782,9 @@ static void wpa_config_write_cred(FILE *f, struct wpa_cred *cred)
 			fprintf(f, "\n");
 		}
 	}
+
+	if (cred->sim_num != DEFAULT_USER_SELECTED_SIM)
+		fprintf(f, "\tsim_num=%d\n", cred->sim_num);
 }
 
 

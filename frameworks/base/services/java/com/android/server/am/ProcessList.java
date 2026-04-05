@@ -119,7 +119,7 @@ final class ProcessList {
     // we have no limit on the number of service, visible, foreground, or other such
     // processes and the number of those processes does not count against the cached
     // process limit.
-    static final int MAX_CACHED_APPS = 24;
+    static final int MAX_CACHED_APPS = SystemProperties.getInt("ro.sys.fw.bg_apps_limit",24);
 
     // We allow empty processes to stick around for at most 30 minutes.
     static final long MAX_EMPTY_TIME = 30*60*1000;
@@ -162,6 +162,11 @@ final class ProcessList {
     };
     // The actual OOM killer memory levels we are using.
     private final long[] mOomMinFree = new long[mOomAdj.length];
+    // Optimal OOM killer memory levels for Low-Tier devices.
+    private final long[] mOomMinFreeLowRam = new long[] {
+            8192, 13652, 21844,
+            27308, 32768, 38228
+    };
 
     private final long mTotalMemMb;
 
@@ -216,10 +221,17 @@ final class ProcessList {
             Slog.i("XXXXXX", "minfree_adj=" + minfree_adj + " minfree_abs=" + minfree_abs);
         }
 
+        // Overwrite calculated LMK parameters with the low-tier tested/validated values
+        boolean is_lowram = SystemProperties.getBoolean("ro.config.low_ram",false);
         for (int i=0; i<mOomAdj.length; i++) {
-            long low = mOomMinFreeLow[i];
-            long high = mOomMinFreeHigh[i];
-            mOomMinFree[i] = (long)(low + ((high-low)*scale));
+            if (is_lowram) {
+                mOomMinFree[i] = mOomMinFreeLowRam[i];
+            }
+            else {
+                long low = mOomMinFreeLow[i];
+                long high = mOomMinFreeHigh[i];
+                mOomMinFree[i] = (long)(low + ((high-low)*scale));
+            }
         }
 
         if (minfree_abs >= 0) {
@@ -473,6 +485,23 @@ final class ProcessList {
         PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_CACHED_EMPTY
     };
 
+    private static final long[] sSameSleepingPssTimes = new long[] {
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_PERSISTENT
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_PERSISTENT_UI
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_TOP
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_IMPORTANT_FOREGROUND
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_IMPORTANT_BACKGROUND
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_BACKUP
+        PSS_SAME_IMPORTANT_INTERVAL,    // ActivityManager.PROCESS_STATE_HEAVY_WEIGHT
+        PSS_SAME_SERVICE_INTERVAL,      // ActivityManager.PROCESS_STATE_SERVICE
+        PSS_SAME_SERVICE_INTERVAL,      // ActivityManager.PROCESS_STATE_RECEIVER
+        PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_HOME
+        PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_LAST_ACTIVITY
+        PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_CACHED_ACTIVITY
+        PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_CACHED_ACTIVITY_CLIENT
+        PSS_SAME_CACHED_INTERVAL,       // ActivityManager.PROCESS_STATE_CACHED_EMPTY
+    };
+
     public static boolean procStatesDifferForMem(int procState1, int procState2) {
         return sProcStateToProcMem[procState1] != sProcStateToProcMem[procState2];
     }
@@ -482,7 +511,7 @@ final class ProcessList {
         final long[] table = sleeping
                 ? (first
                         ? sFirstAwakePssTimes
-                        : sSameAwakePssTimes)
+                        : sSameSleepingPssTimes)
                 : (first
                         ? sFirstAwakePssTimes
                         : sSameAwakePssTimes);

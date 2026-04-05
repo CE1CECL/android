@@ -92,6 +92,11 @@ public class DownloadThread implements Runnable {
 
     private volatile boolean mPolicyDirty;
 
+    // Add for carrier feature - download breakpoint continuing.
+    // Support continuing download after the download is broken
+    // although HTTP Server doesn't contain etag in its response.
+    private final static String QRD_ETAG = "qrd_magic_etag";
+
     public DownloadThread(Context context, SystemFacade systemFacade, DownloadInfo info,
             StorageManager storageManager, DownloadNotifier notifier) {
         mContext = context;
@@ -522,6 +527,11 @@ public class DownloadThread implements Runnable {
             if (mInfo.mStatus == Downloads.Impl.STATUS_CANCELED || mInfo.mDeleted) {
                 throw new StopRequestException(Downloads.Impl.STATUS_CANCELED, "download canceled");
             }
+
+            if (mInfo.mStatus == Downloads.Impl.STATUS_PAUSED_BY_MANUAL) {
+                // user pauses the download by manual, here send exception and stop data transfer.
+                throw new StopRequestException(Downloads.Impl.STATUS_PAUSED_BY_MANUAL, "download paused by manual");
+            }
         }
 
         // if policy has been changed, trigger connectivity check
@@ -711,6 +721,10 @@ public class DownloadThread implements Runnable {
 
         state.mHeaderETag = conn.getHeaderField("ETag");
 
+        if (state.mHeaderETag == null) {
+            state.mHeaderETag = QRD_ETAG;
+        }
+
         final String transferEncoding = conn.getHeaderField("Transfer-Encoding");
         if (transferEncoding == null) {
             state.mContentLength = getHeaderFieldLong(conn, "Content-Length", -1);
@@ -755,14 +769,20 @@ public class DownloadThread implements Runnable {
                 Log.i(Constants.TAG, "have run thread before for id: " + mInfo.mId +
                         ", and state.mFilename: " + state.mFilename);
             }
-            if (!Helpers.isFilenameValid(state.mFilename,
-                    mStorageManager.getDownloadDataDirectory())) {
+
+            File f;
+            try {
+                f = new File(state.mFilename).getCanonicalFile();
+            } catch (IOException e) {
+                throw new StopRequestException(Downloads.Impl.STATUS_FILE_ERROR,
+                        e.getMessage());
+            }
+            if (!Helpers.isFilenameValid(mContext, f)) {
                 // this should never happen
                 throw new StopRequestException(Downloads.Impl.STATUS_FILE_ERROR,
                         "found invalid internal destination filename");
             }
             // We're resuming a download that got interrupted
-            File f = new File(state.mFilename);
             if (f.exists()) {
                 if (Constants.LOGV) {
                     Log.i(Constants.TAG, "resuming download for id: " + mInfo.mId +
@@ -831,7 +851,9 @@ public class DownloadThread implements Runnable {
 
         if (state.mContinuingDownload) {
             if (state.mHeaderETag != null) {
-                conn.addRequestProperty("If-Match", state.mHeaderETag);
+                if (!state.mHeaderETag.equals(QRD_ETAG)) {
+                    conn.addRequestProperty("If-Match", state.mHeaderETag);
+                }
             }
             conn.addRequestProperty("Range", "bytes=" + state.mCurrentBytes + "-");
         }

@@ -96,8 +96,7 @@ temporarily_use_uid(struct passwd *pw)
 		if (getgroups(saved_egroupslen, saved_egroups) < 0)
 			fatal("getgroups: %.100s", strerror(errno));
 	} else { /* saved_egroupslen == 0 */
-		if (saved_egroups != NULL)
-			xfree(saved_egroups);
+		free(saved_egroups);
 	}
 
 	/* set and save the user's groups */
@@ -115,8 +114,7 @@ temporarily_use_uid(struct passwd *pw)
 			if (getgroups(user_groupslen, user_groups) < 0)
 				fatal("getgroups: %.100s", strerror(errno));
 		} else { /* user_groupslen == 0 */
-			if (user_groups)
-				xfree(user_groups);
+			free(user_groups);
 		}
 	}
 	/* Set the effective uid to the given (unprivileged) uid. */
@@ -144,20 +142,8 @@ permanently_drop_suid(uid_t uid)
 	uid_t old_uid = getuid();
 
 	debug("permanently_drop_suid: %u", (u_int)uid);
-#if defined(HAVE_SETRESUID) && !defined(BROKEN_SETRESUID)
 	if (setresuid(uid, uid, uid) < 0)
 		fatal("setresuid %u: %.100s", (u_int)uid, strerror(errno));
-#elif defined(HAVE_SETREUID) && !defined(BROKEN_SETREUID)
-	if (setreuid(uid, uid) < 0)
-		fatal("setreuid %u: %.100s", (u_int)uid, strerror(errno));
-#else
-# ifndef SETEUID_BREAKS_SETUID
-	if (seteuid(uid) < 0)
-		fatal("seteuid %u: %.100s", (u_int)uid, strerror(errno));
-# endif
-	if (setuid(uid) < 0)
-		fatal("setuid %u: %.100s", (u_int)uid, strerror(errno));
-#endif
 
 #ifndef HAVE_CYGWIN
 	/* Try restoration of UID if changed (test clearing of saved uid) */
@@ -246,23 +232,13 @@ permanently_set_uid(struct passwd *pw)
 		*/
 		gid_t groups[] = { AID_LOG, AID_INPUT, AID_INET, AID_GRAPHICS,
 						   AID_NET_BT, AID_NET_BT_ADMIN, AID_SDCARD_RW,
-						   AID_MOUNT, AID_NET_BW_STATS };
+						   AID_SDCARD_R, AID_MOUNT, AID_NET_BW_STATS };
 		setgroups(sizeof(groups)/sizeof(groups[0]), groups);
 	}
 #endif
 
-#if defined(HAVE_SETRESGID) && !defined(BROKEN_SETRESGID)
 	if (setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) < 0)
 		fatal("setresgid %u: %.100s", (u_int)pw->pw_gid, strerror(errno));
-#elif defined(HAVE_SETREGID) && !defined(BROKEN_SETREGID)
-	if (setregid(pw->pw_gid, pw->pw_gid) < 0)
-		fatal("setregid %u: %.100s", (u_int)pw->pw_gid, strerror(errno));
-#else
-	if (setegid(pw->pw_gid) < 0)
-		fatal("setegid %u: %.100s", (u_int)pw->pw_gid, strerror(errno));
-	if (setgid(pw->pw_gid) < 0)
-		fatal("setgid %u: %.100s", (u_int)pw->pw_gid, strerror(errno));
-#endif
 
 #ifdef __APPLE__
 	/*
@@ -274,20 +250,8 @@ permanently_set_uid(struct passwd *pw)
 		    pw->pw_name, (u_int)pw->pw_gid, strerror(errno));
 #endif
 
-#if defined(HAVE_SETRESUID) && !defined(BROKEN_SETRESUID)
 	if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) < 0)
 		fatal("setresuid %u: %.100s", (u_int)pw->pw_uid, strerror(errno));
-#elif defined(HAVE_SETREUID) && !defined(BROKEN_SETREUID)
-	if (setreuid(pw->pw_uid, pw->pw_uid) < 0)
-		fatal("setreuid %u: %.100s", (u_int)pw->pw_uid, strerror(errno));
-#else
-# ifndef SETEUID_BREAKS_SETUID
-	if (seteuid(pw->pw_uid) < 0)
-		fatal("seteuid %u: %.100s", (u_int)pw->pw_uid, strerror(errno));
-# endif
-	if (setuid(pw->pw_uid) < 0)
-		fatal("setuid %u: %.100s", (u_int)pw->pw_uid, strerror(errno));
-#endif
 
 #ifndef HAVE_CYGWIN
 	/* Try restoration of GID if changed (test clearing of saved gid) */

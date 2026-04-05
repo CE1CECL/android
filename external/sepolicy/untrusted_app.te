@@ -15,6 +15,10 @@ app_domain(untrusted_app)
 net_domain(untrusted_app)
 bluetooth_domain(untrusted_app)
 
+# Some apps ship with shared libraries and binaries that they write out
+# to their sandbox directory and then execute.
+allow untrusted_app app_data_file:file rx_file_perms;
+
 allow untrusted_app tun_device:chr_file rw_file_perms;
 
 # Internal SDCard rw access.
@@ -28,6 +32,8 @@ allow untrusted_app sdcard_external:file create_file_perms;
 # ASEC
 allow untrusted_app asec_apk_file:dir { getattr };
 allow untrusted_app asec_apk_file:file r_file_perms;
+# Execute libs in asec containers.
+allow untrusted_app asec_public_file:file execute;
 
 # Create tcp/udp sockets
 allow untrusted_app node_type:{ tcp_socket udp_socket } node_bind;
@@ -38,7 +44,7 @@ allow untrusted_app port:{ tcp_socket udp_socket } name_bind;
 
 # Allow the allocation and use of ptys
 # Used by: https://play.google.com/store/apps/details?id=jackpal.androidterm
-allow untrusted_app devpts:chr_file rw_file_perms;
+create_pty(untrusted_app)
 
 # Used by Finsky / Android "Verify Apps" functionality when
 # running "adb install foo.apk".

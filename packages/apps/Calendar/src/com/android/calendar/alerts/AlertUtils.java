@@ -44,8 +44,6 @@ public class AlertUtils {
     private static final String TAG = "AlertUtils";
     static final boolean DEBUG = true;
 
-    public static final long SNOOZE_DELAY = 5 * 60 * 1000L;
-
     // We use one notification id for the expired events notification.  All
     // other notifications (the 'active' future/concurrent ones) use a unique ID.
     public static final int EXPIRED_GROUP_NOTIFICATION_ID = 0;
@@ -55,6 +53,7 @@ public class AlertUtils {
     public static final String EVENT_END_KEY = "eventend";
     public static final String NOTIFICATION_ID_KEY = "notificationid";
     public static final String EVENT_IDS_KEY = "eventids";
+    public static final String SNOOZE_DELAY_KEY = "snoozedelay";
     public static final String EVENT_STARTS_KEY = "starts";
 
     // A flag for using local storage to save alert state instead of the alerts DB table.

@@ -54,11 +54,14 @@ import android.widget.ExpandableListView.ExpandableListContextMenuInfo;
 import android.widget.TextView;
 
 import com.android.contacts.common.R;
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.ValuesDelta;
 import com.android.contacts.common.model.account.AccountType;
 import com.android.contacts.common.model.account.AccountWithDataSet;
 import com.android.contacts.common.model.account.GoogleAccountType;
+import com.android.contacts.common.model.account.PhoneAccountType;
+import com.android.contacts.common.model.account.SimAccountType;
 import com.android.contacts.common.util.EmptyService;
 import com.android.contacts.common.util.LocalizedNameResolver;
 import com.android.contacts.common.util.WeakAsyncTask;
@@ -546,11 +549,14 @@ public class CustomContactListFilterActivity extends Activity
         private AccountSet mAccounts;
 
         private boolean mChildWithPhones = false;
+        private boolean mCustomContactDefaultState;
 
         public DisplayAdapter(Context context) {
             mContext = context;
             mInflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             mAccountTypes = AccountTypeManager.getInstance(context);
+            mCustomContactDefaultState = mContext.getResources().getBoolean(
+                    R.bool.config_custom_contact_default_state);
         }
 
         public void setAccounts(AccountSet accounts) {
@@ -581,11 +587,17 @@ public class CustomContactListFilterActivity extends Activity
 
             final AccountType accountType = mAccountTypes.getAccountType(
                     account.mType, account.mDataSet);
-
-            text1.setText(account.mName);
-            text1.setVisibility(account.mName == null ? View.GONE : View.VISIBLE);
-            text2.setText(accountType.getDisplayLabel(mContext));
-
+            if (SimAccountType.ACCOUNT_TYPE.equals(account.mType)
+                    || PhoneAccountType.ACCOUNT_TYPE.equals(account.mType)) {
+                text1.setVisibility(View.VISIBLE);
+                text1.setText(accountType.getDisplayLabel(mContext, account.mName));
+                text2.setVisibility(View.GONE);
+            } else {
+                text1.setText(account.mName);
+                text1.setVisibility(account.mName == null ? View.GONE : View.VISIBLE);
+                text2.setText(accountType.getDisplayLabel(mContext, account.mName));
+                text2.setVisibility(View.VISIBLE);
+            }
             return convertView;
         }
 
@@ -605,7 +617,7 @@ public class CustomContactListFilterActivity extends Activity
             final GroupDelta child = (GroupDelta)this.getChild(groupPosition, childPosition);
             if (child != null) {
                 // Handle normal group, with title and checkbox
-                final boolean groupVisible = child.getVisible();
+                final boolean groupVisible = child.getVisible() || mCustomContactDefaultState;
                 checkbox.setVisibility(View.VISIBLE);
                 checkbox.setChecked(groupVisible);
 

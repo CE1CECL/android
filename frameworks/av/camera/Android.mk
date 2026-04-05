@@ -23,6 +23,11 @@ LOCAL_SRC_FILES:= \
 	ProCamera.cpp \
 	CameraBase.cpp \
 
+ifeq ($(BOARD_HAS_MTK_HARDWARE),true)
+	LOCAL_SRC_FILES+= \
+		MtkCameraParameters.cpp
+endif
+
 LOCAL_SHARED_LIBRARIES := \
 	libcutils \
 	libutils \
@@ -35,6 +40,14 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_C_INCLUDES += \
 	system/media/camera/include \
+
+ifeq ($(BOARD_CAMERA_HAVE_ISO),true)
+	LOCAL_CFLAGS += -DHAVE_ISO
+endif
+
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
+	LOCAL_CFLAGS += -DQCOM_HARDWARE
+endif
 
 LOCAL_MODULE:= libcamera_client
 

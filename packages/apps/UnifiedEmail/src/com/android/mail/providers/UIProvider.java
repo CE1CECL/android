@@ -167,6 +167,9 @@ public class UIProvider {
             .put(AccountColumns.SettingsColumns.CONFIRM_DELETE, Integer.class)
             .put(AccountColumns.SettingsColumns.CONFIRM_ARCHIVE, Integer.class)
             .put(AccountColumns.SettingsColumns.CONFIRM_SEND, Integer.class)
+            .put(AccountColumns.SettingsColumns.CONFIRM_FORWARD, Integer.class)
+            .put(AccountColumns.SettingsColumns.ADD_ATTACHMENT, Integer.class)
+            .put(AccountColumns.SettingsColumns.SELECT_RECIPIENTS, Integer.class)
             .put(AccountColumns.SettingsColumns.DEFAULT_INBOX, String.class)
             .put(AccountColumns.SettingsColumns.DEFAULT_INBOX_NAME, String.class)
             .put(AccountColumns.SettingsColumns.FORCE_REPLY_FROM_DEFAULT, Integer.class)
@@ -311,6 +314,10 @@ public class UIProvider {
          * Whether the account supports nested folders
          */
         public static final int NESTED_FOLDERS = 0x800000;
+        /**
+         * Whether the account supports smart forward
+         */
+        public static final int SMART_FORWARD = 0x1000000;
     }
 
     public static final class AccountColumns implements BaseColumns {
@@ -564,6 +571,28 @@ public class UIProvider {
              * be shown when a send action is performed.
              */
             public static final String CONFIRM_SEND = "confirm_send";
+
+            /**
+             * Integer column containing the user's specified confirm forward preference value.
+             * A non zero value indicates that the user has indicated that a confirmation should
+             * be shown when a forward action is performed.
+             */
+            public static final String CONFIRM_FORWARD = "confirm_forward";
+
+            /**
+             * Integer column containing the user's specified add attachment preference value.
+             * A non zero value indicates that the user could add any file as the attachment,
+             * and shown the menu to attach the file.
+             */
+            public static final String ADD_ATTACHMENT = "add_attachment";
+
+            /**
+             * Integer column containing the user's specified select recipients preference value.
+             * A non zero value indicates that the user has indicated that the select recipients
+             * button will be shown to let the user could pick the contacts from Contact.
+             */
+            public static final String SELECT_RECIPIENTS = "select_recipients";
+
             /**
              * String containing the URI for the default inbox for this account.
              */
@@ -1538,7 +1567,9 @@ public class UIProvider {
         MessageColumns.SPAM_WARNING_LEVEL,
         MessageColumns.SPAM_WARNING_LINK_TYPE,
         MessageColumns.VIA_DOMAIN,
-        MessageColumns.IS_SENDING
+        MessageColumns.IS_SENDING,
+        MessageColumns.MESSAGE_FLAG_LOADED,
+        MessageColumns.MESSAGE_LOAD_MORE_URI
     };
 
     /** Separates attachment info parts in strings in a message. */
@@ -1584,6 +1615,8 @@ public class UIProvider {
     public static final int MESSAGE_SPAM_WARNING_LINK_TYPE_COLUMN = 32;
     public static final int MESSAGE_VIA_DOMAIN_COLUMN = 33;
     public static final int MESSAGE_IS_SENDING_COLUMN = 34;
+    public static final int MESSAGE_FLAG_LOADED_COLUMN = 35;
+    public static final int MESSAGE_LOAD_MORE_URI_COLUMN = 36;
 
     public static final class CursorStatus {
         // The cursor is actively loading more data
@@ -1638,6 +1671,19 @@ public class UIProvider {
         public static final int REPLIED =           1 << 2;
         public static final int FORWARDED =         1 << 3;
         public static final int CALENDAR_INVITE =   1 << 4;
+    }
+
+    /**
+     * These values are also defined in the EmailContent.
+     */
+    public static final class MessageFlagLoaded {
+        public static final int FLAG_LOADED_UNLOADED = 0;
+        public static final int FLAG_LOADED_COMPLETE = 1;
+        public static final int FLAG_LOADED_PARTIAL = 2;
+        public static final int FLAG_LOADED_PARTIAL_COMPLETE = 3;
+        public static final int FLAG_LOADED_PARTIAL_FETCHING = 4;
+        public static final int FLAG_LOADED_DELETED = 5;
+        public static final int FLAG_LOADED_UNKNOWN = 6;
     }
 
     public static final class MessageColumns {
@@ -1797,6 +1843,17 @@ public class UIProvider {
          */
         public static final String IS_SENDING = "isSending";
 
+        /**
+         * This integer column indicates the state of the message loaded
+         * and it defined in {@link MessageFlagLoaded}
+         */
+        public static final String MESSAGE_FLAG_LOADED = "messageFlagLoaded";
+
+        /**
+         * String with the content provider Uri used to request fetch entire content.
+         */
+        public static final String MESSAGE_LOAD_MORE_URI = "messageLoadMoreUri";
+
         private MessageColumns() {}
     }
 
@@ -1850,7 +1907,8 @@ public class UIProvider {
         AttachmentColumns.PROVIDER_DATA,
         AttachmentColumns.SUPPORTS_DOWNLOAD_AGAIN,
         AttachmentColumns.TYPE,
-        AttachmentColumns.FLAGS
+        AttachmentColumns.FLAGS,
+        AttachmentColumns.CONTENT_ID
     };
     public static final int ATTACHMENT_NAME_COLUMN = 0;
     public static final int ATTACHMENT_SIZE_COLUMN = 1;
@@ -1865,6 +1923,7 @@ public class UIProvider {
     public static final int ATTACHMENT_SUPPORTS_DOWNLOAD_AGAIN_COLUMN = 10;
     public static final int ATTACHMENT_TYPE_COLUMN = 11;
     public static final int ATTACHMENT_FLAGS_COLUMN = 12;
+    public static final int ATTACHMENT_CONTENT_ID_COLUMN = 13;
 
     /** Separates attachment info parts in strings in the database. */
     public static final String ATTACHMENT_INFO_SEPARATOR = "\n"; // use to join
@@ -2028,7 +2087,6 @@ public class UIProvider {
          * This column contains provider-specific private data as JSON string.
          */
         public static final String PROVIDER_DATA = "providerData";
-
         /**
          * This column represents whether this attachment supports the ability to be downloaded
          * again.
@@ -2039,11 +2097,15 @@ public class UIProvider {
          * {@link AttachmentType} constants.
          */
         public static final String TYPE = "type";
-
         /**
          * This column holds various bitwise flags for status information.
          */
         public static final String FLAGS = "flags";
+        /**
+         * The column saved (internal) contentId of the attachment
+         * (inline attachments will have these)
+         */
+        public static final String CONTENT_ID = "contentId";
 
         private AttachmentColumns() {}
     }

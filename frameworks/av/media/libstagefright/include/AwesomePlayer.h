@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2009 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +31,12 @@
 #include <utils/threads.h>
 #include <drm/DrmManagerClient.h>
 
+#include "ExtendedUtils.h"
+
 namespace android {
 
 struct AudioPlayer;
+struct ClockEstimator;
 struct DataSource;
 struct MediaBuffer;
 struct MediaExtractor;
@@ -102,7 +107,13 @@ struct AwesomePlayer {
     void postAudioEOS(int64_t delayUs = 0ll);
     void postAudioSeekComplete();
     void postAudioTearDown();
+#ifdef MTK_HARDWARE
+    void mtk_omx_get_current_time(int64_t* pReal_time);
+#endif
     status_t dump(int fd, const Vector<String16> &args) const;
+
+    status_t suspend();
+    status_t resume();
 
 private:
     friend struct AwesomeEvent;
@@ -139,6 +150,8 @@ private:
         TEXTPLAYER_INITIALIZED  = 0x20000,
 
         SLOW_DECODER_HACK   = 0x40000,
+
+        NO_AVSYNC   = 0x80000,
     };
 
     mutable Mutex mLock;
@@ -186,6 +199,7 @@ private:
     uint32_t mFlags;
     uint32_t mExtractorFlags;
     uint32_t mSinceLastDropped;
+    bool mDropFramesDisable; // hevc test
 
     int64_t mTimeSourceDeltaUs;
     int64_t mVideoTimeUs;
@@ -204,6 +218,11 @@ private:
 
     bool mWatchForAudioSeekComplete;
     bool mWatchForAudioEOS;
+#ifdef QCOM_DIRECTTRACK
+    static int mTunnelAliveAP;
+#endif
+
+    bool mIsFirstFrameAfterResume;
 
     sp<TimedEventQueue::Event> mVideoEvent;
     bool mVideoEventPending;
@@ -231,9 +250,11 @@ private:
     void postAudioTearDownEvent(int64_t delayUs);
 
     status_t play_l();
+    status_t fallbackToSWDecoder();
 
     MediaBuffer *mVideoBuffer;
 
+    sp<ClockEstimator> mClockEstimator;
     sp<HTTPBase> mConnectingDataSource;
     sp<NuCachedSource2> mCachedSource;
 
@@ -293,6 +314,7 @@ private:
 
     bool getBitrate(int64_t *bitrate);
 
+    int64_t estimateRealTimeUs(TimeSource *ts, int64_t systemTimeUs);
     void finishSeekIfNecessary(int64_t videoTimeUs);
     void ensureCacheIsFetching_l();
 
@@ -313,6 +335,17 @@ private:
         ASSIGN
     };
     void modifyFlags(unsigned value, FlagMode mode);
+#ifdef QCOM_DIRECTTRACK
+    void checkTunnelExceptions();
+#endif
+    void logFirstFrame();
+    void logCatchUp(int64_t ts, int64_t clock, int64_t delta);
+    void logLate(int64_t ts, int64_t clock, int64_t delta);
+    void logOnTime(int64_t ts, int64_t clock, int64_t delta);
+    void printStats();
+    int64_t getTimeOfDayUs();
+    bool mStatistics;
+    int64_t mLateAVSyncMargin;
 
     struct TrackStat {
         String8 mMIME;
@@ -338,6 +371,23 @@ private:
         int32_t mVideoHeight;
         uint32_t mFlags;
         Vector<TrackStat> mTracks;
+
+        int64_t mConsecutiveFramesDropped;
+        uint32_t mCatchupTimeStart;
+        uint32_t mNumTimesSyncLoss;
+        uint32_t mMaxEarlyDelta;
+        uint32_t mMaxLateDelta;
+        uint32_t mMaxTimeSyncLoss;
+        uint64_t mTotalFrames;
+        int64_t mFirstFrameLatencyStartUs; //first frame latency start
+        int64_t mFirstFrameLatencyUs;
+        int64_t mLastFrameUs;
+        bool mVeryFirstFrame;
+        int64_t mTotalTimeUs;
+        int64_t mLastPausedTimeMs;
+        int64_t mLastSeekToTimeMs;
+        int64_t mResumeDelayStartUs;
+        int64_t mSeekDelayStartUs;
     } mStats;
 
     bool    mOffloadAudio;
@@ -356,9 +406,22 @@ private:
     status_t selectTrack(size_t trackIndex, bool select);
 
     size_t countTracks() const;
+    bool isWidevineContent() const;
 
+#ifdef QCOM_DIRECTTRACK
+    bool inSupportedTunnelFormats(const char * mime);
+    //Flag to check if tunnel mode audio is enabled
+    bool mIsTunnelAudio;
+#endif
     AwesomePlayer(const AwesomePlayer &);
     AwesomePlayer &operator=(const AwesomePlayer &);
+#ifdef MTK_HARDWARE
+    int64_t mAVSyncTimeUs;
+#endif
+    bool mReadRetry;
+    bool mCustomAVSync;
+
+    sp<VSyncLocker> mVSyncLocker;
 };
 
 }  // namespace android

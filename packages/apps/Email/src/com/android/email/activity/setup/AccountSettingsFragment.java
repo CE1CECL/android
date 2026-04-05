@@ -16,10 +16,13 @@
 
 package com.android.email.activity.setup;
 
+import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -28,11 +31,14 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.Vibrator;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
+import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.PreferenceCategory;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceFragment;
@@ -42,6 +48,9 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.Window;
+import android.widget.Toast;
 
 import com.android.email.R;
 import com.android.email.SecurityPolicy;
@@ -61,6 +70,7 @@ import com.android.mail.preferences.AccountPreferences;
 import com.android.mail.preferences.FolderPreferences;
 import com.android.mail.providers.Folder;
 import com.android.mail.providers.UIProvider;
+import com.android.mail.providers.UIProvider.AccountCapabilities;
 import com.android.mail.ui.settings.SettingsUtils;
 import com.android.mail.utils.LogUtils;
 import com.android.mail.utils.NotificationUtils;
@@ -78,7 +88,7 @@ import java.util.Map;
  *       could reduce flicker.
  */
 public class AccountSettingsFragment extends PreferenceFragment
-        implements Preference.OnPreferenceChangeListener {
+        implements OnPreferenceChangeListener, OnPreferenceClickListener {
 
     // Keys used for arguments bundle
     private static final String BUNDLE_KEY_ACCOUNT_ID = "AccountSettingsFragment.AccountId";
@@ -91,6 +101,7 @@ public class AccountSettingsFragment extends PreferenceFragment
     private static final String PREFERENCE_FREQUENCY = "account_check_frequency";
     private static final String PREFERENCE_BACKGROUND_ATTACHMENTS =
             "account_background_attachments";
+    private static final String PREFERENCE_AUTO_FETCH_ATTACHMENTS = "account_auto_fetch_attachments";
     private static final String PREFERENCE_CATEGORY_DATA_USAGE = "data_usage";
     private static final String PREFERENCE_CATEGORY_NOTIFICATIONS = "account_notifications";
     private static final String PREFERENCE_CATEGORY_SERVER = "account_servers";
@@ -103,13 +114,20 @@ public class AccountSettingsFragment extends PreferenceFragment
     private static final String PREFERENCE_SYNC_CONTACTS = "account_sync_contacts";
     private static final String PREFERENCE_SYNC_CALENDAR = "account_sync_calendar";
     private static final String PREFERENCE_SYNC_EMAIL = "account_sync_email";
+    private static final String PREFERENCE_SYNC_SIZE = "account_sync_size";
 
     private static final String PREFERENCE_SYSTEM_FOLDERS = "system_folders";
     private static final String PREFERENCE_SYSTEM_FOLDERS_TRASH = "system_folders_trash";
     private static final String PREFERENCE_SYSTEM_FOLDERS_SENT = "system_folders_sent";
 
+    private static final String PREFERENCE_DELETE_ACCOUNT = "delete_account";
+
+
     // Request code to start different activities.
     private static final int RINGTONE_REQUEST_CODE = 0;
+
+    // Message codes
+    private static final int MSG_DELETE_ACCOUNT = 0;
 
     private EditTextPreference mAccountDescription;
     private EditTextPreference mAccountName;
@@ -117,15 +135,20 @@ public class AccountSettingsFragment extends PreferenceFragment
     private ListPreference mCheckFrequency;
     private ListPreference mSyncWindow;
     private CheckBoxPreference mAccountBackgroundAttachments;
+    private ListPreference mAutoFetchAttachments;
+    private ListPreference mSyncSize;
     private CheckBoxPreference mInboxNotify;
     private CheckBoxPreference mInboxVibrate;
+    private CheckBoxPreference mInboxNotifyEveryMessage;
     private Preference mInboxRingtone;
     private PreferenceCategory mNotificationsCategory;
     private CheckBoxPreference mSyncContacts;
     private CheckBoxPreference mSyncCalendar;
     private CheckBoxPreference mSyncEmail;
+    private Preference mDeleteAccount;
 
     private Context mContext;
+    private Handler mHandler;
 
     /**
      * mAccount is email-specific, transition to using mUiAccount instead
@@ -169,6 +192,16 @@ public class AccountSettingsFragment extends PreferenceFragment
         @Override public void abandonEdit() {}
     }
 
+    private final android.os.Handler.Callback mHandlerCallback = new android.os.Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            if (msg.what == MSG_DELETE_ACCOUNT) {
+                deleteAccount();
+            }
+            return false;
+        }
+    };
+
     /**
      * If launching with an arguments bundle, use this method to build the arguments.
      */
@@ -199,6 +232,7 @@ public class AccountSettingsFragment extends PreferenceFragment
             LogUtils.d(Logging.LOG_TAG, "AccountSettingsFragment onCreate");
         }
         super.onCreate(savedInstanceState);
+        mHandler = new Handler(mHandlerCallback);
 
         setHasOptionsMenu(true);
 
@@ -361,6 +395,13 @@ public class AccountSettingsFragment extends PreferenceFragment
             mCheckFrequency.setValue(summary);
             preferenceChanged(PREFERENCE_FREQUENCY, newValue);
             return false;
+        } else if (key.equals(PREFERENCE_AUTO_FETCH_ATTACHMENTS)) {
+            final String summary = newValue.toString();
+            final int index = mAutoFetchAttachments.findIndexOfValue(summary);
+            mAutoFetchAttachments.setSummary(mAutoFetchAttachments.getEntries()[index]);
+            mAutoFetchAttachments.setValue(summary);
+            preferenceChanged(PREFERENCE_AUTO_FETCH_ATTACHMENTS, newValue);
+            return false;
         } else if (key.equals(PREFERENCE_SIGNATURE)) {
             // Clean up signature if it's only whitespace (which is easy to do on a
             // soft keyboard) but leave whitespace in place otherwise, to give the user
@@ -388,6 +429,12 @@ public class AccountSettingsFragment extends PreferenceFragment
             mInboxFolderPreferences.setNotificationVibrateEnabled(vibrateSetting);
             preferenceChanged(FolderPreferences.PreferenceKeys.NOTIFICATION_VIBRATE, newValue);
             return true;
+        } else if (FolderPreferences.PreferenceKeys.NOTIFICATION_NOTIFY_EVERY_MESSAGE.equals(key)) {
+            final boolean notifyEveryMessageSetting = (Boolean) newValue;
+            mInboxNotifyEveryMessage.setChecked(notifyEveryMessageSetting);
+            mInboxFolderPreferences.setEveryMessageNotificationEnabled(notifyEveryMessageSetting);
+            preferenceChanged(FolderPreferences.PreferenceKeys.NOTIFICATION_NOTIFY_EVERY_MESSAGE, newValue);
+            return true;
         } else if (FolderPreferences.PreferenceKeys.NOTIFICATIONS_ENABLED.equals(key)) {
             mInboxFolderPreferences.setNotificationsEnabled((Boolean) newValue);
             preferenceChanged(FolderPreferences.PreferenceKeys.NOTIFICATIONS_ENABLED, newValue);
@@ -397,6 +444,30 @@ public class AccountSettingsFragment extends PreferenceFragment
             preferenceChanged(key, newValue);
             return true;
         }
+    }
+
+    @Override
+    public boolean onPreferenceClick(Preference preference) {
+        final String key = preference.getKey();
+        if (key.equals(PREFERENCE_DELETE_ACCOUNT)){
+            AlertDialog.Builder alertBuilder = new AlertDialog.Builder(mContext);
+            alertBuilder.setTitle(R.string.delete_account_title);
+            String msg = getString(R.string.delete_account_confirmation_msg, mAccountEmail);
+            alertBuilder.setMessage(msg);
+            alertBuilder.setCancelable(true);
+            final DialogInterface.OnClickListener cb = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                    mHandler.dispatchMessage(Message.obtain(mHandler, MSG_DELETE_ACCOUNT));
+                }
+            };
+            alertBuilder.setPositiveButton(android.R.string.ok, cb);
+            alertBuilder.setNegativeButton(android.R.string.cancel, null);
+            alertBuilder.create().show();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -425,6 +496,11 @@ public class AccountSettingsFragment extends PreferenceFragment
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.settings_fragment_menu, menu);
+        MenuItem sendFeedbackItem = menu.findItem(R.id.feedback_menu_item);
+        if (sendFeedbackItem != null) {
+            sendFeedbackItem.setVisible(mUiAccount != null
+                    && mUiAccount.supportsCapability(AccountCapabilities.SEND_FEEDBACK));
+        }
     }
 
     /**
@@ -602,10 +678,18 @@ public class AccountSettingsFragment extends PreferenceFragment
                                 // Should only happen if we've aborted the settings screen
                                 return;
                             }
+
+                            // Set sync size configurations
+                            mSyncSize.setValue(String.valueOf(mAccount.getSyncSize()));
+                            mSyncSize.setSummary(mSyncSize.getEntry());
+
+                            // Set the notification
                             mInboxNotify.setChecked(
                                     mInboxFolderPreferences.areNotificationsEnabled());
                             mInboxVibrate.setChecked(
                                     mInboxFolderPreferences.isNotificationVibrateEnabled());
+                            mInboxNotifyEveryMessage.setChecked(
+                                    mInboxFolderPreferences.isEveryMessageNotificationEnabled());
                             setRingtoneSummary();
                             // Notification preferences must be disabled until after
                             // mInboxFolderPreferences is available, so enable them here.
@@ -774,6 +858,29 @@ public class AccountSettingsFragment extends PreferenceFragment
             mAccountBackgroundAttachments.setOnPreferenceChangeListener(this);
         }
 
+        mAutoFetchAttachments = (ListPreference) findPreference(PREFERENCE_AUTO_FETCH_ATTACHMENTS);
+        if (!info.supportAutoFetchAttachments) {
+            dataUsageCategory.removePreference(mAutoFetchAttachments);
+            mAutoFetchAttachments = null;
+        } else {
+            mAutoFetchAttachments.setValue(String.valueOf(mAccount.mAutoFetchAttachments));
+            mAutoFetchAttachments.setSummary(mAutoFetchAttachments.getEntries()[
+                    mAccount.mAutoFetchAttachments]);
+            mAutoFetchAttachments.setOnPreferenceChangeListener(this);
+        }
+
+        mSyncSize = (ListPreference) findPreference(PREFERENCE_SYNC_SIZE);
+        mSyncSize.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+            public boolean onPreferenceChange(Preference preference, Object newValue) {
+                final String summary = newValue.toString();
+                int index = mSyncSize.findIndexOfValue(summary);
+                mSyncSize.setSummary(mSyncSize.getEntries()[index]);
+                mSyncSize.setValue(summary);
+                preferenceChanged(preference.getKey(), newValue);
+                return false;
+            }
+        });
+
         mInboxNotify = (CheckBoxPreference) findPreference(
                 FolderPreferences.PreferenceKeys.NOTIFICATIONS_ENABLED);
         mInboxNotify.setOnPreferenceChangeListener(this);
@@ -805,6 +912,10 @@ public class AccountSettingsFragment extends PreferenceFragment
             // No vibrator present. Remove the preference altogether.
             mNotificationsCategory.removePreference(mInboxVibrate);
         }
+
+        mInboxNotifyEveryMessage = (CheckBoxPreference) findPreference(
+                FolderPreferences.PreferenceKeys.NOTIFICATION_NOTIFY_EVERY_MESSAGE);
+        mInboxNotifyEveryMessage.setOnPreferenceChangeListener(this);
 
         final Preference retryAccount = findPreference(PREFERENCE_POLICIES_RETRY_ACCOUNT);
         final PreferenceCategory policiesCategory = (PreferenceCategory) findPreference(
@@ -905,6 +1016,9 @@ public class AccountSettingsFragment extends PreferenceFragment
             dataUsageCategory.removePreference(mSyncCalendar);
             dataUsageCategory.removePreference(mSyncEmail);
         }
+
+        mDeleteAccount = findPreference(PREFERENCE_DELETE_ACCOUNT);
+        mDeleteAccount.setOnPreferenceClickListener(this);
     }
 
     /**
@@ -963,6 +1077,10 @@ public class AccountSettingsFragment extends PreferenceFragment
             mAccount.setSyncLookback(Integer.parseInt(mSyncWindow.getValue()));
         }
         mAccount.setFlags(newFlags);
+        mAccount.setSyncSize(Integer.parseInt(mSyncSize.getValue()));
+
+        mAccount.setAutoFetchAttachments(mAutoFetchAttachments == null
+                ? 0 : Integer.parseInt(mAutoFetchAttachments.getValue()));
 
         if (info.syncContacts || info.syncCalendar) {
             ContentResolver.setSyncAutomatically(androidAcct, ContactsContract.AUTHORITY,
@@ -1004,6 +1122,44 @@ public class AccountSettingsFragment extends PreferenceFragment
                 Settings.System.DEFAULT_NOTIFICATION_URI);
         intent.putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true);
         intent.putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION);
+        // RingtoneManager#EXTRA_RINGTONE_DIALOG_THEME is hidden for the public api, and
+        // Email is not compiled through current CyanogenMod api, so jus use the action string
+        // instead the constant
+        intent.putExtra("android.intent.extra.ringtone.DIALOG_THEME", R.style.Theme_RingtoneDialog);
         startActivityForResult(intent, RINGTONE_REQUEST_CODE);
+    }
+
+    private void deleteAccount() {
+        // Display an alert dialog to advise the user that the operation is in progress
+        AlertDialog.Builder alertBuilder = new AlertDialog.Builder(mContext);
+        alertBuilder.setMessage(R.string.deleting_account_msg);
+        alertBuilder.setCancelable(false);
+        AlertDialog dialog = alertBuilder.create();
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.show();
+
+        try {
+            ContentResolver resolver = mContext.getContentResolver();
+            int ret = resolver.delete(mUiAccount.uri, null, null);
+            if (ret <= 0) {
+                Toast.makeText(mContext, R.string.delete_account_failed, Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // And now we remove the system account that holds the email service
+            AccountManager accountManager = (AccountManager)getActivity().getSystemService(
+                    Context.ACCOUNT_SERVICE);
+            android.accounts.Account account = mUiAccount.getAccountManagerAccount();
+            NotificationUtils.clearAccountNotifications(mContext, account);
+            accountManager.removeAccount(account, null, null);
+
+            // We deleted the account, so we need to clear the activity stack, so just show
+            // the settings fragment and clear the activity stack
+            Intent intent = new Intent(getActivity(), AccountSettings.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            getActivity().startActivity(intent);
+        } finally {
+            dialog.dismiss();
+        }
     }
 }

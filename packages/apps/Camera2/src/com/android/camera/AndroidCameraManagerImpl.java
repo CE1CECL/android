@@ -25,6 +25,7 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.AutoFocusMoveCallback;
+import android.hardware.Camera.CameraMetaDataCallback;
 import android.hardware.Camera.ErrorCallback;
 import android.hardware.Camera.FaceDetectionListener;
 import android.hardware.Camera.OnZoomChangeListener;
@@ -39,6 +40,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.SurfaceHolder;
+import android.hardware.Camera.CameraDataCallback;
+
+import com.android.camera.util.ApiHelper;
+
+import android.os.ConditionVariable;
 
 /**
  * A class to implement {@link CameraManager} of the Android camera framework.
@@ -46,6 +52,9 @@ import android.view.SurfaceHolder;
 class AndroidCameraManagerImpl implements CameraManager {
     private static final String TAG = "CAM_" +
             AndroidCameraManagerImpl.class.getSimpleName();
+
+    // Thread progress signals
+    private ConditionVariable mSig = new ConditionVariable();
 
     private Parameters mParameters;
     private boolean mParametersIsDirty;
@@ -83,6 +92,13 @@ class AndroidCameraManagerImpl implements CameraManager {
     // Presentation
     private static final int ENABLE_SHUTTER_SOUND =    501;
     private static final int SET_DISPLAY_ORIENTATION = 502;
+    // Histogram
+    private static final int SET_HISTOGRAM_MODE =    601;
+    private static final int SEND_HISTOGRAM_DATA =   602;
+    //LONGSHOT
+    private static final int SET_LONGSHOT = 701;
+    // Metadata
+    private static final int SET_METADATA_CALLBACK = 801;
 
     private CameraHandler mCameraHandler;
     private android.hardware.Camera mCamera;
@@ -205,6 +221,9 @@ class AndroidCameraManagerImpl implements CameraManager {
                         return;
 
                     case RELEASE:
+                        if (mCamera == null) {
+                            return;
+                        }
                         mCamera.release();
                         mCamera = null;
                         return;
@@ -294,9 +313,9 @@ class AndroidCameraManagerImpl implements CameraManager {
 
                     case SET_PARAMETERS:
                         mParametersIsDirty = true;
-                        mParamsToSet.unflatten((String) msg.obj);
-                        mCamera.setParameters(mParamsToSet);
-                        return;
+                        mCamera.setParameters((Parameters) msg.obj);
+                        mSig.open();
+                        break;
 
                     case GET_PARAMETERS:
                         if (mParametersIsDirty) {
@@ -315,6 +334,22 @@ class AndroidCameraManagerImpl implements CameraManager {
 
                     case REFRESH_PARAMETERS:
                         mParametersIsDirty = true;
+                        return;
+
+                    case SET_HISTOGRAM_MODE:
+                        mCamera.setHistogramMode((CameraDataCallback) msg.obj);
+                        break;
+
+                    case SEND_HISTOGRAM_DATA:
+                        mCamera.sendHistogramData();
+                        break;
+
+                    case SET_LONGSHOT:
+                        mCamera.setLongshot((Boolean) msg.obj);
+                        break;
+
+                    case SET_METADATA_CALLBACK:
+                        mCamera.setMetadataCb((CameraMetaDataCallback) msg.obj);
                         return;
 
                     default:
@@ -525,8 +560,10 @@ class AndroidCameraManagerImpl implements CameraManager {
                 Log.v(TAG, "null parameters in setParameters()");
                 return;
             }
-            mCameraHandler.obtainMessage(SET_PARAMETERS, params.flatten())
+            mSig.close();
+            mCameraHandler.obtainMessage(SET_PARAMETERS, params)
                     .sendToTarget();
+            mSig.block();
         }
 
         @Override
@@ -545,6 +582,28 @@ class AndroidCameraManagerImpl implements CameraManager {
         public void enableShutterSound(boolean enable) {
             mCameraHandler.obtainMessage(
                     ENABLE_SHUTTER_SOUND, (enable ? 1 : 0), 0).sendToTarget();
+        }
+
+        @Override
+        public void setLongshot(boolean enable) {
+            mCameraHandler.obtainMessage(SET_LONGSHOT,
+                    new Boolean(enable)).sendToTarget();
+        }
+
+        @Override
+        public void setHistogramMode(CameraDataCallback cb) {
+            mCameraHandler.obtainMessage(SET_HISTOGRAM_MODE, cb).sendToTarget();
+        }
+        @Override
+        public void sendHistogramData() {
+            mCameraHandler.sendEmptyMessage(SEND_HISTOGRAM_DATA);
+        }
+
+        @Override
+        public void setMetadataCallback(Handler handler, CameraMetadataCallback cb) {
+            mCameraHandler.obtainMessage(
+                    SET_METADATA_CALLBACK,
+                    MetadataCallbackForward.getNewInstance(handler, this, cb)).sendToTarget();
         }
     }
 
@@ -789,6 +848,44 @@ class AndroidCameraManagerImpl implements CameraManager {
                 @Override
                 public void run() {
                     mCallback.onFaceDetection(faces, mCamera);
+                }
+            });
+        }
+    }
+
+    private static class MetadataCallbackForward implements CameraMetaDataCallback {
+        private final Handler mHandler;
+        private final CameraMetadataCallback mCallback;
+        private final CameraProxy mCamera;
+
+        /**
+         * Returns a new instance of {@link MetadataCallbackForward}.
+         *
+         * @param handler The handler in which the callback will be invoked in.
+         * @param camera  The {@link CameraProxy} which the callback is from.
+         * @param cb      The callback to be invoked.
+         * @return        The instance of the {@link MetadataCallbackForward},
+         *                or null if any parameter is null.
+         */
+        public static MetadataCallbackForward getNewInstance(
+                Handler handler, CameraProxy camera, CameraMetadataCallback cb) {
+            if (handler == null || camera == null || cb == null) return null;
+            return new MetadataCallbackForward(handler, camera, cb);
+        }
+
+        private MetadataCallbackForward(
+                Handler h, CameraProxy camera, CameraMetadataCallback cb) {
+            mHandler = h;
+            mCamera = camera;
+            mCallback = cb;
+        }
+
+        @Override
+        public void onCameraMetaData(final byte[] data, Camera camera) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mCallback.onCameraMetadata(data, mCamera);
                 }
             });
         }

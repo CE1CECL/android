@@ -1,5 +1,8 @@
 /******************************************************************************
  *
+ * Copyright (c) 2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  *  Copyright (C) 2009-2012 Broadcom Corporation
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,8 +51,11 @@
 #include "btif_util.h"
 #include "btif_sock.h"
 #include "btif_pan.h"
+#include "btc_common.h"
+#include "btif_mce.h"
 #include "btif_profile_queue.h"
 #include "btif_config.h"
+#include "btif_sock_util.h"
 /************************************************************************************
 **  Constants & Macros
 ************************************************************************************/
@@ -67,6 +73,9 @@
 /************************************************************************************
 **  Local type definitions
 ************************************************************************************/
+
+static BOOLEAN bt_disabled = FALSE;
+pthread_mutex_t mutex_bt_disable;
 
 /* These type definitions are used when passing data from the HAL to BTIF context
 *  in the downstream path for the adapter and remote_device property APIs */
@@ -106,6 +115,8 @@ static btif_core_state_t btif_core_state = BTIF_CORE_STATE_DISABLED;
 
 static int btif_shutdown_pending = 0;
 static tBTA_SERVICE_MASK btif_enabled_services = 0;
+static int btif_data_profile_registered = 0;
+static int btif_pending_mode = BT_SCAN_MODE_NONE;
 
 /*
 * This variable should be set to 1, if the Bluedroid+BTIF libraries are to
@@ -304,14 +315,23 @@ static void btif_task(UINT32 params)
          */
         if (event == BT_EVT_HARDWARE_INIT_FAIL)
         {
-            BTIF_TRACE_DEBUG0("btif_task: hardware init failed");
-            bte_main_disable();
-            btif_queue_release();
-            GKI_task_self_cleanup(BTIF_TASK);
-            bte_main_shutdown();
-            btif_dut_mode = 0;
-            btif_core_state = BTIF_CORE_STATE_DISABLED;
-            HAL_CBACK(bt_hal_cbacks,adapter_state_changed_cb,BT_STATE_OFF);
+            lock_slot(&mutex_bt_disable);
+            BTIF_TRACE_DEBUG0("btif_task: mutex_bt_disable lock");
+            if(bt_disabled == FALSE)
+            {
+                BTIF_TRACE_DEBUG0("btif_task: hardware init failed");
+                bte_main_disable();
+                btif_queue_release();
+                GKI_task_self_cleanup(BTIF_TASK);
+                bte_main_shutdown();
+                btif_dut_mode = 0;
+                btif_core_state = BTIF_CORE_STATE_DISABLED;
+                /*variable to avoid the double cleanup*/
+                bt_disabled = TRUE;
+                HAL_CBACK(bt_hal_cbacks,adapter_state_changed_cb,BT_STATE_OFF);
+            }
+            BTIF_TRACE_DEBUG0("btif_task: mutex_bt_disable unlock");
+            unlock_slot(&mutex_bt_disable);
             break;
         }
 
@@ -374,10 +394,10 @@ static void btif_fetch_local_bdaddr(bt_bdaddr_t *local_addr)
 
         BTIF_TRACE_DEBUG1("local bdaddr is stored in %s", val);
 
-        if ((addr_fd = open(val, O_RDONLY)) != -1)
+        if ((addr_fd = TEMP_FAILURE_RETRY(open(val, O_RDONLY))) != -1)
         {
             memset(val, 0, sizeof(val));
-            read(addr_fd, val, FACTORY_BT_BDADDR_STORAGE_LEN);
+            TEMP_FAILURE_RETRY(read(addr_fd, val, FACTORY_BT_BDADDR_STORAGE_LEN));
             str2bd(val, local_addr);
             /* If this is not a reserved/special bda, then use it */
             if (memcmp(local_addr->address, null_bdaddr, BD_ADDR_LEN) != 0)
@@ -445,7 +465,7 @@ static void btif_fetch_local_bdaddr(bt_bdaddr_t *local_addr)
     val_size = sizeof(val);
     if (btif_config_get_str("Local", "Adapter", "Address", val, &val_size))
     {
-        if (strcmp(bdstr, val) ==0)
+        if (strcmp(bdstr, val) == 0)
         {
             // BDA is already present in the config file.
             return;
@@ -534,6 +554,9 @@ bt_status_t btif_enable_bluetooth(void)
 
     btif_core_state = BTIF_CORE_STATE_ENABLING;
 
+    bt_disabled = FALSE;
+
+    init_slot_lock(&mutex_bt_disable);
     /* Create the GKI tasks and run them */
     bte_main_enable();
 
@@ -670,7 +693,9 @@ bt_status_t btif_disable_bluetooth(void)
     btif_sock_cleanup();
 
     btif_pan_cleanup();
-
+#if (defined(BTC_INCLUDED) && BTC_INCLUDED == TRUE)
+    btc_deinit();
+#endif /*BTC*/
     status = BTA_DisableBluetooth();
 
     btif_config_flush();
@@ -758,21 +783,29 @@ bt_status_t btif_shutdown_bluetooth(void)
 
     btif_shutdown_pending = 0;
 
-    if (btif_core_state == BTIF_CORE_STATE_ENABLING)
+    lock_slot(&mutex_bt_disable);
+    if(bt_disabled == FALSE)
     {
-        // Java layer abort BT ENABLING, could be due to ENABLE TIMEOUT
-        // Direct call from cleanup()@bluetooth.c
-        // bring down HCI/Vendor lib
-        bte_main_disable();
-        btif_core_state = BTIF_CORE_STATE_DISABLED;
-        HAL_CBACK(bt_hal_cbacks, adapter_state_changed_cb, BT_STATE_OFF);
+        /*variable to avoid the double cleanup*/
+        bt_disabled = TRUE;
+
+        if (btif_core_state == BTIF_CORE_STATE_ENABLING)
+        {
+            // Java layer abort BT ENABLING, could be due to ENABLE TIMEOUT
+            // Direct call from cleanup()@bluetooth.c
+            // bring down HCI/Vendor lib
+            bte_main_disable();
+            btif_core_state = BTIF_CORE_STATE_DISABLED;
+            HAL_CBACK(bt_hal_cbacks, adapter_state_changed_cb, BT_STATE_OFF);
+        }
+
+        GKI_destroy_task(BTIF_TASK);
+        btif_queue_release();
+        bte_main_shutdown();
+
+        btif_dut_mode = 0;
     }
-
-    GKI_destroy_task(BTIF_TASK);
-    btif_queue_release();
-    bte_main_shutdown();
-
-    btif_dut_mode = 0;
+    unlock_slot(&mutex_bt_disable);
 
     bt_utils_cleanup();
 
@@ -781,6 +814,15 @@ bt_status_t btif_shutdown_bluetooth(void)
     return BT_STATUS_SUCCESS;
 }
 
+/*******************************************************************************
+Function       btif_ssrcleanup
+Description   Trigger SSR when Disable timeout occured
+
+*******************************************************************************/
+void btif_ssr_cleanup(void)
+{
+  bte_ssr_cleanup();
+}
 
 /*******************************************************************************
 **
@@ -810,6 +852,45 @@ static bt_status_t btif_disassociate_evt(void)
 **   BTIF Test Mode APIs
 **
 *****************************************************************************/
+#if HCI_RAW_CMD_INCLUDED == TRUE
+/*******************************************************************************
+**
+** Function         btif_hci_event_cback
+**
+** Description     Callback invoked on receiving HCI event
+**
+** Returns          None
+**
+*******************************************************************************/
+static void btif_hci_event_cback ( tBTM_RAW_CMPL *p )
+{
+    BTIF_TRACE_DEBUG1("%s", __FUNCTION__);
+    if(p != NULL)
+    {
+        HAL_CBACK(bt_hal_cbacks, hci_event_recv_cb, p->event_code, p->p_param_buf,
+                                                                p->param_len);
+    }
+}
+
+/*******************************************************************************
+**
+** Function        btif_hci_cmd_send
+**
+** Description     Sends a HCI raw command to the controller
+**
+** Returns         BT_STATUS_SUCCESS on success
+**
+*******************************************************************************/
+bt_status_t btif_hci_cmd_send(uint16_t opcode, uint8_t *buf, uint8_t len)
+{
+    BTIF_TRACE_DEBUG1("%s", __FUNCTION__);
+
+    BTM_Hci_Raw_Command(opcode, len, buf, btif_hci_event_cback);
+    return BT_STATUS_SUCCESS;
+}
+#endif
+
+
 /*******************************************************************************
 **
 ** Function         btif_dut_mode_cback
@@ -940,7 +1021,7 @@ static bt_status_t btif_in_get_remote_device_properties(bt_bdaddr_t *bd_addr)
     uint32_t num_props = 0;
 
     bt_bdname_t name, alias;
-    uint32_t cod, devtype;
+    uint32_t cod, devtype, trustval;
     bt_uuid_t remote_uuids[BT_MAX_NUM_UUIDS];
 
     memset(remote_properties, 0, sizeof(remote_properties));
@@ -952,6 +1033,12 @@ static bt_status_t btif_in_get_remote_device_properties(bt_bdaddr_t *bd_addr)
 
     BTIF_STORAGE_FILL_PROPERTY(&remote_properties[num_props], BT_PROPERTY_REMOTE_FRIENDLY_NAME,
                                sizeof(alias), &alias);
+    btif_storage_get_remote_device_property(bd_addr,
+                                            &remote_properties[num_props]);
+    num_props++;
+
+    BTIF_STORAGE_FILL_PROPERTY(&remote_properties[num_props], BT_PROPERTY_REMOTE_TRUST_VALUE,
+                               sizeof(trustval), &trustval);
     btif_storage_get_remote_device_property(bd_addr,
                                             &remote_properties[num_props]);
     num_props++;
@@ -1145,6 +1232,58 @@ bt_status_t btif_get_adapter_properties(void)
                                  BTIF_CORE_STORAGE_ADAPTER_READ_ALL,
                                  NULL, 0, NULL);
 }
+/*******************************************************************************
+**
+** Function         system_power_manager_wake
+**
+** Description      to Aquire or release the wake lock
+**
+** Returns          void
+**
+*******************************************************************************/
+
+static void system_power_manager_wake(UINT16 event, char *p_param)
+{
+
+    BTIF_TRACE_EVENT3("%s : %d param %ld", __FUNCTION__, event, *(UINT32 *)p_param);
+
+    switch(event)
+    {
+        case BTIF_DM_SYSTEM_WAKE:
+        {
+             if(*(UINT32 *)p_param) {
+                 HAL_CBACK(bt_hal_cbacks, wake_state_changed_cb, BT_STATE_ON);
+             } else {
+                 HAL_CBACK(bt_hal_cbacks, wake_state_changed_cb, BT_STATE_OFF);
+             }
+        } break;
+
+        default:
+            BTIF_TRACE_ERROR2("%s invalid event id (%d)", __FUNCTION__, event);
+            break;
+    }
+}
+/*******************************************************************************
+**
+** Function         btu_hcif_wake_event
+**
+** Description      to Aquire or release the wake lock
+**
+** Returns          int
+**
+*******************************************************************************/
+
+int  btu_hcif_wake_event(UINT32 state)
+{
+    BTIF_TRACE_EVENT2("%s, state : %ld", __FUNCTION__, state);
+
+    if (!btif_is_enabled())
+       return BT_STATUS_NOT_READY;
+
+    return btif_transfer_context(system_power_manager_wake,
+                                 BTIF_DM_SYSTEM_WAKE,
+                                 (char*)&state, sizeof(UINT32), NULL);
+}
 
 /*******************************************************************************
 **
@@ -1192,6 +1331,7 @@ bt_status_t btif_set_adapter_property(const bt_property_t *property)
     int storage_req_id = BTIF_CORE_STORAGE_NOTIFY_STATUS; /* default */
     char bd_name[BTM_MAX_LOC_BD_NAME_LEN +1];
     UINT16  name_len = 0;
+    BOOLEAN adv_directed = FALSE;
 
     BTIF_TRACE_EVENT3("btif_set_adapter_property type: %d, len %d, 0x%x",
                       property->type, property->len, property->val);
@@ -1246,11 +1386,63 @@ bt_status_t btif_set_adapter_property(const bt_property_t *property)
 
                 BTIF_TRACE_EVENT1("set property scan mode : %x", mode);
 
+                if (!btif_data_profile_registered && mode != BT_SCAN_MODE_NONE)
+                {
+                    btif_pending_mode = mode;
+                    BTIF_TRACE_DEBUG0("btif_set_adapter_property: not setting connectable mode, "
+                        "as data profiles are not yet registered. Mode will be set when "
+                        "data profile(s) are registered");
+                    return BT_STATUS_SUCCESS;
+                }
                 BTA_DmSetVisibility(disc_mode, conn_mode, BTA_DM_IGNORE, BTA_DM_IGNORE);
 
                 storage_req_id = BTIF_CORE_STORAGE_ADAPTER_WRITE;
             }
             break;
+#if BLE_INCLUDED == TRUE
+        case BT_PROPERTY_ADAPTER_BLE_ADV_MODE:
+            {
+                bt_ble_adv_mode_t mode = *(bt_scan_mode_t*)property->val;
+                tBTA_DM_DISC disc_mode;
+                tBTA_DM_CONN conn_mode;
+
+                switch(mode)
+                {
+                    case BLE_ADV_MODE_NONE:
+                        disc_mode = BTA_DM_BLE_NON_DISCOVERABLE;
+                        conn_mode = BTA_DM_BLE_NON_CONNECTABLE;
+                        break;
+
+                    case BLE_ADV_IND_GENERAL_CONNECTABLE:
+                        disc_mode = BTA_DM_BLE_GENERAL_DISCOVERABLE;
+                        conn_mode = BTA_DM_BLE_CONNECTABLE;
+                        adv_directed = FALSE;
+                        break;
+
+                    case BLE_ADV_IND_LIMITED_CONNECTABLE:
+                        disc_mode = BTA_DM_BLE_LIMITED_DISCOVERABLE;
+                        conn_mode = BTA_DM_BLE_CONNECTABLE;
+                        adv_directed = FALSE;
+                        break;
+
+                    case BLE_ADV_DIR_CONNECTABLE:
+                        disc_mode = BTA_DM_BLE_GENERAL_DISCOVERABLE;
+                        conn_mode = BTA_DM_BLE_CONNECTABLE;
+                        adv_directed = TRUE;
+                        break;
+                    default:
+                        BTIF_TRACE_ERROR1("invalid scan mode (0x%x)", mode);
+                        return BT_STATUS_PARM_INVALID;
+                }
+
+                BTIF_TRACE_EVENT4("set property adv mode : %x, disc mode: %x, conn mode: 0x%x, adv_directed=%d", mode, disc_mode, conn_mode, adv_directed);
+
+                BTA_DmSetBLEVisibility(disc_mode,conn_mode,adv_directed);
+
+                storage_req_id = BTIF_CORE_STORAGE_ADAPTER_WRITE;
+            }
+            break;
+#endif
         case BT_PROPERTY_ADAPTER_DISCOVERY_TIMEOUT:
             {
                 /* Nothing to do beside store the value in NV.  Java
@@ -1369,6 +1561,134 @@ bt_status_t btif_set_remote_device_property(bt_bdaddr_t *remote_addr,
                                  btif_in_storage_request_copy_cb);
 }
 
+#if BLE_INCLUDED == TRUE
+/*******************************************************************************
+**
+** Function         btif_set_le_adv_params
+**
+** Description      Sets the LE adv properties namely
+**                  min interval, max interval,
+**                  and direct addr and type for directed advertisement
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_adv_params( uint16_t int_min, uint16_t int_max, const bt_bdaddr_t *bd_addr,
+                                    uint8_t addr_type)
+{
+    btif_storage_req_t req;
+    BD_ADDR temp_addr;
+    if (!btif_is_enabled())
+        return BT_STATUS_NOT_READY;
+
+    bdcpy(temp_addr,bd_addr->address);
+    if(bd_addr == NULL)
+    {
+        bdcpy(temp_addr, bd_addr_null);
+    }
+    BTIF_TRACE_EVENT4("btif_set_le_adv_params min_int: %d, max_int: %d, addr_type=%d, bdaddr first byte: 0x%0x",
+                      int_min, int_max, addr_type, temp_addr[0]);
+    BTA_DmSetAdvParams(int_min,int_max,temp_addr,addr_type);
+
+    return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btif_set_le_adv_data_mask
+**
+** Description      Sets the LE adv data mask for
+**                  including in the adv: services, bdName, Tx Power
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_adv_data_mask(uint16_t dmask)
+{
+    if (!btif_is_enabled())
+        return BT_STATUS_NOT_READY;
+
+    BTIF_TRACE_EVENT1("btif_set_le_adv_data_mask dataMask: %d",dmask);
+
+    BTA_DmSetBLEAdvMask(dmask);
+    return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btif_set_le_scan_resp_mask
+**
+** Description      Sets the LE scan resp mask for
+**                  including in the adv: services, bdName, Tx Power
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_scan_resp_mask(uint16_t dmask)
+{
+    if (!btif_is_enabled())
+        return BT_STATUS_NOT_READY;
+
+    BTIF_TRACE_EVENT1("btif_set_le_scan_resp_mask dataMask: %d",dmask);
+
+    BTA_DmSetBLEScanRespMask(dmask);
+    return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btif_set_le_manu_data
+**
+** Description      sets manufacturer specific data for
+**                  adv data and scan resp data
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_manu_data(uint8_t *p_buff, uint8_t len)
+{
+    int count = 0;
+    if (!btif_is_enabled())
+        return BT_STATUS_NOT_READY;
+
+    BTIF_TRACE_EVENT1("btif_set_le_manu_data of length: %d", len);
+    while(count < len)
+    {
+        BTIF_TRACE_EVENT2("Manu Data Byte No %d is 0x%x", count, *(p_buff+count));
+        count++;
+    }
+
+    BTA_DmSetManuData(p_buff, len);
+    return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btif_set_le_service_data
+**
+** Description      sets service data for
+**                  adv data and scan resp data
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+bt_status_t btif_set_le_service_data(uint8_t *p_buff, uint8_t len)
+{
+    int count = 0;
+    if (!btif_is_enabled())
+        return BT_STATUS_NOT_READY;
+
+    BTIF_TRACE_EVENT1("btif_set_le_service_data of length: %d", len);
+    while(count < len)
+    {
+        BTIF_TRACE_EVENT2("Service Data Byte No %d is 0x%x", count, *(p_buff+count));
+        count++;
+    }
+
+    BTA_DmSetServiceData(p_buff, len);
+    return BT_STATUS_SUCCESS;
+}
+#endif
 
 /*******************************************************************************
 **
@@ -1487,4 +1807,36 @@ bt_status_t btif_config_hci_snoop_log(uint8_t enable)
     bte_main_config_hci_logging(enable != 0,
              btif_core_state == BTIF_CORE_STATE_DISABLED);
     return BT_STATUS_SUCCESS;
+}
+
+/*******************************************************************************
+**
+** Function         btif_data_profile_register
+**
+** Description      Sets BT_PROPERTY_ADAPTER_SCAN_MODE property when data
+**                  start registering.
+**
+** Returns          bt_status_t
+**
+*******************************************************************************/
+void btif_data_profile_register(int value)
+{
+    bt_property_t property;
+    int val;
+
+    if (value == btif_data_profile_registered || btif_pending_mode == BT_SCAN_MODE_NONE)
+        return;
+
+    BTIF_TRACE_EVENT2("%s: Data profile registration = %d", __FUNCTION__, value);
+    btif_data_profile_registered = value;
+    if (btif_data_profile_registered)
+    {
+        property.type = BT_PROPERTY_ADAPTER_SCAN_MODE;
+        val = btif_pending_mode;
+        property.val = &val;;
+        property.len = (sizeof(int));
+        /* Reset pending mode to None */
+        btif_pending_mode = BT_SCAN_MODE_NONE;
+        btif_set_adapter_property(&property);
+    }
 }

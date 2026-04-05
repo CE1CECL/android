@@ -19,11 +19,12 @@
 
         <!-- System update settings - launches activity -->
         <PreferenceScreen android:key="system_update_settings"
-                android:title="@string/system_update_settings_list_item_title" 
+                android:title="@string/system_update_settings_list_item_title"
                 android:summary="@string/system_update_settings_list_item_summary">
-            <intent android:action="android.settings.SYSTEM_UPDATE_SETTINGS" />
+            <intent android:action="android.settings.SYSTEM_UPDATE_SETTINGS"
+                    android:targetPackage="com.cyngn.fota"
+                    android:targetClass="com.cyngn.fota.SystemUpdateActivity" />
         </PreferenceScreen>
-
 
         <PreferenceScreen android:key="additional_system_update_settings"
                           android:title="@string/additional_system_update_settings_list_item_title">
@@ -32,13 +33,34 @@
                     android:targetClass="@string/additional_system_update_menu" />
         </PreferenceScreen>
 
+        <!-- CyanogenMod Updates -->
+        <PreferenceScreen android:key="cm_updates"
+                android:title="@string/cmupdate_settings_title"
+                android:summary="@string/system_update_settings_list_item_summary">
+            <intent android:action="android.intent.action.MAIN"
+                    android:targetPackage="com.cyanogenmod.updater"
+                    android:targetClass="com.cyanogenmod.updater.UpdatesSettings" />
+        </PreferenceScreen>
+
         <!-- Device status - launches activity -->
         <PreferenceScreen android:key="status_info"
-                android:title="@string/device_status" 
-                android:summary="@string/device_status_summary">
+                android:title="@string/device_status"
+                android:summary="@string/device_status_summary_cm">
             <intent android:action="android.intent.action.MAIN"
                     android:targetPackage="com.android.settings"
                     android:targetClass="com.android.settings.deviceinfo.Status" />
+        </PreferenceScreen>
+
+        <!-- Change Log -->
+        <PreferenceScreen android:key="changelog"
+            android:title="@string/changelog_title"
+            android:fragment="com.android.settings.cyanogenmod.ChangeLog" >
+        </PreferenceScreen>
+
+        <!-- Contributors cloud -->
+        <PreferenceScreen android:key="contributor_cloud"
+            android:title="@string/contributor_cloud_title"
+            android:fragment="com.android.settings.cyanogenmod.ContributorsCloud" >
         </PreferenceScreen>
 
         <!-- Legal Information -->
@@ -63,6 +85,13 @@
                     android:key="license"
                     android:title="@string/license_title">
                 <intent android:action="android.settings.LICENSE" />
+            </PreferenceScreen>
+
+            <!-- CM License information -->
+            <PreferenceScreen
+                    android:key="cmlicense"
+                    android:title="@string/cmlicense_title">
+                <intent android:action="android.settings.CMLICENSE" />
             </PreferenceScreen>
 
             <!-- Terms and conditions -->
@@ -101,10 +130,22 @@
                 android:title="@string/model_number"
                 android:summary="@string/device_info_default"/>
                 
+        <!-- Mod version -->
+        <Preference android:key="mod_version"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/mod_version"
+                android:summary="@string/mod_version_default" />
+
         <!-- Device firmware version -->
         <Preference android:key="firmware_version" 
                 style="?android:preferenceInformationStyle"
                 android:title="@string/firmware_version"
+                android:summary="@string/device_info_default"/>
+
+        <!-- Security patch level -->
+        <Preference android:key="security_patch"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/security_patch"
                 android:summary="@string/device_info_default"/>
 
         <!-- Device FCC equipment id -->
@@ -124,6 +165,24 @@
                 style="?android:preferenceInformationStyle"
                 android:title="@string/kernel_version"
                 android:summary="@string/device_info_default"/>
+
+        <!-- Device cpu info -->
+        <Preference android:key="device_cpu"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/cpu_info"
+                android:summary="@string/device_info_default"/>
+
+        <!-- Device mem info -->
+        <Preference android:key="device_memory"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/mem_info"
+                android:summary="@string/device_info_default"/>
+
+        <!-- Mod build date -->
+        <Preference android:key="build_date"
+                style="?android:preferenceInformationStyle"
+                android:title="@string/build_date"
+                android:summary="@string/build_date_default" />
 
         <!-- Detailed build version -->
         <Preference android:key="build_number" 

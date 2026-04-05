@@ -23,7 +23,9 @@ LOCAL_AAPT_FLAGS := \
 
 LOCAL_PACKAGE_NAME := Camera2
 
-LOCAL_SDK_VERSION := current
+LOCAL_CERTIFICATE := platform
+
+#LOCAL_SDK_VERSION := current
 
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 

@@ -48,6 +48,12 @@ interface ITelephony {
     void call(String callingPackage, String number);
 
     /**
+     * Toggle between 3G and LTE (NT_MODE_CDMA, NT_MODE_GLOBAL)
+     * @param boolean to turn on and off LTE
+     */
+    void toggleLTE(boolean on);
+
+    /**
      * If there is currently a call in progress, show the call screen.
      * The DTMF dialpad may or may not be visible initially, depending on
      * whether it was up when the user last exited the InCallScreen.
@@ -147,6 +153,11 @@ interface ITelephony {
      * @return whether the operation was a success.
      */
     boolean supplyPin(String pin);
+
+    /**
+     * Gets the number of attempts remaining for PIN1/PUK1 unlock.
+     */
+    int getIccPin1RetryCount();
 
     /**
      * Supply puk to unlock the SIM and set SIM pin to new pin.
@@ -329,6 +340,55 @@ interface ITelephony {
     void setCellInfoListRate(int rateInMillis);
 
     /**
+     * Adds a protected sms address to the {@link Settings.Secure.PROTECTED_SMS_ADDRESSES}
+     */
+    void addProtectedSmsAddress(String address);
+
+    /**
+     * Revokes a protected sms address from {@link Settings.Secure.PROTECTED_SMS_ADDRESSES}
+     */
+    boolean revokeProtectedSmsAddress(String address);
+
+    /**
+     * Returns the response APDU for a command APDU sent to a logical channel
+     */
+    String transmitIccLogicalChannel(int cla, int command, int channel,
+            int p1, int p2, int p3, String data);
+
+    /**
+     * Returns the response APDU for a command APDU sent to the basic channel
+     */
+    String transmitIccBasicChannel(int cla, int command,
+            int p1, int p2, int p3, String data);
+
+    /**
+     * Returns the channel id of the logical channel,
+     * Returns 0 on error.
+     */
+    int openIccLogicalChannel(String AID);
+
+    /**
+     * Return true if logical channel was closed successfully
+     */
+    boolean closeIccLogicalChannel(int channel);
+
+    /**
+     * Returns the error code of the last error occured.
+     * Currently only used for openIccLogicalChannel
+     */
+    int getLastError();
+
+    /**
+     * Returns the response APDU for a command APDU sent through SIM_IO
+     */
+    byte[] transmitIccSimIO(int fileID, int command,
+            int p1, int p2, int p3, String filePath);
+
+    /**
+     * Get ATR (Answer To Reset; as per ISO/IEC 7816-4) from SIM card
+     */
+     byte[] getATR();
+    /**
      * Put a call on hold.
      */
      void toggleHold();
@@ -370,5 +430,7 @@ interface ITelephony {
        * Unregister a callback.
        */
       void removeListener(ITelephonyListener listener);
+
+      int getLteOnGsmMode();
 }
 

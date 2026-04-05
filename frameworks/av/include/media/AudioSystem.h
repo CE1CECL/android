@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  * Copyright (C) 2008 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +41,10 @@ public:
     /* These are static methods to control the system-wide AudioFlinger
      * only privileged processes can have access to them
      */
+#ifdef MTK_HARDWARE
+    static status_t SetAudioData(int par1, size_t len, void *ptr);
+    static status_t GetAudioData(int par1, size_t len, void *ptr);
+#endif
 
     // mute/unmute microphone
     static status_t muteMicrophone(bool state);
@@ -147,6 +153,9 @@ public:
         INPUT_CLOSED,
         INPUT_CONFIG_CHANGED,
         STREAM_CONFIG_CHANGED,
+#ifdef QCOM_DIRECTTRACK
+        EFFECT_CONFIG_CHANGED,
+#endif
         NUM_CONFIG_EVENTS
     };
 

@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution.
+ *
  * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -439,7 +442,7 @@ public final class SimulatedCommands extends BaseCommands
     }
 
     @Override
-    public void supplyNetworkDepersonalization(String netpin, Message result)  {
+    public void supplyDepersonalization(String netpin, String type, Message result)  {
         unimplemented(result);
     }
 
@@ -1253,6 +1256,20 @@ public final class SimulatedCommands extends BaseCommands
     }
 
     /**
+     * Simulates an Stk Call Control Alpha message
+     * @param alphaString Alpha string to send.
+     */
+    public void triggerIncomingStkCcAlpha(String alphaString) {
+        if (mCatCcAlphaRegistrant != null) {
+            mCatCcAlphaRegistrant.notifyResult(alphaString);
+        }
+    }
+
+    public void sendStkCcAplha(String alphaString) {
+        triggerIncomingStkCcAlpha(alphaString);
+    }
+
+    /**
      * Simulates an incoming USSD message
      * @param statusCode  Status code string. See <code>setOnUSSD</code>
      * in CommandsInterface.java
@@ -1677,4 +1694,27 @@ public final class SimulatedCommands extends BaseCommands
             int retry, int messageRef, Message response){
         unimplemented(response);
     }
+
+    @Override
+    public void iccExchangeApdu (int cla, int command, int channel, int p1,
+            int p2, int p3, String data, Message response) {
+        unimplemented(response);
+    }
+
+    @Override
+    public void iccOpenChannel(String aid, Message response) {
+        unimplemented(response);
+    }
+
+    @Override
+    public void iccCloseChannel(int channel, Message response) {
+        unimplemented(response);
+    }
+
+    @Override
+    public void iccGetAtr(Message response) {
+        unimplemented(response);
+    }
+
+    public boolean needsOldRilFeature(String feature) { return false; }
 }

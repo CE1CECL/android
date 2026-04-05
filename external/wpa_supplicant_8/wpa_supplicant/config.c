@@ -1565,6 +1565,7 @@ static const struct parse_data ssid_fields[] = {
 	{ INTe(engine) },
 	{ INTe(engine2) },
 	{ INT(eapol_flags) },
+	{ INTe(sim_num) },
 #endif /* IEEE8021X_EAPOL */
 	{ FUNC_KEY(wep_key0) },
 	{ FUNC_KEY(wep_key1) },
@@ -1813,6 +1814,8 @@ void wpa_config_free_ssid(struct wpa_ssid *ssid)
 
 void wpa_config_free_cred(struct wpa_cred *cred)
 {
+	size_t i;
+
 	os_free(cred->realm);
 	os_free(cred->username);
 	os_free(cred->password);
@@ -1822,6 +1825,8 @@ void wpa_config_free_cred(struct wpa_cred *cred)
 	os_free(cred->private_key_passwd);
 	os_free(cred->imsi);
 	os_free(cred->milenage);
+	for (i = 0; i < cred->num_domain; i++)
+		os_free(cred->domain[i]);
 	os_free(cred->domain);
 	os_free(cred->eap_method);
 	os_free(cred->phase1);
@@ -2029,6 +2034,7 @@ void wpa_config_set_network_defaults(struct wpa_ssid *ssid)
 	ssid->eapol_flags = DEFAULT_EAPOL_FLAGS;
 	ssid->eap_workaround = DEFAULT_EAP_WORKAROUND;
 	ssid->eap.fragment_size = DEFAULT_FRAGMENT_SIZE;
+	ssid->eap.sim_num = DEFAULT_USER_SELECTED_SIM;
 #endif /* IEEE8021X_EAPOL */
 #ifdef CONFIG_HT_OVERRIDES
 	ssid->disable_ht = DEFAULT_DISABLE_HT;
@@ -2216,8 +2222,18 @@ char * wpa_config_get(struct wpa_ssid *ssid, const char *var)
 
 	for (i = 0; i < NUM_SSID_FIELDS; i++) {
 		const struct parse_data *field = &ssid_fields[i];
-		if (os_strcmp(var, field->name) == 0)
-			return field->writer(field, ssid);
+		if (os_strcmp(var, field->name) == 0) {
+			char *ret = field->writer(field, ssid);
+			if (ret != NULL && (os_strchr(ret, '\r') != NULL ||
+				os_strchr(ret, '\n') != NULL)) {
+				wpa_printf(MSG_ERROR,
+					"Found newline in value for %s; "
+					"not returning it", var);
+				os_free(ret);
+				ret = NULL;
+			}
+			return ret;
+		}
 	}
 
 	return NULL;
@@ -2332,6 +2348,11 @@ int wpa_config_set_cred(struct wpa_cred *cred, const char *var,
 		return 0;
 	}
 
+	if (os_strcmp(var, "sim_num") == 0) {
+		cred->sim_num = atoi(value);
+		return 0;
+	}
+
 	val = wpa_config_parse_string(value, &len);
 	if (val == NULL) {
 		wpa_printf(MSG_ERROR, "Line %d: invalid field '%s' string "
@@ -2395,8 +2416,16 @@ int wpa_config_set_cred(struct wpa_cred *cred, const char *var,
 	}
 
 	if (os_strcmp(var, "domain") == 0) {
-		os_free(cred->domain);
-		cred->domain = val;
+		char **new_domain;
+		new_domain = os_realloc_array(cred->domain,
+					      cred->num_domain + 1,
+					      sizeof(char *));
+		if (new_domain == NULL) {
+			os_free(val);
+			return -1;
+		}
+		new_domain[cred->num_domain++] = val;
+		cred->domain = new_domain;
 		return 0;
 	}
 
@@ -2499,6 +2528,7 @@ struct wpa_cred * wpa_config_add_cred(struct wpa_config *config)
 	if (cred == NULL)
 		return NULL;
 	cred->id = id;
+	cred->sim_num = DEFAULT_USER_SELECTED_SIM;
 	if (last)
 		last->next = cred;
 	else

@@ -20,6 +20,7 @@
 package com.android.exchange.adapter;
 
 import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -48,6 +49,7 @@ import com.android.emailcommon.provider.EmailContent;
 import com.android.emailcommon.provider.EmailContent.AccountColumns;
 import com.android.emailcommon.provider.EmailContent.Attachment;
 import com.android.emailcommon.provider.EmailContent.Body;
+import com.android.emailcommon.provider.EmailContent.BodyColumns;
 import com.android.emailcommon.provider.EmailContent.MailboxColumns;
 import com.android.emailcommon.provider.EmailContent.Message;
 import com.android.emailcommon.provider.EmailContent.MessageColumns;
@@ -55,6 +57,7 @@ import com.android.emailcommon.provider.EmailContent.SyncColumns;
 import com.android.emailcommon.provider.Mailbox;
 import com.android.emailcommon.provider.Policy;
 import com.android.emailcommon.provider.ProviderUnavailableException;
+import com.android.emailcommon.service.SyncSize;
 import com.android.emailcommon.service.SyncWindow;
 import com.android.emailcommon.utility.AttachmentUtilities;
 import com.android.emailcommon.utility.ConversionUtilities;
@@ -235,7 +238,9 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                 s.start(Tags.BASE_BODY_PREFERENCE);
                 // HTML for email
                 s.data(Tags.BASE_TYPE, Eas.BODY_PREFERENCE_HTML);
-                s.data(Tags.BASE_TRUNCATION_SIZE, Eas.EAS12_TRUNCATION_SIZE);
+                String sizeTruncation = mAccount.getSyncSize() == SyncSize.SYNC_SIZE_ENTIRE_MAIL ?
+                    Eas.EAS12_TRUNCATION_SIZE : Integer.toString(mAccount.getSyncSize());
+                s.data(Tags.BASE_TRUNCATION_SIZE, sizeTruncation);
                 s.end();
             } else {
                 // Use MIME data for EAS 2.5
@@ -548,13 +553,19 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                         msg.mFlagRead = getValueInt() == 1;
                         break;
                     case Tags.BASE_BODY:
-                        bodyParser(msg);
+                        bodyParser(atts, msg);
                         break;
                     case Tags.EMAIL_FLAG:
                         msg.mFlagFavorite = flagParser();
                         break;
                     case Tags.EMAIL_MIME_TRUNCATED:
-                        truncated = getValueInt() == 1;
+                        String value = getValue();
+                        if (!TextUtils.isEmpty(value)) {
+                            truncated = (value.equals("1")) || (value.toLowerCase().equals("true"));
+                        } else {
+                            LogUtils.w(TAG, "TRUNCATED value is missing, then assumed to be true.");
+                            truncated = true;
+                        }
                         break;
                     case Tags.EMAIL_MIME_DATA:
                         // We get MIME data for EAS 2.5.  First we parse it, then we take the
@@ -770,9 +781,13 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
             return state;
         }
 
-        private void bodyParser(Message msg) throws IOException {
+        private void bodyParser(ArrayList<EmailContent.Attachment> atts,
+                Message msg) throws IOException {
             String bodyType = Eas.BODY_PREFERENCE_TEXT;
             String body = "";
+            String length = null;
+            boolean truncated = false;
+
             while (nextTag(Tags.EMAIL_BODY) != END) {
                 switch (tag) {
                     case Tags.BASE_TYPE:
@@ -780,6 +795,18 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                         break;
                     case Tags.BASE_DATA:
                         body = getValue();
+                        break;
+                    case Tags.BASE_TRUNCATED:
+                        String value = getValue();
+                        if (!TextUtils.isEmpty(value)) {
+                            truncated = (value.equals("1")) || (value.toLowerCase().equals("true"));
+                        } else {
+                            LogUtils.w(TAG, "TRUNCATED value is missing, then assumed to be true.");
+                            truncated = true;
+                        }
+                        break;
+                    case Tags.BASE_ESTIMATED_DATA_SIZE:
+                        length = getValue();
                         break;
                     default:
                         skipTag();
@@ -790,6 +817,20 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                 msg.mHtml = body;
             } else {
                 msg.mText = body;
+            }
+
+            // If the content is truncated, we will insert one dummy attachment
+            // as the placeholder which is same as POP3 and IMAP. More details
+            // please refer to the Utilities in the Email.
+            if (truncated) {
+                msg.mFlagLoaded = Message.FLAG_LOADED_PARTIAL_COMPLETE;
+                EmailContent.Attachment att = new EmailContent.Attachment();
+                att.mFileName = "";
+                att.mSize = Long.parseLong(length);
+                att.mMimeType = "text/plain";
+                att.mAccountKey = mAccount.mId;
+                att.mFlags = Attachment.FLAG_DUMMY_ATTACHMENT;
+                atts.add(att);
             }
         }
 
@@ -882,6 +923,9 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                 // contentId rather than contentLocation, when sent from Ex03, Ex07, and Ex10
                 if (isInline && !TextUtils.isEmpty(contentId)) {
                     att.mContentId = contentId;
+                } else {
+                    // This isn't the viewable part, set the local message has attachment.
+                    msg.mFlagAttachment = true;
                 }
                 // Check if this attachment can't be downloaded due to an account policy
                 if (mPolicy != null) {
@@ -892,7 +936,6 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                     }
                 }
                 atts.add(att);
-                msg.mFlagAttachment = true;
             }
         }
 
@@ -1171,11 +1214,18 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                             .withSelection(EmailContent.RECORD_ID + "=?", bindArgument)
                             .withValue(Message.FLAG_LOADED, Message.FLAG_LOADED_COMPLETE)
                             .build());
+                    // apply these ops first.
+                    applyBatch(ops, tryCount);
                 }
             }
 
             for (Message msg: newEmails) {
                 msg.addSaveOps(ops);
+                // apply these ops and get the result.
+                ContentProviderResult[] res = applyBatch(ops, tryCount);
+                // After the message and attachments saved, we need update the message body's
+                // HTML content for the viewable parts.
+                updateBodyForInlineAttachment(ops, res, msg, tryCount);
             }
 
             for (Long id : deletedEmails) {
@@ -1221,6 +1271,62 @@ public class EmailSyncAdapter extends AbstractSyncAdapter {
                 // There is nothing to be done here; fail by returning null
             } catch (OperationApplicationException e) {
                 // There is nothing to be done here; fail by returning null
+            }
+        }
+
+        private ContentProviderResult[] applyBatch(ArrayList<ContentProviderOperation> ops,
+                int tryCount) {
+            ContentProviderResult[] res = null;
+            try {
+                res = mContentResolver.applyBatch(EmailContent.AUTHORITY, ops);
+                ops.clear();
+            } catch (TransactionTooLargeException e) {
+                LogUtils.w(TAG, "Transaction failed on fetched message; retrying...");
+                commitImpl(++tryCount);
+            } catch (RemoteException e) {
+                // There is nothing to be done here; fail by returning null
+            } catch (OperationApplicationException e) {
+                // There is nothing to be done here; fail by returning null
+            }
+
+            return res;
+        }
+
+        private void updateBodyForInlineAttachment(ArrayList<ContentProviderOperation> ops,
+                ContentProviderResult[] res, EmailContent.Message msg, int tryCount) {
+            if (msg == null || msg.mHtml == null || res == null) {
+                // There isn't HTML content, do nothing.
+                return;
+            }
+
+            // Find the message's id.
+            long msgId = -1;
+            try {
+                for (ContentProviderResult result : res) {
+                    if (result.uri.getPath().startsWith(
+                            EmailContent.Message.CONTENT_URI.getPath())) {
+                        msgId = Long.parseLong(result.uri.getLastPathSegment());
+                        break;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                // Meet the format exception.
+                return;
+            } finally {
+                if (msgId < 0) return;
+            }
+
+            // Get the attachments to update the HTML content.
+            String newContent = Message.updateHTMLContentForInlineAtts(mContext, msg.mHtml, msgId);
+            if (newContent != null) {
+                long bodyId = Body.lookupBodyIdWithMessageId(mContext, msgId);
+                ContentValues cv = new ContentValues();
+                cv.put(BodyColumns.HTML_CONTENT, newContent);
+                ops.add(ContentProviderOperation.newUpdate(
+                        ContentUris.withAppendedId(EmailContent.Body.CONTENT_URI, bodyId))
+                        .withValues(cv)
+                        .build());
+                applyBatch(ops, tryCount);
             }
         }
 

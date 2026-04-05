@@ -31,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="1dip"
             android:layout_alignParentTop="true"
-            android:background="#4CFFFFFF" />
+            android:background="@color/photo_container" />
         <View
             android:id="@+id/photo_text_bar"
             android:layout_width="0dip"
@@ -82,7 +82,7 @@
             android:paddingStart="8dip"
             android:singleLine="true"
             android:ellipsize="end"
-            android:textColor="@android:color/white"
+            android:textColor="@color/white_text"
             android:textAppearance="?android:attr/textAppearanceMedium" />
     </RelativeLayout>
 </merge>

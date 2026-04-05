@@ -45,11 +45,19 @@ public class SmsReceiver extends BroadcastReceiver {
     }
 
     protected void onReceiveWithPrivilege(Context context, Intent intent, boolean privileged) {
+        String action = intent.getAction();
         // If 'privileged' is false, it means that the intent was delivered to the base
         // no-permissions receiver class.  If we get an SMS_RECEIVED message that way, it
         // means someone has tried to spoof the message by delivering it outside the normal
         // permission-checked route, so we just ignore it.
-        if (!privileged && intent.getAction().equals(Intents.SMS_DELIVER_ACTION)) {
+        if (!privileged && (Intents.SMS_DELIVER_ACTION.equals(action) ||
+                "android.cellbroadcastreceiver.CB_AREA_INFO_RECEIVED".equals(action))) {
+            return;
+        }
+
+        // same thing applies to the send-queued-messages request: it can be used to send
+        // SMS without having the SEND_SMS permission
+        if (!privileged && intent.getAction().equals(SmsReceiverService.ACTION_SEND_MESSAGE)) {
             return;
         }
 

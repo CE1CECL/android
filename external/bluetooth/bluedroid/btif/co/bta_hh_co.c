@@ -40,7 +40,7 @@ const char *dev_path = "/dev/uhid";
 static int uhid_write(int fd, const struct uhid_event *ev)
 {
     ssize_t ret;
-    ret = write(fd, ev, sizeof(*ev));
+    ret = TEMP_FAILURE_RETRY(write(fd, ev, sizeof(*ev)));
     if (ret < 0){
         int rtn = -errno;
         APPL_TRACE_ERROR2("%s: Cannot write to uhid:%s", __FUNCTION__, strerror(errno));
@@ -65,7 +65,7 @@ static int uhid_event(btif_hh_device_t *p_dev)
         APPL_TRACE_ERROR1("%s: Device not found",__FUNCTION__)
         return -1;
     }
-    ret = read(p_dev->fd, &ev, sizeof(ev));
+    ret = TEMP_FAILURE_RETRY(read(p_dev->fd, &ev, sizeof(ev)));
     if (ret == 0) {
         APPL_TRACE_ERROR2("%s: Read HUP on uhid-cdev %s", __FUNCTION__,
                                                  strerror(errno));
@@ -166,7 +166,7 @@ static void *btif_hh_poll_event_thread(void *arg)
     pfds[0].events = POLLIN;
 
     while(p_dev->hh_keep_polling){
-        ret = poll(pfds, 1, 500);
+        ret = TEMP_FAILURE_RETRY(poll(pfds, 1, 50));
         if (ret < 0) {
             APPL_TRACE_ERROR2("%s: Cannot poll for fds: %s\n", __FUNCTION__, strerror(errno));
             break;
@@ -200,6 +200,7 @@ void bta_hh_co_destroy(int fd)
     memset(&ev, 0, sizeof(ev));
     ev.type = UHID_DESTROY;
     uhid_write(fd, &ev);
+    BTIF_TRACE_DEBUG2("%s: Closing uhid fd = %d", __FUNCTION__, fd);
     close(fd);
 }
 
@@ -254,13 +255,14 @@ void bta_hh_co_open(UINT8 dev_handle, UINT8 sub_class, tBTA_HH_ATTR_MASK attr_ma
                                   __FUNCTION__, p_dev->attr_mask, p_dev->sub_class, p_dev->app_id);
 
             if(p_dev->fd<0) {
-                p_dev->fd = open(dev_path, O_RDWR | O_CLOEXEC);
+                p_dev->fd = TEMP_FAILURE_RETRY(open(dev_path, O_RDWR | O_CLOEXEC));
                 if (p_dev->fd < 0){
                     APPL_TRACE_ERROR2("%s: Error: failed to open uhid, err:%s",
                                                                     __FUNCTION__,strerror(errno));
                 }else
-                    APPL_TRACE_DEBUG2("%s: uhid fd = %d", __FUNCTION__, p_dev->fd);
-            }
+                    APPL_TRACE_DEBUG2("%s: uhid opened fd = %d", __FUNCTION__, p_dev->fd);
+            }else
+                APPL_TRACE_DEBUG2("%s: uhid already opened fd = %d", __FUNCTION__, p_dev->fd);
             p_dev->hh_keep_polling = 1;
             p_dev->hh_poll_thread_id = create_thread(btif_hh_poll_event_thread, p_dev);
             break;
@@ -281,12 +283,12 @@ void bta_hh_co_open(UINT8 dev_handle, UINT8 sub_class, tBTA_HH_ATTR_MASK attr_ma
 
                 btif_hh_cb.device_num++;
                 // This is a new device,open the uhid driver now.
-                p_dev->fd = open(dev_path, O_RDWR | O_CLOEXEC);
+                p_dev->fd = TEMP_FAILURE_RETRY(open(dev_path, O_RDWR | O_CLOEXEC));
                 if (p_dev->fd < 0){
                     APPL_TRACE_ERROR2("%s: Error: failed to open uhid, err:%s",
                                                                     __FUNCTION__,strerror(errno));
                 }else{
-                    APPL_TRACE_DEBUG2("%s: uhid fd = %d", __FUNCTION__, p_dev->fd);
+                    APPL_TRACE_DEBUG2("%s: uhid opened fd = %d", __FUNCTION__, p_dev->fd);
                     p_dev->hh_keep_polling = 1;
                     p_dev->hh_poll_thread_id = create_thread(btif_hh_poll_event_thread, p_dev);
                 }
@@ -421,7 +423,11 @@ void bta_hh_co_send_hid_info(btif_hh_device_t *p_dev, char *dev_name, UINT16 ven
     strncpy((char*)ev.u.create.name, dev_name, sizeof(ev.u.create.name) - 1);
     ev.u.create.rd_size = dscp_len;
     ev.u.create.rd_data = p_dscp;
+#if (BLUETOOTH_HCI_USE_USB == TRUE)
+    ev.u.create.bus = BUS_USB;
+#else
     ev.u.create.bus = BUS_BLUETOOTH;
+#endif
     ev.u.create.vendor = vendor_id;
     ev.u.create.product = product_id;
     ev.u.create.version = version;
@@ -435,6 +441,7 @@ void bta_hh_co_send_hid_info(btif_hh_device_t *p_dev, char *dev_name, UINT16 ven
         APPL_TRACE_WARNING2("%s: Error: failed to send DSCP, result = %d", __FUNCTION__, result);
 
         /* The HID report descriptor is corrupted. Close the driver. */
+        BTIF_TRACE_DEBUG2("%s: Closing uhid fd = %d", __FUNCTION__, p_dev->fd);
         close(p_dev->fd);
         p_dev->fd = -1;
     }

@@ -52,6 +52,13 @@ Visualizer::Visualizer (int32_t priority,
 
 Visualizer::~Visualizer()
 {
+    ALOGV("Visualizer::~Visualizer()");
+    if (mCaptureThread != NULL) {
+        mCaptureThread->requestExitAndWait();
+        mCaptureThread.clear();
+    }
+    mCaptureCallBack = NULL;
+    mCaptureFlags = 0;
 }
 
 status_t Visualizer::setEnabled(bool enabled)
@@ -88,6 +95,14 @@ status_t Visualizer::setEnabled(bool enabled)
     }
 
     return status;
+}
+
+void Visualizer::cancelCaptureCallBack()
+{
+    sp<CaptureThread> t = mCaptureThread;
+    if (t != 0) {
+        t->requestExitAndWait();
+    }
 }
 
 status_t Visualizer::setCaptureCallBack(capture_cbk_t cbk, void* user, uint32_t flags,

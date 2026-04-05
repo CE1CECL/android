@@ -124,13 +124,15 @@ static void genMulLong(CompilationUnit *cUnit, RegLocation rlDest,
 
 static void genLong3Addr(CompilationUnit *cUnit, MIR *mir, OpKind firstOp,
                          OpKind secondOp, RegLocation rlDest,
-                         RegLocation rlSrc1, RegLocation rlSrc2)
+                         RegLocation rlSrc1, RegLocation rlSrc2, bool setCCode)
 {
     RegLocation rlResult;
     rlSrc1 = loadValueWide(cUnit, rlSrc1, kCoreReg);
     rlSrc2 = loadValueWide(cUnit, rlSrc2, kCoreReg);
     rlResult = dvmCompilerEvalLoc(cUnit, rlDest, kCoreReg, true);
+    if(setCCode) SET_CCODE;
     opRegRegReg(cUnit, firstOp, rlResult.lowReg, rlSrc1.lowReg, rlSrc2.lowReg);
+    if(setCCode) UNSET_CCODE;
     opRegRegReg(cUnit, secondOp, rlResult.highReg, rlSrc1.highReg,
                 rlSrc2.highReg);
     storeValueWide(cUnit, rlDest, rlResult);
@@ -257,7 +259,7 @@ static void genMonitorEnter(CompilationUnit *cUnit, MIR *mir)
             LW_LOCK_OWNER_SHIFT - 1);
     hopBranch = newLIR2(cUnit, kThumb2Cbnz, r2, 0);
     newLIR4(cUnit, kThumb2Strex, r2, r3, r1, offsetof(Object, lock) >> 2);
-    dvmCompilerGenMemBarrier(cUnit, kSY);
+    dvmCompilerGenMemBarrier(cUnit, kISH);
     branch = newLIR2(cUnit, kThumb2Cbz, r2, 0);
 
     hopTarget = newLIR0(cUnit, kArmPseudoTargetLabel);
@@ -307,12 +309,20 @@ static void genMonitorExit(CompilationUnit *cUnit, MIR *mir)
     // Is lock unheld on lock or held by us (==threadId) on unlock?
     opRegRegImm(cUnit, kOpAnd, r7, r2,
                 (LW_HASH_STATE_MASK << LW_HASH_STATE_SHIFT));
+#ifdef WITH_QC_PERF
     opRegImm(cUnit, kOpLsl, r3, LW_LOCK_OWNER_SHIFT); // Align owner
+#endif
     newLIR3(cUnit, kThumb2Bfc, r2, LW_HASH_STATE_SHIFT,
             LW_LOCK_OWNER_SHIFT - 1);
+#ifndef WITH_QC_PERF
+    opRegRegRegShift(cUnit, kOpSub, r2, r2, r3, encodeShift(kArmLsl, LW_LOCK_OWNER_SHIFT)); // Align owner
+#else
+    SET_CCODE;
     opRegReg(cUnit, kOpSub, r2, r3);
+    UNSET_CCODE;
+#endif
     hopBranch = opCondBranch(cUnit, kArmCondNe);
-    dvmCompilerGenMemBarrier(cUnit, kSY);
+    dvmCompilerGenMemBarrier(cUnit, kISH);
     storeWordDisp(cUnit, r1, offsetof(Object, lock), r7);
     branch = opNone(cUnit, kOpUncondBr);
 
@@ -352,6 +362,13 @@ static void genMonitor(CompilationUnit *cUnit, MIR *mir)
         genMonitorExit(cUnit, mir);
 }
 
+__attribute__((weak)) bool genCmpLongThumb2(CompilationUnit *cUnit, MIR *mir,
+                                    RegLocation rlDest, RegLocation rlSrc1,
+                                    RegLocation rlSrc2)
+{
+    return false;
+}
+
 /*
  * 64-bit 3way compare function.
  *     mov   r7, #-1
@@ -371,6 +388,9 @@ static void genCmpLong(CompilationUnit *cUnit, MIR *mir,
                        RegLocation rlDest, RegLocation rlSrc1,
                        RegLocation rlSrc2)
 {
+    if(genCmpLongThumb2(cUnit, mir, rlDest, rlSrc1, rlSrc2))
+        return;
+
     RegLocation rlTemp = LOC_C_RETURN; // Just using as template, will change
     ArmLIR *target1;
     ArmLIR *target2;
@@ -381,7 +401,9 @@ static void genCmpLong(CompilationUnit *cUnit, MIR *mir,
     opRegReg(cUnit, kOpCmp, rlSrc1.highReg, rlSrc2.highReg);
     ArmLIR *branch1 = opCondBranch(cUnit, kArmCondLt);
     ArmLIR *branch2 = opCondBranch(cUnit, kArmCondGt);
+    SET_CCODE;
     opRegRegReg(cUnit, kOpSub, rlTemp.lowReg, rlSrc1.lowReg, rlSrc2.lowReg);
+    UNSET_CCODE;
     ArmLIR *branch3 = opCondBranch(cUnit, kArmCondEq);
 
     genIT(cUnit, kArmCondHi, "E");
@@ -460,3 +482,148 @@ static void genMultiplyByShiftAndReverseSubtract(CompilationUnit *cUnit,
     newLIR4(cUnit, kThumb2RsbRRR, rlResult.lowReg, rlSrc.lowReg, rlSrc.lowReg,
             encodeShift(kArmLsl, lit));
 }
+
+#ifndef WITH_QC_PERF
+/*
+ * Generate array load.
+ * For wide array access using scale, combine add with shift.
+ * When using offset, use ldr instruction with offset capabilities.
+ */
+static void genArrayGet(CompilationUnit *cUnit, MIR *mir, OpSize size,
+                        RegLocation rlArray, RegLocation rlIndex,
+                        RegLocation rlDest, int scale)
+{
+    RegisterClass regClass = dvmCompilerRegClassBySize(size);
+    int lenOffset = OFFSETOF_MEMBER(ArrayObject, length);
+    int dataOffset = OFFSETOF_MEMBER(ArrayObject, contents);
+    RegLocation rlResult;
+    rlArray = loadValue(cUnit, rlArray, kCoreReg);
+    rlIndex = loadValue(cUnit, rlIndex, kCoreReg);
+    int regPtr;
+
+    /* null object? */
+    ArmLIR * pcrLabel = NULL;
+
+    if (!(mir->OptimizationFlags & MIR_IGNORE_NULL_CHECK)) {
+        pcrLabel = genNullCheck(cUnit, rlArray.sRegLow,
+                                rlArray.lowReg, mir->offset, NULL);
+    }
+
+    regPtr = dvmCompilerAllocTemp(cUnit);
+
+    if (!(mir->OptimizationFlags & MIR_IGNORE_RANGE_CHECK)) {
+        int regLen = dvmCompilerAllocTemp(cUnit);
+        /* Get len */
+        loadWordDisp(cUnit, rlArray.lowReg, lenOffset, regLen);
+        genBoundsCheck(cUnit, rlIndex.lowReg, regLen, mir->offset,
+                       pcrLabel);
+        dvmCompilerFreeTemp(cUnit, regLen);
+    }
+    if ((size == kLong) || (size == kDouble)) {
+        int rNewIndex = dvmCompilerAllocTemp(cUnit);
+        if (scale) {
+            /* Combine add with shift */
+            opRegRegRegShift(cUnit, kOpAdd, rNewIndex, rlArray.lowReg,
+                             rlIndex.lowReg, encodeShift(kArmLsl, scale));
+        } else {
+            opRegRegReg(cUnit, kOpAdd, rNewIndex, regPtr, rlIndex.lowReg);
+        }
+        rlResult = dvmCompilerEvalLoc(cUnit, rlDest, regClass, true);
+
+        HEAP_ACCESS_SHADOW(true);
+        /* Use data offset */
+        loadPair(cUnit, rNewIndex, dataOffset, rlResult.lowReg, rlResult.highReg);
+        HEAP_ACCESS_SHADOW(false);
+
+        dvmCompilerFreeTemp(cUnit, rNewIndex);
+        dvmCompilerFreeTemp(cUnit, regPtr);
+        storeValueWide(cUnit, rlDest, rlResult);
+    } else {
+        /* regPtr -> array data */
+        opRegRegImm(cUnit, kOpAdd, regPtr, rlArray.lowReg, dataOffset);
+
+        rlResult = dvmCompilerEvalLoc(cUnit, rlDest, regClass, true);
+
+        HEAP_ACCESS_SHADOW(true);
+        loadBaseIndexed(cUnit, regPtr, rlIndex.lowReg, rlResult.lowReg,
+                        scale, size);
+        HEAP_ACCESS_SHADOW(false);
+
+        dvmCompilerFreeTemp(cUnit, regPtr);
+        storeValue(cUnit, rlDest, rlResult);
+    }
+}
+
+/*
+ * Generate array store.
+ * For wide array access using scale, combine add with shift.
+ * When using offset, use str instruction with offset capabilities.
+ */
+static void genArrayPut(CompilationUnit *cUnit, MIR *mir, OpSize size,
+                        RegLocation rlArray, RegLocation rlIndex,
+                        RegLocation rlSrc, int scale)
+{
+    RegisterClass regClass = dvmCompilerRegClassBySize(size);
+    int lenOffset = OFFSETOF_MEMBER(ArrayObject, length);
+    int dataOffset = OFFSETOF_MEMBER(ArrayObject, contents);
+
+    int regPtr;
+    rlArray = loadValue(cUnit, rlArray, kCoreReg);
+    rlIndex = loadValue(cUnit, rlIndex, kCoreReg);
+
+    if (dvmCompilerIsTemp(cUnit, rlArray.lowReg)) {
+        dvmCompilerClobber(cUnit, rlArray.lowReg);
+        regPtr = rlArray.lowReg;
+    } else {
+        regPtr = dvmCompilerAllocTemp(cUnit);
+        genRegCopy(cUnit, regPtr, rlArray.lowReg);
+    }
+
+    /* null object? */
+    ArmLIR * pcrLabel = NULL;
+
+    if (!(mir->OptimizationFlags & MIR_IGNORE_NULL_CHECK)) {
+        pcrLabel = genNullCheck(cUnit, rlArray.sRegLow, rlArray.lowReg,
+                                mir->offset, NULL);
+    }
+
+    if (!(mir->OptimizationFlags & MIR_IGNORE_RANGE_CHECK)) {
+        int regLen = dvmCompilerAllocTemp(cUnit);
+        //NOTE: max live temps(4) here.
+        /* Get len */
+        loadWordDisp(cUnit, rlArray.lowReg, lenOffset, regLen);
+        genBoundsCheck(cUnit, rlIndex.lowReg, regLen, mir->offset,
+                       pcrLabel);
+        dvmCompilerFreeTemp(cUnit, regLen);
+    }
+    /* at this point, regPtr points to array, 2 live temps */
+    if ((size == kLong) || (size == kDouble)) {
+        //TODO: need specific wide routine that can handle fp regs
+        int rNewIndex = dvmCompilerAllocTemp(cUnit);
+        if (scale) {
+            opRegRegRegShift(cUnit, kOpAdd, rNewIndex, rlArray.lowReg,
+                             rlIndex.lowReg, encodeShift(kArmLsl, scale));
+        } else {
+            opRegRegReg(cUnit, kOpAdd, rNewIndex, regPtr, rlIndex.lowReg);
+        }
+        rlSrc = loadValueWide(cUnit, rlSrc, regClass);
+
+        HEAP_ACCESS_SHADOW(true);
+        storePair(cUnit, rNewIndex, dataOffset, rlSrc.lowReg, rlSrc.highReg);
+        HEAP_ACCESS_SHADOW(false);
+
+        dvmCompilerFreeTemp(cUnit, rNewIndex);
+        dvmCompilerFreeTemp(cUnit, regPtr);
+    } else {
+        /* regPtr -> array data */
+        opRegImm(cUnit, kOpAdd, regPtr, dataOffset);
+
+        rlSrc = loadValue(cUnit, rlSrc, regClass);
+
+        HEAP_ACCESS_SHADOW(true);
+        storeBaseIndexed(cUnit, regPtr, rlIndex.lowReg, rlSrc.lowReg,
+                         scale, size);
+        HEAP_ACCESS_SHADOW(false);
+    }
+}
+#endif

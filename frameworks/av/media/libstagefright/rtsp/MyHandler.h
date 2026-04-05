@@ -28,6 +28,7 @@
 #include "ASessionDescription.h"
 
 #include <ctype.h>
+#include <cutils/properties.h>
 
 #include <media/stagefright/foundation/ABuffer.h>
 #include <media/stagefright/foundation/ADebug.h>
@@ -53,6 +54,8 @@ static int64_t kStartupTimeoutUs = 10000000ll;
 static int64_t kDefaultKeepAliveTimeoutUs = 60000000ll;
 
 static int64_t kPauseDelayUs = 3000000ll;
+
+static int64_t kTearDownTimeoutUs = 3000000ll;
 
 namespace android {
 
@@ -99,7 +102,7 @@ struct MyHandler : public AHandler {
     MyHandler(
             const char *url,
             const sp<AMessage> &notify,
-            bool uidValid = false, uid_t uid = 0)
+            bool uidValid = false, uid_t uid = 0, bool tcptransport = false)
         : mNotify(notify),
           mUIDValid(uidValid),
           mUID(uid),
@@ -119,7 +122,7 @@ struct MyHandler : public AHandler {
           mCheckPending(false),
           mCheckGeneration(0),
           mCheckTimeoutGeneration(0),
-          mTryTCPInterleaving(false),
+          mTryTCPInterleaving(tcptransport),
           mTryFakeRTCP(false),
           mReceivedFirstRTCPPacket(false),
           mReceivedFirstRTPPacket(false),
@@ -133,6 +136,14 @@ struct MyHandler : public AHandler {
         mNetLooper->start(false /* runOnCallingThread */,
                           false /* canCallJava */,
                           PRIORITY_HIGHEST);
+
+        char value[PROPERTY_VALUE_MAX] = {0};
+        property_get("rtsp.transport.TCP", value, "0");
+        if (!strcmp(value, "true")) {
+            mTryTCPInterleaving = true;
+        } else if (!strcmp(value, "false")) {
+            mTryTCPInterleaving = false;
+        }
 
         // Strip any authentication info from the session url, we don't
         // want to transmit user/pass in cleartext.
@@ -153,6 +164,7 @@ struct MyHandler : public AHandler {
         }
 
         mSessionHost = host;
+        mAUTimeoutCheck = true;
     }
 
     void connect() {
@@ -212,6 +224,10 @@ struct MyHandler : public AHandler {
 
     bool isSeekable() const {
         return mSeekable;
+    }
+
+    void setAUTimeoutCheck(bool value) {
+        mAUTimeoutCheck = value;
     }
 
     void pause() {
@@ -305,23 +321,33 @@ struct MyHandler : public AHandler {
 
         AString source;
         AString server_port;
-        if (!GetAttribute(transport.c_str(),
-                          "source",
-                          &source)) {
-            ALOGW("Missing 'source' field in Transport response. Using "
-                 "RTSP endpoint address.");
 
-            struct hostent *ent = gethostbyname(mSessionHost.c_str());
-            if (ent == NULL) {
-                ALOGE("Failed to look up address of session host '%s'",
-                     mSessionHost.c_str());
-
-                return false;
+        Vector<uint32_t> s_addrs;
+        if (GetAttribute(transport.c_str(), "source", &source)){
+            ALOGI("found 'source' = %s field in Transport response",
+                source.c_str());
+            uint32_t addr = inet_addr(source.c_str());
+            if (addr == INADDR_NONE || IN_LOOPBACK(ntohl(addr))){
+                ALOGI("no need to poke the hole");
+            } else {
+                s_addrs.push(addr);
             }
+        }
 
-            addr.sin_addr.s_addr = *(in_addr_t *)ent->h_addr;
-        } else {
-            addr.sin_addr.s_addr = inet_addr(source.c_str());
+        struct hostent *ent = gethostbyname(mSessionHost.c_str());
+        if (ent != NULL){
+            ALOGI("get the endpoint address of session host");
+            uint32_t addr = *(in_addr_t *)ent->h_addr;
+            if (addr == INADDR_NONE || IN_LOOPBACK(ntohl(addr))){
+                ALOGI("no need to poke the hole");
+            } else if (s_addrs.size() == 0 || s_addrs[0] != addr){
+                s_addrs.push(addr);
+            }
+        }
+
+        if (s_addrs.size() == 0){
+            ALOGI("Failed to get any session address");
+            return false;
         }
 
         if (!GetAttribute(transport.c_str(),
@@ -349,44 +375,39 @@ struct MyHandler : public AHandler {
                  "in the future.");
         }
 
-        if (addr.sin_addr.s_addr == INADDR_NONE) {
-            return true;
-        }
-
-        if (IN_LOOPBACK(ntohl(addr.sin_addr.s_addr))) {
-            // No firewalls to traverse on the loopback interface.
-            return true;
-        }
-
         // Make up an RR/SDES RTCP packet.
         sp<ABuffer> buf = new ABuffer(65536);
         buf->setRange(0, 0);
         addRR(buf);
         addSDES(rtpSocket, buf);
 
-        addr.sin_port = htons(rtpPort);
+        for (uint32_t i = 0; i < s_addrs.size(); i++){
+            addr.sin_addr.s_addr = s_addrs[i];
 
-        ssize_t n = sendto(
-                rtpSocket, buf->data(), buf->size(), 0,
-                (const sockaddr *)&addr, sizeof(addr));
+            addr.sin_port = htons(rtpPort);
 
-        if (n < (ssize_t)buf->size()) {
-            ALOGE("failed to poke a hole for RTP packets");
-            return false;
+            ssize_t n = sendto(
+                    rtpSocket, buf->data(), buf->size(), 0,
+                    (const sockaddr *)&addr, sizeof(addr));
+
+            if (n < (ssize_t)buf->size()) {
+                ALOGE("failed to poke a hole for RTP packets");
+                continue;
+            }
+
+            addr.sin_port = htons(rtcpPort);
+
+            n = sendto(
+                    rtcpSocket, buf->data(), buf->size(), 0,
+                    (const sockaddr *)&addr, sizeof(addr));
+
+            if (n < (ssize_t)buf->size()) {
+                ALOGE("failed to poke a hole for RTCP packets");
+                continue;
+            }
+
+            ALOGI("successfully poked holes for the address = %u", s_addrs[i]);
         }
-
-        addr.sin_port = htons(rtcpPort);
-
-        n = sendto(
-                rtcpSocket, buf->data(), buf->size(), 0,
-                (const sockaddr *)&addr, sizeof(addr));
-
-        if (n < (ssize_t)buf->size()) {
-            ALOGE("failed to poke a hole for RTCP packets");
-            return false;
-        }
-
-        ALOGV("successfully poked holes.");
 
         return true;
     }
@@ -888,6 +909,15 @@ struct MyHandler : public AHandler {
                 request.append("\r\n");
 
                 mConn->sendRequest(request.c_str(), reply);
+
+                // If the response of teardown hasn't been received in 3 seconds,
+                // post 'tear' message to avoid ANR.
+                if (!msg->findInt32("reconnect", &reconnect) || !reconnect) {
+                    sp<AMessage> teardown = new AMessage('tear', id());
+                    teardown->setInt32("result", -ECONNABORTED);
+                    teardown->post(kTearDownTimeoutUs);
+                }
+
                 break;
             }
 
@@ -939,7 +969,18 @@ struct MyHandler : public AHandler {
                 }
 
                 mNumAccessUnitsReceived = 0;
-                msg->post(kAccessUnitTimeoutUs);
+
+                // The access unit timeout check should happen only during playback and
+                // the posting of AU timeout check should not happen, if pause is not called from
+                // RTSPSource when the stream is nearing EOS
+                if (mAUTimeoutCheck) {
+                    ALOGV("Posting AU timeout check mCheckPending:%d", mCheckPending);
+                    msg->post(kAccessUnitTimeoutUs);
+                } else {
+                    ALOGI("Not Posting AU timeout check mAUTimeoutCheck:%d", mAUTimeoutCheck);
+                    mAUTimeoutCheck = true;
+                    break;
+                }
                 break;
             }
 
@@ -1173,6 +1214,14 @@ struct MyHandler : public AHandler {
                 request.append("\r\n");
 
                 mConn->sendRequest(request.c_str(), reply);
+
+                // After seek, the previous packets are obsolete
+                for (int i = 0; i < mTracks.size(); i++) {
+                    TrackInfo *track = &mTracks.editItemAt(i);
+                    if (!track->mPackets.empty()) {
+                        track->mPackets.clear();
+                    }
+                }
                 break;
             }
 
@@ -1341,6 +1390,10 @@ struct MyHandler : public AHandler {
         }
     }
 
+    int32_t getServerTimeoutMs() {
+        return mKeepAliveTimeoutUs / 1000;
+    }
+
     void postKeepAlive() {
         sp<AMessage> msg = new AMessage('aliv', id());
         msg->setInt32("generation", mKeepAliveGeneration);
@@ -1396,7 +1449,10 @@ struct MyHandler : public AHandler {
         CHECK(GetAttribute(range.c_str(), "npt", &val));
 
         float npt1, npt2;
-        if (!ASessionDescription::parseNTPRange(val.c_str(), &npt1, &npt2)) {
+        int64_t durationUs;
+        if (!ASessionDescription::parseNTPRange(val.c_str(), &npt1, &npt2)
+            && !mSessionDesc->getDurationUs(&durationUs)
+            && (durationUs==0)) {
             // This is a live stream and therefore not seekable.
 
             ALOGI("This is a live stream");
@@ -1420,7 +1476,7 @@ struct MyHandler : public AHandler {
 
             size_t trackIndex = 0;
             while (trackIndex < mTracks.size()
-                    && !(val == mTracks.editItemAt(trackIndex).mURL)) {
+                    && !(mTracks.editItemAt(trackIndex).mURL.endsWith(val.c_str()))) {
                 ++trackIndex;
             }
             CHECK_LT(trackIndex, mTracks.size());
@@ -1531,6 +1587,7 @@ private:
     Vector<TrackInfo> mTracks;
 
     bool mPlayResponseParsed;
+    bool mAUTimeoutCheck;
 
     void setupTrack(size_t index) {
         sp<APacketSource> source =

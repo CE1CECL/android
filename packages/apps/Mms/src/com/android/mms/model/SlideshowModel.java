@@ -23,6 +23,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,6 +53,7 @@ import com.android.mms.LogTag;
 import com.android.mms.MmsConfig;
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.layout.LayoutManager;
+import com.android.mms.ui.UriImage;
 import com.google.android.mms.ContentType;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.GenericPdu;
@@ -65,6 +67,9 @@ import com.android.mms.UnsupportContentTypeException;
 public class SlideshowModel extends Model
         implements List<SlideModel>, IModelChangedObserver {
     private static final String TAG = "Mms/slideshow";
+    // Consider oct-strean as the content type of vCard
+    private static final String OCT_STREAM = "application/oct-stream";
+    private static final String VCARD = "vcf";
 
     private final LayoutModel mLayout;
     private final ArrayList<SlideModel> mSlides;
@@ -73,10 +78,13 @@ public class SlideshowModel extends Model
     private int mCurrentMessageSize;    // This is the current message size, not including
                                         // attachments that can be resized (such as photos)
     private int mTotalMessageSize;      // This is the computed total message size
+    private int mSubjectSize;           // This is subject size
     private Context mContext;
 
-    // amount of space to leave in a slideshow for text and overhead.
+    // amount of space to leave in a slideshow for overhead.
     public static final int SLIDESHOW_SLOP = 1024;
+    private static final int DEFAULT_MEDIA_NUMBER = 1;
+    private static final float MIN_PAT_DURATION = (float)1.0;
 
     private SlideshowModel(Context context) {
         mLayout = new LayoutModel();
@@ -146,6 +154,8 @@ public class SlideshowModel extends Model
         int slidesNum = slideNodes.getLength();
         ArrayList<SlideModel> slides = new ArrayList<SlideModel>(slidesNum);
         int totalMessageSize = 0;
+        boolean isClassCastFailed = false;
+        int index = hasSmilPart(pb) ? 0 : -1;
 
         for (int i = 0; i < slidesNum; i++) {
             // FIXME: This is NOT compatible with the SMILDocument which is
@@ -158,10 +168,18 @@ public class SlideshowModel extends Model
             ArrayList<MediaModel> mediaSet = new ArrayList<MediaModel>(mediaNum);
 
             for (int j = 0; j < mediaNum; j++) {
-                SMILMediaElement sme = (SMILMediaElement) mediaNodes.item(j);
+                SMILMediaElement sme = null;
                 try {
+                    sme = (SMILMediaElement) mediaNodes.item(j);
+                } catch (ClassCastException e) {
+                    isClassCastFailed = true;
+                    Log.e(TAG, e.getMessage());
+                    continue;
+                }
+                try {
+                    index++;
                     MediaModel media = MediaModelFactory.getMediaModel(
-                            context, sme, layouts, pb);
+                            context, sme, layouts, pb, index);
 
                     /*
                     * This is for slide duration value set.
@@ -219,8 +237,32 @@ public class SlideshowModel extends Model
                     Log.e(TAG, e.getMessage(), e);
                 }
             }
+            // Add vcard when receive from other products without ref target in smil.
+            boolean isNeedAddFromPart = ((mediaNum == 0 || isClassCastFailed) && slidesNum == 1);
+            if (isNeedAddFromPart) {
+                int partsNum = pb.getPartsNum();
+                for (int k = 0; k < partsNum; k++) {
+                    PduPart part = pb.getPart(k);
+                    String contentType = (new String(part.getContentType())).toLowerCase();
+                    if (OCT_STREAM.equals(contentType)) {
+                        contentType = getOctStreamContentType(part);
+                    }
 
-            SlideModel slide = new SlideModel((int) (par.getDur() * 1000), mediaSet);
+                    if (ContentType.TEXT_VCARD.toLowerCase().equals(contentType)) {
+                        MediaModel vMedia = new VcardModel(context, ContentType.TEXT_VCARD,
+                                new String(part.getContentLocation()), part.getDataUri());
+                        mediaSet = new ArrayList<MediaModel>(DEFAULT_MEDIA_NUMBER);
+                        mediaSet.add(vMedia);
+                        totalMessageSize += vMedia.getMediaSize();
+                        break;
+                    }
+                }
+            }
+            float duration = par.getDur();
+            if (duration < MIN_PAT_DURATION) {
+                duration = MIN_PAT_DURATION;
+            }
+            SlideModel slide = new SlideModel((int) (duration * 1000), mediaSet);
             slide.setFill(par.getFill());
             SmilHelper.addParElementEventListeners((EventTarget) par, slide);
             slides.add(slide);
@@ -230,6 +272,37 @@ public class SlideshowModel extends Model
         slideshow.mTotalMessageSize = totalMessageSize;
         slideshow.registerModelChangedObserver(slideshow);
         return slideshow;
+    }
+
+    private static String getOctStreamContentType(PduPart part) {
+        byte[] name = part.getName();
+        if (name == null) {
+            name = part.getContentLocation();
+        }
+        if (name != null) {
+            String src = new String(name);
+            int index = src.lastIndexOf('.');
+            if (index > 0) {
+                String extension = src.substring(index + 1, src.length());
+                if (extension.toLowerCase().equals(VCARD)) {
+                    return ContentType.TEXT_VCARD.toLowerCase();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasSmilPart(PduBody body) {
+        // According to the SMIL define, the SMIL doc will be the first part of the pdu.
+        if (body == null || body.getPartsNum() < 1) return false;
+
+        PduPart part = body.getPart(0);
+        if (Arrays.equals(part.getContentType(),
+                        ContentType.APP_SMIL.getBytes())) {
+            // Sure only one SMIL part.
+            return true;
+        }
+        return false;
     }
 
     public PduBody toPduBody() {
@@ -287,9 +360,17 @@ public class SlideshowModel extends Model
 
                 if (media.isText()) {
                     part.setData(((TextModel) media).getText().getBytes());
-                } else if (media.isImage() || media.isVideo() || media.isAudio()) {
+                } else if (media.isImage() || media.isVideo() || media.isAudio()
+                        || media.isVcard()) {
                     part.setDataUri(media.getUri());
+                    if (media.isVcard()
+                            && !TextUtils.isEmpty(((VcardModel) media).getLookupUri())) {
+                        part.setContentDisposition(((VcardModel) media).getLookupUri().getBytes());
+                    }
                 } else {
+                    if (media.getUri() != null) {
+                        part.setDataUri(media.getUri());
+                    }
                     Log.w(TAG, "Unsupport media: " + media);
                 }
 
@@ -364,6 +445,10 @@ public class SlideshowModel extends Model
         mCurrentMessageSize = size;
     }
 
+    public void setTotalMessageSize(int size) {
+        mTotalMessageSize = size;
+    }
+
     // getCurrentMessageSize returns the size of the message, not including resizable attachments
     // such as photos. mCurrentMessageSize is used when adding/deleting/replacing non-resizable
     // attachments (movies, sounds, etc) in order to compute how much size is left in the message.
@@ -380,6 +465,51 @@ public class SlideshowModel extends Model
     // MMS message.
     public int getTotalMessageSize() {
         return mTotalMessageSize;
+    }
+
+    public void setSubjectSize(int size) {
+        mSubjectSize = size;
+    }
+
+    public int getSubjectSize() {
+        return mSubjectSize;
+    }
+
+    public int getRemainMessageSize() {
+        int totalMediaSize = 0;
+        for (SlideModel slide : mSlides) {
+            for (MediaModel media : slide) {
+                totalMediaSize += media.getMediaSize();
+            }
+        }
+        setTotalMessageSize(totalMediaSize);
+        // The totalMediaSize include text size which inputting before.
+        // So we don't calculate text size again.
+        int remainSize = MmsConfig.getMaxMessageSize() - getSMILSize() - totalMediaSize
+                - mSubjectSize;
+        return remainSize < SLIDESHOW_SLOP ? 0 : remainSize - SLIDESHOW_SLOP;
+    }
+
+    /*
+     * Get SMIL size when create and edit MMS. Not used for received MMS.
+     */
+    public int getSMILSize() {
+        // first pdu part is SMIL
+        return toPduBody().getPart(0).getData().length;
+    }
+
+    // getTotalTextMessageSize returns the total text size of the MMS.
+    public int getTotalTextMessageSize() {
+        int textSize = 0;
+        if (mSlides.size() > 0) {
+            for (SlideModel slide : mSlides) {
+                TextModel textMode = slide.getText();
+                if (textMode != null) {
+                    textSize += textMode.getMediaSize();
+                }
+            }
+        }
+        return textSize;
     }
 
     public void increaseMessageSize(int increaseSize) {
@@ -633,8 +763,7 @@ public class SlideshowModel extends Model
             return false;
 
         SlideModel slide = get(0);
-        // The slide must have either an image or video, but not both.
-        if (!(slide.hasImage() ^ slide.hasVideo()))
+        if (!isSlideValid(slide))
             return false;
 
         // No audio allowed.
@@ -642,6 +771,20 @@ public class SlideshowModel extends Model
             return false;
 
         return true;
+    }
+
+    private boolean isSlideValid(SlideModel slide) {
+        // The slide must have either an image or video or vcard, and only one of them.
+        boolean hasImage = slide.hasImage();
+        boolean hasVideo = slide.hasVideo();
+        boolean hasVcard = slide.hasVcard();
+        if ((hasImage && !hasVideo && !hasVcard)
+                || (!hasImage && hasVideo && !hasVcard)
+                || (!hasImage && !hasVideo && hasVcard)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -723,4 +866,19 @@ public class SlideshowModel extends Model
         }
     }
 
+    public void updateTotalMessageSize() {
+        int totalSize = 0;
+        for (SlideModel slide : mSlides) {
+            for (MediaModel media : slide) {
+                totalSize += media.getMediaSize();
+            }
+        }
+        if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+            Log.v(TAG, "updateTotalMessageSize: message size: " + totalSize);
+        }
+        // mTotalMessageSize include resizable attachments, getTotalMessageSize
+        // is called by UI for displaying the size of the MMS message, so set
+        // mTotalMessageSize here rather than mCurrentMessageSize.
+        setTotalMessageSize(totalSize);
+    }
 }

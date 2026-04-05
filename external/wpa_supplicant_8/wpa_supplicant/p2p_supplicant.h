@@ -39,7 +39,8 @@ int wpas_p2p_group_add(struct wpa_supplicant *wpa_s, int persistent_group,
 int wpas_p2p_group_add_persistent(struct wpa_supplicant *wpa_s,
 				  struct wpa_ssid *ssid, int addr_allocated,
 				  int freq, int ht40,
-				  const struct p2p_channels *channels);
+				  const struct p2p_channels *channels,
+				  int connection_timeout);
 struct p2p_group * wpas_p2p_group_init(struct wpa_supplicant *wpa_s,
 				       struct wpa_ssid *ssid);
 void wpas_p2p_wps_success(struct wpa_supplicant *wpa_s, const u8 *peer_addr,
@@ -161,6 +162,7 @@ void wpas_p2p_new_psk_cb(struct wpa_supplicant *wpa_s, const u8 *mac_addr,
 			 const u8 *psk, size_t psk_len);
 void wpas_p2p_remove_client(struct wpa_supplicant *wpa_s, const u8 *peer,
 			    int iface_addr);
+void wpas_p2p_pbc_overlap_cb(void *eloop_ctx, void *timeout_ctx);
 
 #ifdef CONFIG_P2P
 void wpas_p2p_continue_after_scan(struct wpa_supplicant *wpa_s);

@@ -5,7 +5,7 @@
 
     <uses-sdk
         android:minSdkVersion="14"
-        android:targetSdkVersion="17" />
+        android:targetSdkVersion="19" />
 
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -32,6 +32,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.PREVENT_POWER_KEY" />
+    <uses-permission android:name="com.android.gallery3d.permission.STORAGE_CHANGE" />
 
     <supports-screens
         android:anyDensity="true"
@@ -143,6 +145,11 @@
         <receiver android:name="com.android.camera.DisableCameraReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.android.camera.CameraButtonIntentReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.CAMERA_BUTTON"/>
             </intent-filter>
         </receiver>
 

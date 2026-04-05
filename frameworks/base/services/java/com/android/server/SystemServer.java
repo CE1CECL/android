@@ -1,5 +1,8 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
+ * Copyright (c) 2012, 2013, 2014. The Linux Foundation. All rights reserved.
+ * Not a Contribution.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,21 +25,29 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.IPackageManager;
 import android.content.pm.PackageManager;
+import android.content.pm.ThemeUtils;
 import android.content.res.Configuration;
+import android.content.res.ThemeConfig;
+import android.database.ContentObserver;
 import android.media.AudioService;
 import android.net.wifi.p2p.WifiP2pService;
 import android.os.Environment;
+import android.net.INetworkPolicyManager;
+import android.net.INetworkStatsService;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.INetworkManagementService;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.StrictMode;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.service.dreams.DreamService;
 import android.util.DisplayMetrics;
 import android.util.EventLog;
@@ -47,6 +58,7 @@ import android.view.WindowManager;
 import com.android.internal.R;
 import com.android.internal.os.BinderInternal;
 import com.android.internal.os.SamplingProfilerIntegration;
+import com.android.internal.util.MemInfoReader;
 import com.android.server.accessibility.AccessibilityManagerService;
 import com.android.server.accounts.AccountManagerService;
 import com.android.server.am.ActivityManagerService;
@@ -54,11 +66,13 @@ import com.android.server.am.BatteryStatsService;
 import com.android.server.content.ContentService;
 import com.android.server.display.DisplayManagerService;
 import com.android.server.dreams.DreamManagerService;
+import com.android.server.gesture.GestureService;
 import com.android.server.input.InputManagerService;
 import com.android.server.media.MediaRouterService;
 import com.android.server.net.NetworkPolicyManagerService;
 import com.android.server.net.NetworkStatsService;
 import com.android.server.os.SchedulingPolicyService;
+import com.android.server.gesture.EdgeGestureService;
 import com.android.server.pm.Installer;
 import com.android.server.pm.PackageManagerService;
 import com.android.server.pm.UserManagerService;
@@ -77,6 +91,9 @@ import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import dalvik.system.PathClassLoader;
+import java.lang.reflect.Constructor;
+
 class ServerThread {
     private static final String TAG = "SystemServer";
     private static final String ENCRYPTING_STATE = "trigger_restart_min_framework";
@@ -87,6 +104,19 @@ class ServerThread {
     void reportWtf(String msg, Throwable e) {
         Slog.w(TAG, "***********************************************");
         Log.wtf(TAG, "BOOT FAILURE " + msg, e);
+    }
+
+    private class AdbPortObserver extends ContentObserver {
+        public AdbPortObserver() {
+            super(null);
+        }
+        @Override
+        public void onChange(boolean selfChange) {
+            int adbPort = Settings.Secure.getInt(mContentResolver,
+                Settings.Secure.ADB_PORT, 0);
+            // setting this will control whether ADB runs on TCP/IP or USB
+            SystemProperties.set("service.adb.tcp.port", Integer.toString(adbPort));
+        }
     }
 
     public void initAndLoop() {
@@ -138,6 +168,7 @@ class ServerThread {
         NetworkStatsService networkStats = null;
         NetworkPolicyManagerService networkPolicy = null;
         ConnectivityService connectivity = null;
+        Object qcCon = null;
         WifiP2pService wifiP2p = null;
         WifiService wifi = null;
         NsdService serviceDiscovery= null;
@@ -146,6 +177,7 @@ class ServerThread {
         WindowManagerService wm = null;
         BluetoothManagerService bluetooth = null;
         DockObserver dock = null;
+        RotationSwitchObserver rotateSwitch = null;
         UsbService usb = null;
         SerialService serial = null;
         TwilightService twilight = null;
@@ -155,6 +187,7 @@ class ServerThread {
         CommonTimeManagementService commonTimeMgmtService = null;
         InputManagerService inputManager = null;
         TelephonyRegistry telephonyRegistry = null;
+        MSimTelephonyRegistry msimTelephonyRegistry = null;
         ConsumerIrService consumerIr = null;
 
         // Create a handler thread just for the window manager to enjoy.
@@ -193,7 +226,7 @@ class ServerThread {
             ServiceManager.addService(Context.POWER_SERVICE, power);
 
             Slog.i(TAG, "Activity Manager");
-            context = ActivityManagerService.main(factoryTest);
+            context = ActivityManagerService.main(factoryTest, power);
         } catch (RuntimeException e) {
             Slog.e("System", "******************************************");
             Slog.e("System", "************ Failure starting bootstrap service", e);
@@ -216,6 +249,12 @@ class ServerThread {
             Slog.i(TAG, "Telephony Registry");
             telephonyRegistry = new TelephonyRegistry(context);
             ServiceManager.addService("telephony.registry", telephonyRegistry);
+
+            if (android.telephony.MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+                Slog.i(TAG, "MSimTelephony Registry");
+                msimTelephonyRegistry = new MSimTelephonyRegistry(context);
+                ServiceManager.addService("telephony.msim.registry", msimTelephonyRegistry);
+            }
 
             Slog.i(TAG, "Scheduling Policy");
             ServiceManager.addService("scheduling_policy", new SchedulingPolicyService());
@@ -344,10 +383,14 @@ class ServerThread {
             Slog.e("System", "************ Failure starting core service", e);
         }
 
+        boolean hasRotationLock = context.getResources().getBoolean(com.android
+                .internal.R.bool.config_hasRotationLockSwitch);
+
         DevicePolicyManagerService devicePolicy = null;
         StatusBarManagerService statusBar = null;
         InputMethodManagerService imm = null;
         AppWidgetService appWidget = null;
+        ProfileManagerService profile = null;
         NotificationManagerService notification = null;
         WallpaperManagerService wallpaper = null;
         LocationManagerService location = null;
@@ -357,7 +400,11 @@ class ServerThread {
         DreamManagerService dreamy = null;
         AssetAtlasService atlas = null;
         PrintManagerService printManager = null;
+        GestureService gestureService = null;
         MediaRouterService mediaRouter = null;
+        ThemeService themeService = null;
+        EdgeGestureService edgeGestureService = null;
+        KillSwitchService killSwitchService = null;
 
         // Bring up services needed for UI.
         if (factoryTest != SystemServer.FACTORY_TEST_LOW_LEVEL) {
@@ -455,6 +502,15 @@ class ServerThread {
                 }
             }
 
+            if (!disableNonCoreServices) {
+                try {
+                    Slog.i(TAG, "TorchService");
+                    ServiceManager.addService(Context.TORCH_SERVICE, new TorchService(context));
+                } catch (Throwable e) {
+                    reportWtf("starting Torch Service", e);
+                }
+            }
+
             if (!disableNetwork) {
                 try {
                     Slog.i(TAG, "NetworkManagement Service");
@@ -510,19 +566,48 @@ class ServerThread {
                     reportWtf("starting Wi-Fi Service", e);
                 }
 
-                try {
-                    Slog.i(TAG, "Connectivity Service");
-                    connectivity = new ConnectivityService(
-                            context, networkManagement, networkStats, networkPolicy);
-                    ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity);
-                    networkStats.bindConnectivityManager(connectivity);
-                    networkPolicy.bindConnectivityManager(connectivity);
+               try {
+                   int enableCne = 1;
+                   if (!deviceHasSufficientMemory()) {
+                       enableCne = SystemProperties.getInt("persist.cne.override.memlimit", 0);
+                   }
+                   int cneFeature = (enableCne == 1) ?
+                       SystemProperties.getInt("persist.cne.feature", 0) : 0;
 
-                    wifiP2p.connectivityServiceReady();
-                    wifi.checkAndStartWifi();
-                } catch (Throwable e) {
-                    reportWtf("starting Connectivity Service", e);
-                }
+                   try {
+                       if ( cneFeature > 0 && cneFeature < 10 ) {
+                           Slog.i(TAG, "QcConnectivity Service");
+                           PathClassLoader qcsClassLoader =
+                               new PathClassLoader("/system/framework/services-ext.jar",
+                                       ClassLoader.getSystemClassLoader());
+                           Class qcsClass =
+                               qcsClassLoader.loadClass("com.android.server.QcConnectivityService");
+                           Constructor qcsConstructor = qcsClass.getConstructor
+                               (new Class[] {Context.class, INetworkManagementService.class,
+                                INetworkStatsService.class, INetworkPolicyManager.class});
+                           qcCon = qcsConstructor.newInstance(
+                                   context, networkManagement, networkStats, networkPolicy);
+                           connectivity = (ConnectivityService) qcCon;
+                       } else {
+                           Slog.i(TAG, "Connectivity Service");
+                           connectivity = new ConnectivityService( context, networkManagement,
+                                   networkStats, networkPolicy);
+                       }
+                   } catch (Throwable e) {
+                       connectivity = new ConnectivityService( context, networkManagement,
+                               networkStats, networkPolicy);
+                   }
+
+                   if (connectivity != null) {
+                       ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity);
+                       networkStats.bindConnectivityManager(connectivity);
+                       networkPolicy.bindConnectivityManager(connectivity);
+                       wifi.checkAndStartWifi();
+                       wifiP2p.connectivityServiceReady();
+                   }
+               } catch (Throwable e) {
+                   reportWtf("starting Connectivity Service", e);
+               }
 
                 try {
                     Slog.i(TAG, "Network Service Discovery Service");
@@ -565,6 +650,14 @@ class ServerThread {
                     contentService.systemReady();
             } catch (Throwable e) {
                 reportWtf("making Content Service ready", e);
+            }
+
+            try {
+                Slog.i(TAG, "Profile Manager");
+                profile = new ProfileManagerService(context);
+                ServiceManager.addService(Context.PROFILE_SERVICE, profile);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting Profile Manager", e);
             }
 
             try {
@@ -661,6 +754,16 @@ class ServerThread {
                 } catch (Throwable e) {
                     reportWtf("starting WiredAccessoryManager", e);
                 }
+            }
+
+            try {
+                if (hasRotationLock) {
+                    Slog.i(TAG, "Rotation Switch Observer");
+                    // Listen for switch changes
+                    rotateSwitch = new RotationSwitchObserver(context);
+                }
+            } catch (Throwable e) {
+                reportWtf("starting RotationSwitchObserver", e);
             }
 
             if (!disableNonCoreServices) {
@@ -770,7 +873,7 @@ class ServerThread {
                 }
             }
 
-            if (!disableNonCoreServices && 
+            if (!disableNonCoreServices &&
                 context.getResources().getBoolean(R.bool.config_dreamsSupported)) {
                 try {
                     Slog.i(TAG, "Dreams Service");
@@ -792,6 +895,17 @@ class ServerThread {
                 }
             }
 
+            if (context.getResources().getBoolean(
+                    com.android.internal.R.bool.config_enableGestureService)) {
+                try {
+                    Slog.i(TAG, "Gesture Sensor Service");
+                    gestureService = new GestureService(context, inputManager);
+                    ServiceManager.addService("gesture", gestureService);
+                } catch (Throwable e) {
+                    Slog.e(TAG, "Failure starting Gesture Sensor Service", e);
+                }
+            }
+
             try {
                 Slog.i(TAG, "IdleMaintenanceService");
                 new IdleMaintenanceService(context, battery);
@@ -807,6 +921,22 @@ class ServerThread {
                 reportWtf("starting Print Service", e);
             }
 
+            try {
+                Slog.i(TAG, "Theme Service");
+                themeService = new ThemeService(context);
+                ServiceManager.addService(Context.THEME_SERVICE, themeService);
+            } catch (Throwable e) {
+                reportWtf("starting Theme Service", e);
+            }
+
+            try {
+                Slog.i(TAG, "KillSwitch Service");
+                killSwitchService = new KillSwitchService(context);
+                ServiceManager.addService(Context.KILLSWITCH_SERVICE, killSwitchService);
+            } catch (Throwable e) {
+                reportWtf("starting KillSwitch Service", e);
+            }
+
             if (!disableNonCoreServices) {
                 try {
                     Slog.i(TAG, "Media Router Service");
@@ -816,7 +946,25 @@ class ServerThread {
                     reportWtf("starting MediaRouterService", e);
                 }
             }
+
+
+            try {
+                Slog.i(TAG, "EdgeGesture service");
+                edgeGestureService = new EdgeGestureService(context, inputManager);
+                ServiceManager.addService("edgegestureservice", edgeGestureService);
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting EdgeGesture service", e);
+            }
         }
+
+        // make sure the ADB_ENABLED setting value matches the secure property value
+        Settings.Secure.putInt(mContentResolver, Settings.Secure.ADB_PORT,
+                Integer.parseInt(SystemProperties.get("service.adb.tcp.port", "-1")));
+
+        // register observer to listen for settings changes
+        mContentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(Settings.Secure.ADB_PORT),
+            false, new AdbPortObserver());
 
         // Before things start rolling, be sure we have decided whether
         // we are in safe mode.
@@ -831,6 +979,11 @@ class ServerThread {
             // Enable the JIT for the system_server process
             VMRuntime.getRuntime().startJitCompilation();
         }
+
+        if (accountManager != null) {
+            accountManager.setSafeMode(safeMode);
+        }
+
 
         // It is now time to start up the app processes...
 
@@ -901,6 +1054,32 @@ class ServerThread {
             reportWtf("making Display Manager Service ready", e);
         }
 
+        if (gestureService != null) {
+            try {
+                gestureService.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making Gesture Sensor Service ready", e);
+            }
+        }
+
+        if (edgeGestureService != null) {
+            try {
+                edgeGestureService.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making EdgeGesture service ready", e);
+            }
+        }
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE);
+        filter.addAction(Intent.ACTION_APP_LAUNCH_FAILURE_RESET);
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addAction(ThemeUtils.ACTION_THEME_CHANGED);
+        filter.addCategory(Intent.CATEGORY_THEME_PACKAGE_INSTALLED_STATE_CHANGE);
+        filter.addDataScheme("package");
+        context.registerReceiver(new AppsLaunchFailureReceiver(), filter);
+
         // These are needed to propagate to the runnable below.
         final Context contextF = context;
         final MountService mountServiceF = mountService;
@@ -910,6 +1089,7 @@ class ServerThread {
         final NetworkPolicyManagerService networkPolicyF = networkPolicy;
         final ConnectivityService connectivityF = connectivity;
         final DockObserver dockF = dock;
+        final RotationSwitchObserver rotateSwitchF = rotateSwitch;
         final UsbService usbF = usb;
         final TwilightService twilightF = twilight;
         final UiModeManagerService uiModeF = uiMode;
@@ -927,8 +1107,11 @@ class ServerThread {
         final AssetAtlasService atlasF = atlas;
         final InputManagerService inputManagerF = inputManager;
         final TelephonyRegistry telephonyRegistryF = telephonyRegistry;
+        final MSimTelephonyRegistry msimTelephonyRegistryF = msimTelephonyRegistry;
         final PrintManagerService printManagerF = printManager;
         final MediaRouterService mediaRouterF = mediaRouter;
+        final IPackageManager pmf = pm;
+        final ThemeService themeServiceF = themeService;
 
         // We now tell the activity manager it is okay to run third party
         // code.  It will call back into us once it has gotten to the state
@@ -981,6 +1164,11 @@ class ServerThread {
                     if (dockF != null) dockF.systemReady();
                 } catch (Throwable e) {
                     reportWtf("making Dock Service ready", e);
+                }
+                try {
+                    if (rotateSwitchF != null) rotateSwitchF.systemReady();
+                } catch (Throwable e) {
+                    reportWtf("making Rotation Switch Service ready", e);
                 }
                 try {
                     if (usbF != null) usbF.systemReady();
@@ -1072,6 +1260,12 @@ class ServerThread {
                 }
 
                 try {
+                    if (msimTelephonyRegistryF != null) msimTelephonyRegistryF.systemRunning();
+                } catch (Throwable e) {
+                    reportWtf("Notifying TelephonyRegistry running", e);
+                }
+
+                try {
                     if (printManagerF != null) printManagerF.systemRuning();
                 } catch (Throwable e) {
                     reportWtf("Notifying PrintManagerService running", e);
@@ -1082,6 +1276,18 @@ class ServerThread {
                 } catch (Throwable e) {
                     reportWtf("Notifying MediaRouterService running", e);
                 }
+
+                try {
+                    // now that the system is up, apply default theme if applicable
+                    if (themeServiceF != null) themeServiceF.systemRunning();
+                    ThemeConfig themeConfig =
+                            ThemeConfig.getBootTheme(contextF.getContentResolver());
+                    String iconPkg = themeConfig.getIconPackPkgName();
+                    pmf.updateIconMapping(iconPkg);
+                } catch (Throwable e) {
+                    reportWtf("Icon Mapping failed", e);
+                }
+
             }
         });
 
@@ -1100,6 +1306,17 @@ class ServerThread {
                     "com.android.systemui.SystemUIService"));
         //Slog.d(TAG, "Starting service: " + intent);
         context.startServiceAsUser(intent, UserHandle.OWNER);
+    }
+
+    private static final boolean deviceHasSufficientMemory() {
+        final long MEMORY_SIZE_MIN = 512 * 1024 * 1024;
+
+        MemInfoReader minfo = new MemInfoReader();
+        minfo.readMemInfo();
+        if (minfo.getTotalSize() <= MEMORY_SIZE_MIN) {
+            return false;
+        }
+        return true;
     }
 }
 

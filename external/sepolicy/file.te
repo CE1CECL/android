@@ -12,6 +12,7 @@ type sysfs, fs_type, mlstrustedobject;
 type sysfs_writable, fs_type, sysfs_type, mlstrustedobject;
 type sysfs_bluetooth_writable, fs_type, sysfs_type, mlstrustedobject;
 type sysfs_nfc_power_writable, fs_type, sysfs_type, mlstrustedobject;
+type sysfs_wake_lock, fs_type, sysfs_type;
 type inotify, fs_type, mlstrustedobject;
 type devpts, fs_type, mlstrustedobject;
 type tmpfs, fs_type;
@@ -47,6 +48,7 @@ type shell_data_file, file_type, data_file_type;
 type gps_data_file, file_type, data_file_type;
 # /data/misc subdirectories
 type bluetoothd_data_file, file_type, data_file_type;
+type audio_data_file, file_type, data_file_type;
 type bluetooth_data_file, file_type, data_file_type;
 type keystore_data_file, file_type, data_file_type;
 type vpn_data_file, file_type, data_file_type;
@@ -54,10 +56,16 @@ type systemkeys_data_file, file_type, data_file_type;
 type wifi_data_file, file_type, data_file_type;
 type radio_data_file, file_type, data_file_type;
 type nfc_data_file, file_type, data_file_type;
-type camera_calibration_file, file_type, data_file_type;
+type camera_data_file, file_type, data_file_type;
+type adb_keys_file, file_type, data_file_type;
+# Compatibility with type names used in vanilla Android 4.3 and 4.4.
+typealias audio_data_file alias audio_firmware_file;
+typealias camera_data_file alias camera_calibration_file;
 # /data/data subdirectories - app sandboxes
 type app_data_file, file_type, data_file_type;
-type platform_app_data_file, file_type, data_file_type, mlstrustedobject;
+# Compatibility with type name used in Android 4.3 and 4.4.
+typealias app_data_file alias platform_app_data_file;
+typealias app_data_file alias download_file;
 # Default type for anything under /cache
 type cache_file, file_type, mlstrustedobject;
 # Type for /cache/.*\.{data|restore} and default
@@ -69,6 +77,8 @@ type efs_file, file_type;
 type wallpaper_file, file_type, mlstrustedobject;
 # /mnt/asec
 type asec_apk_file, file_type, data_file_type;
+# Elements of asec files (/mnt/asec) that are world readable
+type asec_public_file, file_type, data_file_type;
 # /data/app-asec
 type asec_image_file, file_type, data_file_type;
 # /data/backup and /data/secure/backup
@@ -79,10 +89,8 @@ type security_file, file_type;
 # vary per device, so this type is used in per
 # device policy
 type bluetooth_efs_file, file_type;
-# Downloaded files
-type download_file, file_type;
 # /sys/devices/system/cpu
-type sysfs_devices_system_cpu, file_type;
+type sysfs_devices_system_cpu, file_type, sysfs_type;
 
 # Socket types
 type adbd_socket, file_type;

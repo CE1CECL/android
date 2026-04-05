@@ -102,6 +102,7 @@ public class ChooseLockPattern extends PreferenceActivity {
         private static final int WRONG_PATTERN_CLEAR_TIMEOUT_MS = 2000;
 
         private static final int ID_EMPTY_MESSAGE = -1;
+        private static final String KEY_PATTERN_SIZE = "pattern_size";
 
         protected TextView mHeaderText;
         protected LockPatternView mLockPatternView;
@@ -110,16 +111,12 @@ public class ChooseLockPattern extends PreferenceActivity {
         private TextView mFooterRightButton;
         protected List<LockPatternView.Cell> mChosenPattern = null;
 
+        private byte mPatternSize = LockPatternUtils.PATTERN_SIZE_DEFAULT;
+
         /**
          * The patten used during the help screen to show how to draw a pattern.
          */
-        private final List<LockPatternView.Cell> mAnimatePattern =
-                Collections.unmodifiableList(Lists.newArrayList(
-                        LockPatternView.Cell.of(0, 0),
-                        LockPatternView.Cell.of(0, 1),
-                        LockPatternView.Cell.of(1, 1),
-                        LockPatternView.Cell.of(2, 1)
-                ));
+        private List<LockPatternView.Cell> mAnimatePattern;
 
         @Override
         public void onActivityResult(int requestCode, int resultCode,
@@ -324,6 +321,22 @@ public class ChooseLockPattern extends PreferenceActivity {
             mLockPatternView.setOnPatternListener(mChooseNewLockPatternListener);
             mLockPatternView.setTactileFeedbackEnabled(
                     mChooseLockSettingsHelper.utils().isTactileFeedbackEnabled());
+            mLockPatternView.setLockPatternUtils(mChooseLockSettingsHelper.utils());
+
+            if ( savedInstanceState == null ) {
+                mPatternSize = getActivity().getIntent().getByteExtra(KEY_PATTERN_SIZE,
+                        LockPatternUtils.PATTERN_SIZE_DEFAULT);
+            } else {
+                mPatternSize = savedInstanceState.getByte(KEY_PATTERN_SIZE);
+            }
+            mLockPatternView.setLockPatternSize(mPatternSize);
+            LockPatternView.Cell.updateSize(mPatternSize);
+            mAnimatePattern = Collections.unmodifiableList(Lists.newArrayList(
+                    LockPatternView.Cell.of(0, 0, mPatternSize),
+                    LockPatternView.Cell.of(0, 1, mPatternSize),
+                    LockPatternView.Cell.of(1, 1, mPatternSize),
+                    LockPatternView.Cell.of(2, 1, mPatternSize)
+                    ));
 
             mFooterText = (TextView) view.findViewById(R.id.footerText);
 
@@ -361,7 +374,8 @@ public class ChooseLockPattern extends PreferenceActivity {
                 // restore from previous state
                 final String patternString = savedInstanceState.getString(KEY_PATTERN_CHOICE);
                 if (patternString != null) {
-                    mChosenPattern = LockPatternUtils.stringToPattern(patternString);
+                    LockPatternUtils utils = mChooseLockSettingsHelper.utils();
+                    mChosenPattern = utils.stringToPattern(patternString, mPatternSize);
                 }
                 updateStage(Stage.values()[savedInstanceState.getInt(KEY_UI_STAGE)]);
             }
@@ -426,9 +440,12 @@ public class ChooseLockPattern extends PreferenceActivity {
             super.onSaveInstanceState(outState);
 
             outState.putInt(KEY_UI_STAGE, mUiStage.ordinal());
+            outState.putByte(KEY_PATTERN_SIZE, mPatternSize);
             if (mChosenPattern != null) {
+                LockPatternUtils utils = mChooseLockSettingsHelper.utils();
                 outState.putString(KEY_PATTERN_CHOICE,
-                        LockPatternUtils.patternToString(mChosenPattern));
+                        utils.patternToString(
+                                mChosenPattern, ((byte)mLockPatternView.getLockPatternSize())));
             }
         }
 
@@ -526,6 +543,7 @@ public class ChooseLockPattern extends PreferenceActivity {
 
             final boolean isFallback = getActivity().getIntent()
                 .getBooleanExtra(LockPatternUtils.LOCKSCREEN_BIOMETRIC_WEAK_FALLBACK, false);
+            utils.setLockPatternSize(mPatternSize);
             utils.saveLockPattern(mChosenPattern, isFallback);
             utils.setLockPatternEnabled(true);
 

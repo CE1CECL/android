@@ -14,6 +14,7 @@
 
 package com.android.dialer.calllog;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -22,14 +23,21 @@ import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.DisplayNameSources;
 import android.provider.ContactsContract.PhoneLookup;
+import android.provider.Settings;
+import android.provider.Telephony;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import com.android.contacts.common.util.Constants;
 import com.android.contacts.common.util.UriUtils;
+import com.android.dialer.R;
+import com.android.dialer.lookup.LookupCache;
 import com.android.dialer.service.CachedNumberLookupService;
 import com.android.dialer.service.CachedNumberLookupService.CachedContactInfo;
 import com.android.dialerbind.ObjectFactory;
+import com.android.i18n.phonenumbers.PhoneNumberUtil;
+import com.android.internal.telephony.util.BlacklistUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -225,6 +233,8 @@ public class ContactInfoHelper {
         ContactInfo info = lookupContactFromUri(uri);
         if (info != null && info != ContactInfo.EMPTY) {
             info.formattedNumber = formatPhoneNumber(number, null, countryIso);
+        } else if (LookupCache.hasCachedContact(mContext, number)) {
+            info = LookupCache.getCachedContact(mContext, number);
         } else if (mCachedNumberLookupService != null) {
             CachedContactInfo cacheInfo =
                     mCachedNumberLookupService.lookupCachedContactFromNumber(mContext, number);
@@ -255,6 +265,45 @@ public class ContactInfoHelper {
             countryIso = mCurrentCountryIso;
         }
         return PhoneNumberUtils.formatNumber(number, normalizedNumber, countryIso);
+    }
+
+    /**
+     * Checks whether calls can be blacklisted; that is, whether the
+     * phone blacklist is enabled
+     */
+    public boolean canBlacklistCalls() {
+        return Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.PHONE_BLACKLIST_ENABLED, 1) != 0;
+    }
+
+    /**
+     * Requests the given number to be added to the phone blacklist
+     *
+     * @param number the number to be blacklisted
+     */
+    public void addNumberToBlacklist(String number) {
+        number = PhoneNumberUtil.getInstance().stripExtension(number);
+        if (BlacklistUtils.addOrUpdate(mContext, number,
+                BlacklistUtils.BLOCK_CALLS, BlacklistUtils.BLOCK_CALLS)) {
+            // Give the user some feedback
+            String message = mContext.getString(R.string.toast_added_to_blacklist, number);
+            Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Requests the given number to be added to the phone blacklist
+     *
+     * @param number the number to be blacklisted
+     */
+    public void removeNumberFromBlacklist(String number) {
+        number = PhoneNumberUtil.getInstance().stripExtension(number);
+        if (BlacklistUtils.addOrUpdate(mContext, number,
+                BlacklistUtils.MATCH_NONE, BlacklistUtils.BLOCK_CALLS)) {
+            // Give the user some feedback
+            String message = mContext.getString(R.string.toast_deleted_from_blacklist, number);
+            Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**

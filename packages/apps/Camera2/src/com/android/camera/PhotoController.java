@@ -23,7 +23,7 @@ import com.android.camera.ShutterButton.OnShutterButtonListener;
 
 
 public interface PhotoController extends OnShutterButtonListener {
-
+    public static final int INIT = -1;
     public static final int PREVIEW_STOPPED = 0;
     public static final int IDLE = 1;  // preview is active
     // Focus is in progress. The exact focus state is in Focus.java.
@@ -31,6 +31,8 @@ public interface PhotoController extends OnShutterButtonListener {
     public static final int SNAPSHOT_IN_PROGRESS = 3;
     // Switching between cameras.
     public static final int SWITCHING_CAMERA = 4;
+    // Longshot mode
+    public static final int LONGSHOT = 5;
 
     // returns the actual set zoom value
     public int onZoomChanged(int requestedZoom);
@@ -54,6 +56,8 @@ public interface PhotoController extends OnShutterButtonListener {
     public void onSingleTapUp(View view, int x, int y);
 
     public void onCountDownFinished();
+
+    public void onScreenSizeChanged(int width, int height);
 
     public void onPreviewRectChanged(Rect previewRect);
 

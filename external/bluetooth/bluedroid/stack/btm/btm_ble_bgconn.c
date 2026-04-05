@@ -80,26 +80,26 @@ BOOLEAN btm_add_dev_to_controller (BOOLEAN to_add, BD_ADDR bd_addr, UINT8 attr)
 
         if (to_add)
         {
-            if (p_dev_rec->ble.ble_addr_type == BLE_ADDR_PUBLIC || !BTM_BLE_IS_RESOLVE_BDA(bd_addr))
-            {
-                started = btsnd_hcic_ble_add_white_list (p_dev_rec->ble.ble_addr_type, bd_addr);
-            }
             if (memcmp(p_dev_rec->ble.static_addr, bd_addr, BD_ADDR_LEN) != 0 &&
                 memcmp(p_dev_rec->ble.static_addr, dummy_bda, BD_ADDR_LEN) != 0)
             {
                  started = btsnd_hcic_ble_add_white_list (p_dev_rec->ble.static_addr_type, p_dev_rec->ble.static_addr);
             }
+            else
+            {
+                started = btsnd_hcic_ble_add_white_list (p_dev_rec->ble.ble_addr_type, bd_addr);
+            }
         }
         else
         {
-            if (!BTM_BLE_IS_RESOLVE_BDA(bd_addr))
-            {
-                    started = btsnd_hcic_ble_remove_from_white_list (p_dev_rec->ble.ble_addr_type, bd_addr);
-            }
             if (memcmp(p_dev_rec->ble.static_addr, dummy_bda, BD_ADDR_LEN) != 0 &&
                 memcmp(p_dev_rec->ble.static_addr, bd_addr, BD_ADDR_LEN) != 0)
             {
                     started = btsnd_hcic_ble_remove_from_white_list (p_dev_rec->ble.static_addr_type, p_dev_rec->ble.static_addr);
+            }
+            else
+            {
+                    started = btsnd_hcic_ble_remove_from_white_list (p_dev_rec->ble.ble_addr_type, bd_addr);
             }
         }
     }    /* if not a known device, shall we add it? */
@@ -196,12 +196,12 @@ BOOLEAN btm_update_dev_to_white_list(BOOLEAN to_add, BD_ADDR bd_addr, UINT8 attr
         return started;
     }
 
-    btm_suspend_wl_activity(wl_state);
+    btm_suspend_wl_activity(attr);
 
     /* enq pending WL device operation */
     btm_enq_wl_dev_operation(to_add, bd_addr, attr);
 
-    btm_resume_wl_activity(wl_state);
+    btm_resume_wl_activity(attr);
 
     return started;
 }
@@ -215,6 +215,7 @@ void btm_ble_clear_white_list (void)
 {
     BTM_TRACE_EVENT0 ("btm_ble_clear_white_list");
     btsnd_hcic_ble_clear_white_list();
+    memset(&btm_cb.ble_ctr_cb.bg_dev_list, 0, (sizeof(tBTM_LE_BG_CONN_DEV)*BTM_BLE_MAX_BG_CONN_DEV_NUM));
 }
 
 /*******************************************************************************
@@ -314,6 +315,7 @@ BOOLEAN btm_update_bg_conn_list(BOOLEAN to_add, BD_ADDR bd_addr, UINT8 *p_attr_t
         {
             if (!to_add)
             {
+                BTM_TRACE_DEBUG0 ("remove dev entry from bg_dev_list");
                 memset(p_bg_dev, 0, sizeof(tBTM_LE_BG_CONN_DEV));
                 p_cb->bg_dev_num --;
                 p_cur = p_bg_dev;
@@ -362,10 +364,12 @@ BOOLEAN btm_ble_start_auto_conn(BOOLEAN start)
 
     if (start)
     {
+        if ( p_cb->conn_state == BLE_CONN_IDLE )
+        {
+            exec = btm_execute_wl_dev_operation();
+        }
         if (p_cb->conn_state == BLE_CONN_IDLE && btm_ble_count_unconn_dev_in_whitelist() > 0)
         {
-            btm_execute_wl_dev_operation();
-
             scan_int = (p_cb->scan_int == BTM_BLE_CONN_PARAM_UNDEF) ? BTM_BLE_SCAN_SLOW_INT_1 : p_cb->scan_int;
             scan_win = (p_cb->scan_win == BTM_BLE_CONN_PARAM_UNDEF) ? BTM_BLE_SCAN_SLOW_WIN_1 : p_cb->scan_win;
 
@@ -401,7 +405,7 @@ BOOLEAN btm_ble_start_auto_conn(BOOLEAN start)
         if (p_cb->conn_state == BLE_BG_CONN)
         {
             btsnd_hcic_ble_create_conn_cancel();
-            btm_ble_set_conn_st (BLE_CONN_CANCEL); 
+            btm_ble_set_conn_st (BLE_CONN_CANCEL);
 
         }
         else

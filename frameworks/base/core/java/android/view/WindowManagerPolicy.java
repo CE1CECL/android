@@ -129,6 +129,17 @@ public interface WindowManagerPolicy {
     public final static int ACTION_GO_TO_SLEEP = 0x00000004;
 
     /**
+     * Sticky broadcast of the current lid state
+     */
+    public final static String ACTION_LID_STATE_CHANGED = "android.intent.action.LID_STATE_CHANGED";
+
+    /**
+     * Extra in {@link #ACTION_LID_STATE_CHANGED} indicating the state:
+     * See {@link #LID_ABSENT}, {@link #LID_CLOSED}, and {@link #LID_OPEN}.
+     */
+    public final static String EXTRA_LID_STATE = "state";
+
+    /**
      * Interface to the Window Manager state associated with a particular
      * window.  You can hold on to an instance of this interface from the call
      * to prepareAddWindow() until removeWindow().
@@ -417,6 +428,8 @@ public interface WindowManagerPolicy {
 
         public void shutdown(boolean confirm);
         public void rebootSafeMode(boolean confirm);
+        public void reboot();
+        public boolean isShutdownSequenceStarted();
 
         /**
          * Return the window manager lock needed to correctly call "Lw" methods.
@@ -428,6 +441,9 @@ public interface WindowManagerPolicy {
 
         /** Unregister a system listener for touch events */
         void unregisterPointerEventListener(PointerEventListener listener);
+
+        /** Fast way to post time-critical systemui flags to window manaegr*/
+        void addSystemUIVisibilityFlag(int flag);
     }
 
     public interface PointerEventListener {
@@ -1139,6 +1155,16 @@ public interface WindowManagerPolicy {
     public boolean hasNavigationBar();
 
     /**
+     * Specifies whether the device needs a navigation bar (because it has no hardware buttons)
+     */
+    public boolean needsNavigationBar();
+
+    /**
+     * Specifies whether device can generate KEY_ACTION_MENU keypress
+     */
+    public boolean hasMenuKeyEnabled();
+
+    /**
      * Lock the device now.
      */
     public void lockNow(Bundle options);
@@ -1193,4 +1219,11 @@ public interface WindowManagerPolicy {
      * @param enabled Whether touch exploration is enabled.
      */
     public void setTouchExplorationEnabled(boolean enabled);
+
+    /**
+     * Check if immersive mode hides navigation bar
+     *
+     * @return True if navbar can be hidden by immersive mode
+     */
+    public boolean isImmersiveMode(int vis);
 }

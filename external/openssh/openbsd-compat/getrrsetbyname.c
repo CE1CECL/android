@@ -47,7 +47,7 @@
 
 #include "includes.h"
 
-#ifndef HAVE_GETRRSETBYNAME
+#if !defined (HAVE_GETRRSETBYNAME) && !defined (HAVE_LDNS)
 
 #include <stdlib.h>
 #include <string.h>
@@ -56,8 +56,6 @@
 #include <arpa/inet.h>
 
 #include "getrrsetbyname.h"
-#include "nameser.h"
-#include "nameser_compat.h"
 
 #if defined(HAVE_DECL_H_ERRNO) && !HAVE_DECL_H_ERRNO
 extern int h_errno;
@@ -609,4 +607,4 @@ count_dns_rr(struct dns_rr *p, u_int16_t class, u_int16_t type)
 	return (n);
 }
 
-#endif /* !defined(HAVE_GETRRSETBYNAME) */
+#endif /*  !defined (HAVE_GETRRSETBYNAME) && !defined (HAVE_LDNS) */

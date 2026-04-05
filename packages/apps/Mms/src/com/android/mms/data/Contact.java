@@ -20,6 +20,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Message;
 import android.os.Parcelable;
 import android.provider.ContactsContract.CommonDataKinds.Email;
 import android.provider.ContactsContract.CommonDataKinds.Phone;
@@ -49,15 +50,19 @@ public class Contact {
     private static ContactsCache sContactCache;
     private static final String SELF_ITEM_KEY = "Self_Item_Key";
 
-//    private static final ContentObserver sContactsObserver = new ContentObserver(new Handler()) {
-//        @Override
-//        public void onChange(boolean selfUpdate) {
-//            if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
-//                log("contact changed, invalidate cache");
-//            }
-//            invalidateCache();
-//        }
-//    };
+    private static final int CONTACT_UPDATE = 4;
+
+    private static final ContentObserver sContactsObserver = new ContentObserver(new Handler()) {
+        @Override
+        public void onChange(boolean selfUpdate) {
+            if (Log.isLoggable(LogTag.APP, Log.VERBOSE)) {
+                log("contact changed, invalidate cache");
+            }
+            if (contactUpdateHandler != null) {
+                contactUpdateHandler.sendEmptyMessage(CONTACT_UPDATE);
+            }
+        }
+    };
 
     private static final ContentObserver sPresenceObserver = new ContentObserver(new Handler()) {
         @Override
@@ -70,6 +75,30 @@ public class Contact {
     };
 
     private final static HashSet<UpdateListener> mListeners = new HashSet<UpdateListener>();
+
+    private static Runnable invalidateCache = new Runnable() {
+        @Override
+        public void run() {
+            invalidateCache();
+        }
+    };
+
+    private static Handler contactUpdateHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case CONTACT_UPDATE:
+                    if (null != invalidateCache && hasCallbacks(invalidateCache)) {
+                        removeCallbacks(invalidateCache);
+                    }
+                    postDelayed(invalidateCache, 20);
+                    break;
+                default:
+                    Log.e(TAG, "Unkown message, message.what " + msg.what);
+                    break;
+            }
+        };
+    };
 
     private long mContactMethodId;   // Id in phone or email Uri returned by provider of current
                                      // Contact, -1 is invalid. e.g. contact method id is 20 when
@@ -307,6 +336,13 @@ public class Contact {
         }
     }
 
+    public static void clearListener() {
+        synchronized (mListeners) {
+            if (mListeners != null)
+                mListeners.clear();
+        }
+    }
+
     public static void dumpListeners() {
         synchronized (mListeners) {
             int i = 0;
@@ -333,8 +369,8 @@ public class Contact {
         return mContactMethodId;
     }
 
-    public synchronized Uri getPhoneUri() {
-        if (existsInDatabase()) {
+    public synchronized Uri getPhoneUri(boolean forceTelUri) {
+        if (existsInDatabase() && !forceTelUri) {
             return ContentUris.withAppendedId(Phone.CONTENT_URI, mContactMethodId);
         } else {
             Uri.Builder ub = new Uri.Builder();
@@ -355,6 +391,9 @@ public class Contact {
     }
 
     public static void init(final Context context) {
+        if (sContactCache != null) { // Stop previous Runnable
+            sContactCache.mTaskQueue.mWorkerThread.interrupt();
+        }
         sContactCache = new ContactsCache(context);
 
         RecipientIdCache.init(context);
@@ -363,10 +402,8 @@ public class Contact {
         // cache each time that occurs. Unless we can get targeted updates for the contacts we
         // care about(which probably won't happen for a long time), we probably should just
         // invalidate cache peoridically, or surgically.
-        /*
         context.getContentResolver().registerContentObserver(
                 Contacts.CONTENT_URI, true, sContactsObserver);
-        */
     }
 
     public static void dump() {
@@ -503,7 +540,7 @@ public class Contact {
                                     try {
                                         mThingsToLoad.wait();
                                     } catch (InterruptedException ex) {
-                                        // nothing to do
+                                        break;  // Exception sent by Contact.init() to stop Runnable
                                     }
                                 }
                                 if (mThingsToLoad.size() > 0) {
@@ -782,6 +819,8 @@ public class Contact {
                 return getContactInfoForSelf();
             } else if (Mms.isEmailAddress(c.mNumber)) {
                 return getContactInfoForEmailAddress(c.mNumber);
+            } else if (MessageUtils.isWapPushNumber(c.mNumber)) {
+                return c;
             } else if (isAlphaNumber(c.mNumber)) {
                 // first try to look it up in the email field
                 Contact contact = getContactInfoForEmailAddress(c.mNumber);
@@ -1099,7 +1138,8 @@ public class Contact {
                 // See if we can find "number" in the hashtable.
                 // If so, just return the result.
                 final boolean isNotRegularPhoneNumber = isMe || Mms.isEmailAddress(numberOrEmail) ||
-                        MessageUtils.isAlias(numberOrEmail);
+                        MessageUtils.isAlias(numberOrEmail) ||
+                        MessageUtils.isWapPushNumber(numberOrEmail);
                 final String key = isNotRegularPhoneNumber ?
                         numberOrEmail : key(numberOrEmail, sStaticKeyBuffer);
 

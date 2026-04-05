@@ -74,6 +74,19 @@ static inline int mincore(void* addr, size_t length, unsigned char* vec) {
 #include <sys/sendfile.h>
 #include <sys/statvfs.h>
 
+// The prebuilt toolchains tend to be rather old and don't include the newest
+// kernel headers. CAP_BLOCK_SUSPEND was introduced in 3.5, so until all of
+// headers update to at least that version, we need this hack.
+#ifndef CAP_BLOCK_SUSPEND
+#define CAP_BLOCK_SUSPEND 36
+
+#ifdef CAP_LAST_CAP
+#undef CAP_LAST_CAP
+#define CAP_LAST_CAP CAP_BLOCK_SUSPEND
+#endif //ifdef CAP_LAST_CAP
+
+#endif // ifndef CAP_BLOCK_SUSPEND
+
 #endif
 
 #endif  // PORTABILITY_H_included

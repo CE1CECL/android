@@ -290,6 +290,7 @@ public class WideAnglePanoramaUI implements
                 mActivity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
         mReviewControl.removeAllViews();
+        ((ViewGroup) mReviewControl).clearDisappearingChildren();
         inflater.inflate(R.layout.pano_review_control, mReviewControl, true);
 
         mRootView.bringChildToFront(mCameraControls);
@@ -319,6 +320,9 @@ public class WideAnglePanoramaUI implements
     public void onShutterButtonClick() {
         mController.onShutterButtonClick();
     }
+
+    @Override
+    public void onShutterButtonLongClick() {}
 
     @Override
     public void onLayoutChange(
@@ -374,7 +378,7 @@ public class WideAnglePanoramaUI implements
 
         mShutterButton = (ShutterButton) mRootView.findViewById(R.id.shutter_button);
         mShutterButton.setImageResource(R.drawable.btn_new_shutter);
-        mShutterButton.setOnShutterButtonListener(this);
+        mShutterButton.setOnShutterButtonListener(this, false);
         // Hide menu and indicators.
         mRootView.findViewById(R.id.menu).setVisibility(View.GONE);
         mRootView.findViewById(R.id.on_screen_indicators).setVisibility(View.GONE);

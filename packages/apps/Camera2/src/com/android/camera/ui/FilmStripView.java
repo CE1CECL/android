@@ -409,6 +409,7 @@ public class FilmStripView extends ViewGroup implements BottomControlsListener {
         public void goToFilmStrip();
 
         public void goToFullScreen();
+
     }
 
     /**
@@ -1852,7 +1853,7 @@ public class FilmStripView extends ViewGroup implements BottomControlsListener {
         // Check the current one.
         ViewItem curr = mViewItem[mCurrentItem];
         int dataId = curr.getId();
-        if (reporter.isDataRemoved(dataId)) {
+        if (reporter.isDataRemoved(dataId) || mDataAdapter.getTotalNumber() == 1) {
             reload();
             return;
         }

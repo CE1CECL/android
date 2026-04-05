@@ -16,6 +16,53 @@ LOCAL_SRC_FILES := \
 	audio_hw.c \
 	$(AUDIO_PLATFORM)/platform.c
 
+LOCAL_SRC_FILES += audio_extn/audio_extn.c
+
+ifneq ($(strip $(AUDIO_FEATURE_DISABLED_ANC_HEADSET)),true)
+    LOCAL_CFLAGS += -DANC_HEADSET_ENABLED
+endif
+
+ifneq ($(strip $(AUDIO_FEATURE_DISABLED_PROXY_DEVICE)),true)
+    LOCAL_CFLAGS += -DAFE_PROXY_ENABLED
+endif
+
+ifneq ($(strip $(AUDIO_FEATURE_DISABLED_USBAUDIO)),true)
+    LOCAL_CFLAGS += -DUSB_HEADSET_ENABLED
+    LOCAL_SRC_FILES += audio_extn/usb.c
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_DEEP_BUFFER_PRIMARY)),true)
+    LOCAL_CFLAGS += -DDEEP_BUFFER_PRIMARY
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_DYNAMIC_VOLUME_MIXER)),true)
+    LOCAL_CFLAGS += -DDYNAMIC_VOLUME_MIXER
+endif
+
+ifneq ($(strip $(PRODUCT_BRAND)),google)
+    LOCAL_CFLAGS += -DDISABLE_TMUS_AUDIO
+endif
+
+ifneq ($(filter msm8974 msm8226,$(TARGET_BOARD_PLATFORM)),)
+ifneq ($(strip $(AUDIO_FEATURE_DISABLED_WMA_OFFLOAD_DISABLED)),true)
+    LOCAL_CFLAGS += -DWMA_OFFLOAD_ENABLED
+    LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+    LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+endif
+endif
+
+ifneq ($(filter msm8974 msm8226,$(TARGET_BOARD_PLATFORM)),)
+ifneq ($(strip $(AUDIO_FEATURE_DISABLED_MP2_OFFLOAD)),true)
+    LOCAL_CFLAGS += -DMP2_OFFLOAD_ENABLED
+    LOCAL_C_INCLUDES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
+    LOCAL_ADDITIONAL_DEPENDENCIES += $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
+endif
+endif
+
+ifeq ($(strip $(AUDIO_FEATURE_ENABLED_FLAC_OFFLOAD)),true)
+    LOCAL_CFLAGS += -DFLAC_OFFLOAD_ENABLED
+endif
+
 LOCAL_SHARED_LIBRARIES := \
 	liblog \
 	libcutils \
@@ -30,7 +77,8 @@ LOCAL_C_INCLUDES += \
 	external/tinycompress/include \
 	$(call include-path-for, audio-route) \
 	$(call include-path-for, audio-effects) \
-	$(LOCAL_PATH)/$(AUDIO_PLATFORM)
+	$(LOCAL_PATH)/$(AUDIO_PLATFORM) \
+	$(LOCAL_PATH)/audio_extn
 
 LOCAL_MODULE := audio.primary.$(AUDIO_PLATFORM)
 

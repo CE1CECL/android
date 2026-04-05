@@ -38,6 +38,7 @@ LOCAL_SHARED_LIBRARIES :=       \
     libstagefright_omx          \
     libstagefright_wfd          \
     libutils                    \
+    libdl                       \
     libvorbisidec               \
 
 LOCAL_STATIC_LIBRARIES :=       \
@@ -52,7 +53,30 @@ LOCAL_C_INCLUDES :=                                                 \
     $(TOP)/frameworks/native/include/media/openmax                  \
     $(TOP)/external/tremolo/Tremolo                                 \
 
+ifeq ($(BOARD_USES_QCOM_HARDWARE),true)
+    LOCAL_C_INCLUDES += \
+        $(call project-path-for,qcom-media)/mm-core/inc
+endif
+
+ifeq ($(BOARD_HAS_MTK_HARDWARE),true)
+    LOCAL_C_INCLUDES += \
+        $(TOP)/hardware/mediatek/media/include
+    LOCAL_STATIC_LIBRARIES += \
+        libstagefright_bufferallocator
+endif
+
 LOCAL_MODULE:= libmediaplayerservice
+
+ifeq ($(TARGET_ENABLE_QC_AV_ENHANCEMENTS),true)
+    LOCAL_CFLAGS += -DENABLE_AV_ENHANCEMENTS
+    LOCAL_C_INCLUDES += $(TOP)/frameworks/av/include/media
+    LOCAL_C_INCLUDES += \
+        $(call project-path-for,qcom-media)/mm-core/inc
+endif #TARGET_ENABLE_QC_AV_ENHANCEMENTS
+
+ifeq ($(TARGET_BOARD_PLATFORM),msm7x27a)
+    LOCAL_CFLAGS += -DUSE_SUBMIT_ONE_INPUT_BUFFER
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 

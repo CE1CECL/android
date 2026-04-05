@@ -62,6 +62,7 @@ import com.android.emailcommon.utility.Utility;
 import com.android.exchange.Eas;
 import com.android.exchange.R.drawable;
 import com.android.exchange.R.string;
+import com.android.exchange.adapter.LoadMore;
 import com.android.exchange.adapter.PingParser;
 import com.android.exchange.eas.EasSyncContacts;
 import com.android.exchange.eas.EasSyncCalendar;
@@ -77,6 +78,7 @@ import com.android.exchange.eas.EasSyncBase;
 import com.android.mail.providers.UIProvider;
 import com.android.mail.utils.LogUtils;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -498,6 +500,17 @@ public class EmailSyncAdapterService extends AbstractSyncAdapterService {
         @Override
         public void sync(final long accountId, final boolean updateFolderList,
                 final int mailboxType, final long[] folders) {}
+
+        @Override
+        public void loadMore(long messageId) {
+            LogUtils.d(TAG, "IEmailService.loadMore for message: %d", messageId);
+            try {
+                LoadMore.loadMoreForMessage(EmailSyncAdapterService.this, messageId);
+            } catch (IOException e) {
+                LogUtils.d(TAG, "IEmailService.loadMore for message %d error: %s", messageId,
+                        e.toString());
+            }
+        }
     };
 
     public EmailSyncAdapterService() {
@@ -660,6 +673,10 @@ public class EmailSyncAdapterService extends AbstractSyncAdapterService {
             final Account account;
             final Cursor accountCursor = cr.query(Account.CONTENT_URI, Account.CONTENT_PROJECTION,
                     AccountColumns.EMAIL_ADDRESS + "=?", new String[] {acct.name}, null);
+            if (accountCursor == null) {
+                // The account with the name acct.name does not exist.
+                return;
+            }
             try {
                 if (!accountCursor.moveToFirst()) {
                     // Could not load account.
@@ -764,6 +781,31 @@ public class EmailSyncAdapterService extends AbstractSyncAdapterService {
 
                         if (operationResult < 0) {
                             break;
+                      }
+                   }
+                } else if (!accountOnly && !pushOnly) {
+                    // We have to sync multiple folders.
+                    final Cursor c;
+                    if (isFullSync) {
+                        // Full account sync includes all mailboxes that participate in system sync.
+                        c = Mailbox.getMailboxIdsForSync(cr, account.mId);
+                    } else {
+                        // Type-filtered sync should only get the mailboxes of a specific type.
+                        c = Mailbox.getMailboxIdsForSyncByType(cr, account.mId, mailboxType);
+                    }
+                    if (c != null) {
+                        try {
+                            final HashSet<String> authsToSync = getAuthsToSync(acct);
+                            while (c.moveToNext()) {
+                                operationResult = syncMailbox(context, cr, acct, account,
+                                        c.getLong(0), extras, syncResult, authsToSync, false);
+                                if (operationResult < 0) {
+                                    break;
+                                }
+                            }
+                        } finally {
+                            c.close();
+
                         }
                     }
                 } else if (!accountOnly && !pushOnly) {

@@ -27,12 +27,14 @@ import android.preference.PreferenceManager;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
+import android.telephony.MSimTelephonyManager;
 import android.util.Log;
 
 import com.android.mms.LogTag;
-import com.android.mms.ui.ComposeMessageActivity;
 import com.android.mms.ui.MessagingPreferenceActivity;
+import com.android.mms.util.MultiSimUtility;
 import com.android.mms.util.SendingProgressTokenManager;
+import com.android.mms.ui.ComposeMessageActivity;
 import com.google.android.mms.InvalidHeaderValueException;
 import com.google.android.mms.MmsException;
 import com.google.android.mms.pdu.EncodedStringValue;
@@ -49,6 +51,7 @@ public class MmsMessageSender implements MessageSender {
     private final Context mContext;
     private final Uri mMessageUri;
     private final long mMessageSize;
+    private int mSubscription;
 
     // Default preference values
     private static final boolean DEFAULT_DELIVERY_REPORT_MODE  = false;
@@ -57,11 +60,11 @@ public class MmsMessageSender implements MessageSender {
     private static final int     DEFAULT_PRIORITY        = PduHeaders.PRIORITY_NORMAL;
     private static final String  DEFAULT_MESSAGE_CLASS   = PduHeaders.MESSAGE_CLASS_PERSONAL_STR;
 
-    public MmsMessageSender(Context context, Uri location, long messageSize) {
+    public MmsMessageSender(Context context, Uri location, long messageSize, int subscription) {
         mContext = context;
         mMessageUri = location;
         mMessageSize = messageSize;
-
+        mSubscription = subscription;
         if (mMessageUri == null) {
             throw new IllegalArgumentException("Null message URI.");
         }
@@ -121,7 +124,19 @@ public class MmsMessageSender implements MessageSender {
 
         // Start MMS transaction service
         SendingProgressTokenManager.put(messageId, token);
-        mContext.startService(new Intent(mContext, TransactionService.class));
+        Intent intent = new Intent(mContext, TransactionService.class);
+        intent.putExtra(Mms.SUB_ID, mSubscription); //destination sub id
+        intent.putExtra(MultiSimUtility.ORIGIN_SUB_ID,
+                MultiSimUtility.getDefaultDataSubscription(mContext));
+        if (MSimTelephonyManager.getDefault().isMultiSimEnabled()) {
+            Intent silentIntent = new Intent(mContext,
+                    com.android.mms.ui.SelectMmsSubscription.class);
+            silentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            silentIntent.putExtras(intent); //copy all extras
+            mContext.startService(silentIntent);
+        } else {
+            mContext.startService(intent);
+        }
 
         return true;
     }
@@ -131,14 +146,23 @@ public class MmsMessageSender implements MessageSender {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
 
         // Expiry.
-        sendReq.setExpiry(prefs.getLong(
-                MessagingPreferenceActivity.EXPIRY_TIME, DEFAULT_EXPIRY_TIME));
+        long expiryTime = getExpiryTime(prefs);
+
+        String expiryStr = prefs.getString(MessagingPreferenceActivity.EXPIRY_TIME, "0");
+        Log.v(TAG, "updatePreferencesHeaders expiryTime = " + expiryTime + ", expiryStr = "
+                + expiryStr);
+        if (0 != expiryTime) {
+            // Add for sub , if don't set , net will set to Maxinum to default
+            sendReq.setExpiry(expiryTime);
+        }
 
         // Priority.
         sendReq.setPriority(prefs.getInt(MessagingPreferenceActivity.PRIORITY, DEFAULT_PRIORITY));
 
         // Delivery report.
-        boolean dr = prefs.getBoolean(MessagingPreferenceActivity.MMS_DELIVERY_REPORT_MODE,
+        boolean dr = prefs.getBoolean(
+                MultiSimUtility.getPreferenceKey(
+                        MessagingPreferenceActivity.MMS_DELIVERY_REPORT_MODE, mSubscription),
                 DEFAULT_DELIVERY_REPORT_MODE);
         sendReq.setDeliveryReport(dr?PduHeaders.VALUE_YES:PduHeaders.VALUE_NO);
 
@@ -146,6 +170,13 @@ public class MmsMessageSender implements MessageSender {
         boolean rr = prefs.getBoolean(MessagingPreferenceActivity.READ_REPORT_MODE,
                 DEFAULT_READ_REPORT_MODE);
         sendReq.setReadReport(rr?PduHeaders.VALUE_YES:PduHeaders.VALUE_NO);
+    }
+
+    private long getExpiryTime(SharedPreferences prefs) {
+        return Long.parseLong(prefs.getString(
+                MultiSimUtility.getPreferenceKey(
+                        MessagingPreferenceActivity.EXPIRY_TIME, mSubscription),
+                "0"));
     }
 
     public static void sendReadRec(Context context, String to, String messageId, int status) {

@@ -27,6 +27,12 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#if defined(MOTOROLA_LOG) || defined(MTK_HARDWARE)
+#if HAVE_LIBC_SYSTEM_PROPERTIES
+#include <sys/system_properties.h>
+#endif
+#endif
+
 #include <log/logger.h>
 #include <log/logd.h>
 #include <log/log.h>
@@ -72,6 +78,113 @@ int __android_log_dev_available(void)
     return (g_log_status == kLogAvailable);
 }
 
+#ifdef HTCLOG
+signed int __htclog_read_masks(char *buf, signed int len)
+{
+    return 0;
+}
+
+int __htclog_init_mask(const char *a1, unsigned int a2, int a3)
+{
+    return 0;
+}
+
+int __htclog_print_private(int a1, const char *a2, const char *fmt, ...)
+{
+    return 0;
+}
+#endif
+
+#ifdef MOTOROLA_LOG
+/* Fallback when there is neither log.tag.<tag> nor log.tag.DEFAULT.
+ * this is compile-time defaulted to "info". The log startup code
+ * looks at the build tags to see about whether it should be DEBUG...
+ * -- just as is done in frameworks/base/core/jni/android_util_Log.cpp
+ */
+static int prio_fallback = ANDROID_LOG_INFO;
+
+/*
+ * public interface so native code can see "should i log this"
+ * and behave similar to java Log.isLoggable() calls.
+ *
+ * NB: we have (level,tag) here to match the other __android_log entries.
+ * The Java side uses (tag,level) for its ordering.
+ * since the args are (int,char*) vs (char*,char*) we won't get strange
+ * swapped-the-strings errors.
+ */
+
+#define	LOGGING_PREFIX	"log.tag."
+#define	LOGGING_DEFAULT	"log.tag.DEFAULT"
+
+int __android_log_loggable(int prio, const char *tag)
+{
+    int nprio;
+
+#if	HAVE_LIBC_SYSTEM_PROPERTIES
+    char keybuf[PROP_NAME_MAX];
+    char results[PROP_VALUE_MAX];
+    int n;
+
+    /* we can NOT cache the log.tag.<tag> and log.tag.DEFAULT
+     * values because either one can be changed dynamically.
+     *
+     * damn, says the performance compulsive.
+     */
+
+    n = 0;
+    results[0] = '\0';
+    if (tag) {
+	memcpy (keybuf, LOGGING_PREFIX, strlen (LOGGING_PREFIX) + 1);
+	/* watch out for buffer overflow */
+	strncpy (keybuf + strlen (LOGGING_PREFIX), tag,
+		 sizeof (keybuf) - strlen (LOGGING_PREFIX));
+	keybuf[sizeof (keybuf) - 1] = '\0';
+	n = __system_property_get (keybuf, results);
+    }
+    if (n == 0) {
+	/* nothing yet, look for the global */
+	memcpy (keybuf, LOGGING_DEFAULT, sizeof (LOGGING_DEFAULT));
+	n = __system_property_get (keybuf, results);
+    }
+
+    if (n == 0) {
+	nprio = prio_fallback;
+    } else {
+	switch (results[0])
+	{
+	case 'E':
+	    nprio = ANDROID_LOG_ERROR;
+	    break;
+	case 'W':
+	    nprio = ANDROID_LOG_WARN;
+	    break;
+	case 'I':
+	    nprio = ANDROID_LOG_INFO;
+	    break;
+	case 'D':
+	    nprio = ANDROID_LOG_DEBUG;
+	    break;
+	case 'V':
+	    nprio = ANDROID_LOG_VERBOSE;
+	    break;
+	case 'S':
+	    nprio = ANDROID_LOG_SILENT;
+	    break;
+	default:
+	    /* unspecified or invalid */
+	    nprio = prio_fallback;
+	    break;
+	}
+    }
+#else
+    /* no system property routines, fallback to a default */
+    nprio = prio_fallback;
+#endif
+
+    return ((prio >= nprio) ? 1 : 0);
+}
+#endif
+
 static int __write_to_log_null(log_id_t log_fd, struct iovec *vec, size_t nr)
 {
     return -1;
@@ -93,6 +206,41 @@ static int __write_to_log_kernel(log_id_t log_id, struct iovec *vec, size_t nr)
     } while (ret < 0 && errno == EINTR);
 
     return ret;
+}
+
+/*
+ * Release any logger resources. A new log write will immediately re-acquire.
+ */
+void __android_log_close()
+{
+#ifdef HAVE_PTHREADS
+    pthread_mutex_lock(&log_init_lock);
+#endif
+
+    write_to_log = __write_to_log_init;
+
+    /*
+     * Threads that are actively writing at this point are not held back
+     * by a lock and are at risk of dropping the messages with a return code
+     * -EBADF. Prefer to return error code than add the overhead of a lock to
+     * each log writing call to guarantee delivery. In addition, anyone
+     * calling this is doing so to release the logging resources and shut down,
+     * for them to do so with outstanding log requests in other threads is a
+     * disengenuous use of this function.
+     */
+
+    log_close(log_fds[LOG_ID_MAIN]);
+    log_fds[LOG_ID_MAIN] = -1;
+    log_close(log_fds[LOG_ID_RADIO]);
+    log_fds[LOG_ID_RADIO] = -1;
+    log_close(log_fds[LOG_ID_EVENTS]);
+    log_fds[LOG_ID_EVENTS] = -1;
+    log_close(log_fds[LOG_ID_SYSTEM]);
+    log_fds[LOG_ID_SYSTEM] = -1;
+
+#ifdef HAVE_PTHREADS
+    pthread_mutex_unlock(&log_init_lock);
+#endif
 }
 
 static int __write_to_log_init(log_id_t log_id, struct iovec *vec, size_t nr)
@@ -150,7 +298,20 @@ int __android_log_write(int prio, const char *tag, const char *msg)
         !strcmp(tag, "STK") ||
         !strcmp(tag, "CDMA") ||
         !strcmp(tag, "PHONE") ||
-        !strcmp(tag, "SMS")) {
+        !strcmp(tag, "SMS") ||
+        !strcmp(tag, "KINETO") ||
+        !strncmp(tag, "KIPC", 4) ||
+        !strncmp(tag, "Kineto", 6) ||
+        !strncmp(tag, "MUXD", 4) ||
+        !strncmp(tag, "QCRIL", 5) ||
+        !strncmp(tag, "QC-RIL", 6) ||
+        !strncmp(tag, "QC-QMI", 6) ||
+        !strncmp(tag, "QC-ONCRPC", 9) ||
+        !strncmp(tag, "QC-DSI", 6) ||
+        !strcmp(tag, "QC-NETMGR-LIB") ||
+        !strcmp(tag, "QC-QDP") ||
+        !strcmp(tag, "Diag_Lib")
+        ) {
             log_id = LOG_ID_RADIO;
             // Inform third party apps/ril/radio.. to use Rlog or RLOG
             snprintf(tmp_tag, sizeof(tmp_tag), "use-Rlog/RLOG-%s", tag);
@@ -185,7 +346,16 @@ int __android_log_buf_write(int bufID, int prio, const char *tag, const char *ms
         !strcmp(tag, "STK") ||
         !strcmp(tag, "CDMA") ||
         !strcmp(tag, "PHONE") ||
-        !strcmp(tag, "SMS"))) {
+        !strcmp(tag, "SMS") ||
+        !strcmp(tag, "KINETO") ||
+        !strncmp(tag, "KIPC", 4) ||
+        !strncmp(tag, "Kineto", 6) ||
+        !strncmp(tag, "QCRIL", 5) ||
+        !strncmp(tag, "QC-RIL", 6) ||
+        !strncmp(tag, "QC-QMI", 6) ||
+        !strncmp(tag, "QC-ONCRPC", 9) ||
+        !strncmp(tag, "QC-DSI", 6)
+        )) {
             bufID = LOG_ID_RADIO;
             // Inform third party apps/ril/radio.. to use Rlog or RLOG
             snprintf(tmp_tag, sizeof(tmp_tag), "use-Rlog/RLOG-%s", tag);
@@ -292,3 +462,42 @@ int __android_log_btwrite(int32_t tag, char type, const void *payload,
 
     return write_to_log(LOG_ID_EVENTS, vec, 3);
 }
+
+#ifdef MTK_HARDWARE
+struct xlog_record {
+    const char *tag_str;
+    const char *fmt_str;
+    int prio;
+};
+
+void __attribute__((weak)) __xlog_buf_printf(int bufid, const struct xlog_record *xlog_record, ...) {
+    va_list args;
+#if	HAVE_LIBC_SYSTEM_PROPERTIES
+    int len = 0;
+    int do_xlog = 0;
+    char results[PROP_VALUE_MAX];
+
+    va_start(args, xlog_record);
+
+    // MobileLog
+    len = __system_property_get ("debug.MB.running", results);
+    if (len && atoi(results))
+        do_xlog = 1;
+
+    // ModemLog
+    len = __system_property_get ("debug.mdlogger.Running", results);
+    if (len && atoi(results))
+        do_xlog = 1;
+
+    // Manual
+    len = __system_property_get ("persist.debug.xlog.enable", results);
+    if (len && atoi(results))
+        do_xlog = 1;
+
+    if (do_xlog > 0)
+#endif
+        __android_log_vprint(xlog_record->prio, xlog_record->tag_str, xlog_record->fmt_str, args);
+
+    return 0;
+}
+#endif

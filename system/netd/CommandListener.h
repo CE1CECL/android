@@ -1,6 +1,9 @@
 /*
  * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
+ * Not a Contribution. Apache license notifications and license are
+ * retained for attribution purposes only.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,6 +35,7 @@
 #include "FirewallController.h"
 #include "ClatdController.h"
 #include "UidMarkMap.h"
+#include "RouteController.h"
 
 class CommandListener : public FrameworkListener {
     static TetherController *sTetherCtrl;
@@ -45,6 +49,7 @@ class CommandListener : public FrameworkListener {
     static SecondaryTableController *sSecondaryTableCtrl;
     static FirewallController *sFirewallCtrl;
     static ClatdController *sClatdCtrl;
+    static RouteController *sRouteCtrl;
 
 public:
     CommandListener(UidMarkMap *map);
@@ -58,6 +63,15 @@ private:
         virtual ~SoftapCmd() {}
         int runCommand(SocketClient *c, int argc, char ** argv);
     };
+
+#ifdef QSAP_WLAN
+    class QsoftapCmd : public SoftapCmd {
+    public:
+        QsoftapCmd();
+        virtual ~QsoftapCmd() {}
+        int runCommand(SocketClient *c, int argc, char ** argv);
+    };
+#endif
 
     class InterfaceCmd : public NetdCommand {
     public:
@@ -79,6 +93,14 @@ private:
         virtual ~TetherCmd() {}
         int runCommand(SocketClient *c, int argc, char ** argv);
     };
+
+    class V6RtrAdvCmd: public NetdCommand {
+    public:
+        V6RtrAdvCmd();
+        virtual ~V6RtrAdvCmd() {}
+        int runCommand(SocketClient *c, int argc, char ** argv);
+    };
+
 
     class NatCmd : public NetdCommand {
     public:
@@ -140,6 +162,13 @@ private:
     public:
         ClatdCmd();
         virtual ~ClatdCmd() {}
+        int runCommand(SocketClient *c, int argc, char ** argv);
+    };
+
+    class RouteCmd : public NetdCommand {
+    public:
+        RouteCmd();
+        virtual ~RouteCmd() {}
         int runCommand(SocketClient *c, int argc, char ** argv);
     };
 };

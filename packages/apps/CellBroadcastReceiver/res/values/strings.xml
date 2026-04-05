@@ -92,7 +92,7 @@
     <!-- Preference title for alert sound duration list. [CHAR LIMIT=30] -->
     <string name="alert_sound_duration_title">Alert sound duration</string>
     <!-- Do not translate. Empty summary for alert duration (set by CellBroadcastSettings). -->
-    <string name="alert_sound_duration_summary"></string>
+    <string name="alert_sound_duration_summary" translatable="false"></string>
     <!-- Preference title for alert reminder interval list. [CHAR LIMIT=30] -->
     <string name="alert_reminder_interval_title">Alert reminder</string>
     <!-- Do not translate. Empty summary for alert reminder (set by CellBroadcastSettings). -->
@@ -138,7 +138,6 @@
     <string name="enable_channel_50_alerts_title">Show channel 50 broadcasts</string>
     <!-- Preference summary for enable channel 50 alerts (Brazil only). [CHAR LIMIT=100] -->
     <string name="enable_channel_50_alerts_summary">Channel 50 is used in Brazil for area update information</string>
-
     <!-- Preference category title for developer settings. [CHAR LIMIT=50] -->
     <string name="category_dev_settings_title">Developer options</string>
 
@@ -240,7 +239,7 @@
 
     <!-- Do not translate. Values that are retrieved from the ListPreference.
          These must match the alert_sound_duration_entries above. -->
-    <string-array name="alert_sound_duration_values">
+    <string-array name="alert_sound_duration_values" translatable="false">
       <item>2</item>
       <item>4</item>
       <item>6</item>

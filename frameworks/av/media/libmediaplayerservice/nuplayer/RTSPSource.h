@@ -53,7 +53,11 @@ struct NuPlayer::RTSPSource : public NuPlayer::Source {
     virtual status_t getDuration(int64_t *durationUs);
     virtual status_t seekTo(int64_t seekTimeUs);
 
+    virtual int32_t getServerTimeoutMs();
+
     void onMessageReceived(const sp<AMessage> &msg);
+
+    virtual bool setCbfForSeekDone(const sp<AMessage> &notify);
 
 protected:
     virtual ~RTSPSource();
@@ -77,6 +81,7 @@ private:
     enum Flags {
         // Don't log any URLs.
         kFlagIncognito = 1,
+        kFlagUseTCP = 2,
     };
 
     struct TrackInfo {
@@ -98,6 +103,8 @@ private:
     status_t mFinalResult;
     uint32_t mDisconnectReplyID;
     bool mBuffering;
+    bool mIsH263;
+    uint32_t mNumKeepDamagedAccessUnits;
 
     sp<ALooper> mLooper;
     sp<AHandlerReflector<RTSPSource> > mReflector;
@@ -114,6 +121,8 @@ private:
 
     int64_t mEOSTimeoutAudio;
     int64_t mEOSTimeoutVideo;
+
+    sp<AMessage> mSeekDoneNotify;
 
     sp<AnotherPacketSource> getSource(bool audio);
 

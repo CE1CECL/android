@@ -28,7 +28,18 @@
 
         <CheckBoxPreference
             android:key="visiblepattern"
+            android:persistent="false"
             android:title="@string/lockpattern_settings_enable_visible_pattern_title"/>
+
+        <CheckBoxPreference
+            android:key="visible_error_pattern"
+            android:persistent="false"
+            android:title="@string/lockpattern_settings_enable_error_path_title"/>
+
+        <CheckBoxPreference
+            android:key="visibledots"
+            android:persistent="false"
+            android:title="@string/lockpattern_settings_enable_dots_title"/>
 
         <ListPreference
             android:key="lock_after_timeout"
@@ -41,16 +52,6 @@
         <CheckBoxPreference
             android:key="power_button_instantly_locks"
             android:title="@string/lockpattern_settings_enable_power_button_instantly_locks"/>
-
-        <CheckBoxPreference
-            android:key="keyguard_enable_widgets"
-            android:title="@string/security_enable_widgets_title"/>
-
-        <PreferenceScreen
-            android:fragment="com.android.settings.OwnerInfoSettings"
-            android:key="owner_info_settings"
-            android:title="@string/owner_info_settings_title"
-            android:summary="@string/owner_info_settings_summary"/>
 
     </PreferenceCategory>
 

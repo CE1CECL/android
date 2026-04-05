@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2006 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +23,10 @@ import android.content.ComponentCallbacks2;
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.IContentProvider;
-import android.content.Intent;
 import android.content.IIntentReceiver;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.IPackageManager;
@@ -43,12 +45,14 @@ import android.database.sqlite.SQLiteDebug;
 import android.database.sqlite.SQLiteDebug.DbStats;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Typeface;
 import android.hardware.display.DisplayManagerGlobal;
 import android.net.IConnectivityManager;
 import android.net.Proxy;
 import android.net.ProxyProperties;
 import android.opengl.GLUtils;
 import android.os.AsyncTask;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
@@ -68,6 +72,7 @@ import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.text.TextUtils;
 import android.util.AndroidRuntimeException;
 import android.util.ArrayMap;
 import android.util.DisplayMetrics;
@@ -79,6 +84,7 @@ import android.util.Slog;
 import android.util.SuperNotCalledException;
 import android.view.Display;
 import android.view.HardwareRenderer;
+import android.view.InflateException;
 import android.view.View;
 import android.view.ViewDebug;
 import android.view.ViewManager;
@@ -117,6 +123,9 @@ import libcore.io.EventLogger;
 import libcore.io.IoUtils;
 
 import dalvik.system.CloseGuard;
+import dalvik.system.VMRuntime;
+import android.os.SystemProperties;
+import java.lang.*;
 
 final class RemoteServiceException extends AndroidRuntimeException {
     public RemoteServiceException(String msg) {
@@ -152,7 +161,7 @@ public final class ActivityThread {
     private static final int LOG_ON_PAUSE_CALLED = 30021;
     private static final int LOG_ON_RESUME_CALLED = 30022;
 
-    private ContextImpl mSystemContext;
+    static ContextImpl mSystemContext = null;
 
     static IPackageManager sPackageManager;
 
@@ -1528,11 +1537,20 @@ public final class ActivityThread {
     /**
      * Creates the top level resources for the given package.
      */
-    Resources getTopLevelResources(String resDir,
+    Resources getTopLevelResources(String resDir, String[] overlayDirs,
             int displayId, Configuration overrideConfiguration,
-            LoadedApk pkgInfo) {
-        return mResourcesManager.getTopLevelResources(resDir, displayId, overrideConfiguration,
-                pkgInfo.getCompatibilityInfo(), null);
+            LoadedApk pkgInfo, Context context, String pkgName) {
+        return mResourcesManager.getTopLevelResources(resDir, overlayDirs, displayId, pkgName,
+                overrideConfiguration, pkgInfo.getCompatibilityInfo(), null, context);
+    }
+
+    /**
+     * Creates the top level resources for the given package.
+     */
+    Resources getTopLevelThemedResources(String resDir, int displayId, LoadedApk pkgInfo,
+                                         String pkgName, String themePkgName) {
+        return mResourcesManager.getTopLevelThemedResources(resDir, displayId, pkgName,
+                themePkgName, pkgInfo.getCompatibilityInfo(), null);
     }
 
     final Handler getHandler() {
@@ -1637,8 +1655,7 @@ public final class ActivityThread {
                 ref = mResourcePackages.get(aInfo.packageName);
             }
             LoadedApk packageInfo = ref != null ? ref.get() : null;
-            if (packageInfo == null || (packageInfo.mResources != null
-                    && !packageInfo.mResources.getAssets().isUpToDate())) {
+            if (packageInfo == null) {
                 if (localLOGV) Slog.v(TAG, (includeCode ? "Loading code package "
                         : "Loading resource-only package ") + aInfo.packageName
                         + " (in " + (mBoundApplication != null
@@ -1655,6 +1672,10 @@ public final class ActivityThread {
                     mResourcePackages.put(aInfo.packageName,
                             new WeakReference<LoadedApk>(packageInfo));
                 }
+            }
+            if (packageInfo.mResources != null
+                    && !packageInfo.mResources.getAssets().isUpToDate()) {
+                packageInfo.mResources = null;
             }
             return packageInfo;
         }
@@ -2181,6 +2202,13 @@ public final class ActivityThread {
 
         } catch (Exception e) {
             if (!mInstrumentation.onException(activity, e)) {
+                if (e instanceof InflateException) {
+                    Log.e(TAG, "Failed to inflate", e);
+                    sendAppLaunchFailureBroadcast(r);
+                } else if (e instanceof Resources.NotFoundException) {
+                    Log.e(TAG, "Failed to find resource", e);
+                    sendAppLaunchFailureBroadcast(r);
+                }
                 throw new RuntimeException(
                     "Unable to start activity " + component
                     + ": " + e.toString(), e);
@@ -2188,6 +2216,16 @@ public final class ActivityThread {
         }
 
         return activity;
+    }
+
+    private void sendAppLaunchFailureBroadcast(ActivityClientRecord r) {
+        String pkg = null;
+        if (r.packageInfo != null && !TextUtils.isEmpty(r.packageInfo.getPackageName())) {
+            pkg = r.packageInfo.getPackageName();
+        }
+        Intent intent = new Intent(Intent.ACTION_APP_LAUNCH_FAILURE,
+                (pkg != null)? Uri.fromParts("package", pkg, null) : null);
+        getSystemContext().sendBroadcast(intent);
     }
 
     private Context createBaseContextForActivity(ActivityClientRecord r,
@@ -3864,6 +3902,7 @@ public final class ActivityThread {
 
         int configDiff = 0;
 
+        int diff = 0;
         synchronized (mResourcesManager) {
             if (mPendingConfiguration != null) {
                 if (!mPendingConfiguration.isOtherSeqNewer(config)) {
@@ -3881,7 +3920,7 @@ public final class ActivityThread {
             if (DEBUG_CONFIGURATION) Slog.v(TAG, "Handle configuration changed: "
                     + config);
 
-            mResourcesManager.applyConfigurationToResourcesLocked(config, compat);
+            diff = mResourcesManager.applyConfigurationToResourcesLocked(config, compat);
 
             if (mConfiguration == null) {
                 mConfiguration = new Configuration();
@@ -3904,7 +3943,20 @@ public final class ActivityThread {
         if (callbacks != null) {
             final int N = callbacks.size();
             for (int i=0; i<N; i++) {
-                performConfigurationChanged(callbacks.get(i), config);
+                ComponentCallbacks2 cb = callbacks.get(i);
+
+                // We removed the old resources object from the mActiveResources
+                // cache, now we need to trigger an update for each application.
+                if ((diff & ActivityInfo.CONFIG_THEME_RESOURCE) != 0) {
+                    if (cb instanceof ContextWrapper) {
+                        Context context = ((ContextWrapper)cb).getBaseContext();
+                        if (context instanceof ContextImpl) {
+                            ((ContextImpl)context).refreshResourcesIfNecessary();
+                        }
+                    }
+                }
+
+                performConfigurationChanged(cb, config);
             }
         }
     }
@@ -3913,8 +3965,10 @@ public final class ActivityThread {
         if (configDiff != 0) {
             // Ask text layout engine to free its caches if there is a locale change
             boolean hasLocaleConfigChange = ((configDiff & ActivityInfo.CONFIG_LOCALE) != 0);
-            if (hasLocaleConfigChange) {
+            boolean hasThemeConfigChange = ((configDiff & ActivityInfo.CONFIG_THEME_RESOURCE) != 0);
+            if (hasLocaleConfigChange || hasThemeConfigChange) {
                 Canvas.freeTextLayoutCaches();
+                Typeface.recreateDefaults();
                 if (DEBUG_CONFIGURATION) Slog.v(TAG, "Cleared TextLayout Caches");
             }
         }
@@ -4078,6 +4132,63 @@ public final class ActivityThread {
         }
     }
 
+    /*
+     * Parse a string of the form /[0-9]+[kKmMgG]?/, which is used to
+     * specify memory sizes.  [kK] indicates kilobytes, [mM] megabytes, and
+     * [gG] gigabytes.
+     *
+     * The spec says the -Xmx and -Xms options must be multiples of 1024.
+     * It doesn't say anything about -Xss.
+     *
+     * Returns 0 (a useless size) if "s" is malformed or specifies a low or
+     * non-evenly-divisible value.
+     */
+    private int parseMemOption(String s){
+        if( s.equals("") ){
+            return 0;
+        }
+
+        char lastChar = s.charAt(s.length()-1);
+        int value = 0;
+        if( lastChar == 'k' || lastChar == 'K' || lastChar == 'm' ||
+                lastChar == 'M' || lastChar == 'g' || lastChar == 'G' ) {
+
+            try{
+                value = Integer.parseInt(s.substring(0, s.length()-1));
+            } catch (Exception e){
+                throw new RuntimeException(
+                        "Invalid memory option value:" + s, e);
+            }
+            if( value != 0 ){
+                if( lastChar == 'k' || lastChar == 'K' ){
+                    value *= 1024;
+                }
+                if( lastChar == 'm' || lastChar == 'M' ){
+                    value *= 1024*1024;
+                }
+                if( lastChar == 'g' || lastChar == 'G' ){
+                    if(value>4){
+                        throw new RuntimeException(
+                                "Currently only support less than 4G in value:" + s);
+                    }
+                    value *= 1024*1024*1024;
+                }
+            }
+        } else {
+            try{
+                value = Integer.parseInt(s);
+            } catch  (Exception e){
+                throw new RuntimeException(
+                        "Invalid memory option value:" + s, e);
+            }
+        }
+        if( value % 1024 != 0 ){
+            throw new RuntimeException(
+                    "Invalid memory option value, must be multiples of 1024:" + s);
+        }
+        return value;
+    }
+
     private void handleBindApplication(AppBindData data) {
         mBoundApplication = data;
         mConfiguration = new Configuration(data.config);
@@ -4090,6 +4201,40 @@ public final class ActivityThread {
 
         // send up app name; do this *before* waiting for debugger
         Process.setArgV0(data.processName);
+
+        Log.d(TAG, "handleBindApplication:" + data.processName );
+
+        String str  = SystemProperties.get("dalvik.vm.heaptargetutilization", "" );
+        if( !str.equals("") ){
+            float heapUtil = Float.valueOf(str.trim()).floatValue();
+            VMRuntime.getRuntime().setTargetHeapUtilization(heapUtil);
+            Log.d(TAG, "setTargetHeapUtilization:" + heapUtil );
+        }
+        String heapMinFree = SystemProperties.get("dalvik.vm.heapminfree", "" );
+        int minfree =  parseMemOption(heapMinFree);
+        if( minfree > 0){
+            VMRuntime.getRuntime().setTargetHeapMinFree(minfree);
+            Log.d(TAG, "setTargetHeapMinFree:" + minfree );
+        }
+        String heapConcurrentStart  = SystemProperties.get("dalvik.vm.heapconcurrentstart", "" );
+        int concurr_start =  parseMemOption(heapConcurrentStart);
+        if( concurr_start > 0){
+            VMRuntime.getRuntime().setTargetHeapConcurrentStart(concurr_start);
+            Log.d(TAG, "setTargetHeapConcurrentStart:" + concurr_start );
+        }
+
+        ////
+        ////If want to set application specific GC paramters, can use
+        ////the following check
+        ////
+        //if( data.processName.equals("com.android.gallery3d")) {
+        //    VMRuntime.getRuntime().setTargetHeapUtilization(0.25f);
+        //    VMRuntime.getRuntime().setTargetHeapMinFree(12*1024*1024);
+        //    VMRuntime.getRuntime().setTargetHeapConcurrentStart(4*1024*1024);
+        //}
+
+
+
         android.ddm.DdmHandleAppName.setAppName(data.processName,
                                                 UserHandle.myUserId());
 
@@ -4896,7 +5041,7 @@ public final class ActivityThread {
                     // We need to apply this change to the resources
                     // immediately, because upon returning the view
                     // hierarchy will be informed about it.
-                    if (mResourcesManager.applyConfigurationToResourcesLocked(newConfig, null)) {
+                    if (mResourcesManager.applyConfigurationToResourcesLocked(newConfig, null) != 0) {
                         // This actually changed the resources!  Tell
                         // everyone about it.
                         if (mPendingConfiguration == null ||

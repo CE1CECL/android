@@ -63,8 +63,10 @@ LOCAL_SRC_FILES += \
 	core/java/android/app/IActivityPendingResult.aidl \
 	core/java/android/app/IAlarmManager.aidl \
 	core/java/android/app/IBackupAgent.aidl \
+	core/java/android/app/IBatteryService.aidl \
 	core/java/android/app/IInstrumentationWatcher.aidl \
 	core/java/android/app/INotificationManager.aidl \
+	core/java/android/app/IProfileManager.aidl \
 	core/java/android/app/IProcessObserver.aidl \
 	core/java/android/app/ISearchManager.aidl \
 	core/java/android/app/ISearchManagerCallback.aidl \
@@ -83,9 +85,13 @@ LOCAL_SRC_FILES += \
 	core/java/android/app/backup/IFullBackupRestoreObserver.aidl \
 	core/java/android/app/backup/IRestoreObserver.aidl \
 	core/java/android/app/backup/IRestoreSession.aidl \
+	core/java/android/wipower/IWipower.aidl \
+	core/java/android/wipower/IWipowerManagerCallback.aidl \
 	core/java/android/bluetooth/IBluetooth.aidl \
+	core/java/android/bluetooth/IQBluetooth.aidl \
 	core/java/android/bluetooth/IBluetoothA2dp.aidl \
 	core/java/android/bluetooth/IBluetoothCallback.aidl \
+	core/java/android/bluetooth/IQBluetoothAdapterCallback.aidl \
 	core/java/android/bluetooth/IBluetoothHeadset.aidl \
 	core/java/android/bluetooth/IBluetoothHeadsetPhone.aidl \
 	core/java/android/bluetooth/IBluetoothHealth.aidl \
@@ -94,12 +100,18 @@ LOCAL_SRC_FILES += \
 	core/java/android/bluetooth/IBluetoothPan.aidl \
 	core/java/android/bluetooth/IBluetoothManager.aidl \
 	core/java/android/bluetooth/IBluetoothManagerCallback.aidl \
+	core/java/android/bluetooth/IQBluetoothManagerCallback.aidl \
 	core/java/android/bluetooth/IBluetoothPbap.aidl \
 	core/java/android/bluetooth/IBluetoothMap.aidl \
 	core/java/android/bluetooth/IBluetoothStateChangeCallback.aidl \
+	core/java/android/bluetooth/IBluetoothHandsfreeClient.aidl \
+	core/java/android/bluetooth/IBluetoothHidDevice.aidl \
+	core/java/android/bluetooth/IBluetoothHidDeviceCallback.aidl \
 	core/java/android/bluetooth/IBluetoothGatt.aidl \
 	core/java/android/bluetooth/IBluetoothGattCallback.aidl \
 	core/java/android/bluetooth/IBluetoothGattServerCallback.aidl \
+	core/java/android/bluetooth/IBluetoothSap.aidl \
+	core/java/android/bluetooth/IBluetoothDun.aidl \
 	core/java/android/content/IClipboard.aidl \
 	core/java/android/content/IContentService.aidl \
 	core/java/android/content/IIntentReceiver.aidl \
@@ -115,6 +127,9 @@ LOCAL_SRC_FILES += \
 	core/java/android/content/pm/IPackageManager.aidl \
 	core/java/android/content/pm/IPackageMoveObserver.aidl \
 	core/java/android/content/pm/IPackageStatsObserver.aidl \
+	core/java/android/content/res/IThemeChangeListener.aidl \
+	core/java/android/content/res/IThemeProcessingListener.aidl \
+	core/java/android/content/res/IThemeService.aidl \
 	core/java/android/database/IContentObserver.aidl \
 	core/java/android/hardware/ICameraService.aidl \
 	core/java/android/hardware/ICameraServiceListener.aidl \
@@ -123,6 +138,7 @@ LOCAL_SRC_FILES += \
 	core/java/android/hardware/IConsumerIrService.aidl \
 	core/java/android/hardware/IProCameraUser.aidl \
 	core/java/android/hardware/IProCameraCallbacks.aidl \
+	core/java/android/hardware/ITorchService.aidl \
 	core/java/android/hardware/camera2/ICameraDeviceUser.aidl \
 	core/java/android/hardware/camera2/ICameraDeviceCallbacks.aidl \
 	core/java/android/hardware/ISerialManager.aidl \
@@ -176,6 +192,10 @@ LOCAL_SRC_FILES += \
 	core/java/android/printservice/IPrintServiceClient.aidl \
 	core/java/android/service/dreams/IDreamManager.aidl \
 	core/java/android/service/dreams/IDreamService.aidl \
+	core/java/android/service/gesture/IGestureService.aidl \
+	core/java/android/service/gesture/IEdgeGestureService.aidl \
+	core/java/android/service/gesture/IEdgeGestureActivationListener.aidl \
+	core/java/android/service/gesture/IEdgeGestureHostCallback.aidl \
 	core/java/android/service/wallpaper/IWallpaperConnection.aidl \
 	core/java/android/service/wallpaper/IWallpaperEngine.aidl \
 	core/java/android/service/wallpaper/IWallpaperService.aidl \
@@ -216,6 +236,7 @@ LOCAL_SRC_FILES += \
 	core/java/com/android/internal/policy/IKeyguardService.aidl \
 	core/java/com/android/internal/os/IDropBoxManagerService.aidl \
 	core/java/com/android/internal/os/IResultReceiver.aidl \
+	core/java/com/android/internal/os/IKillSwitchService.aidl \
 	core/java/com/android/internal/statusbar/IStatusBar.aidl \
 	core/java/com/android/internal/statusbar/IStatusBarService.aidl \
 	core/java/com/android/internal/textservice/ISpellCheckerService.aidl \
@@ -240,6 +261,8 @@ LOCAL_SRC_FILES += \
 	location/java/android/location/IFusedProvider.aidl \
 	location/java/android/location/IGeocodeProvider.aidl \
 	location/java/android/location/IGeofenceProvider.aidl \
+        location/java/android/location/IGeoFencer.aidl \
+        location/java/android/location/IGeoFenceListener.aidl \
 	location/java/android/location/IGpsStatusListener.aidl \
 	location/java/android/location/IGpsStatusProvider.aidl \
 	location/java/android/location/ILocationListener.aidl \
@@ -263,9 +286,12 @@ LOCAL_SRC_FILES += \
 	media/java/android/media/IRingtonePlayer.aidl \
 	telephony/java/com/android/internal/telephony/IPhoneStateListener.aidl \
 	telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
+	telephony/java/com/android/internal/telephony/msim/IPhoneSubInfoMSim.aidl \
 	telephony/java/com/android/internal/telephony/ITelephony.aidl \
+	telephony/java/com/android/internal/telephony/msim/ITelephonyMSim.aidl \
 	telephony/java/com/android/internal/telephony/ITelephonyListener.aidl \
 	telephony/java/com/android/internal/telephony/ITelephonyRegistry.aidl \
+	telephony/java/com/android/internal/telephony/ITelephonyRegistryMSim.aidl \
 	telephony/java/com/android/internal/telephony/ISms.aidl \
 	telephony/java/com/android/internal/telephony/IWapPushManager.aidl \
 	wifi/java/android/net/wifi/IWifiManager.aidl \
@@ -349,7 +375,10 @@ aidl_files := \
 	frameworks/base/core/java/android/accounts/IAccountManagerResponse.aidl \
 	frameworks/base/core/java/android/accounts/IAccountAuthenticator.aidl \
 	frameworks/base/core/java/android/accounts/IAccountAuthenticatorResponse.aidl \
+	frameworks/base/core/java/android/app/ComposedIconInfo.aidl \
 	frameworks/base/core/java/android/app/Notification.aidl \
+	frameworks/base/core/java/android/app/NotificationGroup.aidl \
+	frameworks/base/core/java/android/app/Profile.aidl \
 	frameworks/base/core/java/android/app/PendingIntent.aidl \
 	frameworks/base/core/java/android/appwidget/AppWidgetProviderInfo.aidl \
 	frameworks/base/core/java/android/bluetooth/BluetoothDevice.aidl \
@@ -387,6 +416,7 @@ aidl_files := \
 	frameworks/base/core/java/com/android/internal/view/IInputMethodClient.aidl \
 	frameworks/base/core/java/com/android/internal/view/IInputMethodManager.aidl \
 	frameworks/base/core/java/com/android/internal/view/IInputMethodSession.aidl \
+        frameworks/base/core/java/android/bluetooth/BluetoothLEServiceUuid.aidl  \
 	frameworks/base/graphics/java/android/graphics/Bitmap.aidl \
 	frameworks/base/graphics/java/android/graphics/Rect.aidl \
 	frameworks/base/graphics/java/android/graphics/Region.aidl \
@@ -399,7 +429,9 @@ aidl_files := \
 	frameworks/base/location/java/com/android/internal/location/ProviderRequest.aidl \
 	frameworks/base/telephony/java/android/telephony/ServiceState.aidl \
 	frameworks/base/telephony/java/com/android/internal/telephony/IPhoneSubInfo.aidl \
+	frameworks/base/telephony/java/com/android/internal/telephony/msim/IPhoneSubInfoMSim.aidl \
 	frameworks/base/telephony/java/com/android/internal/telephony/ITelephony.aidl \
+    frameworks/base/telephony/java/com/android/internal/telephony/msim/ITelephonyMSim.aidl \
 	frameworks/base/wifi/java/android/net/wifi/BatchedScanSettings.aidl \
 	frameworks/base/wifi/java/android/net/wifi/BatchedScanResult.aidl \
 

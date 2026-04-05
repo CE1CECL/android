@@ -43,7 +43,7 @@ import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-
+import com.android.camera.PhotoModule;
 import com.android.camera.CameraManager.CameraProxy;
 import com.android.camera.app.OrientationManager;
 import com.android.camera.data.LocalData;
@@ -266,6 +266,14 @@ public class WideAnglePanoramaModule
         CameraSettings.upgradeGlobalPreferences(mPreferences.getGlobal());
         mLocationManager = new LocationManager(mActivity, null);
 
+        // Force a re-check of the storage path
+        if (mActivity.setStoragePath(mPreferences)) {
+            mActivity.updateStorageSpaceAndHint();
+        }
+
+        // Power shutter
+        mActivity.initPowerShutter(mPreferences);
+
         mMainHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -482,9 +490,24 @@ public class WideAnglePanoramaModule
     @Override
     public void onPreviewUILayoutChange(int l, int t, int r, int b) {
         Log.d(TAG, "layout change: " + (r - l) + "/" + (b - t));
+        boolean capturePending = false;
+        if (mCaptureState == CAPTURE_STATE_MOSAIC){
+            capturePending = true;
+        }
         mPreviewUIWidth = r - l;
         mPreviewUIHeight = b - t;
         configMosaicPreview();
+        if (capturePending == true){
+            mMainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (!mPaused){
+                        mMainHandler.removeMessages(MSG_RESET_TO_PREVIEW);
+                        startCapture();
+                    }
+                }
+            });
+        }
     }
 
     @Override
@@ -509,9 +532,11 @@ public class WideAnglePanoramaModule
                     float progressX, float progressY) {
                 float accumulatedHorizontalAngle = progressX * mHorizontalViewAngle;
                 float accumulatedVerticalAngle = progressY * mVerticalViewAngle;
+                boolean isRotated = !(mDeviceOrientationAtCapture == mDeviceOrientation);
                 if (isFinished
                         || (Math.abs(accumulatedHorizontalAngle) >= DEFAULT_SWEEP_ANGLE)
-                        || (Math.abs(accumulatedVerticalAngle) >= DEFAULT_SWEEP_ANGLE)) {
+                        || (Math.abs(accumulatedVerticalAngle) >= DEFAULT_SWEEP_ANGLE)
+                        || isRotated) {
                     stopCapture(false);
                 } else {
                     float panningRateXInDegree = panningRateX * mHorizontalViewAngle;
@@ -742,7 +767,8 @@ public class WideAnglePanoramaModule
         if (jpegData != null) {
             String filename = PanoUtil.createName(
                     mActivity.getResources().getString(R.string.pano_file_name_format), mTimeTaken);
-            String filepath = Storage.generateFilepath(filename);
+            String filepath = Storage.getInstance().generateFilepath(filename,
+                              PhotoModule.PIXEL_FORMAT_JPEG);
 
             UsageStatistics.onEvent(UsageStatistics.COMPONENT_PANORAMA,
                     UsageStatistics.ACTION_CAPTURE_DONE, null, 0,
@@ -761,10 +787,10 @@ public class WideAnglePanoramaModule
                 exif.writeExif(jpegData, filepath);
             } catch (IOException e) {
                 Log.e(TAG, "Cannot set exif for " + filepath, e);
-                Storage.writeFile(filepath, jpegData);
+                Storage.getInstance().writeFile(filepath, jpegData);
             }
             int jpegLength = (int) (new File(filepath).length());
-            return Storage.addImage(mContentResolver, filename, mTimeTaken, loc, orientation,
+            return Storage.getInstance().addImage(mContentResolver, filename, mTimeTaken, loc, orientation,
                     jpegLength, filepath, width, height, LocalData.MIME_TYPE_JPEG);
         }
         return null;
@@ -819,6 +845,10 @@ public class WideAnglePanoramaModule
         }
         mUI.showPreviewCover();
         releaseCamera();
+
+        // Load the power shutter
+        mActivity.initPowerShutter(mPreferences);
+
         synchronized (mRendererLock) {
             mCameraTexture = null;
 
@@ -854,6 +884,10 @@ public class WideAnglePanoramaModule
     }
 
     @Override
+    public void resizeForPreviewAspectRatio() {
+    }
+
+    @Override
     public void onResumeBeforeSuper() {
         mPaused = false;
     }
@@ -874,7 +908,7 @@ public class WideAnglePanoramaModule
 
         // Check if another panorama instance is using the mosaic frame processor.
         mUI.dismissAllDialogs();
-        if (!mThreadRunning && mMosaicFrameProcessor.isMosaicMemoryAllocated()) {
+        if (mThreadRunning && mMosaicFrameProcessor.isMosaicMemoryAllocated()) {
             mUI.showWaitingDialog(mDialogWaitingPreviousString);
             // If stitching is still going on, make sure switcher and shutter button
             // are not showing
@@ -888,7 +922,12 @@ public class WideAnglePanoramaModule
             mPreviewUIWidth = size.x;
             mPreviewUIHeight = size.y;
             configMosaicPreview();
-            mActivity.updateStorageSpaceAndHint();
+            mMainHandler.post(new Runnable(){
+                @Override
+                public void run(){
+                    mActivity.updateStorageSpaceAndHint();
+                }
+            });
         }
         keepScreenOnAwhile();
 
@@ -978,6 +1017,7 @@ public class WideAnglePanoramaModule
             // image data from SurfaceTexture.
             mCameraDevice.setDisplayOrientation(0);
 
+            if (mCameraTexture != null)
             mCameraTexture.setOnFrameAvailableListener(this);
             mCameraDevice.setPreviewTexture(mCameraTexture);
         }
@@ -1070,14 +1110,51 @@ public class WideAnglePanoramaModule
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
     }
 
-
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Do not handle any key if the activity is paused
+        // or not in active camera/video mode
+        if (mPaused) {
+            return true;
+        } else if (!mActivity.isInCameraApp()) {
+            return false;
+        }
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+            case KeyEvent.KEYCODE_MEDIA_NEXT:
+            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                return true;
+            case KeyEvent.KEYCODE_CAMERA:
+            case KeyEvent.KEYCODE_HEADSETHOOK:
+                if (event.getRepeatCount() == 0) {
+                    onShutterButtonClick();
+                }
+                return true;
+            case KeyEvent.KEYCODE_POWER:
+                return true;
+        }
         return false;
     }
 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+            case KeyEvent.KEYCODE_MEDIA_NEXT:
+            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+                if (!CameraActivity.mPowerShutter && !CameraUtil.hasCameraKey()) {
+                    onShutterButtonClick();
+                }
+                return true;
+            case KeyEvent.KEYCODE_POWER:
+                if (CameraActivity.mPowerShutter && !CameraUtil.hasCameraKey()) {
+                    onShutterButtonClick();
+                }
+                return true;
+        }
         return false;
     }
 

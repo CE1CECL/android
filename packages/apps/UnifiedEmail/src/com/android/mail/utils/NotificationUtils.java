@@ -41,6 +41,7 @@ import android.text.style.TextAppearanceSpan;
 import android.util.Pair;
 import android.util.SparseArray;
 
+import com.android.emailcommon.utility.NotifyIconUtilities;
 import com.android.mail.EmailAddress;
 import com.android.mail.MailIntentService;
 import com.android.mail.R;
@@ -130,7 +131,7 @@ public class NotificationUtils {
             extends ConcurrentHashMap<NotificationKey, Pair<Integer, Integer>> {
 
         private static final String NOTIFICATION_PART_SEPARATOR = " ";
-        private static final int NUM_NOTIFICATION_PARTS= 4;
+        private static final int NUM_NOTIFICATION_PARTS = 4;
 
         /**
          * Retuns the unread count for the given NotificationKey.
@@ -172,6 +173,9 @@ public class NotificationUtils {
                         final Uri accountUri = Uri.parse(notificationParts[0]);
                         final Cursor accountCursor = context.getContentResolver().query(
                                 accountUri, UIProvider.ACCOUNTS_PROJECTION, null, null, null);
+                        if (accountCursor == null) {
+                            continue;
+                        }
                         final Account account;
                         try {
                             if (accountCursor.moveToFirst()) {
@@ -186,6 +190,9 @@ public class NotificationUtils {
                         final Uri folderUri = Uri.parse(notificationParts[1]);
                         final Cursor folderCursor = context.getContentResolver().query(
                                 folderUri, UIProvider.FOLDERS_PROJECTION, null, null, null);
+                        if (folderCursor == null) {
+                            continue;
+                        }
                         final Folder folder;
                         try {
                             if (folderCursor.moveToFirst()) {
@@ -216,13 +223,16 @@ public class NotificationUtils {
             final Set<NotificationKey> keys = keySet();
             for (NotificationKey key : keys) {
                 final Pair<Integer, Integer> value = get(key);
-                final Integer unreadCount = value.first;
-                final Integer unseenCount = value.second;
-                if (unreadCount != null && unseenCount != null) {
-                    final String[] partValues = new String[] {
-                            key.account.uri.toString(), key.folder.folderUri.fullUri.toString(),
-                            unreadCount.toString(), unseenCount.toString()};
-                    notificationSet.add(TextUtils.join(NOTIFICATION_PART_SEPARATOR, partValues));
+                if (value != null) {
+                    final Integer unreadCount = value.first;
+                    final Integer unseenCount = value.second;
+                    if (unreadCount != null && unseenCount != null) {
+                        final String[] partValues = new String[] {
+                                key.account.uri.toString(), key.folder.folderUri.fullUri.toString(),
+                                unreadCount.toString(), unseenCount.toString()
+                        };
+                        notificationSet.add(TextUtils.join(NOTIFICATION_PART_SEPARATOR, partValues));
+                    }
                 }
             }
             final MailPrefs mailPrefs = MailPrefs.get(context);
@@ -516,8 +526,11 @@ public class NotificationUtils {
             // We now have all we need to create the notification and the pending intent
             PendingIntent clickIntent;
 
+            int iconResId = NotifyIconUtilities.findNotifyIconForAccountDomain(context,
+                    R.xml.notify_icon_providers, account.getEmailAddress(),
+                    R.drawable.stat_notify_email);
             NotificationCompat.Builder notification = new NotificationCompat.Builder(context);
-            notification.setSmallIcon(R.drawable.stat_notify_email);
+            notification.setSmallIcon(iconResId);
             notification.setTicker(account.name);
 
             final long when;

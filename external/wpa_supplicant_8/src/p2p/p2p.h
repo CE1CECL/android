@@ -742,6 +742,9 @@ struct p2p_config {
 	 * @bssid: P2P Group BSSID or %NULL if not received
 	 * @channels: Available operating channels for the group
 	 * @addr: Peer address
+	 * @freq: Frequency (in MHz) indicated during invitation or 0
+	 * @peer_oper_freq: Operating frequency (in MHz) advertized by the peer
+	 * during invitation or 0
 	 *
 	 * This callback is used to indicate result of an Invitation procedure
 	 * started with a call to p2p_invite(). The indicated status code is
@@ -751,7 +754,7 @@ struct p2p_config {
 	 */
 	void (*invitation_result)(void *ctx, int status, const u8 *bssid,
 				  const struct p2p_channels *channels,
-				  const u8 *addr);
+				  const u8 *addr, int freq, int peer_oper_freq);
 
 	/**
 	 * go_connected - Check whether we are connected to a GO
@@ -761,6 +764,23 @@ struct p2p_config {
 	 * or 0 if not.
 	 */
 	int (*go_connected)(void *ctx, const u8 *dev_addr);
+
+	/**
+	 * is_concurrent_session_active - Check whether concurrent session is
+	 * active on other virtual interfaces
+	 * @ctx: Callback context from cb_ctx
+	 * Returns: 1 if concurrent session is active on other virtual interface
+	 * or 0 if not.
+	 */
+	int (*is_concurrent_session_active)(void *ctx);
+
+	/**
+	 * is_p2p_in_progress - Check whether P2P operation is in progress
+	 * @ctx: Callback context from cb_ctx
+	 * Returns: 1 if P2P operation (e.g., group formation) is in progress
+	 * or 0 if not.
+	 */
+	int (*is_p2p_in_progress)(void *ctx);
 };
 
 

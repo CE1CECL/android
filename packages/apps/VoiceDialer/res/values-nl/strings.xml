@@ -1,5 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--  Copyright (C) 2006 The Android Open Source Project
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2006 The Android Open Source Project
+     Copyright (C) 2012 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,7 +14,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
  -->
-
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="voiceDialer" msgid="5948204210436590941">"Voice Dialer"</string>
@@ -26,14 +26,14 @@
     <string name="listening" msgid="6886486282595802147">"Luisteren..."</string>
     <string name="please_try_again" msgid="6612157920739645345">"Probeer het opnieuw."</string>
     <string name="failure" msgid="4363633038755445209">"Kan niet initialiseren"</string>
-    <string name="recognition_error" msgid="6171111971593859630">"Start uw telefoon opnieuw en probeer het nogmaals."</string>
+    <string name="recognition_error" msgid="6171111971593859630">"Herstart uw telefoon en probeer het nogmaals."</string>
     <string name="headset_connection_lost" msgid="3809295858472462650">"Verbinding met headset verbroken."</string>
     <string name="at_home" msgid="8478880812967663328">" thuis"</string>
     <string name="on_mobile" msgid="5739841127369724804">" mobiel"</string>
     <string name="at_work" msgid="2946111016850670818">" werk"</string>
     <string name="at_other" msgid="1863773841760953063">" anders"</string>
-    <string name="logging_enabled" msgid="1797105104286961324">"Aanmelden via Voice Dialer is ingeschakeld."</string>
-    <string name="logging_disabled" msgid="5851271054900000063">"Aanmelden via Voice Dialer is uitgeschakeld."</string>
+    <string name="logging_enabled" msgid="1797105104286961324">"Aanmelden via Spraakkiezer is ingeschakeld."</string>
+    <string name="logging_disabled" msgid="5851271054900000063">"Aanmelden via Spraakkiezer is uitgeschakeld."</string>
     <string name="speak_now_tts" msgid="1343363077871348876">"Nu spreken."</string>
     <string name="no_results_tts" msgid="7292876061536755253">"Geen resultaten. Probeer opnieuw."</string>
     <string name="invalid_choice_tts" msgid="1871918597940504468">"Ongeldige keuze."</string>

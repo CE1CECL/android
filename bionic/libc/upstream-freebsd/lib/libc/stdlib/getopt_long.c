@@ -111,21 +111,21 @@ static int nonopt_start = -1; /* first non option argument (for permute) */
 static int nonopt_end = -1;   /* first option after non options (for permute) */
 
 /* Error messages */
-static const char recargchar[] = "option requires an argument -- %c";
-static const char illoptchar[] = "illegal option -- %c"; /* From P1003.2 */
+static const char recargchar[] = "option requires an argument -- %c\n";
+static const char illoptchar[] = "illegal option -- %c\n"; /* From P1003.2 */
 #ifdef GNU_COMPATIBLE
 static int dash_prefix = NO_PREFIX;
-static const char gnuoptchar[] = "invalid option -- %c";
+static const char gnuoptchar[] = "invalid option -- %c\n";
 
-static const char recargstring[] = "option `%s%s' requires an argument";
-static const char ambig[] = "option `%s%.*s' is ambiguous";
-static const char noarg[] = "option `%s%.*s' doesn't allow an argument";
-static const char illoptstring[] = "unrecognized option `%s%s'";
+static const char recargstring[] = "option `%s%s' requires an argument\n";
+static const char ambig[] = "option `%s%.*s' is ambiguous\n";
+static const char noarg[] = "option `%s%.*s' doesn't allow an argument\n";
+static const char illoptstring[] = "unrecognized option `%s%s'\n";
 #else
-static const char recargstring[] = "option requires an argument -- %s";
-static const char ambig[] = "ambiguous option -- %.*s";
-static const char noarg[] = "option doesn't take an argument -- %.*s";
-static const char illoptstring[] = "unknown option -- %s";
+static const char recargstring[] = "option requires an argument -- %s\n";
+static const char ambig[] = "ambiguous option -- %.*s\n";
+static const char noarg[] = "option doesn't take an argument -- %.*s\n";
+static const char illoptstring[] = "unknown option -- %s\n";
 #endif
 
 /*

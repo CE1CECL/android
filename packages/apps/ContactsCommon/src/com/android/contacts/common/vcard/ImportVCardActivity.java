@@ -38,6 +38,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.OpenableColumns;
+import android.provider.Telephony.Mms.Part;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextUtils;
@@ -46,9 +47,12 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.contacts.common.R;
+import com.android.contacts.common.editor.SelectAccountDialogFragment;
 import com.android.contacts.common.model.AccountTypeManager;
 import com.android.contacts.common.model.account.AccountWithDataSet;
+import com.android.contacts.common.MoreContactUtils;
 import com.android.contacts.common.util.AccountSelectionUtil;
+import com.android.contacts.common.util.AccountsListAdapter;
 import com.android.vcard.VCardEntryCounter;
 import com.android.vcard.VCardParser;
 import com.android.vcard.VCardParser_V21;
@@ -60,6 +64,7 @@ import com.android.vcard.exception.VCardVersionException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -75,6 +80,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The class letting users to import vCard. This includes the UI part for letting them select
@@ -85,10 +92,8 @@ import java.util.Vector;
  * any Dialog in the instance. So this code is careless about the management around managed
  * dialogs stuffs (like how onCreateDialog() is used).
  */
-public class ImportVCardActivity extends Activity {
+public class ImportVCardActivity extends Activity implements SelectAccountDialogFragment.Listener {
     private static final String LOG_TAG = "VCardImport";
-
-    private static final int SELECT_ACCOUNT = 0;
 
     /* package */ static final String VCARD_URI_ARRAY = "vcard_uri";
     /* package */ static final String ESTIMATED_VCARD_TYPE_ARRAY = "estimated_vcard_type";
@@ -100,6 +105,13 @@ public class ImportVCardActivity extends Activity {
     /* package */ final static int VCARD_VERSION_V21 = 1;
     /* package */ final static int VCARD_VERSION_V30 = 2;
 
+    // Constant of connect status.
+    private final static int STATUS_DEFAULT = 0;
+    // When connection bind success.
+    private final static int STATUS_CONNECT = 1;
+    // When connection unbind.
+    private final static int STATUS_DISCONNECT = 2;
+
     private static final String SECURE_DIRECTORY_NAME = ".android_secure";
 
     /**
@@ -109,7 +121,8 @@ public class ImportVCardActivity extends Activity {
 
     final static String CACHED_URIS = "cached_uris";
 
-    private AccountSelectionUtil.AccountSelectedListener mAccountSelectionListener;
+    // Connect status,default value is STATUS_DEFAULT.
+    private int mConnectStatus = STATUS_DEFAULT;
 
     private AccountWithDataSet mAccount;
 
@@ -124,8 +137,20 @@ public class ImportVCardActivity extends Activity {
     /* package */ VCardImportExportListener mListener;
 
     private String mErrorMessage;
+    private int mSelectedStorage = VCardService.INTERNAL_PATH;
 
     private Handler mHandler = new Handler();
+
+    @Override
+    public void onAccountChosen(AccountWithDataSet account, Bundle extraArgs) {
+        mAccount = account;
+        startImport();
+    }
+
+    @Override
+    public void onAccountSelectorCancelled() {
+        finish();
+    }
 
     private static class VCardFile {
         private final String mName;
@@ -193,6 +218,8 @@ public class ImportVCardActivity extends Activity {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
+            // when service connect set mConnectStatus as STATUS_CONNECT.
+            mConnectStatus = STATUS_CONNECT;
             mService = ((VCardService.MyBinder) binder).getService();
             Log.i(LOG_TAG,
                     String.format("Connected to VCardService. Kick a vCard cache thread (uri: %s)",
@@ -307,18 +334,24 @@ public class ImportVCardActivity extends Activity {
 
                         String displayName = null;
                         Cursor cursor = null;
+                        String projection = null;
                         // Try to get a display name from the given Uri. If it fails, we just
                         // pick up the last part of the Uri.
+                        if (sourceUri.getAuthority().startsWith("mms")) {
+                            // to deal with the vcard received from mms.
+                            projection = Part.NAME;
+                        } else {
+                            projection = OpenableColumns.DISPLAY_NAME;
+                        }
                         try {
-                            cursor = resolver.query(sourceUri,
-                                    new String[] { OpenableColumns.DISPLAY_NAME },
+                            cursor = resolver.query(sourceUri, new String[] { projection },
                                     null, null, null);
                             if (cursor != null && cursor.getCount() > 0 && cursor.moveToFirst()) {
                                 if (cursor.getCount() > 1) {
                                     Log.w(LOG_TAG, "Unexpected multiple rows: "
                                             + cursor.getCount());
                                 }
-                                int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                                int index = cursor.getColumnIndex(projection);
                                 if (index >= 0) {
                                     displayName = cursor.getString(index);
                                 }
@@ -368,7 +401,10 @@ public class ImportVCardActivity extends Activity {
             } finally {
                 Log.i(LOG_TAG, "Finished caching vCard.");
                 mWakeLock.release();
-                unbindService(mConnection);
+                // only STATUS_CONNECT we here need to unbind service.
+                if (STATUS_CONNECT == mConnectStatus) {
+                    unbindService(mConnection);
+                }
                 mProgressDialogForCachingVCard.dismiss();
                 mProgressDialogForCachingVCard = null;
                 finish();
@@ -403,6 +439,22 @@ public class ImportVCardActivity extends Activity {
                 buffer.flip();
                 while (buffer.hasRemaining()) {
                     outputChannel.write(buffer);
+                }
+            } catch (FileNotFoundException e) {
+                // A URI reference includes a URI and a fragment, the component of the URI
+                // following a '#'. The '#' is regarded as separator, and everything between
+                // the scheme separator ':'and the fragment separator '#' will be encoded.
+                // So the URI that get encoded is error when the fileName of vCard contain '#',
+                // and throw FileNotFoundException.
+
+                // Parse fileName from source uri,if file exists,prompt as file xxx import failt,
+                // if fileName is null,just prompt as I/O error.
+                String sourceFileName = parseNameFromUri(sourceUri);
+                if (null != sourceFileName) {
+                    showFailureNotification(getString(
+                       R.string.fail_reason_import_vcard, sourceFileName));
+                } else {
+                    showFailureNotification(R.string.fail_reason_io_error);
                 }
             } finally {
                 if (inputChannel != null) {
@@ -760,7 +812,7 @@ public class ImportVCardActivity extends Activity {
             public void run() {
                 if (!isFinishing()) {
                     mVCardCacheThread = new VCardCacheThread(uris);
-                    mListener = new NotificationImportExportListener(ImportVCardActivity.this);
+                    mListener = new NotificationImportExportListener(ImportVCardActivity.this.getApplication());
                     showDialog(R.id.dialog_cache_vcard);
                 }
             }
@@ -848,31 +900,16 @@ public class ImportVCardActivity extends Activity {
             } else if (accountList.size() == 1) {
                 mAccount = accountList.get(0);
             } else {
-                startActivityForResult(new Intent(this, SelectAccountActivity.class),
-                        SELECT_ACCOUNT);
+                SelectAccountDialogFragment.show(
+                        getFragmentManager(), this,
+                        R.string.dialog_new_contact_account,
+                        AccountsListAdapter.AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM,
+                        null);
                 return;
             }
         }
 
         startImport();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (requestCode == SELECT_ACCOUNT) {
-            if (resultCode == Activity.RESULT_OK) {
-                mAccount = new AccountWithDataSet(
-                        intent.getStringExtra(SelectAccountActivity.ACCOUNT_NAME),
-                        intent.getStringExtra(SelectAccountActivity.ACCOUNT_TYPE),
-                        intent.getStringExtra(SelectAccountActivity.DATA_SET));
-                startImport();
-            } else {
-                if (resultCode != Activity.RESULT_CANCELED) {
-                    Log.w(LOG_TAG, "Result code was not OK nor CANCELED: " + resultCode);
-                }
-                finish();
-            }
-        }
     }
 
     private void startImport() {
@@ -884,21 +921,54 @@ public class ImportVCardActivity extends Activity {
             importVCard(uri);
         } else {
             Log.i(LOG_TAG, "Start vCard without Uri. The user will select vCard manually.");
+            checkStorage();
+        }
+    }
+
+    private void checkStorage() {
+        boolean sdExist = MoreContactUtils.sdCardExist(this);
+        boolean inExist = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
+        if (sdExist && inExist) {
+            CharSequence[] storageNames = new CharSequence[2];
+            storageNames[VCardService.INTERNAL_PATH] = getString(R.string.phone_storage);
+            storageNames[VCardService.EXTERNAL_PATH] = getString(R.string.sd_card);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle(R.string.select_path);
+            builder.setSingleChoiceItems(storageNames, -1, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Log.d(LOG_TAG, "onClicked Dialog on which = " + which);
+                    mSelectedStorage = which;
+                }
+            });
+
+            AlertDialog dialog = builder.create();
+            dialog.setOnCancelListener(mCancelListener);
+            dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok),
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            doScanExternalStorageAndImportVCard();
+                        }
+                    });
+            dialog.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel),
+                    mCancelListener);
+            dialog.show();
+        } else if (inExist) {
+            mSelectedStorage = VCardService.INTERNAL_PATH;
             doScanExternalStorageAndImportVCard();
+        } else if (sdExist) {
+            mSelectedStorage = VCardService.EXTERNAL_PATH;
+            doScanExternalStorageAndImportVCard();
+        } else {
+            mSelectedStorage = VCardService.INVALID_PATH;
         }
     }
 
     @Override
     protected Dialog onCreateDialog(int resId, Bundle bundle) {
         switch (resId) {
-            case R.string.import_from_sdcard: {
-                if (mAccountSelectionListener == null) {
-                    throw new NullPointerException(
-                            "mAccountSelectionListener must not be null.");
-                }
-                return AccountSelectionUtil.getSelectAccountDialog(this, resId,
-                        mAccountSelectionListener, mCancelListener);
-            }
             case R.id.dialog_searching_vcard: {
                 if (mProgressDialogForScanVCard == null) {
                     String message = getString(R.string.searching_vcard_message);
@@ -982,9 +1052,17 @@ public class ImportVCardActivity extends Activity {
         Log.i(LOG_TAG, "Bind to VCardService.");
         // We don't want the service finishes itself just after this connection.
         Intent intent = new Intent(this, VCardService.class);
+        intent.putExtra(VCardService.STORAGE_PATH,mSelectedStorage);
         startService(intent);
         bindService(new Intent(this, VCardService.class),
                 mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    // when this activity destroy we should set mConnectStatus as STATUS_DISCONNECT.
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mConnectStatus = STATUS_DISCONNECT;
     }
 
     @Override
@@ -1003,7 +1081,26 @@ public class ImportVCardActivity extends Activity {
      */
     private void doScanExternalStorageAndImportVCard() {
         // TODO: should use getExternalStorageState().
-        final File file = Environment.getExternalStorageDirectory();
+        Log.i(LOG_TAG,"Import Vcard from path:"+ mSelectedStorage);
+        if(mSelectedStorage == VCardService.INVALID_PATH)
+            return;
+        File file;
+        switch(mSelectedStorage) {
+            case VCardService.INTERNAL_PATH:
+                file = Environment.getExternalStorageDirectory();
+                break;
+            case VCardService.EXTERNAL_PATH:
+                final String sdcardPath = MoreContactUtils.getSDPath(this);
+                if (sdcardPath != null) {
+                    file = new File(sdcardPath);
+                } else {
+                    file = Environment.getExternalStorageDirectory();
+                }
+                break;
+            default:
+                file = Environment.getExternalStorageDirectory();
+                break;
+            }
         if (!file.exists() || !file.isDirectory() || !file.canRead()) {
             showDialog(R.id.dialog_sdcard_not_found);
         } else {
@@ -1012,13 +1109,17 @@ public class ImportVCardActivity extends Activity {
         }
     }
 
-    /* package */ void showFailureNotification(int reasonId) {
+    void showFailureNotification(int reasonId) {
+          showFailureNotification(getString(reasonId));
+    }
+
+    void showFailureNotification(String reason) {
         final NotificationManager notificationManager =
                 (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         final Notification notification =
                 NotificationImportExportListener.constructImportFailureNotification(
                         ImportVCardActivity.this,
-                        getString(reasonId));
+                        reason);
         notificationManager.notify(NotificationImportExportListener.FAILURE_NOTIFICATION_TAG,
                 FAILURE_NOTIFICATION_ID, notification);
         mHandler.post(new Runnable() {
@@ -1028,5 +1129,33 @@ public class ImportVCardActivity extends Activity {
                         getString(R.string.vcard_import_failed), Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+   /**
+    * For getting vCard name from uri.
+    *
+    * @param uri the uri that vcard need to copy
+    * @return uri vcard file name.
+    */
+    private String parseNameFromUri(Uri uri) {
+
+        if (null == uri) {
+            return null;
+        }
+
+        String mUri = String.valueOf(uri);
+
+        // The regex expression for uri filter
+        String uriRegex ="^file:\\/\\/\\/[\\w+\\/]+\\w+.vcf$";
+        Pattern uriPattern = Pattern.compile(uriRegex);
+        Matcher uriMatcher = uriPattern.matcher(mUri);
+
+        // judgement is valid vCard file url or not
+        if (!uriMatcher.matches()) {
+            return null;
+        }
+
+        // get the vCard name.
+        return mUri.substring(mUri.lastIndexOf("/") + 1);
     }
 }

@@ -16,6 +16,7 @@
 
 package com.android.internal.os;
 
+import android.graphics.Typeface;
 import android.net.Credentials;
 import android.net.LocalSocket;
 import android.os.Process;
@@ -75,6 +76,8 @@ class ZygoteConnection {
     private final Credentials peer;
     private final String peerSecurityContext;
 
+    private static final int GC_LOOP_COUNT = 10;
+
     /**
      * Constructs instance from connected socket.
      *
@@ -123,7 +126,7 @@ class ZygoteConnection {
      */
     void run() throws ZygoteInit.MethodAndArgsCaller {
 
-        int loopCount = ZygoteInit.GC_LOOP_COUNT;
+        int loopCount = GC_LOOP_COUNT;
 
         while (true) {
             /*
@@ -136,8 +139,8 @@ class ZygoteConnection {
              * heap is a lot of overhead to free a few hundred bytes.
              */
             if (loopCount <= 0) {
-                ZygoteInit.gc();
-                loopCount = ZygoteInit.GC_LOOP_COUNT;
+                System.gc();
+                loopCount = GC_LOOP_COUNT;
             } else {
                 loopCount--;
             }
@@ -220,9 +223,42 @@ class ZygoteConnection {
                 ZygoteInit.setCloseOnExec(serverPipeFd, true);
             }
 
+            //Replace the font cache if the theme changed
+            if (parsedArgs.refreshTheme) {
+                Typeface.recreateDefaults();
+            }
+
+            /**
+             * In order to avoid leaking descriptors to the Zygote child,
+             * the native code must close the two Zygote socket descriptors
+             * in the child process before it switches from Zygote-root to
+             * the UID and privileges of the application being launched.
+             *
+             * In order to avoid "bad file descriptor" errors when the
+             * two LocalSocket objects are closed, the Posix file
+             * descriptors are released via a dup2() call which closes
+             * the socket and substitutes an open descriptor to /dev/null.
+             */
+
+            int [] fdsToClose = { -1, -1 };
+
+            FileDescriptor fd = mSocket.getFileDescriptor();
+
+            if (fd != null) {
+                fdsToClose[0] = fd.getInt$();
+            }
+
+            fd = ZygoteInit.getServerSocketFileDescriptor();
+
+            if (fd != null) {
+                fdsToClose[1] = fd.getInt$();
+            }
+
+            fd = null;
+
             pid = Zygote.forkAndSpecialize(parsedArgs.uid, parsedArgs.gid, parsedArgs.gids,
                     parsedArgs.debugFlags, rlimits, parsedArgs.mountExternal, parsedArgs.seInfo,
-                    parsedArgs.niceName);
+                    parsedArgs.niceName, fdsToClose);
         } catch (IOException ex) {
             logAndPrintError(newStderr, "Exception creating pipe", ex);
         } catch (ErrnoException ex) {
@@ -349,6 +385,9 @@ class ZygoteConnection {
 
         /** from --invoke-with */
         String invokeWith;
+
+        /** from --refresh_theme */
+        boolean refreshTheme;
 
         /**
          * Any args after and including the first non-option arg
@@ -509,6 +548,8 @@ class ZygoteConnection {
                     mountExternal = Zygote.MOUNT_EXTERNAL_MULTIUSER;
                 } else if (arg.equals("--mount-external-multiuser-all")) {
                     mountExternal = Zygote.MOUNT_EXTERNAL_MULTIUSER_ALL;
+                } else if (arg.equals("--refresh_theme")) {
+                    refreshTheme = true;
                 } else {
                     break;
                 }
@@ -803,7 +844,7 @@ class ZygoteConnection {
     }
 
     /**
-     * Applies zygote security policy for SEAndroid information.
+     * Applies zygote security policy for SELinux information.
      *
      * @param args non-null; zygote spawner arguments
      * @param peer non-null; peer credentials
@@ -822,7 +863,7 @@ class ZygoteConnection {
         if (!(peerUid == 0 || peerUid == Process.SYSTEM_UID)) {
             // All peers with UID other than root or SYSTEM_UID
             throw new ZygoteSecurityException(
-                    "This UID may not specify SEAndroid info.");
+                    "This UID may not specify SELinux info.");
         }
 
         boolean allowed = SELinux.checkSELinuxAccess(peerSecurityContext,
@@ -831,7 +872,7 @@ class ZygoteConnection {
                                                      "specifyseinfo");
         if (!allowed) {
             throw new ZygoteSecurityException(
-                    "Peer may not specify SEAndroid info");
+                    "Peer may not specify SELinux info");
         }
 
         return;
@@ -874,6 +915,12 @@ class ZygoteConnection {
     private void handleChildProc(Arguments parsedArgs,
             FileDescriptor[] descriptors, FileDescriptor pipeFd, PrintStream newStderr)
             throws ZygoteInit.MethodAndArgsCaller {
+
+        /**
+         * By the time we get here, the native code has closed the two actual Zygote
+         * socket connections, and substituted /dev/null in their place.  The LocalSocket
+         * objects still need to be closed properly.
+         */
 
         closeSocket();
         ZygoteInit.closeServerSocket();

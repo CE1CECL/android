@@ -1,6 +1,9 @@
 /*
  * Copyright (C) 2009 The Android Open Source Project
  *
+ * Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
+ * Not a Contribution
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -48,8 +51,11 @@ enum {
     kKeyChannelCount      = '#chn',  // int32_t
     kKeyChannelMask       = 'chnm',  // int32_t
     kKeySampleRate        = 'srte',  // int32_t (audio sampling rate Hz)
+    kKeyExtSampleRate     = 'exsr',  // int32_t (extenstion audio sampling rate Hz)
     kKeyFrameRate         = 'frmR',  // int32_t (video frame rate fps)
     kKeyBitRate           = 'brte',  // int32_t (bps)
+    kKeyCodecId           = 'cdid',  // int32_t
+    kKeySampleFormat      = 'sfmt',  // int32_t
     kKeyESDS              = 'esds',  // raw data
     kKeyAACProfile        = 'aacp',  // int32_t
     kKeyAVCC              = 'avcc',  // raw data
@@ -121,6 +127,21 @@ enum {
     kKeyValidSamples      = 'valD',  // int32_t
 
     kKeyIsUnreadable      = 'unre',  // bool (int32_t)
+    kKeyRawCodecSpecificData = 'rcsd',  // raw data - added to support mmParser
+    kKeyDivXVersion       = 'DivX',  // int32_t
+    kKeyDivXDrm           = 'QDrm',  // void *
+    kKeyWMAEncodeOpt      = 'eopt',  // int32_t
+    kKeyWMABlockAlign     = 'blka',  // int32_t
+    kKeyWMAVersion        = 'wmav',  // int32_t
+    kKeyWMAAdvEncOpt1     = 'ade1',  // int16_t
+    kKeyWMAAdvEncOpt2     = 'ade2',  // int32_t
+    kKeyWMAFormatTag      = 'fmtt',  // int64_t
+    kKeyWMABitspersample  = 'bsps',  // int64_t
+    kKeyWMAVirPktSize     = 'vpks',  // int64_t
+    kKeyWMVProfile        = 'wmvp',  // int32_t
+    kKeyWMVVersion        = 'wmvv',  // int32_t
+    kKeyRVVersion         = '#rvv',  // int32_t
+    kKeyBlockAlign        = 'blk',   // int32_t , should be different from kKeyWMABlockAlign
 
     // An indication that a video buffer has been rendered.
     kKeyRendered          = 'rend',  // bool (int32_t)
@@ -162,12 +183,43 @@ enum {
     kKeyCryptoDefaultIVSize = 'cryS',  // int32_t
 
     kKeyPssh              = 'pssh',  // raw data
+#ifdef QCOM_HARDWARE
+    kKeyTunnelException   = 'Ntnl', // not tunnel
+#endif
+
+    kKeySampleBits        = 'sbit', // int32_t (audio sample bit-width)
 };
 
 enum {
     kTypeESDS        = 'esds',
     kTypeAVCC        = 'avcc',
     kTypeD263        = 'd263',
+};
+
+enum {
+    kTypeDivXVer_3_11,
+    kTypeDivXVer_4,
+    kTypeDivXVer_5,
+    kTypeDivXVer_6,
+};
+
+enum {
+    kTypeWMA,
+    kTypeWMAPro,
+    kTypeWMALossLess,
+};
+
+enum {
+    kTypeWMVVer_7, // WMV1
+    kTypeWMVVer_8, // WMV2
+    kTypeWMVVer_9, // WMV3
+};
+
+// http://en.wikipedia.org/wiki/RealVideo
+enum {
+    kTypeRVVer_G2, // rv20: RealVideo G2
+    kTypeRVVer_8,  // rv30: RealVideo 8
+    kTypeRVVer_9,  // rv40: RealVideo 9
 };
 
 class MetaData : public RefBase {
@@ -246,7 +298,7 @@ private:
             return mSize <= sizeof(u.reservoir);
         }
 
-        void allocateStorage(size_t size);
+        void *allocateStorage(size_t size);
         void freeStorage();
 
         void *storage() {
