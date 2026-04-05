@@ -197,7 +197,7 @@ esac
 cd $BUILD_OUT &&
 export CC="$TOOLCHAIN_PREFIX-gcc --sysroot=$BUILD_SYSROOT" &&
 export CFLAGS="-O2 $GDBSERVER_CFLAGS"  &&
-export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--no-undefined" &&
+export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--allow-shlib-undefined" &&
 run $SRC_DIR/configure \
 --host=$GDBSERVER_HOST \
 $CONFIGURE_FLAGS

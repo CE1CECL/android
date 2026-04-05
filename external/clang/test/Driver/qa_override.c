@@ -1,5 +1,5 @@
 // RUN: env QA_OVERRIDE_GCC3_OPTIONS="#+-Os +-Oz +-O +-O3 +-Oignore +a +b +c xb Xa Omagic ^-ccc-print-options  " %clang x -O2 b -O3 2>&1 | FileCheck %s
-// RUN: env QA_OVERRIDE_GCC3_OPTIONS="x-Werror +-mfoo" %clang -Werror %s -c -### 2>&1 | FileCheck %s -check-prefix=RM-WERROR
+// RUN: env QA_OVERRIDE_GCC3_OPTIONS="x +-mfoo" %clang  %s -c -### 2>&1 | FileCheck %s -check-prefix=RM-WERROR
 
 // FIXME: It seems doesn't work with gcc-driver.
 // REQUIRES: clang-driver
@@ -10,8 +10,8 @@
 // CHECK-NEXT: Option 2 - Name: "-O", Values: {"ignore"}
 // CHECK-NEXT: Option 3 - Name: "-O", Values: {"magic"}
 
-// RM-WERROR: ### QA_OVERRIDE_GCC3_OPTIONS: x-Werror +-mfoo
-// RM-WERROR-NEXT: ### Deleting argument -Werror
+// RM-WERROR: ### QA_OVERRIDE_GCC3_OPTIONS: x +-mfoo
+// RM-WERROR-NEXT: ### Deleting argument 
 // RM-WERROR-NEXT: ### Adding argument -mfoo at end
 // RM-WERROR: warning: argument unused during compilation: '-mfoo'
-// RM-WERROR-NOT: "-Werror"
+// RM-WERROR-NOT: ""

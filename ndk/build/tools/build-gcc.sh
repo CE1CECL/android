@@ -267,7 +267,7 @@ export CXXFLAGS_FOR_TARGET="$ABI_CXXFLAGS_FOR_TARGET"
 export ABI=$HOST_GMP_ABI
 
 # Note that the following flags only apply for "build" in canadian
-# -Wno-error is needed because our gdb-6.6 sources use -Werror by default
+# -Wno-error is needed because our gdb-6.6 sources use  by default
 # and fail to build with recent GCC versions.
 CFLAGS_FOR_BUILD="-O2 -s -Wno-error"
 LDFLAGS_FOR_BUILD=

@@ -790,7 +790,7 @@ GNU Bison NEWS
     bison -Wno-conflicts-sr gram.y  # S/R conflicts not reported
     bison -Wno-conflicts-rr gram.y  # R/R conflicts not reported
     bison -Wnone            gram.y  # no conflicts are reported
-    bison -Werror           gram.y  # any conflict is an error
+    bison            gram.y  # any conflict is an error
 
   However, as before, if the %expect or %expect-rr directive is
   specified, an unexpected number of conflicts is an error, and an
@@ -802,7 +802,7 @@ GNU Bison NEWS
   For example, for the following command line, Bison now reports
   errors instead of warnings for incompatibilities with POSIX Yacc:
 
-    bison -Werror,none,yacc gram.y
+    bison ,none,yacc gram.y
 
 *** The "none" category now disables all Bison warnings:
 
@@ -825,7 +825,7 @@ GNU Bison NEWS
 
 * Changes in version 2.4.3 (2010-08-05):
 
-** Bison now obeys -Werror and --warnings=error for warnings about
+** Bison now obeys  and --warnings=error for warnings about
    grammar rules that are useless in the parser due to conflicts.
 
 ** Problems with spawning M4 on at least FreeBSD 8 and FreeBSD 9 have

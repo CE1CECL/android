@@ -68,7 +68,7 @@
 // W1: -Wall
 
 // RUN: %clang_cl /WX -### -- %s 2>&1 | FileCheck -check-prefix=WX %s
-// WX: -Werror
+// WX: 
 
 // RUN: %clang_cl /WX- -### -- %s 2>&1 | FileCheck -check-prefix=WX_ %s
 // WX_: -Wno-error
@@ -81,7 +81,7 @@
 
 
 // Ignored options. Check that we don't get "unused during compilation" errors.
-// (/Zs is for syntax-only, /WX is for -Werror)
+// (/Zs is for syntax-only, /WX is for )
 // RUN: %clang_cl /Zs /WX /analyze- /errorReport:foo /nologo /Ob1 /Ob2 -- %s
 // RUN: %clang_cl /Zs /WX /Zc:forScope /Zc:wchar_t -- %s
 

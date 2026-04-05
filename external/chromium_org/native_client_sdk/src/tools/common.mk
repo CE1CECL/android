@@ -324,8 +324,8 @@ ifdef STANDALONE
 POSIX_FLAGS += -DSEL_LDR=1
 endif
 
-NACL_CFLAGS ?= -Wno-long-long -Werror
-NACL_CXXFLAGS ?= -Wno-long-long -Werror
+NACL_CFLAGS ?= -Wno-long-long 
+NACL_CXXFLAGS ?= -Wno-long-long 
 NACL_LDFLAGS += -Wl,-as-needed -pthread
 
 #

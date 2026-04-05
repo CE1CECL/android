@@ -28,7 +28,7 @@ PIPE_SYS = $(LIBDRM_LIBS) -lm -lpthread $(DLOPEN_LIBS)
 
 PIPE_CFLAGS = $(LIBDRM_CFLAGS)
 
-PIPE_LDFLAGS = -Wl,--no-undefined
+PIPE_LDFLAGS = -Wl,--allow-shlib-undefined
 
 # i915 pipe driver
 i915_LIBS = \

@@ -3436,7 +3436,7 @@ Minor changes in 1.9.5:
   1.9.1 -- 1.9.4.  This is no longer possible.
 
 - Add some __extension__ bits and pieces so that gcc configured
-  for valgrind-checking compiles even with -Werror.  If you
+  for valgrind-checking compiles even with .  If you
   don't understand this, ignore it.  Of interest to gcc developers
   only.
 

@@ -273,7 +273,7 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
     libffi_cv_hidden_visibility_attribute, [
 	echo 'int __attribute__ ((visibility ("hidden"))) foo (void) { return 1; }' > conftest.c
 	libffi_cv_hidden_visibility_attribute=no
-	if AC_TRY_COMMAND(${CC-cc} -Werror -S conftest.c -o conftest.s 1>&AS_MESSAGE_LOG_FD); then
+	if AC_TRY_COMMAND(${CC-cc}  -S conftest.c -o conftest.s 1>&AS_MESSAGE_LOG_FD); then
 	    if grep '\.hidden.*foo' conftest.s >/dev/null; then
 		libffi_cv_hidden_visibility_attribute=yes
 	    fi

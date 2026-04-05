@@ -7,7 +7,7 @@ AC_LANG_CPLUSPLUS
 SAVE_CXXFLAGS=$CXXFLAGS
 dnl we consider than if -Winvalid-pch is accepted pch will works ...
 CXXFLAGS=-Winvalid-pch
-dnl but we don't want -Winvalid-pch else compilation will fail due -Werror and
+dnl but we don't want -Winvalid-pch else compilation will fail due  and
 dnl the fact than some pch will be invalid for the given compilation option
 AC_TRY_COMPILE(,[;],AC_MSG_RESULT([yes]); $1="${$1} -include bits/stdc++.h", AC_MSG_RESULT([no]))
 CXXFLAGS=$SAVE_CXXFLAGS

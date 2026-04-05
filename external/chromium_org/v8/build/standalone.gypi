@@ -70,7 +70,7 @@
     'host_arch%': '<(host_arch)',
     'target_arch%': '<(target_arch)',
     'v8_target_arch%': '<(v8_target_arch)',
-    'werror%': '-Werror',
+    'werror%': '',
 
     # .gyp files or targets should set v8_code to 1 if they build V8 specific
     # code, as opposed to external code.  This variable is used to control such
@@ -144,12 +144,12 @@
         'conditions': [
           ['os_posix == 1 and OS != "mac"', {
             'cflags!': [
-              '-Werror',
+              '',
             ],
           }],
           ['OS == "mac"', {
             'xcode_settings': {
-              'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',    # -Werror
+              'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',    # 
             },
           }],
           ['OS == "win"', {

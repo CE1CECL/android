@@ -5990,7 +5990,7 @@ func_mode_link ()
     if test "$module" = yes ; then
       # [Mandriva] dropping ld option "--no-undefined" which is wrong for plugins
       linker_flags=`$ECHO "X $linker_flags" | $Xsed -e 's/ --no-undefined//'`
-      compiler_flags=`$ECHO "X $compiler_flags" | $Xsed -e 's/ -Wl,--no-undefined//'`
+      compiler_flags=`$ECHO "X $compiler_flags" | $Xsed -e 's/ -Wl,--allow-shlib-undefined//'`
     fi
 
     test -n "$prev" && \

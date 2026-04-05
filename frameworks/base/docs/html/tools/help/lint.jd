@@ -75,7 +75,7 @@ You can create an HTML report for the issues that {@code lint} detects. For exam
 </tr>
 
 <tr>
-<td><nobr><code>-Werror</code></nobr></td>
+<td><nobr><code></code></nobr></td>
 <td>Report all warnings as errors</td>
 <td>&nbsp;</td>
 </tr>

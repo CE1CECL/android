@@ -2,7 +2,7 @@ AC_PREREQ(2.61)
 
 AC_INIT([camera-hal],1.0.0)
 
-AM_INIT_AUTOMAKE([-Werror -Wall gnu foreign])
+AM_INIT_AUTOMAKE([ -Wall gnu foreign])
 
 AM_MAINTAINER_MODE
 

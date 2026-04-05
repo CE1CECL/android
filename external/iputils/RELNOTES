@@ -483,7 +483,7 @@ be without a man page for ping?"
 * Alexandr D. Kanevskiy <kad@blackcatlinux.com>: relayed patches
   by Solar_Diz. Only missing description of option -q is accepted.
 * <ipatel@wilnetonline.net> ping6 printed wrong mtu.
-* Alexandr D. Kanevskiy <kad@blackcatlinux.com>: -Werror is removed.
+* Alexandr D. Kanevskiy <kad@blackcatlinux.com>:  is removed.
   Newer gcc are buggy and generates some wrong warnings about
   uninitalized variables, which are evidently initialized.
 

@@ -21,7 +21,7 @@
     package="com.android.rs.levels">
     <uses-sdk android:minSdkVersion="14" />
     <application android:label="Levels RS"
-                 android:hardwareAccelerated="true">
+                 android:hardwareAccelerated="false">
 
         <activity android:name="LevelsRSActivity"
                   android:label="Levels RS">

@@ -67,7 +67,7 @@ case "$_os" in
     ;;
 esac
 
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall  foreign])
 AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_HEADER([src/stressapptest_config.h])
 

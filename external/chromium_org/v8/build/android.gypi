@@ -114,7 +114,7 @@
         ],
         'ldflags': [
           '-nostdlib',
-          '-Wl,--no-undefined',
+          '-Wl,--allow-shlib-undefined',
         ],
         'libraries!': [
             '-lrt',  # librt is built into Bionic.

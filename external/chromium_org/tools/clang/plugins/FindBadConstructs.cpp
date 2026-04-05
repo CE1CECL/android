@@ -457,7 +457,7 @@ class FindBadConstructsConsumer : public ChromeClassTester {
   }
 
   // Adds either a warning or error, based on the current handling of
-  // -Werror.
+  // .
   DiagnosticsEngine::Level getErrorLevel() {
     return diagnostic().getWarningsAsErrors() ?
         DiagnosticsEngine::Error : DiagnosticsEngine::Warning;

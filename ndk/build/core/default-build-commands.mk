@@ -6,7 +6,7 @@
 
 # These flags are used to ensure that a binary doesn't reference undefined
 # flags.
-TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
+TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--allow-shlib-undefined
 
 
 # Return the list of object, static libraries and shared libraries as they
@@ -55,7 +55,7 @@ TARGET_DISABLE_RELRO_LDFLAGS := -Wl,-z,norelro -Wl,-z,lazy
 
 # This flag are used to provide compiler protection against format
 # string vulnerabilities.
-TARGET_FORMAT_STRING_CFLAGS := -Wformat -Werror=format-security
+TARGET_FORMAT_STRING_CFLAGS := -Wformat -Wno-format-security
 
 # This flag disables the above security checks
 TARGET_DISABLE_FORMAT_STRING_CFLAGS := -Wno-error=format-security

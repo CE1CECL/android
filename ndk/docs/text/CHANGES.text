@@ -284,7 +284,7 @@ OTHER CHANGES:
   $PROJECT/libs.  See OVERVIEW.html
 
 - Changed ndk-build defaults to compile code with format string protection
-  "-Wformat -Werror=format-security".  You may set
+  "-Wformat -Wno-format-security".  You may set
   LOCAL_DISABLE_FORMAT_STRING_CHECKS=true to disable it.
   See ANDROID-MK.html
 
@@ -617,7 +617,7 @@ IMPORTANT CHANGES:
 >  1. libstlport_static.a can no longer be used in "static" executable (-static,
      only possible with standalone toolchain).  "dynamic" executable (eg.
      include $(BUILD_EXECUTABLE)) can link fine because compiler impliciently adds -ldl
->  2. If your project links with "-nostdlib -Wl,--no-undefined", you need to provide
+>  2. If your project links with "-nostdlib -Wl,--allow-shlib-undefined", you need to provide
      your own -ldl
 
 >  See CPLUSPLUS-SUPPORT.html.
@@ -969,7 +969,7 @@ OTHER BUG FIXES:
   NDK-generated should never reference them directly. Instead, each shared library or
   executable should embed its own version of these symbols, provided by crtbegin_*.o
 
->  If your project is linked with "-nostdlib -Wl,--no-undefined", you need to provide
+>  If your project is linked with "-nostdlib -Wl,--allow-shlib-undefined", you need to provide
   your own __dso_handle because crtbegin_so.o isn't linked.  The content of __dso_handle
   doesn't matter.  eg.
 

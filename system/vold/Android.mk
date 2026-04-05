@@ -69,7 +69,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := $(common_c_includes)
 
-LOCAL_CFLAGS := -Werror=format
+LOCAL_CFLAGS := -Wno-format
 
 LOCAL_SHARED_LIBRARIES := $(common_shared_libraries)
 

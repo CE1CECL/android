@@ -94,7 +94,7 @@ LOCAL_REQUIRED_MODULES := \
 LOCAL_PROGUARD_ENABLED := full
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
-LOCAL_JAVACFLAGS := -Xlint:unchecked -Werror
+LOCAL_JAVACFLAGS := -Xlint:unchecked 
 
 include $(BUILD_JAVA_LIBRARY)
 

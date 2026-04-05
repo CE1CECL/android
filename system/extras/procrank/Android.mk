@@ -19,7 +19,7 @@ LOCAL_SRC_FILES := procrank.c
 
 LOCAL_C_INCLUDES := $(call include-path-for, libpagemap)
 
-LOCAL_CFLAGS := -Wall -Wextra -Wformat=2 -Werror
+LOCAL_CFLAGS := -Wall -Wextra -Wformat=2 
 
 LOCAL_SHARED_LIBRARIES := libpagemap
 

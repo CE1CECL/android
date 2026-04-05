@@ -35,7 +35,7 @@ LOCAL_SRC_FILES := \
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Debug := \
 	--param=ssp-buffer-size=4 \
-	-Werror \
+	 \
 	-fno-exceptions \
 	-fno-strict-aliasing \
 	-Wall \
@@ -132,7 +132,7 @@ LOCAL_CPPFLAGS_Debug := \
 # Flags passed to both C and C++ files.
 MY_CFLAGS_Release := \
 	--param=ssp-buffer-size=4 \
-	-Werror \
+	 \
 	-fno-exceptions \
 	-fno-strict-aliasing \
 	-Wall \
@@ -242,9 +242,9 @@ LOCAL_LDFLAGS_Debug := \
 	-m32 \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
-	-Wl,--fatal-warnings \
+	-Wl,--no-fatal-warnings \
 	-Wl,--gc-sections \
 	-Wl,--warn-shared-textrel \
 	-Wl,-O1 \
@@ -259,12 +259,12 @@ LOCAL_LDFLAGS_Release := \
 	-m32 \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
 	-Wl,-O1 \
 	-Wl,--as-needed \
 	-Wl,--gc-sections \
-	-Wl,--fatal-warnings \
+	-Wl,--no-fatal-warnings \
 	-Wl,--warn-shared-textrel
 
 

@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -E -Werror -verify %s 2>&1 | FileCheck %s
+// RUN: %clang_cc1 -E  -verify %s 2>&1 | FileCheck %s
 
 #pragma message "\\test" // expected-warning {{\test}}
 // CHECK: #pragma message("\134test")

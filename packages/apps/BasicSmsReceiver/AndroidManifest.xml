@@ -29,7 +29,7 @@
 
     <application android:name="BasicSmsReceiverApp"
             android:label="@string/sms_app_name"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
 
         <activity android:name=".DialogSmsDisplay"
                   android:theme="@android:style/Theme.Holo.Dialog"

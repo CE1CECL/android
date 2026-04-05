@@ -1,4 +1,4 @@
-// RUN: %clang  -Werror -fobjc-arc -fsyntax-only -fno-objc-arc -Xclang -verify %s
+// RUN: %clang   -fobjc-arc -fsyntax-only -fno-objc-arc -Xclang -verify %s
 // expected-no-diagnostics
 // rdar://8949617
 

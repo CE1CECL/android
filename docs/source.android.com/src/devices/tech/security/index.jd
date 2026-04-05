@@ -310,7 +310,7 @@ common way to exploit heap corruption.</li>
 
 <dt><strong>Android 2.3</strong></dt>
 <dd><ul>
-<li>Format string vulnerability protections (-Wformat-security -Werror=format-security)</li>
+<li>Format string vulnerability protections (-Wformat-security -Wno-format-security)</li>
 <li>Hardware-based No eXecute (NX) to prevent code execution on the stack and heap</li>
 <li>Linux mmap_min_addr to mitigate null pointer dereference privilege
 escalation (further enhanced in Android 4.1)</li>

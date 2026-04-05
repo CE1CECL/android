@@ -3,7 +3,7 @@ AC_DEFUN([AX_POPT_CONST],
 [
 AC_MSG_CHECKING([popt prototype])
 SAVE_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-Werror $CXXFLAGS"
+CXXFLAGS=" $CXXFLAGS"
 AC_TRY_COMPILE([#include <popt.h>],
 [
 int c; char **v;

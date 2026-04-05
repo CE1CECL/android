@@ -127,7 +127,7 @@ class SConstructHelper:
       if env['PLATFORM'] == 'win32':
         cls._Remove(env, 'CCFLAGS', '-WX')
       else:
-        cls._Remove(env, 'CCFLAGS', '-Werror')
+        cls._Remove(env, 'CCFLAGS', '')
     WarningOk = classmethod(WarningOk)
 
     def WithExceptions(cls, env):
@@ -292,7 +292,7 @@ class SConstructHelper:
   def AddGccFlagsTo(self, env, optimized):
     env.Append(CCFLAGS=['-fno-exceptions',
                         '-Wall',
-                        '-Werror',
+                        '',
                        ])
     if optimized:
       env.Append(CCFLAGS=['-O2'], CPPDEFINES=['NDEBUG', '_NDEBUG'])

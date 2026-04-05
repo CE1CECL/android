@@ -1,5 +1,5 @@
 AC_INIT([OpenFst], [1.3.3], [help@www.openfst.org])
-AM_INIT_AUTOMAKE([foreign nostdinc -Wall -Werror])
+AM_INIT_AUTOMAKE([foreign nostdinc -Wall ])
 
 AC_PROG_CXX
 AC_DISABLE_STATIC

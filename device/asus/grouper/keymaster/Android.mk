@@ -36,7 +36,7 @@ LOCAL_C_INCLUDES := \
 	external/openssl/include \
 	$(LOCAL_PATH)/../security/tf_sdk/include
 
-LOCAL_CFLAGS := -fvisibility=hidden -Wall -Werror
+LOCAL_CFLAGS := -fvisibility=hidden -Wall 
 
 LOCAL_SHARED_LIBRARIES := libcutils liblog libcrypto libtf_crypto_sst
 

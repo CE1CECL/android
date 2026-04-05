@@ -39,7 +39,7 @@
 
     <application android:label="@string/activity_sample_code"
             android:icon="@drawable/app_sample_code"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
 
         <activity android:name="Support7Demos">
             <intent-filter>

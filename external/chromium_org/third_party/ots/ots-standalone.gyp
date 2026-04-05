@@ -8,7 +8,7 @@
       '-ggdb',
       '-W',
       '-Wall',
-      '-Werror',
+      '',
       '-Wno-unused-parameter',
       '-fPIE',
       '-fstack-protector',

@@ -354,7 +354,7 @@ posix_env.Append(
   ],
   CCFLAGS = [
     '-Wall',
-    '-Werror',
+    '',
     '-Wno-switch',
     '-fno-exceptions',
     # Needed for a clean ABI and for link-time dead-code removal to work

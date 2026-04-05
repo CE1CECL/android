@@ -246,9 +246,9 @@ LOCAL_LDFLAGS_Debug := \
 	-m32 \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
-	-Wl,--fatal-warnings \
+	-Wl,--no-fatal-warnings \
 	-Wl,--gc-sections \
 	-Wl,--warn-shared-textrel \
 	-Wl,-O1 \
@@ -263,12 +263,12 @@ LOCAL_LDFLAGS_Release := \
 	-m32 \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
 	-Wl,-O1 \
 	-Wl,--as-needed \
 	-Wl,--gc-sections \
-	-Wl,--fatal-warnings \
+	-Wl,--no-fatal-warnings \
 	-Wl,--warn-shared-textrel
 
 

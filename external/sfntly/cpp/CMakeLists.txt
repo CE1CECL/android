@@ -22,7 +22,7 @@ endif(CMAKE_COMPILER_IS_GNUCXX)
 # The following simulates Chrome compilation flags
   add_definitions(-DSFNTLY_NO_EXCEPTION)
 if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-D__wur=__attribute__\(\(warn_unused_result\)\) -Wall -Werror -fno-exceptions)
+  add_definitions(-D__wur=__attribute__\(\(warn_unused_result\)\) -Wall  -fno-exceptions)
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
 # Use STL for TinyXML library

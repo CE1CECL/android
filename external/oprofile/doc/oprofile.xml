@@ -340,8 +340,8 @@ is often all you need, but note these arguments to <command>./configure</command
 		<term><option>--disable-werror</option></term>
 		<listitem><para>
 			Development versions of OProfile build by
-			default with <option>-Werror</option>. This option turns
-			<option>-Werror</option> off.
+			default with <option></option>. This option turns
+			<option></option> off.
 		</para></listitem>
 	</varlistentry>
 	<varlistentry id="disable-optimization">

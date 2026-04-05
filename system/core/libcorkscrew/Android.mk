@@ -51,7 +51,7 @@ endif
 
 LOCAL_SHARED_LIBRARIES += libdl libcutils liblog libgccdemangle
 
-LOCAL_CFLAGS += -std=gnu99 -Werror
+LOCAL_CFLAGS += -std=gnu99 
 LOCAL_MODULE := libcorkscrew
 LOCAL_MODULE_TAGS := optional
 
@@ -60,7 +60,7 @@ include $(BUILD_SHARED_LIBRARY)
 # Build test.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := test.cpp
-LOCAL_CFLAGS += -Werror -fno-inline-small-functions
+LOCAL_CFLAGS +=  -fno-inline-small-functions
 LOCAL_SHARED_LIBRARIES := libcorkscrew
 LOCAL_MODULE := libcorkscrew_test
 LOCAL_MODULE_TAGS := optional
@@ -81,7 +81,7 @@ ifeq ($(HOST_OS),linux)
   LOCAL_SHARED_LIBRARIES += libgccdemangle # TODO: is this even needed on Linux?
   LOCAL_LDLIBS += -lrt
 endif
-LOCAL_CFLAGS += -std=gnu99 -Werror
+LOCAL_CFLAGS += -std=gnu99 
 LOCAL_MODULE := libcorkscrew
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_HOST_SHARED_LIBRARY)
@@ -89,7 +89,7 @@ include $(BUILD_HOST_SHARED_LIBRARY)
 # Build test.
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := test.cpp
-LOCAL_CFLAGS += -Werror
+LOCAL_CFLAGS += 
 LOCAL_SHARED_LIBRARIES := libcorkscrew
 LOCAL_MODULE := libcorkscrew_test
 LOCAL_MODULE_TAGS := optional

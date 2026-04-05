@@ -119,7 +119,7 @@
           'defines': [
             '__Userspace_os_Linux',
           ],
-          'cflags!': [ '-Werror', '-Wall' ],
+          'cflags!': [ '', '-Wall' ],
           'cflags': [ '-w' ],
         }],
         ['OS=="mac"', {
@@ -134,7 +134,7 @@
           # happens and we re-roll DEPS for usrsctp, we can remove the manual
           # undefining of __APPLE__.
           'xcode_settings': {
-            'OTHER_CFLAGS!': [ '-Werror', '-Wall' ],
+            'OTHER_CFLAGS!': [ '', '-Wall' ],
             'OTHER_CFLAGS': [ '-U__APPLE__', '-w' ],
           },
         }],

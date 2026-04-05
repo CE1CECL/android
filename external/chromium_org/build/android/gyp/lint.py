@@ -76,7 +76,7 @@ def _RunLint(lint_path, config_path, processed_config_path, manifest_path,
   _ProcessConfigFile()
 
   cmd = [
-      lint_path, '-Werror', '--exitcode', '--showall',
+      lint_path, '', '--exitcode', '--showall',
       '--config', _RelativizePath(processed_config_path),
       '--classpath', _RelativizePath(classes_dir),
       '--xml', _RelativizePath(result_path),

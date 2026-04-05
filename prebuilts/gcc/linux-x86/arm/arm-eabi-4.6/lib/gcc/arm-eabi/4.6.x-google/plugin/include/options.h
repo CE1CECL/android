@@ -3920,9 +3920,9 @@ enum opt_code
   OPT_Wenum_compare = 205,                   /* -Wenum-compare */
   OPT_Wenum_identifier = 206,                /* -Wenum-identifier */
   OPT_Wenum_switch = 207,                    /* -Wenum-switch */
-  OPT_Werror = 208,                          /* -Werror */
-  /* OPT_Werror_implicit_function_declaration = 209, *//* -Werror-implicit-function-declaration */
-  OPT_Werror_ = 210,                         /* -Werror= */
+  OPT_Werror = 208,                          /*  */
+  /* OPT_Werror_implicit_function_declaration = 209, *//* -Wno-implicit-function-declaration */
+  OPT_Werror_ = 210,                         /* -Wno- */
   OPT_Wextra = 211,                          /* -Wextra */
   OPT_Wextraneous_semicolon = 212,           /* -Wextraneous-semicolon */
   OPT_Wfallthrough = 213,                    /* -Wfallthrough */

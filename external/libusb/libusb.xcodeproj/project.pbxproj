@@ -172,7 +172,7 @@
 					"-Wundef",
 					"-Wunused",
 					"-Wstrict-prototypes",
-					"-Werror-implicit-function-declaration",
+					"-Wno-implicit-function-declaration",
 					"-Wno-pointer-sign",
 					"-Wshadow",
 				);
@@ -191,7 +191,7 @@
 					"-Wundef",
 					"-Wunused",
 					"-Wstrict-prototypes",
-					"-Werror-implicit-function-declaration",
+					"-Wno-implicit-function-declaration",
 					"-Wno-pointer-sign",
 					"-Wshadow",
 				);

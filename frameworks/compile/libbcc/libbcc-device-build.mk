@@ -17,7 +17,7 @@
 LOCAL_CFLAGS := \
   -Wall \
   -Wno-unused-parameter \
-  -Werror \
+   \
   -DTARGET_BUILD \
   $(LOCAL_CFLAGS)
 

@@ -17,7 +17,7 @@
 # Don't build for unbundled branches
 ifeq (,$(TARGET_BUILD_APPS))
 
-local_cflags_for_libbcinfo := -Wall -Wno-unused-parameter -Werror
+local_cflags_for_libbcinfo := -Wall -Wno-unused-parameter 
 ifneq ($(TARGET_BUILD_VARIANT),eng)
 local_cflags_for_libbcinfo += -D__DISABLE_ASSERTS
 endif

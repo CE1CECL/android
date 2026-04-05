@@ -106,7 +106,7 @@ dnl ---------------------------------------------------------------------------
 
 # we need sqrt and pow which may be in libm
 # We cannot use AC_CHECK_FUNC because if CFLAGS contains
-# -Wall -Werror here the check fails because
+# -Wall  here the check fails because
 # char *sqrt() conflicts with double sqrt(double xx)
 
 # Start by assuming -lm is needed, because it's possible that the little

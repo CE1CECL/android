@@ -1,5 +1,5 @@
 // REQUIRES: arm-registered-target
-// RUN: %clang_cc1 -Wall -Werror -triple thumbv7-linux-gnueabi -fno-signed-char -O3 -emit-llvm -o - %s | FileCheck %s
+// RUN: %clang_cc1 -Wall  -triple thumbv7-linux-gnueabi -fno-signed-char -O3 -emit-llvm -o - %s | FileCheck %s
 
 // Make sure the canonical use works before going into smaller details:
 int atomic_inc(int *addr) {

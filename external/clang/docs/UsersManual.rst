@@ -85,20 +85,20 @@ options like :option:`-c`, :option:`-g`, etc.
 Options to Control Error and Warning Messages
 ---------------------------------------------
 
-.. option:: -Werror
+.. option:: 
 
   Turn warnings into errors.
 
 .. This is in plain monospaced font because it generates the same label as
-.. -Werror, and Sphinx complains.
+.. , and Sphinx complains.
 
-``-Werror=foo``
+``-Wno-foo``
 
   Turn warning "foo" into an error.
 
 .. option:: -Wno-error=foo
 
-  Turn warning "foo" into an warning even if :option:`-Werror` is specified.
+  Turn warning "foo" into an warning even if :option:`` is specified.
 
 .. option:: -Wfoo
 
@@ -725,7 +725,7 @@ Enabling All Warnings
 
 In addition to the traditional ``-W`` flags, one can enable **all**
 warnings by passing :option:`-Weverything`. This works as expected with
-:option:`-Werror`, and also includes the warnings from :option:`-pedantic`.
+:option:``, and also includes the warnings from :option:`-pedantic`.
 
 Note that when combined with :option:`-w` (which disables all warnings), that
 flag wins.

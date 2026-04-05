@@ -16,7 +16,7 @@ THIS_MAKEFILE := $(abspath $(lastword $(MAKEFILE_LIST)))
 NACL_SDK_ROOT ?= $(abspath $(dir $(THIS_MAKEFILE))../..)
 
 # Project Build flags
-WARNINGS := -Wno-long-long -Wall -Wswitch-enum -pedantic -Werror
+WARNINGS := -Wno-long-long -Wall -Wswitch-enum -pedantic 
 CXXFLAGS := -pthread -std=gnu++98 $(WARNINGS)
 
 #

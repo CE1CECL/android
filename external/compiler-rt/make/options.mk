@@ -7,7 +7,7 @@
 CC := gcc
 
 # The compiler flags to use.
-CFLAGS := -Wall -Werror
+CFLAGS := -Wall 
 
 # The list of functions to include in the library.
 FUNCTIONS :=

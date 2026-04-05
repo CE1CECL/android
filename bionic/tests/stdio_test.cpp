@@ -176,7 +176,7 @@ TEST(stdio, printf_ssize_t) {
   ASSERT_EQ(sizeof(ssize_t), sizeof(size_t));
   // For our 32-bit ABI, we had a ssize_t definition that confuses GCC into saying:
   // error: format '%zd' expects argument of type 'signed size_t',
-  //     but argument 4 has type 'ssize_t {aka long int}' [-Werror=format]
+  //     but argument 4 has type 'ssize_t {aka long int}' [-Wno-format]
   ssize_t v = 1;
   char buf[32];
   snprintf(buf, sizeof(buf), "%zd", v);

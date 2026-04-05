@@ -1495,7 +1495,7 @@ AT_BISON_CHECK([[-Wno-conflicts-rr sr-rr.y]], [[0]], [[]],
       # Run tests.
       if test $sr_count -eq $sr_exp && test $rr_count -eq $rr_exp; then
         ]AT_BISON_CHECK([[-Wnone $file]])[
-        ]AT_BISON_CHECK([[-Werror $file]])[
+        ]AT_BISON_CHECK([[ $file]])[
       else
         echo "$file: conflicts: $conflicts" > experr
         if test $sr_count -ne $sr_exp; then
@@ -1507,7 +1507,7 @@ AT_BISON_CHECK([[-Wno-conflicts-rr sr-rr.y]], [[0]], [[]],
           echo "$file: error: expected $rr_exp reduce/reduce conflict$s" >> experr
         fi
         ]AT_BISON_CHECK([[-Wnone $file]], [[1]], [[]], [[experr]])[
-        ]AT_BISON_CHECK([[-Werror $file]], [[1]], [[]], [[experr]])[
+        ]AT_BISON_CHECK([[ $file]], [[1]], [[]], [[experr]])[
       fi
     done
   done

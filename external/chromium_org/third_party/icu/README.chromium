@@ -251,7 +251,7 @@ This directory contains the source code of ICU 4.6 for C/C++
    - patches/rematch.patch
    - upstream bug: http://bugs.icu-project.org/trac/ticket/8824
 
-18. Make it compile with -Werror on gcc 4.6
+18. Make it compile with  on gcc 4.6
    - patches/gcc46.patch (ToT upstream does not have this code any more).
 
 19. Fix four out of bounds memory access error in common/uloc.c

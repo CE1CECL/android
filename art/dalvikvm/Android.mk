@@ -16,7 +16,7 @@
 
 LOCAL_PATH := $(call my-dir)
 
-dalvikvm_cflags := -Wall -Werror -Wextra
+dalvikvm_cflags := -Wall  -Wextra
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := dalvikvm

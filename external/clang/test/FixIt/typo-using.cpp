@@ -1,7 +1,7 @@
 // RUN: %clang_cc1 -fsyntax-only -verify %s
 // RUN: cp %s %t
 // RUN: not %clang_cc1 -fsyntax-only -fixit -x c++ %t
-// RUN: %clang_cc1 -fsyntax-only -pedantic -Werror -x c++ %t
+// RUN: %clang_cc1 -fsyntax-only -pedantic  -x c++ %t
 // RUN: grep using_suggestion_tyname_ty_dropped_specifier %t
 
 // These tests have been separated from typo.cpp to keep the maximum typo

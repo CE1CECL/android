@@ -723,7 +723,7 @@
             'cflags!': [
               '-Wall',
               '-Wextra',
-              '-Werror',
+              '',
             ],
             'cflags': [
               # Don't warn about hash_map in third-party code.
@@ -1009,7 +1009,7 @@
   'conditions': [
     ['OS=="linux" or OS=="freebsd" or OS=="openbsd" or OS=="solaris"', {
       'target_defaults': {
-        # Enable -Werror by default, but put it in a variable so it can
+        # Enable  by default, but put it in a variable so it can
         # be disabled in ~/.gyp/include.gypi on the valgrind builders.
         'variables': {
           # Use -fno-strict-aliasing by default since gcc 4.4 has periodic
@@ -1019,7 +1019,7 @@
           # there is some 4.4 test infrastructure in place and existing
           # aliasing issues have been fixed.
           'no_strict_aliasing%': 1,
-          'conditions': [['OS=="linux"', {'werror%': '-Werror',}],
+          'conditions': [['OS=="linux"', {'werror%': '',}],
                          ['OS=="freebsd"', {'werror%': '',}],
                          ['OS=="openbsd"', {'werror%': '',}],
           ],
@@ -1364,7 +1364,7 @@
           'GCC_OBJC_CALL_CXX_CDTORS': 'YES',        # -fobjc-call-cxx-cdtors
           'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',      # -fvisibility=hidden
           'GCC_THREADSAFE_STATICS': 'NO',           # -fno-threadsafe-statics
-          'GCC_TREAT_WARNINGS_AS_ERRORS': 'YES',    # -Werror
+          'GCC_TREAT_WARNINGS_AS_ERRORS': 'YES',    # 
           'GCC_VERSION': '4.2',
           'GCC_WARN_ABOUT_MISSING_NEWLINE': 'YES',  # -Wnewline-eof
           # MACOSX_DEPLOYMENT_TARGET maps to -mmacosx-version-min

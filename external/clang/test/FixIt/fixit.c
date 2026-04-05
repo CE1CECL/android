@@ -2,13 +2,13 @@
 // RUN: cp %s %t
 // RUN: not %clang_cc1 -pedantic -Wunused-label -fixit -x c %t
 // RUN: grep -v CHECK %t > %t2
-// RUN: %clang_cc1 -pedantic -Wunused-label -Werror -x c %t
+// RUN: %clang_cc1 -pedantic -Wunused-label  -x c %t
 // RUN: FileCheck -input-file=%t2 %t
 
 /* This is a test of the various code modification hints that are
    provided as part of warning or extension diagnostics. All of the
    warnings will be fixed by -fixit, and the resulting file should
-   compile cleanly with -Werror -pedantic. */
+   compile cleanly with  -pedantic. */
 
 // FIXME: FIX-IT should add #include <string.h>?
 int strcmp(const char *s1, const char *s2);

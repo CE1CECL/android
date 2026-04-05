@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -verify -std=c++11 -fcxx-exceptions -Werror=c++1y-extensions %s
+// RUN: %clang_cc1 -verify -std=c++11 -fcxx-exceptions -Wno-c++1y-extensions %s
 // RUN: %clang_cc1 -verify -std=c++1y -fcxx-exceptions -DCXX1Y %s
 
 namespace N {

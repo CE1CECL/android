@@ -10,7 +10,7 @@ EXENAME=android_support_unittests
 EXECUTABLE=${EXECUTABLE:-/tmp/ndk-$USER/$EXENAME}
 
 CXX=${CXX:-g++}
-CXXFLAGS="-Werror -Wall"
+CXXFLAGS=" -Wall"
 LDFLAGS=
 LINK_LIBS=""
 

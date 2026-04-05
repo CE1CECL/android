@@ -75,7 +75,7 @@ static void printDiagnosticOptions(raw_ostream &OS,
     if (Level == DiagnosticsEngine::Error &&
         DiagnosticIDs::isBuiltinWarningOrExtension(Info.getID()) &&
         !DiagnosticIDs::isDefaultMappingAsError(Info.getID())) {
-      OS << " [-Werror";
+      OS << " [";
       Started = true;
     }
 

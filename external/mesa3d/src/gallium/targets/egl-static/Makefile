@@ -187,7 +187,7 @@ default: $(OUTPUTS)
 
 $(OUTPUT_PATH)/egl_gallium.so: $(egl_OBJECTS) $(egl_LIBS)
 	$(MKLIB) -o $(notdir $@) -noprefix -linker '$(CXX)' \
-		-ldflags '-L$(TOP)/$(LIB_DIR) -Wl,--no-undefined $(LDFLAGS)' \
+		-ldflags '-L$(TOP)/$(LIB_DIR) -Wl,--allow-shlib-undefined $(LDFLAGS)' \
 		-cplusplus -install $(OUTPUT_PATH) $(MKLIB_OPTIONS) \
 		$(egl_OBJECTS) -Wl,--start-group $(egl_LIBS) -Wl,--end-group \
 		$(egl_SYS)

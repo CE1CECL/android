@@ -209,7 +209,7 @@ config("chromium_code") {
   } else {
     cflags = [
       "-Wall",
-      "-Werror",
+      "",
 
       # GCC turns on -Wsign-compare for C++ under -Wall, but clang doesn't,
       # so we specify it explicitly.

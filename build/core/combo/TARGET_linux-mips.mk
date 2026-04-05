@@ -66,7 +66,7 @@ else
         $(TARGET_OBJCOPY) --add-gnu-debuglink=$< $@
 endif
 
-TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
+TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--allow-shlib-undefined
 
 TARGET_mips_CFLAGS :=	-O2 \
 			-fomit-frame-pointer \
@@ -90,13 +90,13 @@ TARGET_GLOBAL_CFLAGS += \
 			-fdata-sections \
 			-funwind-tables \
 			-Wa,--noexecstack \
-			-Werror=format-security \
+			-Wno-format-security \
 			-D_FORTIFY_SOURCE=2 \
 			$(arch_variant_cflags) \
 			-include $(android_config_h) \
 			-I $(dir $(android_config_h))
 
-# This warning causes dalvik not to build with gcc 4.6+ and -Werror.
+# This warning causes dalvik not to build with gcc 4.6+ and .
 # We cannot turn it off blindly since the option is not available
 # in gcc-4.4.x.
 ifneq ($(filter 4.6 4.6.% 4.7 4.7.%, $(TARGET_GCC_VERSION)),)

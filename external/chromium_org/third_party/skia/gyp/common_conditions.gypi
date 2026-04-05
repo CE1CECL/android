@@ -139,7 +139,7 @@
         'conditions': [
           [ 'skia_warnings_as_errors', {
             'cflags': [
-              '-Werror',
+              '',
             ],
           }],
           [ 'skia_arch_type == "arm" and arm_thumb == 1', {
@@ -320,7 +320,7 @@
           [ 'skia_warnings_as_errors', {
             'xcode_settings': {
               'OTHER_CPLUSPLUSFLAGS': [
-                '-Werror',
+                '',
                 '-Wall',
                 '-Wextra',
                 '-Wno-unused-parameter',
@@ -404,7 +404,7 @@
           [ 'skia_warnings_as_errors', {
             'xcode_settings': {
               'OTHER_CPLUSPLUSFLAGS': [
-                '-Werror',
+                '',
               ],
             },
           }],

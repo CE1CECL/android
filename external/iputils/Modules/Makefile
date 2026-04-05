@@ -2,7 +2,7 @@ KERNEL_INCLUDE=/usr/src/linux/include
 
 
 CC=gcc
-CCOPT=-O2 -Wstrict-prototypes -Wall -Werror -fno-strict-aliasing -fno-common
+CCOPT=-O2 -Wstrict-prototypes -Wall  -fno-strict-aliasing -fno-common
 CFLAGS=-DMODULE -D__KERNEL__ -I$(KERNEL_INCLUDE) $(CCOPT)
 
 

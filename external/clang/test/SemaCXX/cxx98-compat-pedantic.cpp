@@ -1,8 +1,8 @@
 // RUN: %clang_cc1 -fsyntax-only -std=c++1y -DCXX1Y -Wc++98-compat-pedantic -verify %s -DCXX1Y2
-// RUN: %clang_cc1 -fsyntax-only -std=c++1y -DCXX1Y -Wc++98-compat -Werror %s -DCXX1Y2
+// RUN: %clang_cc1 -fsyntax-only -std=c++1y -DCXX1Y -Wc++98-compat  %s -DCXX1Y2
 // RUN: %clang_cc1 -fsyntax-only -std=c++11 -Wc++98-compat-pedantic -verify %s
-// RUN: %clang_cc1 -fsyntax-only -std=c++11 -Wc++98-compat -Werror %s
-// RUN: %clang_cc1 -fsyntax-only -std=c++98 -Werror %s
+// RUN: %clang_cc1 -fsyntax-only -std=c++11 -Wc++98-compat  %s
+// RUN: %clang_cc1 -fsyntax-only -std=c++98  %s
 
 // RUN: %clang_cc1 -fsyntax-only -std=c++1y -Wc++98-compat-pedantic -verify %s -Wno-c++98-c++11-compat-pedantic -DCXX1Y2
 

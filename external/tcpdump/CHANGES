@@ -337,7 +337,7 @@ itojun@iijlab.net
 - print-bgp.c: improve options printing.  ugly code exists for
   unaligned option parsing (need some fix).
 - const poisoning in SMB decoder.
-- -Wall -Werror clean checks.
+- -Wall  clean checks.
 - bring in KAME IPv6/IPsec decoding code.
 
 Assar Westerlund  <assar@sics.se>

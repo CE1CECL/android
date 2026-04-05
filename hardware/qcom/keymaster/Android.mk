@@ -13,7 +13,7 @@ LOCAL_SRC_FILES := keymaster_qcom.cpp
 LOCAL_C_INCLUDES := $(TARGET_OUT_HEADERS)/common/inc \
                     external/openssl/include
 
-LOCAL_C_FLAGS = -fvisibility=hidden -Wall -Werror
+LOCAL_C_FLAGS = -fvisibility=hidden -Wall 
 
 LOCAL_SHARED_LIBRARIES := \
         libcrypto \

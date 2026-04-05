@@ -32,7 +32,7 @@ $(warning "make all_versions NO_HOST_BUILDS=1")
 $(error Unable to find gcc in PATH while building Host build)
 endif
 
-HOST_WARNINGS ?= -Wno-long-long -Wall -Werror
+HOST_WARNINGS ?= -Wno-long-long -Wall 
 HOST_CFLAGS = -fPIC -pthread $(HOST_WARNINGS) -I$(NACL_SDK_ROOT)/include -I$(NACL_SDK_ROOT)/include/linux
 
 

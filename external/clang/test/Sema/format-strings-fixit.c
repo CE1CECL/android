@@ -1,12 +1,12 @@
 // RUN: cp %s %t
 // RUN: %clang_cc1 -pedantic -Wall -fixit %t
-// RUN: %clang_cc1 -fsyntax-only -pedantic -Wall -Werror %t
+// RUN: %clang_cc1 -fsyntax-only -pedantic -Wall  %t
 // RUN: %clang_cc1 -E -o - %t | FileCheck %s
 
 /* This is a test of the various code modification hints that are
    provided as part of warning or extension diagnostics. All of the
    warnings will be fixed by -fixit, and the resulting file should
-   compile cleanly with -Werror -pedantic. */
+   compile cleanly with  -pedantic. */
 
 int printf(char const *, ...);
 

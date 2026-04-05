@@ -216,9 +216,9 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@MUDFLAP_FALSE@AM_CFLAGS = -Wall -Werror -Wshadow -Wunused -Wformat=2 \
+@MUDFLAP_FALSE@AM_CFLAGS = -Wall  -Wshadow -Wunused -Wformat=2 \
 @MUDFLAP_FALSE@	-Wextra -std=gnu99
-@MUDFLAP_TRUE@AM_CFLAGS = -fmudflap -Wall -Werror -Wshadow -Wunused \
+@MUDFLAP_TRUE@AM_CFLAGS = -fmudflap -Wall  -Wshadow -Wunused \
 @MUDFLAP_TRUE@	-Wformat=2 -Wextra -std=gnu99
 INCLUDES = -I. -I$(srcdir) -I$(srcdir)/../libelf -I$(srcdir)/../libebl \
 	   -I$(srcdir)/../libdw -I.. -I$(srcdir)/../lib

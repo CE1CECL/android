@@ -422,7 +422,7 @@ fi
 
 dnl --enable-werror : check whether we want Werror on by default
 AC_ARG_ENABLE(werror,AS_HELP_STRING(
-  --enable-werror,[Compile with -Werror enabled (default is NO)]),, enableval="no")
+  --enable-werror,[Compile with  enabled (default is NO)]),, enableval="no")
 case "$enableval" in
   yes) AC_SUBST(ENABLE_WERROR,[1]) ;;
   no)  AC_SUBST(ENABLE_WERROR,[0]) ;;

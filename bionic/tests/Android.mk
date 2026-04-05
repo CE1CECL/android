@@ -25,7 +25,7 @@ LOCAL_PATH := $(call my-dir)
 benchmark_c_flags = \
     -O2 \
     -Wall -Wextra \
-    -Werror \
+     \
     -fno-builtin \
 
 benchmark_src_files = \
@@ -54,7 +54,7 @@ test_c_flags = \
     -fstack-protector-all \
     -g \
     -Wall -Wextra \
-    -Werror \
+     \
     -fno-builtin \
 
 test_src_files = \

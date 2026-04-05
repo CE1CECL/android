@@ -14,11 +14,11 @@
 // This file is responsible for handling all warning options. This includes
 // a number of -Wfoo options and their variants, which are driven by TableGen-
 // generated data, and the special cases -pedantic, -pedantic-errors, -w,
-// -Werror and -Wfatal-errors.
+//  and -Wfatal-errors.
 //
 // Each warning option controls any number of actual warnings.
 // Given a warning option 'foo', the following are valid:
-//    -Wfoo, -Wno-foo, -Werror=foo, -Wfatal-errors=foo
+//    -Wfoo, -Wno-foo, -Wno-foo, -Wfatal-errors=foo
 //
 #include "clang/Frontend/Utils.h"
 #include "clang/Basic/Diagnostic.h"
@@ -112,7 +112,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
       diag::Mapping Mapping = isPositive ? diag::MAP_WARNING : diag::MAP_IGNORE;
       
       // -Wsystem-headers is a special case, not driven by the option table.  It
-      // cannot be controlled with -Werror.
+      // cannot be controlled with .
       if (Opt == "system-headers") {
         if (SetDiagnostic)
           Diags.setSuppressSystemWarnings(!isPositive);
@@ -133,15 +133,15 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
         continue;
       }
       
-      // -Werror/-Wno-error is a special case, not controlled by the option 
-      // table. It also has the "specifier" form of -Werror=foo and -Werror-foo.
+      // /-Wno-error is a special case, not controlled by the option 
+      // table. It also has the "specifier" form of -Wno-foo and -Wno-foo.
       if (Opt.startswith("error")) {
         StringRef Specifier;
         if (Opt.size() > 5) {  // Specifier must be present.
           if ((Opt[5] != '=' && Opt[5] != '-') || Opt.size() == 6) {
             if (Report)
               Diags.Report(diag::warn_unknown_warning_specifier)
-                << "-Werror" << ("-W" + OrigOpt.str());
+                << "" << ("-W" + OrigOpt.str());
             continue;
           }
           Specifier = Opt.substr(6);
@@ -157,7 +157,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
           // Set the warning as error flag for this specifier.
           Diags.setDiagnosticGroupWarningAsError(Specifier, isPositive);
         } else if (DiagIDs->getDiagnosticsInGroup(Specifier, _Diags)) {
-          EmitUnknownDiagWarning(Diags, "-Werror=", Specifier, isPositive);
+          EmitUnknownDiagWarning(Diags, "-Wno-", Specifier, isPositive);
         }
         continue;
       }

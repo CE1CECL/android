@@ -63,7 +63,7 @@ gl_EARLY
 AC_CACHE_CHECK([whether pragma GCC diagnostic push works],
   [lv_cv_gcc_pragma_push_works], [
   save_CFLAGS=$CFLAGS
-  CFLAGS='-Wunknown-pragmas -Werror'
+  CFLAGS='-Wunknown-pragmas '
   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     #pragma GCC diagnostic push
     #pragma GCC diagnostic pop
@@ -88,7 +88,7 @@ if test "$enable_gcc_warnings" = yes; then
   # Clang supports many of GCC's -W options, but only issues warnings
   # on the ones it does not recognize.  In that case, gl_WARN_ADD
   # thinks the option is supported, and unknown options are then added
-  # to CFLAGS.  But then, when -Werror is added in the test suite for
+  # to CFLAGS.  But then, when  is added in the test suite for
   # instance, the warning about the unknown option turns into an
   # error.
   #
@@ -96,12 +96,12 @@ if test "$enable_gcc_warnings" = yes; then
   # meanwhile, turn warnings about unknown options into errors in
   # CFLAGS, and restore CFLAGS after the tests.
   save_CFLAGS=$CFLAGS
-  gl_WARN_ADD([-Werror=unknown-warning-option], [CFLAGS])
+  gl_WARN_ADD([-Wno-unknown-warning-option], [CFLAGS])
   for i in $warn_common $warn_c;
   do
     gl_WARN_ADD([$i], [WARN_CFLAGS])
   done
-  gl_WARN_ADD([-Werror], [WERROR_CFLAGS])
+  gl_WARN_ADD([], [WERROR_CFLAGS])
 
   # Warnings for the test suite, and maybe for bison if GCC is modern
   # enough.
@@ -119,14 +119,14 @@ if test "$enable_gcc_warnings" = yes; then
 
   AC_LANG_PUSH([C++])
   save_CXXFLAGS=$CXXFLAGS
-  gl_WARN_ADD([-Werror=unknown-warning-option], [CXXFLAGS])
+  gl_WARN_ADD([-Wno-unknown-warning-option], [CXXFLAGS])
   for i in $warn_common $warn_cxx;
   do
     gl_WARN_ADD([$i], [WARN_CXXFLAGS])
   done
   gl_WARN_ADD([-Wzero-as-null-pointer-constant], [WARN_CXXFLAGS],
               [AC_LANG_PROGRAM([], [nullptr])])
-  gl_WARN_ADD([-Werror], [WERROR_CXXFLAGS])
+  gl_WARN_ADD([], [WERROR_CXXFLAGS])
   # Warnings for the test suite only.
   gl_WARN_ADD([-Wundef], [WARN_CXXFLAGS_TEST])
   gl_WARN_ADD([-pedantic], [WARN_CXXFLAGS_TEST])

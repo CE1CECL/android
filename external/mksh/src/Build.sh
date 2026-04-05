@@ -1061,7 +1061,7 @@ $e "$bi==> which compiler seems to be used...$ao $ui$ct${et+ on $et}$ao"
 rmf conftest.c conftest.o conftest a.out* a.exe* vv.out
 
 #
-# Compiler: works as-is, with -Wno-error and -Werror
+# Compiler: works as-is, with -Wno-error and 
 #
 save_NOWARN=$NOWARN
 NOWARN=
@@ -1137,8 +1137,8 @@ else
 	test x"$save_NOWARN" = x"" && save_NOWARN=-Wno-error
 	ac_flags 0 wnoerror "$save_NOWARN"
 	test 1 = $HAVE_CAN_WNOERROR || save_NOWARN=
-	ac_flags 0 werror -Werror
-	test 1 = $HAVE_CAN_WERROR && DOWARN=-Werror
+	ac_flags 0 werror 
+	test 1 = $HAVE_CAN_WERROR && DOWARN=
 fi
 
 test $ct = icc && DOWARN="$DOWARN -wd1419"
@@ -1175,7 +1175,7 @@ fi
 # other flags: just add them if they are supported
 i=0
 if test $ct = gcc; then
-	# The following tests run with -Werror (gcc only) if possible
+	# The following tests run with  (gcc only) if possible
 	NOWARN=$DOWARN; phase=u
 	ac_flags 0 wnooverflow -Wno-overflow
 	# mksh is not written in CFrustFrust!
@@ -1275,14 +1275,14 @@ elif test $ct = nwcc; then
 	i=1
 	: #broken# ac_flags 1 ssp -stackprotect
 fi
-# flags common to a subset of compilers (run with -Werror on gcc)
+# flags common to a subset of compilers (run with  on gcc)
 if test 1 = $i; then
 	ac_flags 1 wall -Wall
 	ac_flags 1 fwrapv -fwrapv
 fi
 
 phase=x
-# The following tests run with -Werror or similar (all compilers) if possible
+# The following tests run with  or similar (all compilers) if possible
 NOWARN=$DOWARN
 test $ct = pcc && phase=u
 
@@ -1354,7 +1354,7 @@ ac_test attribute_used '' 'for __attribute__((__used__))' <<-'EOF'
 	#endif
 EOF
 
-# End of tests run with -Werror
+# End of tests run with 
 NOWARN=$save_NOWARN
 phase=x
 

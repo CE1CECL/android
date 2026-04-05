@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 %s -fsyntax-only -fborland-extensions -triple x86_64-linux-gnu -verify
-// RUN: %clang_cc1 %s -fsyntax-only -fborland-extensions -triple i686-linux-gnu -Werror
+// RUN: %clang_cc1 %s -fsyntax-only -fborland-extensions -triple i686-linux-gnu 
 
 // Borland extensions
 

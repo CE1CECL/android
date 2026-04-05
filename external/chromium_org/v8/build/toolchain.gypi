@@ -71,7 +71,7 @@
     'want_separate_host_toolset%': 1,
 
     'host_os%': '<(OS)',
-    'werror%': '-Werror',
+    'werror%': '',
     # For a shared library build, results in "libv8-<(soname_version).so".
     'soname_version%': '',
 

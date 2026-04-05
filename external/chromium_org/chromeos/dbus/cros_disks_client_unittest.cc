@@ -125,7 +125,7 @@ TEST(CrosDisksClientTest, DiskInfo) {
   // Use EXPECT_TRUE(kDevicePresentationHide == result.is_hidden()) instead of
   // EXPECT_EQ(kDevicePresentationHide, result.is_hidden()) as gcc 4.7 issues
   // the following warning on EXPECT_EQ(false, x), which is turned into an error
-  // with -Werror=conversion-null:
+  // with -Wno-conversion-null:
   //
   //   converting 'false' to pointer type for argument 1 of
   //   'char testing::internal::IsNullLiteralHelper(testing::internal::Secret*)'

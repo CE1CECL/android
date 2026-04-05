@@ -47,7 +47,7 @@
   'conditions': [
     [ 'skia_warnings_as_errors', {
       'cflags!': [
-        '-Werror',
+        '',
       ],
     }],
     [ 'skia_os == "mac"', {

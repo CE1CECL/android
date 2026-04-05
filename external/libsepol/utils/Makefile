@@ -2,7 +2,7 @@
 PREFIX ?= $(DESTDIR)/usr
 BINDIR ?= $(PREFIX)/bin
 
-CFLAGS ?= -Wall -Werror
+CFLAGS ?= -Wall 
 override CFLAGS += -I../include
 LDLIBS += -L../src -lsepol 
 

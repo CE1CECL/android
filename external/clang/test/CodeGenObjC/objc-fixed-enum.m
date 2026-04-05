@@ -42,7 +42,7 @@ int main() {
   Enum3 e3 = Enum3One;
   // CHECK: call void @llvm.dbg.declare(metadata !{{.*}}, metadata ![[ENUM3:[0-9]+]])
 
-  // -Werror and the following line ensures that these enums are not
+  //  and the following line ensures that these enums are not
   // -treated as C++11 strongly typed enums.
   return e0 != e1 && e1 == e2 && e2 == e3;
 }

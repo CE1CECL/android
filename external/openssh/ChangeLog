@@ -561,7 +561,7 @@
    of tests for quotes backslashes in sftp-glob.sh.
    based on discussion with vinschen AT redhat.com and dtucker@; ok dtucker@
  - (tim) [regress/agent-getpeereid.sh] shell portability fix.
- - (dtucker) [openbsd-compat/port-linux.c] Fix minor bug caught by -Werror on
+ - (dtucker) [openbsd-compat/port-linux.c] Fix minor bug caught by  on
    the tinderbox.
  - (dtucker) [LICENCE Makefile.in audit-bsm.c audit-linux.c audit.c audit.h
    configure.ac defines.h loginrec.c]  Bug #1402: add linux audit subsystem
@@ -642,7 +642,7 @@
 20110111
  - (tim) [regress/host-expand.sh] Fix for building outside of read only
    source tree.
- - (djm) [platform.c] Some missing includes that show up under -Werror
+ - (djm) [platform.c] Some missing includes that show up under 
  - OpenBSD CVS Sync
    - djm@cvs.openbsd.org 2011/01/08 10:51:51
      [clientloop.c]

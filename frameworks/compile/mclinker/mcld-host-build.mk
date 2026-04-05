@@ -8,7 +8,7 @@ LOCAL_CPPFLAGS := \
   $(LOCAL_CPPFLAGS) \
   -Wall \
   -Wno-unused-parameter \
-  -Werror
+  
 
 ifeq ($(MCLD_ENABLE_ASSERTION),true)
   LOCAL_CPPFLAGS += \

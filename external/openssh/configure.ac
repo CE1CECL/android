@@ -158,14 +158,14 @@ if test "$GCC" = "yes" || test "$GCC" = "egcs"; then
 
 	# -fstack-protector-all doesn't always work for some GCC versions
 	# and/or platforms, so we test if we can.  If it's not supported
-	# on a given platform gcc will emit a warning so we use -Werror.
+	# on a given platform gcc will emit a warning so we use .
 	if test "x$use_stack_protector" = "x1"; then
 	    for t in -fstack-protector-all -fstack-protector; do
 		AC_MSG_CHECKING([if $CC supports $t])
 		saved_CFLAGS="$CFLAGS"
 		saved_LDFLAGS="$LDFLAGS"
-		CFLAGS="$CFLAGS $t -Werror"
-		LDFLAGS="$LDFLAGS $t -Werror"
+		CFLAGS="$CFLAGS $t "
+		LDFLAGS="$LDFLAGS $t "
 		AC_LINK_IFELSE(
 			[AC_LANG_PROGRAM([[ #include <stdio.h> ]],
 			[[
@@ -263,10 +263,10 @@ AC_ARG_WITH([libs],
 	]
 )
 AC_ARG_WITH([Werror],
-	[  --with-Werror           Build main code with -Werror],
+	[  --with           Build main code with ],
 	[
 		if test -n "$withval"  &&  test "x$withval" != "xno"; then
-			werror_flags="-Werror"
+			werror_flags=""
 			if test "x${withval}" != "xyes"; then
 				werror_flags="$withval"
 			fi
@@ -4186,7 +4186,7 @@ if test ! -z "$blibpath" ; then
 	AC_MSG_WARN([Please check and edit blibpath in LDFLAGS in Makefile])
 fi
 
-dnl Adding -Werror to CFLAGS early prevents configure tests from running.
+dnl Adding  to CFLAGS early prevents configure tests from running.
 dnl Add now.
 CFLAGS="$CFLAGS $werror_flags"
 

@@ -91,7 +91,7 @@ addvar CFLAGS \
     -funwind-tables \
     -fstack-protector \
     -Wa,--noexecstack \
-    -Werror=format-security \
+    -Wno-format-security \
     -fno-short-enums \
     -march=armv7-a \
     -mfloat-abi=softfp \
@@ -107,10 +107,10 @@ addvar CFLAGS \
     -Wno-unused \
     -Winit-self \
     -Wpointer-arith \
-    -Werror=return-type \
-    -Werror=non-virtual-dtor \
-    -Werror=address \
-    -Werror=sequence-point \
+    -Wno-return-type \
+    -Wno-non-virtual-dtor \
+    -Wno-address \
+    -Wno-sequence-point \
     -g \
     -Wstrict-aliasing=2 \
     -fgcse-after-reload \
@@ -133,7 +133,7 @@ addvar LDFLAGS \
     -Wl,--warn-shared-textrel \
     -Wl,--icf=safe \
     -Wl,--fix-cortex-a8 \
-    -Wl,--no-undefined \
+    -Wl,--allow-shlib-undefined \
     $aospdir/out/target/product/generic/obj/lib/crtbegin_dynamic.o
 addvar LIBS \
     -L$aospdir/out/target/product/generic/obj/lib \

@@ -22,7 +22,7 @@
 
     <application android:label="@string/app_name"
             android:icon="@drawable/ic_app"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="false">
 
         <activity android:name=".SinkActivity"
                 android:label="@string/app_name"

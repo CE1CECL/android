@@ -17,7 +17,7 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := libgles3jni
-LOCAL_CFLAGS    := -Werror
+LOCAL_CFLAGS    := 
 LOCAL_SRC_FILES := gles3jni.cpp \
 				   RendererES2.cpp \
 				   RendererES3.cpp

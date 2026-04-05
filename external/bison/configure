@@ -5329,7 +5329,7 @@ else
        grep $am__obj sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -6006,7 +6006,7 @@ else
        grep $am__obj sub/conftest.Po > /dev/null 2>&1 &&
        ${MAKE-make} -s -f confmf > /dev/null 2>&1; then
       # icc doesn't choke on unknown options, it will just issue warnings
-      # or remarks (even with -Werror).  So we grep stderr for any message
+      # or remarks (even with ).  So we grep stderr for any message
       # that says an option was ignored or not supported.
       # When given -MP, icc 7.0 and 7.1 complain thusly:
       #   icc: Command line warning: ignoring option '-M'; no argument required
@@ -7447,7 +7447,7 @@ if ${lv_cv_gcc_pragma_push_works+:} false; then :
 else
 
   save_CFLAGS=$CFLAGS
-  CFLAGS='-Wunknown-pragmas -Werror'
+  CFLAGS='-Wunknown-pragmas '
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7497,7 +7497,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   # Clang supports many of GCC's -W options, but only issues warnings
   # on the ones it does not recognize.  In that case, gl_WARN_ADD
   # thinks the option is supported, and unknown options are then added
-  # to CFLAGS.  But then, when -Werror is added in the test suite for
+  # to CFLAGS.  But then, when  is added in the test suite for
   # instance, the warning about the unknown option turns into an
   # error.
   #
@@ -7505,14 +7505,14 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
   # meanwhile, turn warnings about unknown options into errors in
   # CFLAGS, and restore CFLAGS after the tests.
   save_CFLAGS=$CFLAGS
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler handles -Werror=unknown-warning-option" >&5
-$as_echo_n "checking whether C compiler handles -Werror=unknown-warning-option... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler handles -Wno-unknown-warning-option" >&5
+$as_echo_n "checking whether C compiler handles -Wno-unknown-warning-option... " >&6; }
 if ${gl_cv_warn_c__Werror_unknown_warning_option+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
   gl_save_compiler_FLAGS="$CFLAGS"
-  as_fn_append CFLAGS " -Werror=unknown-warning-option"
+  as_fn_append CFLAGS " -Wno-unknown-warning-option"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7536,7 +7536,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_warn_c__Werror_unknown_warning_option" >&5
 $as_echo "$gl_cv_warn_c__Werror_unknown_warning_option" >&6; }
 if test "x$gl_cv_warn_c__Werror_unknown_warning_option" = xyes; then :
-  as_fn_append CFLAGS " -Werror=unknown-warning-option"
+  as_fn_append CFLAGS " -Wno-unknown-warning-option"
 fi
 
 
@@ -7580,14 +7580,14 @@ fi
 
 
   done
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler handles -Werror" >&5
-$as_echo_n "checking whether C compiler handles -Werror... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C compiler handles " >&5
+$as_echo_n "checking whether C compiler handles ... " >&6; }
 if ${gl_cv_warn_c__Werror+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
   gl_save_compiler_FLAGS="$CFLAGS"
-  as_fn_append CFLAGS " -Werror"
+  as_fn_append CFLAGS " "
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7611,7 +7611,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_warn_c__Werror" >&5
 $as_echo "$gl_cv_warn_c__Werror" >&6; }
 if test "x$gl_cv_warn_c__Werror" = xyes; then :
-  as_fn_append WERROR_CFLAGS " -Werror"
+  as_fn_append WERROR_CFLAGS " "
 fi
 
 
@@ -7779,14 +7779,14 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
   save_CXXFLAGS=$CXXFLAGS
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler handles -Werror=unknown-warning-option" >&5
-$as_echo_n "checking whether C++ compiler handles -Werror=unknown-warning-option... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler handles -Wno-unknown-warning-option" >&5
+$as_echo_n "checking whether C++ compiler handles -Wno-unknown-warning-option... " >&6; }
 if ${gl_cv_warn_cxx__Werror_unknown_warning_option+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
   gl_save_compiler_FLAGS="$CXXFLAGS"
-  as_fn_append CXXFLAGS " -Werror=unknown-warning-option"
+  as_fn_append CXXFLAGS " -Wno-unknown-warning-option"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7810,7 +7810,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_warn_cxx__Werror_unknown_warning_option" >&5
 $as_echo "$gl_cv_warn_cxx__Werror_unknown_warning_option" >&6; }
 if test "x$gl_cv_warn_cxx__Werror_unknown_warning_option" = xyes; then :
-  as_fn_append CXXFLAGS " -Werror=unknown-warning-option"
+  as_fn_append CXXFLAGS " -Wno-unknown-warning-option"
 fi
 
 
@@ -7889,14 +7889,14 @@ if test "x$gl_cv_warn_cxx__Wzero_as_null_pointer_constant" = xyes; then :
 fi
 
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler handles -Werror" >&5
-$as_echo_n "checking whether C++ compiler handles -Werror... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler handles " >&5
+$as_echo_n "checking whether C++ compiler handles ... " >&6; }
 if ${gl_cv_warn_cxx__Werror+:} false; then :
   $as_echo_n "(cached) " >&6
 else
 
   gl_save_compiler_FLAGS="$CXXFLAGS"
-  as_fn_append CXXFLAGS " -Werror"
+  as_fn_append CXXFLAGS " "
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -7920,7 +7920,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gl_cv_warn_cxx__Werror" >&5
 $as_echo "$gl_cv_warn_cxx__Werror" >&6; }
 if test "x$gl_cv_warn_cxx__Werror" = xyes; then :
-  as_fn_append WERROR_CXXFLAGS " -Werror"
+  as_fn_append WERROR_CXXFLAGS " "
 fi
 
 

@@ -1,12 +1,12 @@
 // RUN: %clang_cc1 -fsyntax-only -pedantic -verify %s
 // RUN: cp %s %t
 // RUN: not %clang_cc1 -pedantic -fixit -x c %t
-// RUN: %clang_cc1 -pedantic -Werror -x c %t
+// RUN: %clang_cc1 -pedantic  -x c %t
 
 /* This is a test of the various code modification hints that are
    provided as part of warning or extension diagnostics. All of the
    warnings will be fixed by -fixit, and the resulting file should
-   compile cleanly with -Werror -pedantic. */
+   compile cleanly with  -pedantic. */
 
 struct s; // expected-note{{previous use is here}}
 

@@ -22,7 +22,7 @@
     <uses-sdk android:minSdkVersion="14" />
     <uses-permission android:name="android.permission.CAMERA" />
     <application android:label="Preview FS"
-                 android:hardwareAccelerated="true">
+                 android:hardwareAccelerated="false">
 
         <activity android:name="CameraPreviewActivity"
                   android:label="Preview FS"

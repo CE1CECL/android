@@ -205,7 +205,7 @@ fi
 # Turn warnings into errors
 if test "$warnerror" = "yes"; then
   if test "$GCC" = "yes"; then
-    MORE_CFLAGS="$MORE_CFLAGS -Werror"
+    MORE_CFLAGS="$MORE_CFLAGS "
   fi
 fi
 

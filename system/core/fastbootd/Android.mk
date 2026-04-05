@@ -26,7 +26,7 @@ LOCAL_SRC_FILES := \
 
 LOCAL_MODULE := fastbootd
 LOCAL_MODULE_TAGS := optional
-LOCAL_CFLAGS := -Wall -Werror -Wno-unused-parameter
+LOCAL_CFLAGS := -Wall  -Wno-unused-parameter
 
 LOCAL_STATIC_LIBRARIES := \
     libsparse_static \

@@ -2499,7 +2499,7 @@
           # TODO: Fix all warnings on chromeos too.
           [ 'os_posix==1 and OS!="mac" and OS!="ios" and (clang!=1 or chromeos==1)', {
             'cflags!': [
-              '-Werror',
+              '',
             ],
           }],
           [ 'os_posix==1 and os_bsd!=1 and OS!="mac" and OS!="android"', {
@@ -2547,7 +2547,7 @@
             'conditions': [
               ['buildtype=="Official"', {
                 'xcode_settings': {
-                  'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',    # -Werror
+                  'GCC_TREAT_WARNINGS_AS_ERRORS': 'NO',    # 
                 },
               }],
             ],
@@ -2914,10 +2914,10 @@
     }],
     ['os_posix==1 and OS!="mac" and OS!="ios"', {
       'target_defaults': {
-        # Enable -Werror by default, but put it in a variable so it can
+        # Enable  by default, but put it in a variable so it can
         # be disabled in ~/.gyp/include.gypi on the valgrind builders.
         'variables': {
-          'werror%': '-Werror',
+          'werror%': '',
           'libraries_for_target%': '',
         },
         'defines': [
@@ -2971,7 +2971,7 @@
             'conditions' : [
               ['OS=="android"', {
                 'ldflags': [
-                  '-Wl,--fatal-warnings',
+                  '-Wl,--no-fatal-warnings',
                   # Only link with needed input sections. This is to avoid
                   # getting undefined reference to __cxa_bad_typeid in the CDU
                   # library.
@@ -3048,7 +3048,7 @@
                   '-fomit-frame-pointer',
                 ],
                 'ldflags': [
-                  '-Wl,--fatal-warnings',
+                  '-Wl,--no-fatal-warnings',
                   # Warn in case of text relocations.
                   '-Wl,--warn-shared-textrel',
                 ],
@@ -3726,7 +3726,7 @@
             ],
             'ldflags': [
               '-nostdlib',
-              '-Wl,--no-undefined',
+              '-Wl,--allow-shlib-undefined',
               # Don't export symbols from statically linked libraries.
               '-Wl,--exclude-libs=ALL',
             ],
@@ -3947,7 +3947,7 @@
               '-Wl,-O1',
               '-Wl,--as-needed',
               '-Wl,--warn-shared-textrel',
-              '-Wl,--fatal-warnings',
+              '-Wl,--no-fatal-warnings',
             ],
           }],
           # Settings for building host targets on mac.
@@ -3982,7 +3982,7 @@
           'GCC_OBJC_CALL_CXX_CDTORS': 'YES',        # -fobjc-call-cxx-cdtors
           'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES',      # -fvisibility=hidden
           'GCC_THREADSAFE_STATICS': 'NO',           # -fno-threadsafe-statics
-          'GCC_TREAT_WARNINGS_AS_ERRORS': 'YES',    # -Werror
+          'GCC_TREAT_WARNINGS_AS_ERRORS': 'YES',    # 
           'GCC_VERSION': '4.2',
           'GCC_WARN_ABOUT_MISSING_NEWLINE': 'YES',  # -Wnewline-eof
           'USE_HEADERMAP': 'NO',

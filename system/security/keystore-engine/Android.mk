@@ -29,7 +29,7 @@ LOCAL_SRC_FILES := \
 	dsa_meth.cpp \
 	rsa_meth.cpp
 
-LOCAL_CFLAGS := -fvisibility=hidden -Wall -Werror
+LOCAL_CFLAGS := -fvisibility=hidden -Wall 
 
 LOCAL_C_INCLUDES += \
 	external/openssl/include \

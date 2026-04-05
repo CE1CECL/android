@@ -41,7 +41,7 @@
             '-Wl,--no-fatal-warnings',
           ],
           'ldflags!': [
-            '-Wl,--fatal-warnings',
+            '-Wl,--no-fatal-warnings',
           ],
         }],
       ],

@@ -81,7 +81,7 @@
             '<(nocompile_driver)',
             '4', # number of compilers to invoke in parallel.
             '<(RULE_INPUT_PATH)',
-            '-Wall -Werror -Wfatal-errors -I<(DEPTH)',
+            '-Wall  -Wfatal-errors -I<(DEPTH)',
             '<(nc_result_path)',
             ],
           'message': 'Generating no compile results for <(RULE_INPUT_PATH)',

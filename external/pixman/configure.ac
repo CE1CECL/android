@@ -113,9 +113,9 @@ AC_DEFUN([PIXMAN_LINK_WITH_ENV],[dnl
 	LIBS="$save_LIBS"
 ])
 
-dnl Find a -Werror for catching warnings.
+dnl Find a  for catching warnings.
 WERROR=
-for w in -Werror -errwarn; do
+for w in  -errwarn; do
     if test "z$WERROR" = "z"; then
         AC_MSG_CHECKING([whether the compiler supports $w])
         PIXMAN_LINK_WITH_ENV(
@@ -197,7 +197,7 @@ if test "x$enable_openmp" = "xyes" && test "x$ac_cv_prog_c_openmp" = "xunsupport
   AC_MSG_WARN([OpenMP support requested but found unsupported])
 fi
 
-dnl May not fail to link without -Wall -Werror added
+dnl May not fail to link without -Wall  added
 dnl So try to link only when openmp is supported
 dnl ac_cv_prog_c_openmp is not defined when --disable-openmp is used
 if test "x$ac_cv_prog_c_openmp" != "xunsupported" && test "x$ac_cv_prog_c_openmp" != "x"; then

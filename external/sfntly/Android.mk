@@ -73,7 +73,7 @@ LOCAL_SRC_FILES := \
 MY_CFLAGS_Debug := \
 	-fstack-protector \
 	--param=ssp-buffer-size=4 \
-	-Werror \
+	 \
 	-fno-exceptions \
 	-fno-strict-aliasing \
 	-Wall \
@@ -154,7 +154,7 @@ LOCAL_CPPFLAGS_Debug := \
 MY_CFLAGS_Release := \
 	-fstack-protector \
 	--param=ssp-buffer-size=4 \
-	-Werror \
+	 \
 	-fno-exceptions \
 	-fno-strict-aliasing \
 	-Wall \
@@ -246,7 +246,7 @@ LOCAL_LDFLAGS_Debug := \
 	-Wl,-z,now \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
 	-Wl,--icf=safe \
 	-Wl,--gc-sections \
@@ -263,7 +263,7 @@ LOCAL_LDFLAGS_Release := \
 	-Wl,-z,now \
 	-fuse-ld=gold \
 	-nostdlib \
-	-Wl,--no-undefined \
+	-Wl,--allow-shlib-undefined \
 	-Wl,--exclude-libs=ALL \
 	-Wl,--icf=safe \
 	-Wl,-O1 \

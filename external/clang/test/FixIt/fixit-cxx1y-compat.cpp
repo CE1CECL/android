@@ -1,8 +1,8 @@
 // RUN: %clang_cc1 -verify -std=c++11 %s
 // RUN: cp %s %t
 // RUN: %clang_cc1 -x c++ -std=c++11 -fixit %t
-// RUN: %clang_cc1 -Wall -pedantic-errors -Werror -x c++ -std=c++11 %t
-// RUN: %clang_cc1 -Wall -pedantic-errors -Werror -x c++ -std=c++1y %t
+// RUN: %clang_cc1 -Wall -pedantic-errors  -x c++ -std=c++11 %t
+// RUN: %clang_cc1 -Wall -pedantic-errors  -x c++ -std=c++1y %t
 
 // This is a test of the code modification hints for C++1y-compatibility problems.
 

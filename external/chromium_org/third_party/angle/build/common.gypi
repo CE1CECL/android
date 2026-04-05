@@ -14,7 +14,7 @@
     'gcc_or_clang_warnings': [
       '-Wall',
       '-Wchar-subscripts',
-      '-Werror',
+      '',
       '-Wextra',
       '-Wformat=2',
       '-Winit-self',

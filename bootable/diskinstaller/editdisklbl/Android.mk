@@ -7,7 +7,7 @@ ifeq ($(TARGET_ARCH),x86)
 LOCAL_SRC_FILES := \
 	editdisklbl.c
 
-LOCAL_CFLAGS := -O2 -g -W -Wall -Werror
+LOCAL_CFLAGS := -O2 -g -W -Wall 
 
 LOCAL_MODULE := editdisklbl
 LOCAL_STATIC_LIBRARIES := libdiskconfig_host libcutils liblog

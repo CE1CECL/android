@@ -196,10 +196,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @MUDFLAP_FALSE@AM_CFLAGS = -Wall -Wshadow -Wunused -Wextra -std=gnu99 \
 @MUDFLAP_FALSE@	-fpic $($(*F)_CFLAGS) $(if \
-@MUDFLAP_FALSE@	$($(*F)_no_Werror),,-Werror)
+@MUDFLAP_FALSE@	$($(*F)_no_Werror),,)
 @MUDFLAP_TRUE@AM_CFLAGS = -fmudflap -Wall -Wshadow -Wunused -Wextra \
 @MUDFLAP_TRUE@	-std=gnu99 -fpic $($(*F)_CFLAGS) $(if \
-@MUDFLAP_TRUE@	$($(*F)_no_Werror),,-Werror)
+@MUDFLAP_TRUE@	$($(*F)_no_Werror),,)
 INCLUDES = -I$(srcdir) -I$(srcdir)/../lib -I$(srcdir)/../libelf \
 	   -I$(srcdir)/../libebl -I$(srcdir)/../libdw -I$(srcdir)/../libasm
 

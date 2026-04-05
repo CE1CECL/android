@@ -159,7 +159,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH)/../bionic-fixup
 
 LOCAL_CFLAGS += -include $(LOCAL_PATH)/../bionic-fixup/AndroidFixup.h
 
-LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -DIS_LIBDW -Werror
+LOCAL_CFLAGS += -DHAVE_CONFIG_H -std=gnu99 -DIS_LIBDW 
 
 # to suppress the "pointer of type ‘void *’ used in arithmetic" warning
 LOCAL_CFLAGS += -Wno-pointer-arith
