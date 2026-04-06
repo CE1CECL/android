@@ -65,7 +65,7 @@ namespace android_audio_legacy {
 // Default audio input sample rate
 #define AUDIO_HW_IN_SAMPLERATE 32000
 // Default audio input channel mask
-#define AUDIO_HW_IN_CHANNELS (AudioSystem::CHANNEL_OUT_STEREO)
+#define AUDIO_HW_IN_CHANNELS (AudioSystem::CHANNEL_IN_STEREO)
 // Default audio input sample format
 #define AUDIO_HW_IN_FORMAT (AudioSystem::PCM_16_BIT)
 // Kernel pcm in buffer size in frames at 32kHz (before resampling)
