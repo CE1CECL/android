@@ -13,7 +13,9 @@ TARGET_PRELINK_MODULE := false
 
 # The IA emulator (qemu) uses the Goldfish devices
 HAVE_HTC_AUDIO_DRIVER := true
-BOARD_USES_GENERIC_AUDIO := true
+BOARD_USES_GENERIC_AUDIO := false
+BOARD_USES_ALSA_AUDIO := true
+BOARD_USES_LEGACY_ALSA_AUDIO := false
 BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
 # no hardware camera

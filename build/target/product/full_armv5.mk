@@ -20,12 +20,12 @@
 # entirely appropriate to inherit from for on-device configurations.
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base_telephony.mk)
-$(call inherit-product, $(SRC_TARGET_DIR)/board/generic/device.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/board/generic_armv5/device.mk)
 
 include $(SRC_TARGET_DIR)/product/emulator.mk
 
 # Overrides
-PRODUCT_NAME := full
-PRODUCT_DEVICE := generic
+PRODUCT_NAME := full_armv5
+PRODUCT_DEVICE := generic_armv5
 PRODUCT_BRAND := Android
 PRODUCT_MODEL := AOSP on ARM Emulator
