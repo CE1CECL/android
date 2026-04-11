@@ -545,19 +545,7 @@ static void load_persistent_properties()
                 close(fd);
                 continue;
             }
-#if 0
-            // File must not be accessible to others, be owned by root/root, and
-            // not be a hard link to any other file.
-            if (((sb.st_mode & (S_IRWXG | S_IRWXO)) != 0)
-                    || (sb.st_uid != 0)
-                    || (sb.st_gid != 0)
-                    || (sb.st_nlink != 1)) {
-                ERROR("skipping insecure property file %s (uid=%lu gid=%lu nlink=%d mode=%o)\n",
-                      entry->d_name, sb.st_uid, sb.st_gid, sb.st_nlink, sb.st_mode);
-                close(fd);
-                continue;
-            }
-#endif
+
             length = read(fd, value, sizeof(value) - 1);
             if (length >= 0) {
                 value[length] = 0;

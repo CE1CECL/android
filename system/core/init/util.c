@@ -155,12 +155,6 @@ void *read_file(const char *fn, unsigned *_sz)
         ERROR("fstat failed for '%s'\n", fn);
         goto oops;
     }
-#if 0
-    if ((sb.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
-        ERROR("skipping insecure file '%s'\n", fn);
-        goto oops;
-    }
-#endif
 
     sz = lseek(fd, 0, SEEK_END);
     if(sz < 0) goto oops;
