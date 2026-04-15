@@ -38,6 +38,7 @@ PRODUCT_MAKEFILES := \
     $(LOCAL_DIR)/generic_armv5.mk \
     $(LOCAL_DIR)/generic_x86.mk \
     $(LOCAL_DIR)/full.mk \
+    $(LOCAL_DIR)/full_armv5.mk \
     $(LOCAL_DIR)/full_x86.mk \
     $(LOCAL_DIR)/vbox_x86.mk \
     $(LOCAL_DIR)/sdk.mk \
