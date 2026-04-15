@@ -284,6 +284,9 @@ service console /system/bin/sh
     user shell
     group log
 
+on property:ro.debuggable.console=1
+    start console
+
 service brightness /system/bin/sh -c "for a in /sys/class/backlight/*/brightness; do chown system system $a; done"
     disabled
     oneshot
