@@ -384,7 +384,26 @@ on boot
     setprop system_init.startsurfaceflinger 0
 
     class_start core
+
+    write /sys/class/vtconsole/vtcon0/bind 0
+    write /sys/class/vtconsole/vtcon1/bind 0
+    write /sys/class/vtconsole/vtcon2/bind 0
+    write /sys/class/vtconsole/vtcon3/bind 0
+    write /sys/class/vtconsole/vtcon4/bind 0
+    write /sys/class/vtconsole/vtcon5/bind 0
+    write /sys/class/vtconsole/vtcon6/bind 0
+    write /sys/class/vtconsole/vtcon7/bind 0
+    write /sys/class/vtconsole/vtcon8/bind 0
+    write /sys/class/vtconsole/vtcon9/bind 0
+    write /sys/class/vtconsole/vtcon10/bind 0
+    write /sys/class/vtconsole/vtcon11/bind 0
+    write /sys/class/vtconsole/vtcon12/bind 0
+    write /sys/class/vtconsole/vtcon13/bind 0
+    write /sys/class/vtconsole/vtcon14/bind 0
+    write /sys/class/vtconsole/vtcon15/bind 0
+
     class_start main
+
     class_start late_start
 
 on charger
