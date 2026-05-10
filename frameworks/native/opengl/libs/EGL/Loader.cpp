@@ -332,10 +332,6 @@ void *Loader::load_driver(const char* kind,
                     if (e->d_type == DT_DIR) {
                         continue;
                     }
-                    if (!strcmp(e->d_name, "libGLES_android.so")) {
-                        // always skip the software renderer
-                        continue;
-                    }
                     if (strstr(e->d_name, pattern.string()) == e->d_name) {
                         if (!strcmp(e->d_name + strlen(e->d_name) - 3, ".so")) {
                             result.clear();

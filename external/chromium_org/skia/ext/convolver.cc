@@ -360,22 +360,6 @@ struct ConvolveProcs {
   ConvolveHorizontally_pointer convolve_horizontally;
 };
 
-void SetupSIMD(ConvolveProcs *procs) {
-#ifdef SIMD_SSE2
-  base::CPU cpu;
-  if (cpu.has_sse2()) {
-    procs->extra_horizontal_reads = 3;
-    procs->convolve_vertically = &ConvolveVertically_SSE2;
-    procs->convolve_4rows_horizontally = &Convolve4RowsHorizontally_SSE2;
-    procs->convolve_horizontally = &ConvolveHorizontally_SSE2;
-  }
-#elif defined SIMD_MIPS_DSPR2
-  procs->extra_horizontal_reads = 3;
-  procs->convolve_vertically = &ConvolveVertically_mips_dspr2;
-  procs->convolve_horizontally = &ConvolveHorizontally_mips_dspr2;
-#endif
-}
-
 void BGRAConvolve2D(const unsigned char* source_data,
                     int source_byte_row_stride,
                     bool source_has_alpha,
@@ -389,9 +373,6 @@ void BGRAConvolve2D(const unsigned char* source_data,
   simd.convolve_vertically = NULL;
   simd.convolve_4rows_horizontally = NULL;
   simd.convolve_horizontally = NULL;
-  if (use_simd_if_possible) {
-    SetupSIMD(&simd);
-  }
 
   int max_y_filter_size = filter_y.max_filter();
 

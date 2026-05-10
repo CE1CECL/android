@@ -23,6 +23,7 @@ PRODUCT_PROPERTY_OVERRIDES := \
     ro.adb.qemud=1
 
 PRODUCT_COPY_FILES := \
+    external/wpa_supplicant_8/wpa_supplicant/wpa_supplicant.conf:system/etc/wifi/wpa_supplicant.conf \
     device/generic/goldfish/data/etc/apns-conf.xml:system/etc/apns-conf.xml \
     device/generic/goldfish/camera/media_profiles.xml:system/etc/media_profiles.xml \
     device/generic/goldfish/camera/media_codecs.xml:system/etc/media_codecs.xml

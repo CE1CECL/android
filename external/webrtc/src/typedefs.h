@@ -84,7 +84,7 @@
 #endif
 
 #if defined(__SSE2__) || defined(_MSC_VER)
-#define WEBRTC_USE_SSE2
+#undef WEBRTC_USE_SSE2
 #endif
 
 #if defined(WEBRTC_TARGET_PC)

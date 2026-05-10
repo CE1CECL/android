@@ -782,7 +782,7 @@ class ServerThread {
                 }
             }
 
-            if (!disableNonCoreServices) {
+            if (false) {
                 try {
                     Slog.i(TAG, "Assets Atlas Service");
                     atlas = new AssetAtlasService(context);

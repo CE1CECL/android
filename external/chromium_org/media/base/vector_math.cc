@@ -21,48 +21,11 @@ namespace vector_math {
 // If we know the minimum architecture at compile time, avoid CPU detection.
 // Force NaCl code to use C routines since (at present) nothing there uses these
 // methods and plumbing the -msse built library is non-trivial.
-#if defined(ARCH_CPU_X86_FAMILY) && !defined(OS_NACL)
-#if defined(__SSE__)
-#define FMAC_FUNC FMAC_SSE
-#define FMUL_FUNC FMUL_SSE
-#define EWMAAndMaxPower_FUNC EWMAAndMaxPower_SSE
-void Initialize() {}
-#else
-// X86 CPU detection required.  Functions will be set by Initialize().
-// TODO(dalecurtis): Once Chrome moves to an SSE baseline this can be removed.
-#define FMAC_FUNC g_fmac_proc_
-#define FMUL_FUNC g_fmul_proc_
-#define EWMAAndMaxPower_FUNC g_ewma_power_proc_
-
-typedef void (*MathProc)(const float src[], float scale, int len, float dest[]);
-static MathProc g_fmac_proc_ = NULL;
-static MathProc g_fmul_proc_ = NULL;
-typedef std::pair<float, float> (*EWMAAndMaxPowerProc)(
-    float initial_value, const float src[], int len, float smoothing_factor);
-static EWMAAndMaxPowerProc g_ewma_power_proc_ = NULL;
-
-void Initialize() {
-  CHECK(!g_fmac_proc_);
-  CHECK(!g_fmul_proc_);
-  CHECK(!g_ewma_power_proc_);
-  const bool kUseSSE = base::CPU().has_sse();
-  g_fmac_proc_ = kUseSSE ? FMAC_SSE : FMAC_C;
-  g_fmul_proc_ = kUseSSE ? FMUL_SSE : FMUL_C;
-  g_ewma_power_proc_ = kUseSSE ? EWMAAndMaxPower_SSE : EWMAAndMaxPower_C;
-}
-#endif
-#elif defined(ARCH_CPU_ARM_FAMILY) && defined(USE_NEON)
-#define FMAC_FUNC FMAC_NEON
-#define FMUL_FUNC FMUL_NEON
-#define EWMAAndMaxPower_FUNC EWMAAndMaxPower_NEON
-void Initialize() {}
-#else
 // Unknown architecture.
 #define FMAC_FUNC FMAC_C
 #define FMUL_FUNC FMUL_C
 #define EWMAAndMaxPower_FUNC EWMAAndMaxPower_C
 void Initialize() {}
-#endif
 
 void FMAC(const float src[], float scale, int len, float dest[]) {
   // Ensure |src| and |dest| are 16-byte aligned.

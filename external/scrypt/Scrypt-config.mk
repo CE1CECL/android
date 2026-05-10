@@ -52,18 +52,18 @@ arm_neon_exclude_files := \
 x86_c_flags :=
 
 x86_src_files := \
-  lib/crypto/crypto_scrypt-sse.c \
+  lib/crypto/crypto_scrypt-ref.c \
 
 x86_exclude_files := \
-  lib/crypto/crypto_scrypt-ref.c \
+  lib/crypto/crypto_scrypt-sse.c \
 
 x86_64_c_flags :=
 
 x86_64_src_files := \
-  lib/crypto/crypto_scrypt-sse.c \
+  lib/crypto/crypto_scrypt-ref.c \
 
 x86_64_exclude_files := \
-  lib/crypto/crypto_scrypt-ref.c \
+  lib/crypto/crypto_scrypt-sse.c \
 
 mips_c_flags :=
 

@@ -22,14 +22,7 @@ LOCAL_GENERATED_SOURCES :=
 GYP_COPIED_SOURCE_ORIGIN_DIRS :=
 
 LOCAL_SRC_FILES := \
-	third_party/skia/src/opts/SkBitmapProcState_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkBlitRect_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkBlitRow_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkUtils_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkXfermode_opts_none.cpp \
-	third_party/skia/src/opts/SkBitmapFilter_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkMorphology_opts_SSE2.cpp \
-	third_party/skia/src/opts/SkBlurImage_opts_SSE2.cpp
+	third_party/skia/src/opts/SkXfermode_opts_none.cpp
 
 
 # Flags passed to both C and C++ files.
@@ -44,10 +37,10 @@ MY_CFLAGS_Debug := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -134,10 +127,10 @@ MY_CFLAGS_Release := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

@@ -22,10 +22,7 @@ LOCAL_GENERATED_SOURCES :=
 
 GYP_COPIED_SOURCE_ORIGIN_DIRS :=
 
-LOCAL_SRC_FILES := \
-	media/base/simd/convert_rgb_to_yuv_sse2.cc \
-	media/base/simd/convert_rgb_to_yuv_ssse3.cc \
-	media/base/simd/filter_yuv_sse2.cc
+LOCAL_SRC_FILES :=
 
 
 # Flags passed to both C and C++ files.
@@ -40,12 +37,12 @@ MY_CFLAGS_Debug := \
 	-fvisibility=hidden \
 	-pipe \
 	-fPIC \
-	-msse2 \
+	-mno-sse \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -125,12 +122,12 @@ MY_CFLAGS_Release := \
 	-fvisibility=hidden \
 	-pipe \
 	-fPIC \
-	-msse2 \
+	-mno-sse \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

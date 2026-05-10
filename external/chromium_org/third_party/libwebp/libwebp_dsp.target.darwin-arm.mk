@@ -24,12 +24,9 @@ GYP_COPIED_SOURCE_ORIGIN_DIRS :=
 LOCAL_SRC_FILES := \
 	third_party/libwebp/dsp/cpu.c \
 	third_party/libwebp/dsp/dec.c \
-	third_party/libwebp/dsp/dec_sse2.c \
 	third_party/libwebp/dsp/enc.c \
-	third_party/libwebp/dsp/enc_sse2.c \
 	third_party/libwebp/dsp/lossless.c \
 	third_party/libwebp/dsp/upsampling.c \
-	third_party/libwebp/dsp/upsampling_sse2.c \
 	third_party/libwebp/dsp/yuv.c
 
 

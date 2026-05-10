@@ -113,15 +113,15 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         
         m->base.lock(&m->base, m->framebuffer, 
                 GRALLOC_USAGE_SW_WRITE_RARELY, 
-                0, 0, m->info.xres, m->info.yres,
+                0, 0, (((m->finfo.line_length / (m->info.bits_per_pixel / 8)) != 0) ? (m->finfo.line_length / (m->info.bits_per_pixel / 8)) : ((m->info.xres_virtual != 0) ? m->info.xres_virtual : m->info.xres)), ((m->info.yres_virtual != 0) ? m->info.yres_virtual : m->info.yres),
                 &fb_vaddr);
 
         m->base.lock(&m->base, buffer, 
                 GRALLOC_USAGE_SW_READ_RARELY, 
-                0, 0, m->info.xres, m->info.yres,
+                0, 0, (((m->finfo.line_length / (m->info.bits_per_pixel / 8)) != 0) ? (m->finfo.line_length / (m->info.bits_per_pixel / 8)) : ((m->info.xres_virtual != 0) ? m->info.xres_virtual : m->info.xres)), ((m->info.yres_virtual != 0) ? m->info.yres_virtual : m->info.yres),
                 &buffer_vaddr);
 
-        memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
+        memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * ((m->info.yres_virtual != 0) ? m->info.yres_virtual : m->info.yres));
         
         m->base.unlock(&m->base, buffer); 
         m->base.unlock(&m->base, m->framebuffer); 
@@ -170,35 +170,14 @@ int mapFrameBufferLocked(struct private_module_t* module)
     info.xoffset = 0;
     info.yoffset = 0;
     info.activate = FB_ACTIVATE_NOW;
-
-    /*
-     * Request NUM_BUFFERS screens (at lest 2 for page flipping)
-     */
-    info.yres_virtual = info.yres * NUM_BUFFERS;
-
-
-    uint32_t flags = PAGE_FLIP;
-    if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1) {
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        ALOGW("FBIOPUT_VSCREENINFO failed, page flipping not supported");
-    }
-
-    if (info.yres_virtual < info.yres * 2) {
-        // we need at least 2 for page-flipping
-        info.yres_virtual = info.yres;
-        flags &= ~PAGE_FLIP;
-        ALOGW("page flipping not supported (yres_virtual=%d, requested=%d)",
-                info.yres_virtual, info.yres*2);
-    }
-
+    uint32_t flags = 0;
     if (ioctl(fd, FBIOGET_VSCREENINFO, &info) == -1)
         return -errno;
 
     uint64_t  refreshQuotient =
     (
-            uint64_t( info.upper_margin + info.lower_margin + info.yres )
-            * ( info.left_margin  + info.right_margin + info.xres )
+            uint64_t( info.upper_margin + info.lower_margin + ((info.yres_virtual != 0) ? info.yres_virtual : info.yres) )
+            * ( info.left_margin  + info.right_margin + (((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) )
             * info.pixclock
     );
 
@@ -214,12 +193,12 @@ int mapFrameBufferLocked(struct private_module_t* module)
     if (int(info.width) <= 0 || int(info.height) <= 0) {
         // the driver doesn't return that information
         // default to 160 dpi
-        info.width  = ((info.xres * 25.4f)/160.0f + 0.5f);
-        info.height = ((info.yres * 25.4f)/160.0f + 0.5f);
+        info.width  = (((((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) * 25.4f)/160.0f + 0.5f);
+        info.height = ((((info.yres_virtual != 0) ? info.yres_virtual : info.yres) * 25.4f)/160.0f + 0.5f);
     }
 
-    float xdpi = (info.xres * 25.4f) / info.width;
-    float ydpi = (info.yres * 25.4f) / info.height;
+    float xdpi = ((((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) * 25.4f) / info.width;
+    float ydpi = (((info.yres_virtual != 0) ? info.yres_virtual : info.yres) * 25.4f) / info.height;
     float fps  = refreshRate / 1000.0f;
 
     ALOGI(   "using (fd=%d)\n"
@@ -234,10 +213,10 @@ int mapFrameBufferLocked(struct private_module_t* module)
             "b            = %2u:%u\n",
             fd,
             finfo.id,
-            info.xres,
-            info.yres,
-            info.xres_virtual,
-            info.yres_virtual,
+            (((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)),
+            ((info.yres_virtual != 0) ? info.yres_virtual : info.yres),
+            (((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)),
+            ((info.yres_virtual != 0) ? info.yres_virtual : info.yres),
             info.bits_per_pixel,
             info.red.offset, info.red.length,
             info.green.offset, info.green.length,
@@ -272,10 +251,10 @@ int mapFrameBufferLocked(struct private_module_t* module)
      */
 
     int err;
-    size_t fbSize = roundUpToPageSize(finfo.line_length * info.yres_virtual);
+    size_t fbSize = roundUpToPageSize(finfo.line_length * ((info.yres_virtual != 0) ? info.yres_virtual : info.yres));
     module->framebuffer = new private_handle_t(dup(fd), fbSize, 0);
 
-    module->numBuffers = info.yres_virtual / info.yres;
+    module->numBuffers = 1;
     module->bufferMask = 0;
 
     void* vaddr = mmap(0, fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
@@ -328,13 +307,13 @@ int fb_device_open(hw_module_t const* module, const char* name,
         private_module_t* m = (private_module_t*)module;
         status = mapFrameBuffer(m);
         if (status >= 0) {
-            int stride = m->finfo.line_length / (m->info.bits_per_pixel >> 3);
+            int stride = (((m->finfo.line_length / (m->info.bits_per_pixel / 8)) != 0) ? (m->finfo.line_length / (m->info.bits_per_pixel / 8)) : ((m->info.xres_virtual != 0) ? m->info.xres_virtual : m->info.xres));
             int format = (m->info.bits_per_pixel == 32)
-                         ? HAL_PIXEL_FORMAT_RGBX_8888
+                         ? ((m->info.red.offset == 16) ? HAL_PIXEL_FORMAT_BGRA_8888 : (m->info.red.offset == 24) ? HAL_PIXEL_FORMAT_RGBA_8888 : HAL_PIXEL_FORMAT_RGBX_8888)
                          : HAL_PIXEL_FORMAT_RGB_565;
             const_cast<uint32_t&>(dev->device.flags) = 0;
-            const_cast<uint32_t&>(dev->device.width) = m->info.xres;
-            const_cast<uint32_t&>(dev->device.height) = m->info.yres;
+            const_cast<uint32_t&>(dev->device.width) = (((m->finfo.line_length / (m->info.bits_per_pixel / 8)) != 0) ? (m->finfo.line_length / (m->info.bits_per_pixel / 8)) : ((m->info.xres_virtual != 0) ? m->info.xres_virtual : m->info.xres));
+            const_cast<uint32_t&>(dev->device.height) = ((m->info.yres_virtual != 0) ? m->info.yres_virtual : m->info.yres);
             const_cast<int&>(dev->device.stride) = stride;
             const_cast<int&>(dev->device.format) = format;
             const_cast<float&>(dev->device.xdpi) = m->xdpi;

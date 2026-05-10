@@ -45,5 +45,5 @@ endif
 
 else ifeq ($(TARGET_ARCH),x86)
 MY_WEBRTC_COMMON_DEFS += \
-    '-DWEBRTC_USE_SSE2'
+    '-UWEBRTC_USE_SSE2'
 endif

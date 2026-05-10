@@ -16,7 +16,7 @@
 
 #include "atomic.h"
 
-#define NEED_SWAP_MUTEXES !defined(__arm__) && !defined(__i386__)
+#define NEED_SWAP_MUTEXES 1
 
 #if NEED_SWAP_MUTEXES
 #include <vector>

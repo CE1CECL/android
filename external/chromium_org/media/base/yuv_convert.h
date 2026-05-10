@@ -16,7 +16,7 @@
 // Studio 2012? http://crbug.com/173450
 #if defined(ARCH_CPU_X86_FAMILY) && \
     !(defined(ARCH_CPU_X86_64) && defined(COMPILER_MSVC))
-#define MEDIA_MMX_INTRINSICS_AVAILABLE
+#undef MEDIA_MMX_INTRINSICS_AVAILABLE
 #endif
 
 namespace media {
