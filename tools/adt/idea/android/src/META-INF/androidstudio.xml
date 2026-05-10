@@ -1,0 +1,41 @@
+<!--
+ *
+ * Copyright (C) 2013 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+  -->
+<idea-plugin url="http://www.jetbrains.com/idea">
+  <extensions defaultExtensionNs="com.intellij">
+    <androidStudioInitializer implementation="com.android.tools.idea.startup.AndroidStudioSpecificInitializer" />
+  </extensions>
+
+  <actions>
+    <group id="Android.MainToolBarActionGroup">
+      <separator/>
+      <reference id="Android.ReImportProject" />
+      <reference id="Android.RunAndroidAvdManager" />
+      <reference id="Android.RunAndroidSdkManager" />
+      <reference id="Android.RunDdms" />
+      <separator/>
+
+      <add-to-group group-id="MainToolBar" anchor="before" relative-to-action="HelpTopics" />
+    </group>
+
+    <action id="AndroidAddRTLSupport" class="com.android.tools.idea.actions.AndroidAddRtlSupportAction"
+            text="Add right-to-left (RTL) support where possible..." description="Add right-to-left (RTL) support where possible">
+      <add-to-group group-id="RefactoringMenu"/>
+    </action>
+
+  </actions>
+</idea-plugin>

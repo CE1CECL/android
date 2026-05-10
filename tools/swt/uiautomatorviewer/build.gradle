@@ -1,0 +1,20 @@
+group = 'com.android.tools'
+archivesBaseName = 'uiautomatorviewer'
+
+dependencies {
+    compile "com.android.tools.ddms:ddmlib:$version"
+}
+
+shipping {
+    launcherScripts = ['etc/uiautomatorviewer', 'etc/uiautomatorviewer.bat']
+}
+
+// include swt for compilation
+sourceSets.main.compileClasspath += configurations.swt
+
+// configure the manifest of the buildDistributionJar task.
+buildDistributionJar.manifest.attributes("Main-Class": "com.android.uiautomator.UiAutomatorViewer")
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+}

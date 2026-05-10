@@ -1,0 +1,17 @@
+package test.pkg;
+
+import android.view.*;
+import android.widget.*;
+
+public class WrongColor {
+    public void foo(TextView textView) {
+        Paint paint2 = new Paint();
+        paint2.setColor(R.color.blue);
+        // Wrong
+        textView.setTextColor(R.color.red);
+        textView.setTextColor(android.R.color.red);
+        textView.setTextColor(foo > 0 ? R.color.green : R.color.blue);
+        // OK
+        textView.setTextColor(getResources().getColor(R.color.red));
+    }
+}
