@@ -83,7 +83,7 @@ public class Main {
     // GCC style flag names for options
     private static final String ARG_NO_WARN_1  = "-w";             //$NON-NLS-1$
     private static final String ARG_WARN_ALL   = "-Wall";          //$NON-NLS-1$
-    private static final String ARG_ALL_ERROR  = "-Werror";        //$NON-NLS-1$
+    private static final String ARG_ALL_ERROR  = "";        //$NON-NLS-1$
 
     private static final String PROP_WORK_DIR = "com.android.tools.lint.workdir"; //$NON-NLS-1$
 
