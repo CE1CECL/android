@@ -1,0 +1,17 @@
+group = 'com.android.tools'
+archivesBaseName = 'swtmenubar'
+
+dependencies {
+    compile "com.android.tools:sdklib:$version"
+    compile 'com.android.external.eclipse:org-eclipse-jface:3.6.2'
+
+    testCompile 'junit:junit:3.8.1'
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+
+    main.java.srcDir 'src/main/java'
+    // Also add the MacOS specific sources for SWT Cocoa
+    main.java.srcDir 'src/main-darwin/java'
+}

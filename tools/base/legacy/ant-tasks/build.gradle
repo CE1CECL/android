@@ -1,0 +1,23 @@
+group = 'com.android.tools.build'
+archivesBaseName = 'ant-tasks'
+
+dependencies {
+    compile project(':manifest-merger')
+
+    testCompile 'junit:junit:3.8.1'
+}
+
+// configuration for dependencies provided by the runtime,
+// in this case Ant.
+configurations{
+  provided
+}
+
+dependencies{
+  provided "org.apache.ant:ant:1.8.0"
+}
+
+//Include provided for compilation
+sourceSets.main.compileClasspath += configurations.provided
+
+javadoc.classpath += configurations.provided

@@ -1,0 +1,20 @@
+include "chimpchat"
+include "ddms"
+include "ddmuilib"
+include "hierarchyviewer2"
+include "hierarchyviewer2lib"
+include "monkeyrunner"
+include "sdkmanager"
+include "sdkstats"
+include "sdkuilib"
+include "swtmenubar"
+include "traceview"
+include "uiautomatorviewer"
+
+project(':ddms'    ).projectDir = new File(rootDir, 'ddms/app')
+project(':ddmuilib').projectDir = new File(rootDir, 'ddms/ddmuilib')
+project(':hierarchyviewer2'   ).projectDir = new File(rootDir, 'hierarchyviewer2/app')
+project(':hierarchyviewer2lib').projectDir = new File(rootDir, 'hierarchyviewer2/hierarchyviewer2lib')
+project(':sdkmanager').projectDir = new File(rootDir, 'sdkmanager/app')
+project(':sdkuilib'  ).projectDir = new File(rootDir, 'sdkmanager/sdkuilib')
+

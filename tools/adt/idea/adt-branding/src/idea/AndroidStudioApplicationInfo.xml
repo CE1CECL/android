@@ -1,0 +1,52 @@
+<!--
+  ~ Copyright 2000-2013 JetBrains s.r.o.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<component>
+  <version codename="I/O Preview" major="0" minor="2.3" eap="true"/>
+  <company name="Google Inc." url="http://developer.android.com"/>
+  <build number="__BUILD_NUMBER__" date="__BUILD_DATE__"/>
+  <install-over minbuild="0.1" maxbuild="999.999999" version="0"/>
+  <logo url="/artwork/studio_splash.png" textcolor="cccccc" progressColor="ffaa16" progressY="238" progressTailIcon="/community_progress_tail.png"/>
+  <about url="/artwork/studio_about.png" foreground="cccccc"/>
+  <icon size32="/artwork/icon_AS.png" size16="/artwork/icon_AS_small.png" size32opaque="/artwork/icon_AS_white.png" size12="/artwork/toolWindowProject_AS.png"/>
+  <package code="__PACKAGE_CODE__"/>
+  <names product="Android Studio" fullname="Android Studio" script="studio"/> <!-- fullname is used by NPW to show default folder for projects as -->
+
+  <welcome-screen logo-url="/artwork/welcome.png"
+                  caption-url="/welcomeCaption_community.png"
+                  slogan-url="/developSlogan_community.png"/>
+
+  <editor background-url="/artwork/studio_logo_background.png"/>
+
+  <update-urls check="http://dl-sdk.appspot.com/as/updates.xml"
+               patches="http://dl-sdk.appspot.com/as/patches/"/>
+
+  <help file="ideahelp.jar" root="idea"/>
+  <documentation url="http://dl-sdk.appspot.com/as/documentation"/>
+  <feedback eap-url="https://dl-sdk.appspot.com/as/issues/entry?template=Android%20Studio%20bug&amp;comment=Build:%20$VERSION,%20__BUILD_NUMBER__,%20__BUILD_DATE__&amp;status=New"
+            release-url="https://dl-sdk.appspot.com/as/issues/entry?template=Android%20Studio%20bug&amp;comment=Build:%20$VERSION,%20__BUILD_NUMBER__,%20__BUILD_DATE__&amp;status=New"/>
+  <plugins url="http://plugins.intellij.net"/>
+  <whatsnew url="http://tools.android.com/recent"/>
+  <keymap win="http://www.jetbrains.com/idea/docs/IntelliJIDEA_ReferenceCard.pdf"
+          mac="http://www.jetbrains.com/idea/docs/IntelliJIDEA_ReferenceCard_Mac.pdf"/>
+
+  <plugins-page category="VCS Integration" title="Select VCS Integration Plugins"/>
+  <plugins-page title="Select Other Plugins"/>
+
+  <statistics settings="http://dl-sdk.appspot.com/diamond/stats/stat-assistant.xml"
+              service="http://dl-sdk.appspot.com/diamond/stats/index.jsp"
+              service-key="android-studio" />
+
+</component>

@@ -1,0 +1,16 @@
+group = 'com.android.tools'
+archivesBaseName = 'sdkuilib'
+
+dependencies {
+    compile project(':swtmenubar')
+    compile "com.android.tools:sdklib:$version"
+
+    testCompile "com.android.tools:sdklib-test:$version"
+    testCompile 'junit:junit:3.8.1'
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}
+

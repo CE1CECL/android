@@ -1,0 +1,18 @@
+group = 'com.android.tools.ddms'
+archivesBaseName = 'ddmuilib'
+
+dependencies {
+    compile "com.android.tools.ddms:ddmlib:$version"
+    compile 'jfree:jfreechart:1.0.9'
+    compile 'jfree:jfreechart-swt:1.0.9'
+
+    testCompile 'junit:junit:3.8.1'
+}
+
+// include swt for compilation
+sourceSets.main.compileClasspath += configurations.swt
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}

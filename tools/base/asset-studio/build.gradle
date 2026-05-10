@@ -1,0 +1,14 @@
+group = 'com.android.tools'
+archivesBaseName = 'asset-studio'
+
+dependencies {
+    compile project(':layoutlib-api')
+
+    testCompile 'junit:junit:3.8.1'
+}
+
+sourceSets {
+    main.resources.srcDir 'src/main/java'
+    test.resources.srcDir 'src/test/java'
+}
+

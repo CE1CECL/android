@@ -1,2 +1,4 @@
 external/eclipse-basebuilder/src/eclipse-sourceBuild-srcIncluded-3.6.2.zip filter=lfs diff=lfs merge=lfs -text
 prebuilts/eclipse/platform/org.eclipse.platform-3.7.2.zip filter=lfs diff=lfs merge=lfs -text
+prebuilts/eclipse-build-deps/cdt/cdt-master-8.1.2.zip filter=lfs diff=lfs merge=lfs -text
+prebuilts/eclipse-build-deps/wtp/wtp-repo-R-3.3.2-20120210195245.zip filter=lfs diff=lfs merge=lfs -text
