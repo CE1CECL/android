@@ -20,10 +20,13 @@
 # in inherited configurations.
 
 PRODUCT_PACKAGES := \
+    camera.default \
     libfwdlockengine \
     libWnnEngDic \
     libWnnJpnDic \
     libwnndict \
+    lights.default \
+    sensors.default \
     VideoEditor \
     WAPPushManager
 

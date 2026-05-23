@@ -40,7 +40,7 @@ endif
 host_smp_flag := -DANDROID_SMP=1
 
 # Build the installed version (libdvm.so) first
-WITH_JIT := true
+WITH_JIT := false
 include $(LOCAL_PATH)/ReconfigureDvm.mk
 
 # Overwrite default settings
@@ -63,8 +63,7 @@ include $(BUILD_SHARED_LIBRARY)
 # Derivation #1
 # Enable assertions and JIT tuning
 include $(LOCAL_PATH)/ReconfigureDvm.mk
-LOCAL_CFLAGS += -UNDEBUG -DDEBUG=1 -DLOG_NDEBUG=1 -DWITH_DALVIK_ASSERT \
-                -DWITH_JIT_TUNING $(target_smp_flag)
+LOCAL_CFLAGS += -UNDEBUG -DDEBUG=1 -DLOG_NDEBUG=1 -DWITH_DALVIK_ASSERT $(target_smp_flag)
 # TODO: split out the asflags.
 LOCAL_ASFLAGS := $(LOCAL_CFLAGS)
 LOCAL_MODULE := libdvm_assert
@@ -108,7 +107,7 @@ ifeq ($(WITH_HOST_DALVIK),true)
     dvm_arch := $(HOST_ARCH)
     # Note: HOST_ARCH_VARIANT isn't defined.
     dvm_arch_variant := $(HOST_ARCH)
-    WITH_JIT := true
+    WITH_JIT := false
     include $(LOCAL_PATH)/Dvm.mk
 
     LOCAL_SHARED_LIBRARIES += libnativehelper libcrypto-host libssl-host libicuuc-host libicui18n-host

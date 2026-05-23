@@ -419,7 +419,7 @@ EGLSurface eglCreateWindowSurface(  EGLDisplay dpy, EGLConfig config,
         // of our native format. So if sRGB gamma is requested, we have to
         // modify the EGLconfig's format before setting the native window's
         // format.
-#if 1 // #if WORKAROUND_BUG_10194508
+#if WORKAROUND_BUG_10194508
 #warning "WORKAROUND_10194508 enabled"
         EGLint format;
         if (!cnx->egl.eglGetConfigAttrib(iDpy, config, EGL_NATIVE_VISUAL_ID,

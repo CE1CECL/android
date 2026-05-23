@@ -18,6 +18,8 @@ BOARD_WPA_SUPPLICANT_DRIVER := WEXT
 
 # no hardware camera
 USE_CAMERA_STUB := false
+BOARD_USES_ALSA_AUDIO := true
+BUILD_WITH_ALSA_UTILS := true
 
 # customize the malloced address to be 16-byte aligned
 BOARD_MALLOC_ALIGNMENT := 16
