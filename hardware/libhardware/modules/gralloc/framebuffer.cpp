@@ -190,12 +190,9 @@ int mapFrameBufferLocked(struct private_module_t* module)
         refreshRate = 60*1000;  // 60 Hz
     }
 
-    if (int(info.width) <= 0 || int(info.height) <= 0) {
-        // the driver doesn't return that information
-        // default to 160 dpi
-        info.width  = (((((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) * 25.4f)/160.0f + 0.5f);
-        info.height = ((((info.yres_virtual != 0) ? info.yres_virtual : info.yres) * 25.4f)/160.0f + 0.5f);
-    }
+    // default to 160 dpi
+    info.width  = (((((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) * 25.4f)/160.0f + 0.5f);
+    info.height = ((((info.yres_virtual != 0) ? info.yres_virtual : info.yres) * 25.4f)/160.0f + 0.5f);
 
     float xdpi = ((((finfo.line_length / (info.bits_per_pixel / 8)) != 0) ? (finfo.line_length / (info.bits_per_pixel / 8)) : ((info.xres_virtual != 0) ? info.xres_virtual : info.xres)) * 25.4f) / info.width;
     float ydpi = (((info.yres_virtual != 0) ? info.yres_virtual : info.yres) * 25.4f) / info.height;

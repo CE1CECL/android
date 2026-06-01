@@ -299,10 +299,14 @@ class ServerThread {
             alarm = new AlarmManagerService(context);
             ServiceManager.addService(Context.ALARM_SERVICE, alarm);
 
+            /*
+
             Slog.i(TAG, "Init Watchdog");
             Watchdog.getInstance().init(context, battery, power, alarm,
                     ActivityManagerService.self());
             Watchdog.getInstance().addThread(wmHandler, "WindowManager thread");
+
+            */
 
             Slog.i(TAG, "Input Manager");
             inputManager = new InputManagerService(context, wmHandler);
@@ -1002,7 +1006,7 @@ class ServerThread {
                 } catch (Throwable e) {
                     reportWtf("making Recognition Service ready", e);
                 }
-                Watchdog.getInstance().start();
+                //Watchdog.getInstance().start();
 
                 // It is now okay to let the various system services start their
                 // third party code...
