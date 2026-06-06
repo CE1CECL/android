@@ -40,6 +40,7 @@ endif
 host_smp_flag := -DANDROID_SMP=1
 
 # Build the installed version (libdvm.so) first
+WITH_JIT := false
 include $(LOCAL_PATH)/ReconfigureDvm.mk
 
 # Overwrite default settings
@@ -57,8 +58,7 @@ ifeq ($(WITH_JIT),true)
     include $(LOCAL_PATH)/ReconfigureDvm.mk
 
     # Enable assertions and JIT-tuning
-    LOCAL_CFLAGS += -UNDEBUG -DDEBUG=1 -DLOG_NDEBUG=1 -DWITH_DALVIK_ASSERT \
-                    -DWITH_JIT_TUNING $(target_smp_flag)
+    LOCAL_CFLAGS += -UNDEBUG -DDEBUG=1 -DLOG_NDEBUG=1 -DWITH_DALVIK_ASSERT $(target_smp_flag)
     LOCAL_MODULE := libdvm_assert
     include $(BUILD_SHARED_LIBRARY)
 
