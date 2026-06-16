@@ -14,6 +14,6 @@
 # limitations under the License.
 #
 
+ARCH_ARM_HAVE_TLS_REGISTER := false
 include build/target/board/generic/BoardConfig.mk
-
 ARCH_ARM_HAVE_TLS_REGISTER := false
