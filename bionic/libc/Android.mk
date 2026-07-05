@@ -500,7 +500,7 @@ else # !arm
 
     # Enable recent IA friendly memory routines (such as for Atom)
     # These will not work on the earlier x86 machines
-    libc_common_cflags += -march=i486 -mtune=i386 -mfpmath=387 -mno-sse
+    libc_common_cflags += -march=i386 -mtune=i386 -mfpmath=387 -mno-sse
   endif # x86
 endif # !arm
 

@@ -104,7 +104,7 @@ TARGET_GLOBAL_CFLAGS += -fstack-protector
 TARGET_GLOBAL_CPPFLAGS += \
 			-fno-use-cxa-atexit
 
-TARGET_GLOBAL_CFLAGS += -march=i486 -mtune=i386 -mfpmath=387 -mno-sse
+TARGET_GLOBAL_CFLAGS += -march=i386 -mtune=i386 -mfpmath=387 -mno-sse
 
 TARGET_GLOBAL_CFLAGS += -mbionic
 TARGET_GLOBAL_CFLAGS += -D__ANDROID__
