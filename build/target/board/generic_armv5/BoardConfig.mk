@@ -14,11 +14,6 @@
 # limitations under the License.
 #
 
-include build/target/board/generic/BoardConfig.mk
-
-TARGET_ARCH_VARIANT := armv5te
-TARGET_CPU_ABI := armeabi
-TARGET_CPU_ABI2 :=
 ARCH_ARM_HAVE_TLS_REGISTER := false
-
-FORCE_ARM_DEBUGGING := true
+include build/target/board/generic/BoardConfig.mk
+ARCH_ARM_HAVE_TLS_REGISTER := false

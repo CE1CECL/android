@@ -100,3 +100,12 @@ print >>outputHFile, '#define %sH' % inputRoot
 print >>outputHFile, outputHContents
 print >>outputHFile, '#endif'
 outputHFile.close()
+
+outputHPP = os.path.join(outputDir, inputRoot + '.hpp')
+
+outputHPPFile = open(outputHPP, 'w')
+print >>outputHPPFile, '#ifndef %sH' % inputRoot
+print >>outputHPPFile, '#define %sH' % inputRoot
+print >>outputHPPFile, outputHContents
+print >>outputHPPFile, '#endif'
+outputHPPFile.close()
