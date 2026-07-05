@@ -88,7 +88,7 @@ MY_CFLAGS_Debug := \
 	-fPIC \
 	-m32 \
 	-mno-mmx \
-	-march=i486 \
+	-march=i386 \
 	-mno-sse \
 	-mfpmath=387 \
 	-fuse-ld=gold \
@@ -194,7 +194,7 @@ MY_CFLAGS_Release := \
 	-fPIC \
 	-m32 \
 	-mno-mmx \
-	-march=i486 \
+	-march=i386 \
 	-mno-sse \
 	-mfpmath=387 \
 	-fuse-ld=gold \
