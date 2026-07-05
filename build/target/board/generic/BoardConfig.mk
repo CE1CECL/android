@@ -18,9 +18,10 @@ TARGET_NO_KERNEL := true
 # that are slower to emulate. On the other hand, it is possible to emulate
 # application code generated with the NDK that uses NEON in the emulator.
 #
-TARGET_ARCH_VARIANT := armv7-a
-TARGET_CPU_ABI := armeabi-v7a
-TARGET_CPU_ABI2 := armeabi
+TARGET_ARCH_VARIANT := armv5te
+TARGET_CPU_ABI := armeabi
+TARGET_CPU_ABI2 := armeabi-v7a
+ARCH_ARM_HAVE_TLS_REGISTER := true
 TARGET_PRELINK_MODULE := false
 
 BOARD_USES_GENERIC_AUDIO := false
