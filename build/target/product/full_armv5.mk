@@ -28,4 +28,4 @@ include $(SRC_TARGET_DIR)/product/emulator.mk
 PRODUCT_NAME := full_armv5
 PRODUCT_DEVICE := generic_armv5
 PRODUCT_BRAND := Android
-PRODUCT_MODEL := AOSP on ARM Emulator
+PRODUCT_MODEL := AOSP on ARM

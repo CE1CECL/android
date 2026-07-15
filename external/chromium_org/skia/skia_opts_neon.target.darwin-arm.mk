@@ -227,7 +227,7 @@ LOCAL_LDFLAGS_Debug := \
 	-Wl,-z,relro \
 	-Wl,-z,noexecstack \
 	-fPIC \
-	-march=armv7-a \
+	-march=armv5te \
 	-Wl,--fix-cortex-a8 \
 	-Wl,-z,relro \
 	-Wl,-z,now \
@@ -248,7 +248,7 @@ LOCAL_LDFLAGS_Release := \
 	-Wl,-z,relro \
 	-Wl,-z,noexecstack \
 	-fPIC \
-	-march=armv7-a \
+	-march=armv5te \
 	-Wl,--fix-cortex-a8 \
 	-Wl,-z,relro \
 	-Wl,-z,now \
