@@ -34,4 +34,4 @@ PRODUCT_PACKAGES += \
 PRODUCT_NAME := full_armv5
 PRODUCT_DEVICE := generic_armv5
 PRODUCT_BRAND := Android
-PRODUCT_MODEL := Full Android on Emulator
+PRODUCT_MODEL := Full Android on ARM

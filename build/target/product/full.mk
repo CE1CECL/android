@@ -34,4 +34,4 @@ PRODUCT_PACKAGES += \
 PRODUCT_NAME := full
 PRODUCT_DEVICE := generic
 PRODUCT_BRAND := Android
-PRODUCT_MODEL := Full Android on Emulator
+PRODUCT_MODEL := Full Android
