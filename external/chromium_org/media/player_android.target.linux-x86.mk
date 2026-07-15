@@ -53,7 +53,7 @@ MY_CFLAGS_Debug := \
 	-Wno-unknown-pragmas \
 	-m32 \
 	-mno-mmx \
-	-march=i386 \
+	-march=i486 \
 	-mno-sse \
 	-mfpmath=387 \
 	-fuse-ld=gold \
@@ -149,7 +149,7 @@ MY_CFLAGS_Release := \
 	-Wno-unknown-pragmas \
 	-m32 \
 	-mno-mmx \
-	-march=i386 \
+	-march=i486 \
 	-mno-sse \
 	-mfpmath=387 \
 	-fuse-ld=gold \
