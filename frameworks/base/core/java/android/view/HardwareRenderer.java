@@ -213,14 +213,14 @@ public abstract class HardwareRenderer {
      *
      * @hide
      */
-    public static boolean sRendererDisabled = false;
+    public static final boolean sRendererDisabled = true;
 
     /**
      * Further hardware renderer disabling for the system process.
      *
      * @hide
      */
-    public static boolean sSystemRendererDisabled = false;
+     public static final boolean sSystemRendererDisabled = true;
 
     /**
      * Number of frames to profile.
@@ -232,8 +232,8 @@ public abstract class HardwareRenderer {
      */
     private static final int PROFILE_FRAME_DATA_COUNT = 3;
 
-    private boolean mEnabled;
-    private boolean mRequested = true;
+    private final boolean mEnabled = false;
+    private final boolean mRequested = false;
 
     /**
      * Invoke this method to disable hardware rendering in the current process.
@@ -241,10 +241,7 @@ public abstract class HardwareRenderer {
      * @hide
      */
     public static void disable(boolean system) {
-        sRendererDisabled = true;
-        if (system) {
-            sSystemRendererDisabled = true;
-        }
+
     }
 
     /**
@@ -673,7 +670,7 @@ public abstract class HardwareRenderer {
      * @return True if hardware acceleration is in use, false otherwise.
      */
     boolean isEnabled() {
-        return mEnabled;
+        return false;
     }
 
     /**
@@ -682,7 +679,7 @@ public abstract class HardwareRenderer {
      * @param enabled True if the hardware renderer is in use, false otherwise.
      */
     void setEnabled(boolean enabled) {
-        mEnabled = enabled;
+
     }
 
     /**
@@ -692,7 +689,7 @@ public abstract class HardwareRenderer {
      * @return True if requested, false otherwise.
      */
     boolean isRequested() {
-        return mRequested;
+        return false;
     }
 
     /**
@@ -702,7 +699,7 @@ public abstract class HardwareRenderer {
      * @return True to request hardware acceleration, false otherwise.
      */
     void setRequested(boolean requested) {
-        mRequested = requested;
+
     }
 
     /**

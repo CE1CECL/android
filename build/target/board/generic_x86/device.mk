@@ -14,18 +14,4 @@
 # limitations under the License.
 #
 
-# This is a build configuration for the product aspects that
-# are specific to the emulator.
-
-PRODUCT_PROPERTY_OVERRIDES := \
-    ro.ril.hsxpa=1 \
-    ro.ril.gprsclass=10 \
-    ro.adb.qemud=1
-
-PRODUCT_COPY_FILES := \
-    device/generic/goldfish/data/etc/apns-conf.xml:system/etc/apns-conf.xml \
-    device/generic/goldfish/camera/media_profiles.xml:system/etc/media_profiles.xml \
-    device/generic/goldfish/camera/media_codecs.xml:system/etc/media_codecs.xml
-
-PRODUCT_PACKAGES := \
-    audio.primary.goldfish
+include build/target/board/generic/device.mk

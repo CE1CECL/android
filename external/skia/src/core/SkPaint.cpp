@@ -139,27 +139,8 @@ start:
 
 extern "C" {
     inline void memcpy_paint_opt(int* src, int* dst) {
-#ifdef ARCH_ARM
-    __asm__ volatile
-   (
-        "cpy            r4, %1 \n\t"
-        "cpy            r5, %0  \n\t"
-        "vld1.8         {q0, q1}, [r4]! \n\t"
-        "vst1.8         {q0, q1}, [r5]! \n\t"
-        "vld1.8         {q0, q1}, [r4]! \n\t"
-        "vst1.8         {q0, q1}, [r5]! \n\t"
-        "vld1.8         {d0},     [r4]! \n\t"
-        "vst1.8         {d0},    [r5]! \n\t"
-        "ldr            ip, [r4]        \n\t"
-        "str            ip, [r5]        \n\t"
-        :
-        : "r" (src), "r" (dst)
-        : "r4","r5","ip","d0","q0","q1","d3"
-        );
-#else
     // just use the non-optimized copy
     memcpy(src, dst, SIZE_OF_PAINT);
-#endif /* ARCH_ARM */
     }
 }
 

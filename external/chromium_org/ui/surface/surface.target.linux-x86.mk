@@ -45,10 +45,10 @@ MY_CFLAGS_Debug := \
 	-fPIC \
 	-Wno-unknown-pragmas \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -149,10 +149,10 @@ MY_CFLAGS_Release := \
 	-fPIC \
 	-Wno-unknown-pragmas \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

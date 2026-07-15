@@ -80,7 +80,7 @@ ifeq ($(TARGET_ARCH),x86)
   CLANG_CONFIG_UNKNOWN_CFLAGS += \
     -finline-limit=300 \
     -fno-inline-functions-called-once \
-    -mfpmath=sse \
+    -mfpmath=387 \
     -mbionic
 endif
 

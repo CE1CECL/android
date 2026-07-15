@@ -28,8 +28,6 @@
 #if defined(ARCH_CPU_X86_FAMILY)
 #if defined(COMPILER_MSVC)
 #include <intrin.h>
-#else
-#include <mmintrin.h>
 #endif
 #endif
 
@@ -105,9 +103,6 @@ static ConvertYUVAToARGBProc g_convert_yuva_to_argb_proc_ = NULL;
 
 // Empty SIMD registers state after using them.
 void EmptyRegisterStateStub() {}
-#if defined(MEDIA_MMX_INTRINSICS_AVAILABLE)
-void EmptyRegisterStateIntrinsic() { _mm_empty(); }
-#endif
 typedef void (*EmptyRegisterStateProc)();
 static EmptyRegisterStateProc g_empty_register_state_proc_ = NULL;
 
@@ -131,53 +126,6 @@ void InitializeCPUSpecificYUVConversions() {
   g_convert_yuv_to_rgb32_proc_ = ConvertYUVToRGB32_C;
   g_convert_yuva_to_argb_proc_ = ConvertYUVAToARGB_C;
   g_empty_register_state_proc_ = EmptyRegisterStateStub;
-
-#if defined(ARCH_CPU_X86_FAMILY)
-  base::CPU cpu;
-  if (cpu.has_mmx()) {
-    g_convert_yuv_to_rgb32_row_proc_ = ConvertYUVToRGB32Row_MMX;
-    g_scale_yuv_to_rgb32_row_proc_ = ScaleYUVToRGB32Row_MMX;
-    g_convert_yuv_to_rgb32_proc_ = ConvertYUVToRGB32_MMX;
-    g_convert_yuva_to_argb_proc_ = ConvertYUVAToARGB_MMX;
-    g_linear_scale_yuv_to_rgb32_row_proc_ = LinearScaleYUVToRGB32Row_MMX;
-
-#if defined(MEDIA_MMX_INTRINSICS_AVAILABLE)
-    g_filter_yuv_rows_proc_ = FilterYUVRows_MMX;
-    g_empty_register_state_proc_ = EmptyRegisterStateIntrinsic;
-#else
-    g_empty_register_state_proc_ = EmptyRegisterState_MMX;
-#endif
-  }
-
-  if (cpu.has_sse()) {
-    g_convert_yuv_to_rgb32_row_proc_ = ConvertYUVToRGB32Row_SSE;
-    g_scale_yuv_to_rgb32_row_proc_ = ScaleYUVToRGB32Row_SSE;
-    g_linear_scale_yuv_to_rgb32_row_proc_ = LinearScaleYUVToRGB32Row_SSE;
-    g_convert_yuv_to_rgb32_proc_ = ConvertYUVToRGB32_SSE;
-  }
-
-  if (cpu.has_sse2()) {
-    g_filter_yuv_rows_proc_ = FilterYUVRows_SSE2;
-    g_convert_rgb32_to_yuv_proc_ = ConvertRGB32ToYUV_SSE2;
-
-#if defined(ARCH_CPU_X86_64)
-    g_scale_yuv_to_rgb32_row_proc_ = ScaleYUVToRGB32Row_SSE2_X64;
-
-    // Technically this should be in the MMX section, but MSVC will optimize out
-    // the export of LinearScaleYUVToRGB32Row_MMX, which is required by the unit
-    // tests, if that decision can be made at compile time.  Since all X64 CPUs
-    // have SSE2, we can hack around this by making the selection here.
-    g_linear_scale_yuv_to_rgb32_row_proc_ = LinearScaleYUVToRGB32Row_MMX_X64;
-#endif
-  }
-
-  if (cpu.has_ssse3()) {
-    g_convert_rgb24_to_yuv_proc_ = &ConvertRGB24ToYUV_SSSE3;
-
-    // TODO(hclam): Add ConvertRGB32ToYUV_SSSE3 when the cyan problem is solved.
-    // See: crbug.com/100462
-  }
-#endif
 }
 
 // Empty SIMD registers state after using them.

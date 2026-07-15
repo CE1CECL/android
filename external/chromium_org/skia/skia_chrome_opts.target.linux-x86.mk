@@ -22,8 +22,7 @@ LOCAL_GENERATED_SOURCES :=
 
 GYP_COPIED_SOURCE_ORIGIN_DIRS :=
 
-LOCAL_SRC_FILES := \
-	skia/ext/convolver_SSE2.cc
+LOCAL_SRC_FILES :=
 
 
 # Flags passed to both C and C++ files.
@@ -38,10 +37,10 @@ MY_CFLAGS_Debug := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -125,10 +124,10 @@ MY_CFLAGS_Release := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

@@ -185,8 +185,7 @@ LOCAL_SRC_FILES := \
 	media/mp4/es_descriptor.cc \
 	media/mp4/mp4_stream_parser.cc \
 	media/mp4/offset_byte_queue.cc \
-	media/mp4/track_run_iterator.cc \
-	media/base/simd/convert_yuv_to_rgb_x86.cc
+	media/mp4/track_run_iterator.cc
 
 
 # Flags passed to both C and C++ files.
@@ -202,10 +201,10 @@ MY_CFLAGS_Debug := \
 	-pipe \
 	-fPIC \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -304,10 +303,10 @@ MY_CFLAGS_Release := \
 	-pipe \
 	-fPIC \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

@@ -62,16 +62,6 @@ inline static void compiler_barrier() {
 }
 #endif
 
-inline static void full_barrier_on_arm() {
-#ifdef SK_CPU_ARM
-#if SK_ARM_ARCH >= 7
-    asm volatile("dmb" : : : "memory");
-#else
-    asm volatile("mcr p15, 0, %0, c7, c10, 5" : : "r" (0) : "memory");
-#endif
-#endif
-}
-
 // On every platform, we issue a compiler barrier to prevent it from reordering
 // code.  That's enough for platforms like x86 where release and acquire
 // barriers are no-ops.  On other platforms we may need to be more careful;
@@ -81,12 +71,10 @@ inline static void full_barrier_on_arm() {
 
 inline static void release_barrier() {
     compiler_barrier();
-    full_barrier_on_arm();
 }
 
 inline static void acquire_barrier() {
     compiler_barrier();
-    full_barrier_on_arm();
 }
 
 // We've pulled a pretty standard double-checked locking implementation apart

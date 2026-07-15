@@ -35,13 +35,13 @@ MY_CFLAGS_Debug := \
 	-fvisibility=hidden \
 	-pipe \
 	-fPIC \
-	-mssse3 \
+	-mno-sse \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -125,13 +125,13 @@ MY_CFLAGS_Release := \
 	-fvisibility=hidden \
 	-pipe \
 	-fPIC \
-	-mssse3 \
+	-mno-sse \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \

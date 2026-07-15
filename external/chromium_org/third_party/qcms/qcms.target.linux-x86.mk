@@ -26,9 +26,7 @@ LOCAL_SRC_FILES := \
 	third_party/qcms/src/iccread.c \
 	third_party/qcms/src/matrix.c \
 	third_party/qcms/src/transform.c \
-	third_party/qcms/src/transform_util.c \
-	third_party/qcms/src/transform-sse1.c \
-	third_party/qcms/src/transform-sse2.c
+	third_party/qcms/src/transform_util.c
 
 
 # Flags passed to both C and C++ files.
@@ -43,10 +41,10 @@ MY_CFLAGS_Debug := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -86,7 +84,7 @@ MY_DEFS_Debug := \
 	'-DCLD_VERSION=1' \
 	'-DENABLE_PRINTING=1' \
 	'-DENABLE_MANAGED_USERS=1' \
-	'-DSSE2_ENABLE' \
+	'-USSE2_ENABLE' \
 	'-DANDROID' \
 	'-D__GNU_SOURCE=1' \
 	'-DUSE_STLPORT=1' \
@@ -128,10 +126,10 @@ MY_CFLAGS_Release := \
 	-fPIC \
 	-Wno-format \
 	-m32 \
-	-mmmx \
-	-march=pentium4 \
-	-msse2 \
-	-mfpmath=sse \
+	-mno-mmx \
+	-march=i486 \
+	-mno-sse \
+	-mfpmath=387 \
 	-fuse-ld=gold \
 	-ffunction-sections \
 	-funwind-tables \
@@ -173,7 +171,7 @@ MY_DEFS_Release := \
 	'-DCLD_VERSION=1' \
 	'-DENABLE_PRINTING=1' \
 	'-DENABLE_MANAGED_USERS=1' \
-	'-DSSE2_ENABLE' \
+	'-USSE2_ENABLE' \
 	'-DANDROID' \
 	'-D__GNU_SOURCE=1' \
 	'-DUSE_STLPORT=1' \

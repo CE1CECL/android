@@ -6040,56 +6040,62 @@ dvmAsmInstructionStartCode = .L_OP_NOP
 /* ------------------------------ */
 .L_OP_ADD_DOUBLE: /* 0xab */
 /* File: x86/OP_ADD_DOUBLE.S */
-   /*
-    * File: OP_ADD_DOUBLE.S
-    */
-
-    movzbl   2(rPC),%eax                # eax<- BB
-    movzbl   3(rPC),%ecx                # ecx<- CC
-    movq     (rFP, %eax, 4), %xmm0      # %xmm0<- vBB
-    movq     (rFP, %ecx, 4), %xmm1      # %xmm1<- vCC
+/* File: x86/binflop.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
+    /* binop vAA, vBB, vCC */
+    movzbl   2(rPC),%eax          # eax<- CC
+    movzbl   3(rPC),%ecx          # ecx<- BB
+    fldl    (rFP,%eax,4)         # vCC to fp stack
+    faddl   (rFP,%ecx,4)         # ex: faddp
     FETCH_INST_OPCODE 2 %ecx
-    addsd    %xmm1, %xmm0
     ADVANCE_PC 2
-    movq     %xmm0, (rFP, rINST, 4)     # vAA<- vBB * vCC
+    fstpl   (rFP,rINST,4)         # %st to vAA
     GOTO_NEXT_R %ecx
 
 
 /* ------------------------------ */
 .L_OP_SUB_DOUBLE: /* 0xac */
 /* File: x86/OP_SUB_DOUBLE.S */
-   /*
-    * File: OP_SUB_DOUBLE.S
-    */
-
-    movzbl   2(rPC),%eax                # eax<- BB
-    movzbl   3(rPC),%ecx                # ecx<- CC
-    # TODO: movsd?
-    movq        (rFP, %eax, 4), %xmm0   # %xmm0<- vBB
-    movq        (rFP, %ecx, 4), %xmm1   # %xmm1<- vCC
+/* File: x86/binflop.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
+    /* binop vAA, vBB, vCC */
+    movzbl   2(rPC),%eax          # eax<- CC
+    movzbl   3(rPC),%ecx          # ecx<- BB
+    fldl    (rFP,%eax,4)         # vCC to fp stack
+    fsubl   (rFP,%ecx,4)         # ex: faddp
     FETCH_INST_OPCODE 2 %ecx
-    subsd       %xmm1, %xmm0
     ADVANCE_PC 2
-    movq        %xmm0, (rFP, rINST, 4)  # vAA<- vBB - vCC
+    fstpl   (rFP,rINST,4)         # %st to vAA
     GOTO_NEXT_R %ecx
+
 
 /* ------------------------------ */
 .L_OP_MUL_DOUBLE: /* 0xad */
 /* File: x86/OP_MUL_DOUBLE.S */
-   /*
-    * File: OP_MUL_DOUBLE.S
-    */
-
-    movzbl   2(rPC),%eax                # eax<- BB
-    movzbl   3(rPC),%ecx                # ecx<- CC
-    # TODO: movsd?
-    movq        (rFP, %eax, 4), %xmm0   # %xmm0<- vBB
-    movq        (rFP, %ecx, 4), %xmm1   # %xmm1<- vCC
+/* File: x86/binflop.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
+    /* binop vAA, vBB, vCC */
+    movzbl   2(rPC),%eax          # eax<- CC
+    movzbl   3(rPC),%ecx          # ecx<- BB
+    fldl    (rFP,%eax,4)         # vCC to fp stack
+    fmull   (rFP,%ecx,4)         # ex: faddp
     FETCH_INST_OPCODE 2 %ecx
-    mulsd       %xmm1, %xmm0
     ADVANCE_PC 2
-    movq        %xmm0, (rFP, rINST, 4)  # vAA<- vBB * vCC
+    fstpl   (rFP,rINST,4)         # %st to vAA
     GOTO_NEXT_R %ecx
+
 
 /* ------------------------------ */
 .L_OP_DIV_DOUBLE: /* 0xae */
@@ -6854,58 +6860,68 @@ dvmAsmInstructionStartCode = .L_OP_NOP
 /* ------------------------------ */
 .L_OP_ADD_DOUBLE_2ADDR: /* 0xcb */
 /* File: x86/OP_ADD_DOUBLE_2ADDR.S */
-   /*
-    * File: OP_ADD_DOUBLE_2ADDR.S
-    */
+/* File: x86/binflop2addr.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
 
-    movzx       rINSTbl,%ecx            # ecx<- A+
-    andb        $0xf,%cl               # ecx<- A
-    sarl        $4,rINST               # rINST<- B
-    movq        (rFP, rINST, 4), %xmm1  # %xmm1<- vB
-    movq        (rFP, %ecx, 4), %xmm0   # %xmm0<- vA
+    /* binop/2addr vA, vB */
+    movzx   rINSTbl,%ecx           # ecx<- A+
+    andb    $0xf,%cl              # ecx<- A
+    fldl    (rFP,%ecx,4)          # vAA to fp stack
+    sarl    $4,rINST             # rINST<- B
+    faddl   (rFP,rINST,4)         # ex: faddp
     FETCH_INST_OPCODE 1 %eax
-    addsd       %xmm1, %xmm0            # %xmm0<- vA op vB
     ADVANCE_PC 1
-    movq        %xmm0, (rFP, %ecx, 4)   # vA<- %xmm0; result
+    fstpl    (rFP,%ecx,4)         # %st to vA
     GOTO_NEXT_R %eax
+
 
 /* ------------------------------ */
 .L_OP_SUB_DOUBLE_2ADDR: /* 0xcc */
 /* File: x86/OP_SUB_DOUBLE_2ADDR.S */
-   /*
-    * File: OP_SUB_DOUBLE_2ADDR.S
-    */
+/* File: x86/binflop2addr.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
 
-    movzx       rINSTbl,%ecx            # ecx<- A+
-    andb        $0xf,%cl               # ecx<- A
-    sarl        $4,rINST               # rINST<- B
-    # TODO: movsd?
-    movq        (rFP, rINST, 4), %xmm1  # %xmm1<- vB
-    movq        (rFP, %ecx, 4), %xmm0   # %xmm0<- vA
+    /* binop/2addr vA, vB */
+    movzx   rINSTbl,%ecx           # ecx<- A+
+    andb    $0xf,%cl              # ecx<- A
+    fldl    (rFP,%ecx,4)          # vAA to fp stack
+    sarl    $4,rINST             # rINST<- B
+    fsubl   (rFP,rINST,4)         # ex: faddp
     FETCH_INST_OPCODE 1 %eax
-    subsd       %xmm1, %xmm0            # %xmm0<- vA op vB
     ADVANCE_PC 1
-    movq        %xmm0, (rFP, %ecx, 4)   # vA<- %xmm0; result
+    fstpl    (rFP,%ecx,4)         # %st to vA
     GOTO_NEXT_R %eax
+
 
 /* ------------------------------ */
 .L_OP_MUL_DOUBLE_2ADDR: /* 0xcd */
 /* File: x86/OP_MUL_DOUBLE_2ADDR.S */
-   /*
-    * File: OP_MUL_DOUBLE_2ADDR.S
-    */
+/* File: x86/binflop2addr.S */
+    /*
+     * Generic 32-bit binary float operation.
+     *
+     * For: add-fp, sub-fp, mul-fp, div-fp
+     */
 
-    movzx       rINSTbl,%ecx            # ecx<- A+
-    andb        $0xf,%cl               # ecx<- A
-    sarl        $4,rINST               # rINST<- B
-    # TODO: movsd?
-    movq        (rFP, rINST, 4), %xmm1  # %xmm1<- vB
-    movq        (rFP, %ecx, 4), %xmm0   # %xmm0<- vA
+    /* binop/2addr vA, vB */
+    movzx   rINSTbl,%ecx           # ecx<- A+
+    andb    $0xf,%cl              # ecx<- A
+    fldl    (rFP,%ecx,4)          # vAA to fp stack
+    sarl    $4,rINST             # rINST<- B
+    fmull   (rFP,rINST,4)         # ex: faddp
     FETCH_INST_OPCODE 1 %eax
-    mulsd       %xmm1, %xmm0            # %xmm0<- vA op vB
     ADVANCE_PC 1
-    movq        %xmm0, (rFP, %ecx, 4)   # vA<- %xmm0; result
+    fstpl    (rFP,%ecx,4)         # %st to vA
     GOTO_NEXT_R %eax
+
 
 /* ------------------------------ */
 .L_OP_DIV_DOUBLE_2ADDR: /* 0xce */

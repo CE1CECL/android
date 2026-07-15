@@ -20,7 +20,10 @@
 # in inherited configurations.
 
 PRODUCT_PACKAGES := \
+    camera.default \
     libfwdlockengine \
+    lights.default \
+    sensors.default \
     WAPPushManager
 
 # Additional settings used in all AOSP builds
