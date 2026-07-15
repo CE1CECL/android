@@ -26,4 +26,4 @@ $(call inherit-product, $(SRC_TARGET_DIR)/board/generic/device.mk)
 PRODUCT_NAME := full
 PRODUCT_DEVICE := generic
 PRODUCT_BRAND := Android
-PRODUCT_MODEL := Full Android on Emulator
+PRODUCT_MODEL := Full Android
