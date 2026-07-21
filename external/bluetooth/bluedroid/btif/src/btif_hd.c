@@ -26,14 +26,15 @@
  *
  *
  ***********************************************************************************/
+#define LOG_TAG "BTIF_HD"
+
 #include <hardware/bluetooth.h>
 #include <hardware/bt_hd.h>
+#include <log/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
-#define LOG_TAG "BTIF_HD"
 
 #include "bta_api.h"
 #include "bta_hd_api.h"
@@ -360,6 +361,12 @@ static bt_status_t register_app(bthd_app_param_t *p_app_param, bthd_qos_param_t 
         return BT_STATUS_NOT_READY;
     }
 
+    if (strlen(p_app_param->name) >= 50 ||
+        strlen(p_app_param->description) >= 50 ||
+        strlen(p_app_param->provider) >= 50)
+    {
+        android_errorWriteLog(0x534e4554, "113037220");
+    }
     app_info.p_name = p_app_param->name;
     app_info.p_description = p_app_param->description;
     app_info.p_provider = p_app_param->provider;

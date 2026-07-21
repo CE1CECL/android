@@ -325,12 +325,25 @@ struct id3_header {
 }
 
 void ID3::removeUnsynchronization() {
-    for (size_t i = 0; i + 1 < mSize; ++i) {
-        if (mData[i] == 0xff && mData[i + 1] == 0x00) {
-            memmove(&mData[i + 1], &mData[i + 2], mSize - i - 2);
-            --mSize;
+
+    // This file has "unsynchronization", so we have to replace occurrences
+    // of 0xff 0x00 with just 0xff in order to get the real data.
+
+    size_t writeOffset = 1;
+    for (size_t readOffset = 1; readOffset < mSize; ++readOffset) {
+        if (mData[readOffset - 1] == 0xff && mData[readOffset] == 0x00) {
+            continue;
         }
+        // Only move data if there's actually something to move.
+        // This handles the special case of the data being only [0xff, 0x00]
+        // which should be converted to just 0xff if unsynchronization is on.
+        mData[writeOffset++] = mData[readOffset];
     }
+
+    if (writeOffset < mSize) {
+        mSize = writeOffset;
+    }
+
 }
 
 static void WriteSyncsafeInteger(uint8_t *dst, size_t x) {
@@ -376,7 +389,7 @@ bool ID3::removeUnsynchronizationV2_4(bool iTunesHack) {
             flags &= ~1;
         }
 
-        if (flags & 2) {
+        if ((flags & 2) && (dataSize >= 2)) {
             // This file has "unsynchronization", so we have to replace occurrences
             // of 0xff 0x00 with just 0xff in order to get the real data.
 
@@ -389,14 +402,23 @@ bool ID3::removeUnsynchronizationV2_4(bool iTunesHack) {
                     --mSize;
                     --dataSize;
                 }
-                mData[writeOffset++] = mData[readOffset++];
+                if (i + 1 < dataSize) {
+                    // Only move data if there's actually something to move.
+                    // This handles the special case of the data being only [0xff, 0x00]
+                    // which should be converted to just 0xff if unsynchronization is on.
+                    mData[writeOffset++] = mData[readOffset++];
+                }
             }
             // move the remaining data following this frame
-            memmove(&mData[writeOffset], &mData[readOffset], oldSize - readOffset);
+            if (readOffset <= oldSize) {
+                memmove(&mData[writeOffset], &mData[readOffset], oldSize - readOffset);
+            } else {
+                ALOGE("b/34618607 (%zu %zu %zu %zu)", readOffset, writeOffset, oldSize, mSize);
+                android_errorWriteLog(0x534e4554, "34618607");
+            }
 
-            flags &= ~2;
         }
-
+        flags &= ~2;
         if (flags != prevFlags || iTunesHack) {
             WriteSyncsafeInteger(&mData[offset + 4], dataSize);
             mData[offset + 8] = flags >> 8;
@@ -610,6 +632,9 @@ void ID3::Iterator::getstring(String8 *id, bool otherdata) const {
         // UCS-2
         // API wants number of characters, not number of bytes...
         int len = n / 2;
+        if (len == 0) {
+            return;
+        }
         const char16_t *framedata = (const char16_t *) (frameData + 1);
         char16_t *framedatacopy = NULL;
         if (*framedata == 0xfffe) {
@@ -822,20 +847,21 @@ void ID3::Iterator::findFrame() {
     }
 }
 
-static size_t StringSize(const uint8_t *start, uint8_t encoding) {
+// return includes terminator;  if unterminated, returns > limit
+static size_t StringSize(const uint8_t *start, size_t limit, uint8_t encoding) {
+
     if (encoding == 0x00 || encoding == 0x03) {
         // ISO 8859-1 or UTF-8
-        return strlen((const char *)start) + 1;
+        return strnlen((const char *)start, limit) + 1;
     }
 
     // UCS-2
     size_t n = 0;
-    while (start[n] != '\0' || start[n + 1] != '\0') {
+    while ((n+1 < limit) && (start[n] != '\0' || start[n + 1] != '\0')) {
         n += 2;
     }
-
-    // Add size of null termination.
-    return n + 2;
+    n += 2;
+    return n;
 }
 
 const void *
@@ -853,10 +879,18 @@ ID3::getAlbumArt(size_t *length, String8 *mime) const {
 
         if (mVersion == ID3_V2_3 || mVersion == ID3_V2_4) {
             uint8_t encoding = data[0];
-            mime->setTo((const char *)&data[1]);
-            size_t mimeLen = strlen((const char *)&data[1]) + 1;
+            size_t consumed = 1;
 
-            uint8_t picType = data[1 + mimeLen];
+             // *always* in an 8-bit encoding
+             size_t mimeLen = StringSize(&data[consumed], size - consumed, 0x00);
+             if (mimeLen > size - consumed) {
+                 ALOGW("bogus album art size: mime");
+                 return NULL;
+             }
+             mime->setTo((const char *)&data[consumed]);
+             consumed += mimeLen;
+
+            uint8_t picType = data[consumed];
 #if 0
             if (picType != 0x03) {
                 // Front Cover Art
@@ -865,19 +899,29 @@ ID3::getAlbumArt(size_t *length, String8 *mime) const {
             }
 #endif
 
-            size_t descLen = StringSize(&data[2 + mimeLen], encoding);
-
-            if (size < 2 ||
-                    size - 2 < mimeLen ||
-                    size - 2 - mimeLen < descLen) {
-                ALOGW("bogus album art sizes");
+            consumed++;
+            if (consumed >= size) {
+                ALOGW("bogus album art size: pic type");
                 return NULL;
             }
-            *length = size - 2 - mimeLen - descLen;
 
-            return &data[2 + mimeLen + descLen];
+            size_t descLen = StringSize(&data[consumed], size - consumed, encoding);
+            consumed += descLen;
+
+            if (consumed >= size) {
+                ALOGW("bogus album art size: description");
+                return NULL;
+            }
+
+            *length = size - consumed;
+
+            return &data[consumed];
         } else {
             uint8_t encoding = data[0];
+
+            if (size <= 5) {
+                return NULL;
+            }
 
             if (!memcmp(&data[1], "PNG", 3)) {
                 mime->setTo("image/png");
@@ -898,7 +942,10 @@ ID3::getAlbumArt(size_t *length, String8 *mime) const {
             }
 #endif
 
-            size_t descLen = StringSize(&data[5], encoding);
+            size_t descLen = StringSize(&data[5], size - 5, encoding);
+            if (descLen > size - 5) {
+                return NULL;
+            }
 
             *length = size - 5 - descLen;
 

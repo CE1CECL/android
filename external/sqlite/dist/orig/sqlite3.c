@@ -25,6 +25,13 @@
 #ifndef SQLITE_API
 # define SQLITE_API
 #endif
+#ifdef QC_PERF
+extern void sqlite3_androidopt_init(void*, const char*) __attribute__((weak));
+extern void sqlite3_androidopt_open(void*, const char*, unsigned, int*) __attribute__((weak));
+extern void sqlite3_androidopt_close(void*) __attribute__((weak));
+extern int  sqlite3_androidopt_handle_pragma(void*, char*, char*) __attribute__((weak));
+#endif
+
 /************** Begin file sqliteInt.h ***************************************/
 /*
 ** 2001 September 15
@@ -4500,6 +4507,7 @@ SQLITE_API int sqlite3_value_bytes16(sqlite3_value*);
 SQLITE_API double sqlite3_value_double(sqlite3_value*);
 SQLITE_API int sqlite3_value_int(sqlite3_value*);
 SQLITE_API sqlite3_int64 sqlite3_value_int64(sqlite3_value*);
+SQLITE_API void *sqlite3_value_pointer(sqlite3_value*);
 SQLITE_API const unsigned char *sqlite3_value_text(sqlite3_value*);
 SQLITE_API const void *sqlite3_value_text16(sqlite3_value*);
 SQLITE_API const void *sqlite3_value_text16le(sqlite3_value*);
@@ -4757,6 +4765,7 @@ SQLITE_API void sqlite3_result_error_code(sqlite3_context*, int);
 SQLITE_API void sqlite3_result_int(sqlite3_context*, int);
 SQLITE_API void sqlite3_result_int64(sqlite3_context*, sqlite3_int64);
 SQLITE_API void sqlite3_result_null(sqlite3_context*);
+SQLITE_API void sqlite3_result_pointer(sqlite3_context*, void*);
 SQLITE_API void sqlite3_result_text(sqlite3_context*, const char*, int, void(*)(void*));
 SQLITE_API void sqlite3_result_text16(sqlite3_context*, const void*, int, void(*)(void*));
 SQLITE_API void sqlite3_result_text16le(sqlite3_context*, const void*, int,void(*)(void*));
@@ -9816,6 +9825,7 @@ struct sqlite3 {
   void (*xUnlockNotify)(void **, int);  /* Unlock notify callback */
   sqlite3 *pNextBlocked;        /* Next in list of all blocked connections */
 #endif
+  u8 isSettingOverride;         /* True if db settings have been overridden */
 };
 
 /*
@@ -12978,6 +12988,7 @@ struct Mem {
   union {
     i64 i;              /* Integer value used when MEM_Int is set in flags */
     int nZero;          /* Used when bit MEM_Zero is set in flags */
+    void *pPtr;         /* Pointer when flags==MEM_Ptr|MEM_Null */
     FuncDef *pDef;      /* Used only when flags==MEM_Agg */
     RowSet *pRowSet;    /* Used only when flags==MEM_RowSet */
     VdbeFrame *pFrame;  /* Used when flags==MEM_Frame */
@@ -13021,6 +13032,7 @@ struct Mem {
 ** policy for Mem.z.  The MEM_Term flag tells us whether or not the
 ** string is \000 or \u0000 terminated
 */
+#define MEM_Ptr       0x8000   /* u.pPtr is valid if type==SQLITE_NULL */
 #define MEM_Term      0x0200   /* String rep is nul terminated */
 #define MEM_Dyn       0x0400   /* Need to call sqliteFree() on Mem.z */
 #define MEM_Static    0x0800   /* Mem.z points to a static string */
@@ -13036,7 +13048,7 @@ struct Mem {
 ** Clear any existing type flags from a Mem and replace them with f
 */
 #define MemSetTypeFlag(p, f) \
-   ((p)->flags = ((p)->flags&~(MEM_TypeMask|MEM_Zero))|f)
+   ((p)->flags = ((p)->flags&~(MEM_TypeMask|MEM_Zero|MEM_Ptr))|f)
 
 /*
 ** Return true if a memory cell is not marked as invalid.  This macro
@@ -25387,7 +25399,12 @@ static struct unix_syscall {
 #else
   { "pread64",      (sqlite3_syscall_ptr)0,          0  },
 #endif
+#ifdef ANDROID
+// Bionic defines pread64 using off64_t rather than off_t.
+#define osPread64   ((ssize_t(*)(int,void*,size_t,off64_t))aSyscall[10].pCurrent)
+#else
 #define osPread64   ((ssize_t(*)(int,void*,size_t,off_t))aSyscall[10].pCurrent)
+#endif
 
   { "write",        (sqlite3_syscall_ptr)write,      0  },
 #define osWrite     ((ssize_t(*)(int,const void*,size_t))aSyscall[11].pCurrent)
@@ -25405,8 +25422,14 @@ static struct unix_syscall {
 #else
   { "pwrite64",     (sqlite3_syscall_ptr)0,          0  },
 #endif
+#ifdef ANDROID
+// Bionic defines pwrite64 using off64_t rather than off_t.
+#define osPwrite64  ((ssize_t(*)(int,const void*,size_t,off64_t))\
+                    aSyscall[13].pCurrent)
+#else
 #define osPwrite64  ((ssize_t(*)(int,const void*,size_t,off_t))\
                     aSyscall[13].pCurrent)
+#endif
 
 #if SQLITE_ENABLE_LOCKING_STYLE
   { "fchmod",       (sqlite3_syscall_ptr)fchmod,     0  },
@@ -62910,6 +62933,11 @@ SQLITE_API int sqlite3_value_int(sqlite3_value *pVal){
 SQLITE_API sqlite_int64 sqlite3_value_int64(sqlite3_value *pVal){
   return sqlite3VdbeIntValue((Mem*)pVal);
 }
+SQLITE_API void *sqlite3_value_pointer(sqlite3_value *pVal){
+  Mem *p = (Mem*)pVal;
+  if( (p->flags&(MEM_TypeMask|MEM_Ptr))==(MEM_Null|MEM_Ptr) ) return p->u.pPtr;
+  return 0;
+}
 SQLITE_API const unsigned char *sqlite3_value_text(sqlite3_value *pVal){
   return (const unsigned char *)sqlite3ValueText(pVal, SQLITE_UTF8);
 }
@@ -62980,6 +63008,13 @@ SQLITE_API void sqlite3_result_int(sqlite3_context *pCtx, int iVal){
 SQLITE_API void sqlite3_result_int64(sqlite3_context *pCtx, i64 iVal){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
   sqlite3VdbeMemSetInt64(&pCtx->s, iVal);
+}
+SQLITE_API void sqlite3_result_pointer(sqlite3_context *pCtx, void *pPtr){
+  assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
+  sqlite3VdbeMemSetNull(&pCtx->s);
+  assert( (pCtx->s.flags & (MEM_TypeMask|MEM_Ptr))==MEM_Null );
+  pCtx->s.flags |= MEM_Ptr;
+  pCtx->s.u.pPtr = pPtr;
 }
 SQLITE_API void sqlite3_result_null(sqlite3_context *pCtx){
   assert( sqlite3_mutex_held(pCtx->s.db->mutex) );
@@ -92411,6 +92446,14 @@ SQLITE_PRIVATE void sqlite3Pragma(
     goto pragma_out;
   }
 
+#ifdef QC_PERF
+  if( sqlite3_androidopt_handle_pragma ) {
+    if( sqlite3_androidopt_handle_pragma(db, zLeft, zRight) == 1 ) {
+      goto pragma_out;
+    }
+  }
+#endif
+
   /* Send an SQLITE_FCNTL_PRAGMA file-control to the underlying VFS
   ** connection.  If it returns SQLITE_OK, then assume that the VFS
   ** handled the pragma and generate a no-op prepared statement.
@@ -92658,6 +92701,11 @@ SQLITE_PRIVATE void sqlite3Pragma(
         /* If the "=MODE" part does not match any known journal mode,
         ** then do a query */
         eMode = PAGER_JOURNALMODE_QUERY;
+      }else if( db->isSettingOverride==1 ){
+        /* Skip journal mode changes if override in effect */
+        sqlite3VdbeAddOp4(v, OP_String, strlen(zMode), 1, 1, zMode, P4_STATIC);
+        sqlite3VdbeAddOp2(v, OP_ResultRow, 1, 1);
+        goto pragma_out;
       }
     }
     if( eMode==PAGER_JOURNALMODE_QUERY && pId2->n==0 ){
@@ -93936,7 +93984,7 @@ static int sqlite3InitOne(sqlite3 *db, int iDb, char **pzErrMsg){
   }
   if( pDb->pSchema->file_format>SQLITE_MAX_FILE_FORMAT ){
     sqlite3SetString(pzErrMsg, db, "unsupported file format");
-    rc = SQLITE_ERROR;
+    rc = SQLITE_CORRUPT_BKPT; // Android Change from "rc = SQLITE_ERROR;"
     goto initone_error_out;
   }
 
@@ -112404,7 +112452,7 @@ SQLITE_API int sqlite3_complete16(const void *zSql){
 extern "C" {
 #endif  /* __cplusplus */
 
-SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db);
+SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db, const char* registerAs); // Android Change
 
 #if 0
 }  /* extern "C" */
@@ -113186,6 +113234,11 @@ SQLITE_API int sqlite3_close(sqlite3 *db){
   if( !sqlite3SafetyCheckSickOrOk(db) ){
     return SQLITE_MISUSE_BKPT;
   }
+#ifdef QC_PERF
+  if (sqlite3_androidopt_close) {
+    sqlite3_androidopt_close(db);
+  }
+#endif
   sqlite3_mutex_enter(db->mutex);
 
   /* Force xDestroy calls on all virtual tables */
@@ -114617,6 +114670,11 @@ static int openDatabase(
     }
   }
   sqlite3_mutex_enter(db->mutex);
+#ifdef QC_PERF
+  if( sqlite3_androidopt_init ) {
+    sqlite3_androidopt_init(db, zFilename);
+  }
+#endif
   db->errMask = 0xff;
   db->nDb = 2;
   db->magic = SQLITE_MAGIC_BUSY;
@@ -114734,9 +114792,24 @@ static int openDatabase(
 #endif
 
 #ifdef SQLITE_ENABLE_FTS3
-  if( !db->mallocFailed && rc==SQLITE_OK ){
-    rc = sqlite3Fts3Init(db);
-  }
+  // Begin Android change
+  #ifdef SQLITE_ENABLE_FTS3_BACKWARDS
+    /* Also register as fts1 and fts2, for backwards compatability on
+    ** systems known to have never seen a pre-fts3 database.
+    */
+    if( !db->mallocFailed && rc==SQLITE_OK ){
+      rc = sqlite3Fts3Init(db, "fts1");
+    }
+
+    if( !db->mallocFailed && rc==SQLITE_OK ){
+      rc = sqlite3Fts3Init(db, "fts2");
+    }
+  #endif
+
+    if( !db->mallocFailed && rc==SQLITE_OK ){
+      rc = sqlite3Fts3Init(db, "fts3");
+    }
+  // End Android change
 #endif
 
 #ifdef SQLITE_ENABLE_ICU
@@ -114782,6 +114855,14 @@ opendb_out:
     db = 0;
   }else if( rc!=SQLITE_OK ){
     db->magic = SQLITE_MAGIC_SICK;
+  }else {
+#ifdef QC_PERF
+    if (sqlite3_androidopt_open) {
+      int override = 0;
+      sqlite3_androidopt_open(db, zFilename, flags, &override);
+      db->isSettingOverride = override;
+    }
+#endif
   }
   *ppDb = db;
   return sqlite3ApiExit(0, rc);
@@ -119719,7 +119800,7 @@ static int fts3ColumnMethod(
   }else if( iCol==p->nColumn ){
     /* The extra column whose name is the same as the table.
     ** Return a blob which is a pointer to the cursor.  */
-    sqlite3_result_blob(pCtx, &pCsr, sizeof(pCsr), SQLITE_TRANSIENT);
+    sqlite3_result_pointer(pCtx, pCsr);  
   }else if( iCol==p->nColumn+2 && pCsr->pExpr ){
     sqlite3_result_int64(pCtx, pCsr->iLangid);
   }else{
@@ -119846,16 +119927,13 @@ static int fts3FunctionArg(
   sqlite3_value *pVal,            /* argv[0] passed to function */
   Fts3Cursor **ppCsr              /* OUT: Store cursor handle here */
 ){
-  Fts3Cursor *pRet;
-  if( sqlite3_value_type(pVal)!=SQLITE_BLOB 
-   || sqlite3_value_bytes(pVal)!=sizeof(Fts3Cursor *)
-  ){
+  Fts3Cursor *pRet = (Fts3Cursor*)sqlite3_value_pointer(pVal);
+  if( pRet==0 ){
     char *zErr = sqlite3_mprintf("illegal first argument to %s", zFunc);
     sqlite3_result_error(pContext, zErr, -1);
     sqlite3_free(zErr);
     return SQLITE_ERROR;
   }
-  memcpy(&pRet, sqlite3_value_blob(pVal), sizeof(Fts3Cursor *));
   *ppCsr = pRet;
   return SQLITE_OK;
 }
@@ -120169,7 +120247,7 @@ SQLITE_PRIVATE void sqlite3Fts3IcuTokenizerModule(sqlite3_tokenizer_module const
 ** SQLite. If fts3 is built as a dynamically loadable extension, this
 ** function is called by the sqlite3_extension_init() entry point.
 */
-SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db){
+SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db, const char* registerAs){ // Android Change
   int rc = SQLITE_OK;
   Fts3Hash *pHash = 0;
   const sqlite3_tokenizer_module *pSimple = 0;
@@ -120230,7 +120308,10 @@ SQLITE_PRIVATE int sqlite3Fts3Init(sqlite3 *db){
    && SQLITE_OK==(rc = sqlite3_overload_function(db, "optimize", 1))
   ){
     rc = sqlite3_create_module_v2(
-        db, "fts3", &fts3Module, (void *)pHash, hashDestroy
+        // Begin Android change
+        // Also register as fts1 and fts2
+        db, registerAs, &fts3Module, (void *)pHash, hashDestroy
+        // End Android change
     );
     if( rc==SQLITE_OK ){
       rc = sqlite3_create_module_v2(

@@ -92,8 +92,10 @@ import java.util.regex.Pattern;
  * any Dialog in the instance. So this code is careless about the management around managed
  * dialogs stuffs (like how onCreateDialog() is used).
  */
-public class ImportVCardActivity extends Activity implements SelectAccountDialogFragment.Listener {
+public class ImportVCardActivity extends Activity implements ImportVCardDialogFragment.Listener {
     private static final String LOG_TAG = "VCardImport";
+    
+    private static final int SELECT_ACCOUNT = 0;
 
     /* package */ static final String VCARD_URI_ARRAY = "vcard_uri";
     /* package */ static final String ESTIMATED_VCARD_TYPE_ARRAY = "estimated_vcard_type";
@@ -140,17 +142,6 @@ public class ImportVCardActivity extends Activity implements SelectAccountDialog
     private int mSelectedStorage = VCardService.INTERNAL_PATH;
 
     private Handler mHandler = new Handler();
-
-    @Override
-    public void onAccountChosen(AccountWithDataSet account, Bundle extraArgs) {
-        mAccount = account;
-        startImport();
-    }
-
-    @Override
-    public void onAccountSelectorCancelled() {
-        finish();
-    }
 
     private static class VCardFile {
         private final String mName;
@@ -900,16 +891,44 @@ public class ImportVCardActivity extends Activity implements SelectAccountDialog
             } else if (accountList.size() == 1) {
                 mAccount = accountList.get(0);
             } else {
-                SelectAccountDialogFragment.show(
-                        getFragmentManager(), this,
-                        R.string.dialog_new_contact_account,
-                        AccountsListAdapter.AccountListFilter.ACCOUNTS_CONTACT_WRITABLE_WITHOUT_SIM,
-                        null);
+                startActivityForResult(new Intent(this, SelectAccountActivity.class),
+                	SELECT_ACCOUNT);
                 return;
             }
         }
-
+		if (isCallerSelf(this)) {
+		        startImport();
+		} else {
+		        ImportVCardDialogFragment.show(this);
+		}
+	}
+	private static boolean isCallerSelf(Activity activity) {
+		// {@link Activity#getCallingActivity()} is a safer alternative to
+        // {@link Activity#getCallingPackage()} that works around a
+        // framework bug where getCallingPackage() can sometimes return null even when the
+        // current activity *was* in fact launched via a startActivityForResult() call.
+        //
+        // (The bug happens if the task stack needs to be re-created by the framework after
+        // having been killed due to memory pressure or by the "Don't keep activities"
+        // developer option; see bug 7494866 for the full details.)
+        //
+        // Turns out that {@link Activity#getCallingActivity()} *does* return correct info
+        // even in the case where getCallingPackage() is broken, so the workaround is simply
+        // to get the package name from getCallingActivity().getPackageName() instead.
+        final ComponentName callingActivity = activity.getCallingActivity();
+        if (callingActivity == null) return false;
+        final String packageName = callingActivity.getPackageName();
+        if (packageName == null) return false;
+        return packageName.equals(activity.getApplicationContext().getPackageName());
+    }
+    @Override
+    public void onImportVCardConfirmed() {
         startImport();
+    }
+    
+    @Override
+    public void onImportVCardDenied() {
+        finish();
     }
 
     private void startImport() {

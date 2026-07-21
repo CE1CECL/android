@@ -28,7 +28,7 @@ else
 LOCAL_CFLAGS += \
     -DONLY_C
 endif
-LOCAL_CFLAGS+= -O2
+LOCAL_CFLAGS+= -O2 -funsigned-char
 
 LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/Tremolo

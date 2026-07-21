@@ -202,6 +202,7 @@ typedef struct
     BD_ADDR         local_bda;
     BOOLEAN         is_pair_cancel;
     BOOLEAN         discard_sec_req;
+    UINT8           rcvd_cmd_len;
 #if SMP_CONFORMANCE_TESTING == TRUE
     BOOLEAN         enable_test_confirm_val;
     BT_OCTET16      test_confirm;

@@ -81,10 +81,6 @@ int wpa_eapol_key_mic(const u8 *key, int ver, const u8 *buf, size_t len,
  * PTK = PRF-X(PMK, "Pairwise key expansion",
  *             Min(AA, SA) || Max(AA, SA) ||
  *             Min(ANonce, SNonce) || Max(ANonce, SNonce))
- *
- * STK = PRF-X(SMK, "Peer key expansion",
- *             Min(MAC_I, MAC_P) || Max(MAC_I, MAC_P) ||
- *             Min(INonce, PNonce) || Max(INonce, PNonce))
  */
 void wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 		    const u8 *addr1, const u8 *addr2,
@@ -92,6 +88,11 @@ void wpa_pmk_to_ptk(const u8 *pmk, size_t pmk_len, const char *label,
 		    u8 *ptk, size_t ptk_len, int use_sha256)
 {
 	u8 data[2 * ETH_ALEN + 2 * WPA_NONCE_LEN];
+
+	if (pmk_len == 0) {
+		wpa_printf(MSG_ERROR, "WPA: No PMK set for PT derivation");
+		return -1;
+	}
 
 	if (os_memcmp(addr1, addr2, ETH_ALEN) < 0) {
 		os_memcpy(data, addr1, ETH_ALEN);

@@ -3258,8 +3258,15 @@ xmlParseNameComplex(xmlParserCtxtPtr ctxt) {
 	    c = CUR_CHAR(l);
 	}
     }
-    if ((*ctxt->input->cur == '\n') && (ctxt->input->cur[-1] == '\r'))
+    if (ctxt->input->cur > ctxt->input->base && (*ctxt->input->cur == '\n') && (ctxt->input->cur[-1] == '\r')) {
+        if (ctxt->input->base > ctxt->input->cur - (len + 1)) {
+            return(NULL);
+        }
         return(xmlDictLookup(ctxt->dict, ctxt->input->cur - (len + 1), len));
+    }
+    if (ctxt->input->base > ctxt->input->cur - len) {
+        return(NULL);
+    }
     return(xmlDictLookup(ctxt->dict, ctxt->input->cur - len, len));
 }
 
@@ -4280,7 +4287,7 @@ get_more:
 	    if (*in == ']') {
 		if ((in[1] == ']') && (in[2] == '>')) {
 		    xmlFatalErr(ctxt, XML_ERR_MISPLACED_CDATA_END, NULL);
-		    ctxt->input->cur = in;
+		    ctxt->input->cur = in + 1;
 		    return;
 		}
 		in++;
@@ -4429,7 +4436,7 @@ xmlParseCharDataComplex(xmlParserCtxtPtr ctxt, int cdata) {
 	    }
 	}
     }
-    if ((cur != 0) && (!IS_CHAR(cur))) {
+    if ((ctxt->input->cur < ctxt->input->end) && (!IS_CHAR(cur))) {
 	/* Generate the error and skip the offending character */
         xmlFatalErrMsgInt(ctxt, XML_ERR_INVALID_CHAR,
                           "PCDATA invalid Char value %d\n",
@@ -7017,6 +7024,8 @@ xmlParseReference(xmlParserCtxtPtr ctxt) {
 		   (ret != XML_WAR_UNDECLARED_ENTITY)) {
 	    xmlFatalErrMsgStr(ctxt, XML_ERR_UNDECLARED_ENTITY,
 		     "Entity '%s' failed to parse\n", ent->name);
+            if (ent->content != NULL)
+                ent->content[0] = 0;
 	} else if (list != NULL) {
 	    xmlFreeNodeList(list);
 	    list = NULL;
@@ -7699,6 +7708,14 @@ xmlParsePEReference(xmlParserCtxtPtr ctxt)
 	    if (xmlPushInput(ctxt, input) < 0)
 		return;
 	} else {
+	    if ((entity->etype == XML_EXTERNAL_PARAMETER_ENTITY) &&
+	        ((ctxt->options & XML_PARSE_NOENT) == 0) &&
+	        ((ctxt->options & XML_PARSE_DTDVALID) == 0) &&
+	        ((ctxt->options & XML_PARSE_DTDLOAD) == 0) &&
+	        ((ctxt->options & XML_PARSE_DTDATTR) == 0) &&
+	        (ctxt->replaceEntities == 0) &&
+	        (ctxt->validate == 0))
+	        return;
 	    /*
 	     * TODO !!!
 	     * handle the extra spaces added before and after
@@ -11753,6 +11770,7 @@ xmldecl_done:
 		    /* TODO 2.6.0 */
 		    xmlGenericError(xmlGenericErrorContext,
 				    "xmlParseChunk: encoder error\n");
+                    xmlHaltParser(ctxt);
 		    return(XML_ERR_INVALID_ENCODING);
 		}
 	    }

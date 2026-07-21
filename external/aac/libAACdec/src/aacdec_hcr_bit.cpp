@@ -122,6 +122,7 @@ UCHAR ToggleReadDirection(UCHAR readDirection)
         return:   - bit from bitstream
 -------------------------------------------------------------------------------------------- */
 UINT HcrGetABitFromBitstream(HANDLE_FDK_BITSTREAM  bs,
+                             const INT             bsAnchor,
                              USHORT               *pLeftStartOfSegment,
                              USHORT               *pRightStartOfSegment,
                              UCHAR                 readDirection)
@@ -130,7 +131,7 @@ UINT HcrGetABitFromBitstream(HANDLE_FDK_BITSTREAM  bs,
   INT    readBitOffset;
 
   if (readDirection == FROM_LEFT_TO_RIGHT) {
-    readBitOffset = *pLeftStartOfSegment-FDKgetBitCnt(bs);
+    readBitOffset = (INT)FDKgetValidBits(bs) - bsAnchor + *pLeftStartOfSegment;
     if( readBitOffset ) {
       FDKpushBiDirectional(bs, readBitOffset);
     }
@@ -140,7 +141,7 @@ UINT HcrGetABitFromBitstream(HANDLE_FDK_BITSTREAM  bs,
     *pLeftStartOfSegment += 1;
   }
   else {
-    readBitOffset = *pRightStartOfSegment-FDKgetBitCnt(bs);
+    readBitOffset = (INT)FDKgetValidBits(bs) - bsAnchor + *pRightStartOfSegment;
     if( readBitOffset ) {
       FDKpushBiDirectional(bs, readBitOffset);
     }

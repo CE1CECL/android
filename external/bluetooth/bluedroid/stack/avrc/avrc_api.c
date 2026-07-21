@@ -23,6 +23,8 @@
  ******************************************************************************/
 #include <string.h>
 
+#include <log/log.h>
+
 #include "gki.h"
 #include "avrc_api.h"
 #include "avrc_int.h"
@@ -34,6 +36,10 @@
 
 
 #define AVRC_MAX_RCV_CTRL_EVT   AVCT_BROWSE_UNCONG_IND_EVT
+
+#ifndef BT_DEFAULT_BUFFER_SIZE
+#define BT_DEFAULT_BUFFER_SIZE (4096 + 16)
+#endif
 
 static const UINT8 avrc_ctrl_event_map[] =
 {
@@ -321,15 +327,15 @@ static BT_HDR * avrc_proc_vendor_command(UINT8 handle, UINT8 label,
 
     if (status != AVRC_STS_NO_ERROR)
     {
-        /* use the current GKI buffer to build/send the reject message */
-        p_data = (UINT8 *)(p_pkt+1) + p_pkt->offset;
+        p_rsp = (BT_HDR*)malloc(BT_DEFAULT_BUFFER_SIZE);
+        p_rsp->offset = p_pkt->offset;
+        p_data = (UINT8*)(p_rsp + 1) + p_pkt->offset;
         *p_data++ = AVRC_RSP_REJ;
         p_data += AVRC_VENDOR_HDR_SIZE; /* pdu */
         *p_data++ = 0;                  /* pkt_type */
         UINT16_TO_BE_STREAM(p_data, 1); /* len */
         *p_data++ = status;             /* error code */
-        p_pkt->len = AVRC_VENDOR_HDR_SIZE + 5;
-        p_rsp = p_pkt;
+        p_rsp->len = AVRC_VENDOR_HDR_SIZE + 5;
     }
 
     return p_rsp;
@@ -484,6 +490,9 @@ static UINT8 avrc_proc_far_msg(UINT8 handle, UINT8 label, UINT8 cr, BT_HDR **pp_
             if (p_rsp)
             {
                 AVCT_MsgReq( handle, label, AVCT_RSP, p_rsp);
+                WC_ASSERT(p_pkt != NULL);
+                GKI_freebuf(p_pkt);
+                *pp_pkt = NULL;
                 drop = 3;
             }
             else if (p_msg->hdr.opcode == AVRC_OP_DROP)
@@ -570,16 +579,22 @@ static void avrc_msg_cback(UINT8 handle, UINT8 label, UINT8 cr,
     AVRC_TRACE_DEBUG1("layer_specific %x",p_pkt->layer_specific);
     if (p_pkt->layer_specific != AVCT_DATA_BROWSE)
     {
+        if (p_pkt->len < AVRC_AVC_HDR_SIZE)
         {
-            msg.hdr.ctype           = p_data[0] & AVRC_CTYPE_MASK;
-            AVRC_TRACE_DEBUG4("avrc_msg_cback handle:%d, ctype:%d, offset:%d, len: %d",
-            handle, msg.hdr.ctype, p_pkt->offset, p_pkt->len);
-            msg.hdr.subunit_type    = (p_data[1] & AVRC_SUBTYPE_MASK) >> AVRC_SUBTYPE_SHIFT;
-            msg.hdr.subunit_id      = p_data[1] & AVRC_SUBID_MASK;
-            opcode                  = p_data[2];
-            AVRC_TRACE_ERROR1("opcode %x",opcode);
+            android_errorWriteLog(0x534e4554, "111803925");
+            AVRC_TRACE_WARNING3("%s: message length %d too short: must be at least %d",
+                                __func__, p_pkt->len, AVRC_AVC_HDR_SIZE);
+            GKI_freebuf(p_pkt);
+            return;
         }
 
+        msg.hdr.ctype           = p_data[0] & AVRC_CTYPE_MASK;
+        AVRC_TRACE_DEBUG4("avrc_msg_cback handle:%d, ctype:%d, offset:%d, len: %d",
+        handle, msg.hdr.ctype, p_pkt->offset, p_pkt->len);
+        msg.hdr.subunit_type    = (p_data[1] & AVRC_SUBTYPE_MASK) >> AVRC_SUBTYPE_SHIFT;
+        msg.hdr.subunit_id      = p_data[1] & AVRC_SUBID_MASK;
+        opcode                  = p_data[2];
+        AVRC_TRACE_ERROR1("opcode %x",opcode);
 
         if ( ((avrc_cb.ccb[handle].control & AVRC_CT_TARGET) && (cr == AVCT_CMD)) ||
            ((avrc_cb.ccb[handle].control & AVRC_CT_CONTROL) && (cr == AVCT_RSP)) )

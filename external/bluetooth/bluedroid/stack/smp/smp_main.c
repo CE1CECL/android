@@ -20,8 +20,10 @@
 
 #if SMP_INCLUDED == TRUE
 
+    #include <cutils/log.h>
     #include <string.h>
     #include "smp_int.h"
+
 
 
 const char * const smp_state_name [] =
@@ -431,6 +433,13 @@ void smp_sm_event(tSMP_CB *p_cb, tSMP_EVENT event, void *p_data)
     UINT8           curr_state = p_cb->state;
     tSMP_SM_TBL     state_table;
     UINT8           action, entry, i;
+
+    if (p_cb->role >= 2) {
+        SMP_TRACE_DEBUG1("Invalid role: %d", p_cb->role);
+        android_errorWriteLog(0x534e4554, "74121126");
+        return;
+    }
+
     tSMP_ENTRY_TBL  entry_table =  smp_entry_table[p_cb->role];
 
     SMP_TRACE_EVENT0("main smp_sm_event");
@@ -438,6 +447,12 @@ void smp_sm_event(tSMP_CB *p_cb, tSMP_EVENT event, void *p_data)
     {
         SMP_TRACE_DEBUG1( "Invalid state: %d", curr_state) ;
         return;
+    }
+
+    if (p_cb->role > 0x01) {
+      SMP_TRACE_ERROR2("%s: invalid role %d", __func__, p_cb->role);
+      android_errorWriteLog(0x534e4554, "80145946");
+      return;
     }
 
     SMP_TRACE_DEBUG5( "SMP Role: %s State: [%s (%d)], Event: [%s (%d)]",\

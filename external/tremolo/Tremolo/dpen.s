@@ -361,7 +361,7 @@ dm3:
 	@ r12= mul
 	@ r14= add
 	LDR	r1, [r4,#44]		@ r1 = s->q_pack
-	LDR	r4, [r4,#52]		@ r4 = s->q_val
+	LDR	r4, [r4,#48]		@ r4 = s->q_val
 	CMP	r2,#8
 	MOV	r11,#0			@ r11= prev
 	MLA	r4,r1,r8,r4		@ r4 = ptr = s->q_val+entry*s->q_pack
@@ -429,6 +429,8 @@ vbdvva_loop1:
 	LDR	r0, [r9, # 5*4]		@ r0 = book->dim
 	LDR	r1, [r9, #14*4]		@ r1 = v = dec_buf
 vbdvva_loop2:
+	CMP	r5,#0
+	BLE	vbdvva_exit
 	LDR	r2, [r10],#4		@ r2 = a[chptr++]
 	LDR	r12,[r1], #4		@ r1 = v[j++]
 	CMP	r10,r8			@ if (chptr == ch)

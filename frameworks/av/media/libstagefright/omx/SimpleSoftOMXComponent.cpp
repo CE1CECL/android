@@ -199,6 +199,13 @@ OMX_ERRORTYPE SimpleSoftOMXComponent::useBuffer(
     Mutex::Autolock autoLock(mLock);
     CHECK_LT(portIndex, mPorts.size());
 
+    PortInfo *port = &mPorts.editItemAt(portIndex);
+    if (size < port->mDef.nBufferSize) {
+        ALOGE("b/63522430, Buffer size is too small.");
+        android_errorWriteLog(0x534e4554, "63522430");
+        return OMX_ErrorBadParameter;
+    }
+
     *header = new OMX_BUFFERHEADERTYPE;
     (*header)->nSize = sizeof(OMX_BUFFERHEADERTYPE);
     (*header)->nVersion.s.nVersionMajor = 1;
@@ -220,8 +227,6 @@ OMX_ERRORTYPE SimpleSoftOMXComponent::useBuffer(
     (*header)->nFlags = 0;
     (*header)->nOutputPortIndex = portIndex;
     (*header)->nInputPortIndex = portIndex;
-
-    PortInfo *port = &mPorts.editItemAt(portIndex);
 
     CHECK(mState == OMX_StateLoaded || port->mDef.bEnabled == OMX_FALSE);
 
@@ -663,6 +668,18 @@ SimpleSoftOMXComponent::PortInfo *SimpleSoftOMXComponent::editPortInfo(
         OMX_U32 portIndex) {
     CHECK_LT(portIndex, mPorts.size());
     return &mPorts.editItemAt(portIndex);
+}
+
+OMX_ERRORTYPE SimpleSoftOMXComponent::validateInputBuffer(
+        const OMX_BUFFERHEADERTYPE *inputBufferHeader,
+        int32_t frameWidth, int32_t frameHeight) {
+    size_t frameSize = frameWidth * frameHeight * 3 / 2;
+    if (inputBufferHeader->nFilledLen < frameSize) {
+        return OMX_ErrorUndefined;
+    } else if (inputBufferHeader->nFilledLen > frameSize) {
+        ALOGW("Input buffer contains more data than expected.");
+    }
+    return OMX_ErrorNone;
 }
 
 }  // namespace android

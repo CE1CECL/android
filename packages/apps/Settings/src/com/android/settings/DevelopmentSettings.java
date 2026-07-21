@@ -394,6 +394,15 @@ public class DevelopmentSettings extends RestrictedSettingsFragment
 
         mDevelopmentTools = (PreferenceScreen) findPreference(DEVELOPMENT_TOOLS);
         mAllPrefs.add(mDevelopmentTools);
+
+        if (!getResources().getBoolean(R.bool.config_enableRecoveryUpdater)) {
+            removePreference(mUpdateRecovery);
+            mUpdateRecovery = null;
+            if (SystemProperties.getBoolean(UPDATE_RECOVERY_PROPERTY, false)) {
+                SystemProperties.set(UPDATE_RECOVERY_PROPERTY, "false");
+                pokeSystemProperties();
+            }
+        }
     }
 
     private ListPreference addListPreference(String prefKey) {
@@ -604,7 +613,9 @@ public class DevelopmentSettings extends RestrictedSettingsFragment
         updateRootAccessOptions();
         updateAdvancedRebootOptions();
         updateDevelopmentShortcutOptions();
-        updateUpdateRecoveryOptions();
+        if (mUpdateRecovery != null) {
+            updateUpdateRecoveryOptions();
+        }
     }
 
     private void writeAdvancedRebootOptions() {
@@ -676,7 +687,9 @@ public class DevelopmentSettings extends RestrictedSettingsFragment
         resetAdbNotifyOptions();
         resetVerifyAppsOverUsbOptions();
         resetDevelopmentShortcutOptions();
-        resetUpdateRecoveryOptions();
+        if (mUpdateRecovery != null) {
+            resetUpdateRecoveryOptions();
+        }
         writeAnimationScaleOption(0, mWindowAnimationScale, null);
         writeAnimationScaleOption(1, mTransitionAnimationScale, null);
         writeAnimationScaleOption(2, mAnimatorDurationScale, null);
@@ -812,6 +825,10 @@ public class DevelopmentSettings extends RestrictedSettingsFragment
 
     private void updatePasswordSummary() {
         try {
+            if (mBackupManager == null) {
+               Log.e(TAG, "Backup Manager is unavailable!");
+               return;
+            }
             if (mBackupManager.hasBackupPassword()) {
                 mPassword.setSummary(R.string.local_backup_password_summary_change);
             } else {

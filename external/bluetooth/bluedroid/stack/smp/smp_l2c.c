@@ -152,6 +152,7 @@ static void smp_data_ind (BD_ADDR bd_addr, BT_HDR *p_buf)
     {
         if(p_cb->state != SMP_ST_RELEASE_DELAY)
             btu_stop_timer (&p_cb->rsp_timer_ent);
+        p_cb->rcvd_cmd_len = (UINT8)p_buf->len;
         smp_sm_event(p_cb, cmd, p);
     }
 

@@ -31,6 +31,7 @@
 #include "l2cdefs.h"
 #include "hcidefs.h"
 #include "hcimsgs.h"
+#include "log/log.h"
 #include "sdp_api.h"
 #include "sdpint.h"
 #include "btu.h"
@@ -45,12 +46,15 @@
 /*              L O C A L    F U N C T I O N     P R O T O T Y P E S            */
 /********************************************************************************/
 #if SDP_CLIENT_ENABLED == TRUE
-static void          process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len);
-static void          process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len);
-static void          process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len);
+static void process_service_search_rsp(tCONN_CB* p_ccb, uint8_t* p_reply,
+                                       uint8_t* p_reply_end);
+static void process_service_attr_rsp(tCONN_CB* p_ccb, uint8_t* p_reply,
+                                     uint8_t* p_reply_end);
+static void process_service_search_attr_rsp(tCONN_CB* p_ccb, uint8_t* p_reply,
+                                            uint8_t* p_reply_end);
 static UINT8         *save_attr_seq (tCONN_CB *p_ccb, UINT8 *p, UINT8 *p_msg_end);
 static tSDP_DISC_REC *add_record (tSDP_DISCOVERY_DB *p_db, BD_ADDR p_bda);
-static UINT8         *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
+static UINT8         *add_attr (UINT8 *p, UINT8 *p_end, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
                                 UINT16 attr_id, tSDP_DISC_ATTR *p_parent_attr, UINT8 nest_level);
 
 /* Safety check in case we go crazy */
@@ -215,7 +219,7 @@ void sdp_disc_connected (tCONN_CB *p_ccb)
     {
         p_ccb->disc_state = SDP_DISC_WAIT_SEARCH_ATTR;
 
-        process_service_search_attr_rsp (p_ccb, NULL, 0);
+        process_service_search_attr_rsp (p_ccb, NULL, NULL);
     }
     else
     {
@@ -268,6 +272,7 @@ void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg)
 
     /* Got a reply!! Check what we got back */
     p = (UINT8 *)(p_msg + 1) + p_msg->offset;
+    UINT8 *p_end = p + p_msg->len;
 
     BE_STREAM_TO_UINT8 (rsp_pdu, p);
 
@@ -278,7 +283,7 @@ void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg)
     case SDP_PDU_SERVICE_SEARCH_RSP:
         if (p_ccb->disc_state == SDP_DISC_WAIT_HANDLES)
         {
-            process_service_search_rsp (p_ccb, p, p_msg->len);
+            process_service_search_rsp (p_ccb, p, p_end);
             invalid_pdu = FALSE;
         }
         break;
@@ -286,7 +291,7 @@ void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg)
     case SDP_PDU_SERVICE_ATTR_RSP:
         if (p_ccb->disc_state == SDP_DISC_WAIT_ATTR)
         {
-            process_service_attr_rsp (p_ccb, p, p_msg->len);
+            process_service_attr_rsp (p_ccb, p, p_end);
             invalid_pdu = FALSE;
         }
         break;
@@ -294,7 +299,7 @@ void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg)
     case SDP_PDU_SERVICE_SEARCH_ATTR_RSP:
         if (p_ccb->disc_state == SDP_DISC_WAIT_SEARCH_ATTR)
         {
-            process_service_search_attr_rsp (p_ccb, p, p_msg->len);
+            process_service_search_attr_rsp (p_ccb, p, p_end);
             invalid_pdu = FALSE;
         }
         break;
@@ -317,12 +322,19 @@ void sdp_disc_server_rsp (tCONN_CB *p_ccb, BT_HDR *p_msg)
 ** Returns          void
 **
 *******************************************************************************/
-static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len)
+static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply,
+                                        UINT8 *p_reply_end)
 {
     UINT16      xx;
     UINT16      total, cur_handles, orig;
     UINT8       cont_len;
 
+    if (p_reply + 8 > p_reply_end)
+    {
+        android_errorWriteLog(0x534e4554, "74249842");
+        sdp_disconnect(p_ccb, SDP_GENERIC_ERROR);
+        return;
+    }
     /* Skip transaction, and param len */
     p_reply += 4;
     BE_STREAM_TO_UINT16 (total, p_reply);
@@ -343,6 +355,13 @@ static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 
     if (p_ccb->num_handles > sdp_cb.max_recs_per_search)
         p_ccb->num_handles = sdp_cb.max_recs_per_search;
 
+    if (p_reply + ((p_ccb->num_handles - orig) * 4) + 1 > p_reply_end)
+    {
+        android_errorWriteLog(0x534e4554, "74249842");
+        sdp_disconnect(p_ccb, SDP_GENERIC_ERROR);
+        return;
+    }
+
     for (xx = orig; xx < p_ccb->num_handles; xx++)
         BE_STREAM_TO_UINT32 (p_ccb->handles[xx], p_reply);
 
@@ -354,6 +373,11 @@ static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 
             sdp_disconnect (p_ccb, SDP_INVALID_CONT_STATE);
             return;
         }
+        if (p_reply + cont_len > p_reply_end) {
+          android_errorWriteLog(0x534e4554, "68161546");
+          sdp_disconnect(p_ccb, SDP_INVALID_CONT_STATE);
+          return;
+        }
         /* stay in the same state */
         sdp_snd_service_search_req(p_ccb, cont_len, p_reply);
     }
@@ -363,7 +387,7 @@ static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 
         p_ccb->disc_state = SDP_DISC_WAIT_ATTR;
 
         /* Kick off the first attribute request */
-        process_service_attr_rsp (p_ccb, NULL, 0);
+        process_service_attr_rsp (p_ccb, NULL, NULL);
     }
 }
 
@@ -378,9 +402,9 @@ static void process_service_search_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 
 **
 *******************************************************************************/
 #if (SDP_RAW_DATA_INCLUDED == TRUE)
-static void sdp_copy_raw_data (tCONN_CB *p_ccb, UINT16 len, BOOLEAN offset)
+static void sdp_copy_raw_data (tCONN_CB *p_ccb, BOOLEAN offset)
 {
-    unsigned int    cpy_len;
+    unsigned int    cpy_len, rem_len;
     UINT32          list_len;
     UINT8           *p;
     UINT8           * p_temp;
@@ -406,12 +430,25 @@ static void sdp_copy_raw_data (tCONN_CB *p_ccb, UINT16 len, BOOLEAN offset)
 
         if(offset)
         {
+            cpy_len -= 1;
             type = *p++;
+            uint8_t* old_p = p;
             p = sdpu_get_len_from_type (p, type, &list_len);
+            if ((int)cpy_len < (p - old_p))
+            {
+                SDP_TRACE_WARNING1("%s: no bytes left for data", __func__);
+                return;
+            }
+            cpy_len -= (p - old_p);
         }
-        if(list_len && list_len < cpy_len )
+        if (list_len < cpy_len)
         {
             cpy_len = list_len;
+        }
+        rem_len = SDP_MAX_LIST_BYTE_COUNT - (unsigned int)(p - &p_ccb->rsp_list[0]);
+        if (cpy_len > rem_len) {
+          SDP_TRACE_WARNING2("rem_len :%d less than cpy_len:%d", rem_len, cpy_len);
+          cpy_len = rem_len;
         }
 #if (SDP_DEBUG_RAW == TRUE)
         SDP_TRACE_WARNING4("list_len :%d cpy_len:%d raw_size:%d raw_used:%d",
@@ -433,15 +470,16 @@ static void sdp_copy_raw_data (tCONN_CB *p_ccb, UINT16 len, BOOLEAN offset)
 ** Returns          void
 **
 *******************************************************************************/
-static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len)
+static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply,
+                                      UINT8 *p_reply_end)
 {
     UINT8           *p_start, *p_param_len;
     UINT16          param_len, list_byte_count;
     BOOLEAN         cont_request_needed = FALSE;
 
 #if (SDP_DEBUG_RAW == TRUE)
-    SDP_TRACE_WARNING2("process_service_attr_rsp len:%d raw inc:%d",
-        len, SDP_RAW_DATA_INCLUDED);
+    SDP_TRACE_WARNING2("process_service_attr_rsp raw inc:%d",
+        SDP_RAW_DATA_INCLUDED);
 #endif
     /* If p_reply is NULL, we were called after the records handles were read */
     if (p_reply)
@@ -502,7 +540,7 @@ static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 le
 
 #if (SDP_RAW_DATA_INCLUDED == TRUE)
             SDP_TRACE_WARNING0("process_service_attr_rsp");
-            sdp_copy_raw_data (p_ccb, len, FALSE);
+            sdp_copy_raw_data (p_ccb, FALSE);
 #endif
 
             /* Save the response in the database. Stop on any error */
@@ -554,8 +592,13 @@ static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 le
         /* Was this a continuation request ? */
         if (cont_request_needed)
         {
-            memcpy (p, p_reply, *p_reply + 1);
-            p += *p_reply + 1;
+          if ((p_reply + *p_reply + 1) <= p_reply_end)
+          {
+              memcpy(p, p_reply, *p_reply + 1);
+              p += *p_reply + 1;
+          }
+          else
+              android_errorWriteLog(0x534e4554, "68161546");
         }
         else
             UINT8_TO_BE_STREAM (p, 0);
@@ -591,7 +634,8 @@ static void process_service_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 le
 ** Returns          void
 **
 *******************************************************************************/
-static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UINT16 len)
+static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply,
+                                             UINT8 *p_reply_end)
 {
     UINT8           *p, *p_start, *p_end, *p_param_len;
     UINT8           type;
@@ -600,11 +644,18 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
     BOOLEAN         cont_request_needed = FALSE;
 
 #if (SDP_DEBUG_RAW == TRUE)
-    SDP_TRACE_WARNING1("process_service_search_attr_rsp len:%d", len);
+    SDP_TRACE_WARNING1("process_service_search_attr_rsp");
 #endif
     /* If p_reply is NULL, we were called for the initial read */
     if (p_reply)
     {
+      if (p_reply + 4 /* transaction ID and length */ + sizeof(lists_byte_count) >
+        p_reply_end) {
+        android_errorWriteLog(0x534e4554, "79884292");
+        sdp_disconnect(p_ccb, SDP_INVALID_PDU_SIZE);
+        return;
+      }
+
 #if (SDP_DEBUG_RAW == TRUE)
         SDP_TRACE_WARNING4("ID & len: 0x%02x-%02x-%02x-%02x",
             p_reply[0], p_reply[1], p_reply[2], p_reply[3]);
@@ -628,6 +679,13 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
         SDP_TRACE_WARNING2("list_len: %d, list_byte_count: %d",
             p_ccb->list_len, lists_byte_count);
 #endif
+
+        if (p_reply + lists_byte_count + 1 /* continuation */ > p_reply_end) {
+          android_errorWriteLog(0x534e4554, "79884292");
+          sdp_disconnect(p_ccb, SDP_INVALID_PDU_SIZE);
+          return;
+        }
+
         if (p_ccb->rsp_list == NULL)
         {
             p_ccb->rsp_list = (UINT8 *)GKI_getbuf (SDP_MAX_LIST_BYTE_COUNT);
@@ -705,8 +763,13 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
         /* No continuation for first request */
         if (p_reply)
         {
-            memcpy (p, p_reply, *p_reply + 1);
-            p += *p_reply + 1;
+           if ((p_reply + *p_reply + 1) <= p_reply_end)
+           {
+               memcpy(p, p_reply, *p_reply + 1);
+               p += *p_reply + 1;
+           }
+           else
+               android_errorWriteLog(0x534e4554, "68161546");
         }
         else
             UINT8_TO_BE_STREAM (p, 0);
@@ -734,7 +797,7 @@ static void process_service_search_attr_rsp (tCONN_CB *p_ccb, UINT8 *p_reply, UI
 
 #if (SDP_RAW_DATA_INCLUDED == TRUE)
     SDP_TRACE_WARNING0("process_service_search_attr_rsp");
-    sdp_copy_raw_data (p_ccb, len, TRUE);
+    sdp_copy_raw_data (p_ccb, TRUE);
 #endif
 
     p = &p_ccb->rsp_list[0];
@@ -826,7 +889,7 @@ static UINT8 *save_attr_seq (tCONN_CB *p_ccb, UINT8 *p, UINT8 *p_msg_end)
         BE_STREAM_TO_UINT16 (attr_id, p);
 
         /* Now, add the attribute value */
-        p = add_attr (p, p_ccb->p_db, p_rec, attr_id, NULL, 0);
+        p = add_attr (p, p_seq_end, p_ccb->p_db, p_rec, attr_id, NULL, 0);
 
         if (!p)
         {
@@ -892,7 +955,7 @@ tSDP_DISC_REC *add_record (tSDP_DISCOVERY_DB *p_db, BD_ADDR p_bda)
 ** Returns          pointer to next byte in data stream
 **
 *******************************************************************************/
-static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
+static UINT8 *add_attr (UINT8 *p, UINT8 *p_end, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
                         UINT16 attr_id, tSDP_DISC_ATTR *p_parent_attr, UINT8 nest_level)
 {
     tSDP_DISC_ATTR  *p_attr;
@@ -901,7 +964,7 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
     UINT16          attr_type;
     UINT16          id;
     UINT8           type;
-    UINT8           *p_end;
+    UINT8           *p_attr_end;
     UINT8           is_additional_list = nest_level & SDP_ADDITIONAL_LIST_MASK;
 
     nest_level &= ~(SDP_ADDITIONAL_LIST_MASK);
@@ -917,6 +980,14 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
         total_len = attr_len - 4 + (UINT16)sizeof (tSDP_DISC_ATTR);
     else
         total_len = sizeof (tSDP_DISC_ATTR);
+
+    p_attr_end = p + attr_len;
+    if (p_attr_end > p_end)
+    {
+        android_errorWriteLog(0x534e4554, "115900043");
+        SDP_TRACE_WARNING1("%s: SDP - Attribute length beyond p_end", __func__);
+        return NULL;
+    }
 
     /* Ensure it is a multiple of 4 */
     total_len = (total_len + 3) & ~3;
@@ -944,18 +1015,18 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
                 /* Reserve the memory for the attribute now, as we need to add sub-attributes */
                 p_db->p_free_mem += sizeof (tSDP_DISC_ATTR);
                 p_db->mem_free   -= sizeof (tSDP_DISC_ATTR);
-                p_end             = p + attr_len;
                 total_len         = 0;
 
                 /* SDP_TRACE_DEBUG1 ("SDP - attr nest level:%d(list)", nest_level); */
                 if (nest_level >= MAX_NEST_LEVELS)
                 {
                     SDP_TRACE_ERROR0 ("SDP - attr nesting too deep");
-                    return (p_end);
+                    return p_attr_end;
                 }
 
                 /* Now, add the list entry */
-                p = add_attr (p, p_db, p_rec, ATTR_ID_PROTOCOL_DESC_LIST, p_attr, (UINT8)(nest_level + 1));
+                p = add_attr (p, p_end, p_db, p_rec, ATTR_ID_PROTOCOL_DESC_LIST,
+                              p_attr, (UINT8)(nest_level + 1));
 
                 break;
             }
@@ -1028,7 +1099,7 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
             break;
         default:
             SDP_TRACE_WARNING1 ("SDP - bad len in UUID attr: %d", attr_len);
-            return (p + attr_len);
+            return p_attr_end;
         }
         break;
 
@@ -1037,23 +1108,22 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
         /* Reserve the memory for the attribute now, as we need to add sub-attributes */
         p_db->p_free_mem += sizeof (tSDP_DISC_ATTR);
         p_db->mem_free   -= sizeof (tSDP_DISC_ATTR);
-        p_end             = p + attr_len;
         total_len         = 0;
 
         /* SDP_TRACE_DEBUG1 ("SDP - attr nest level:%d", nest_level); */
         if (nest_level >= MAX_NEST_LEVELS)
         {
             SDP_TRACE_ERROR0 ("SDP - attr nesting too deep");
-            return (p_end);
+            return p_attr_end;
         }
         if(is_additional_list != 0 || attr_id == ATTR_ID_ADDITION_PROTO_DESC_LISTS)
             nest_level |= SDP_ADDITIONAL_LIST_MASK;
         /* SDP_TRACE_DEBUG1 ("SDP - attr nest level:0x%x(finish)", nest_level); */
 
-        while (p < p_end)
+        while (p < p_attr_end)
         {
             /* Now, add the list entry */
-            p = add_attr (p, p_db, p_rec, 0, p_attr, (UINT8)(nest_level + 1));
+            p = add_attr (p, p_end, p_db, p_rec, 0, p_attr, (UINT8)(nest_level + 1));
 
             if (!p)
                 return (NULL);
@@ -1073,7 +1143,7 @@ static UINT8 *add_attr (UINT8 *p, tSDP_DISCOVERY_DB *p_db, tSDP_DISC_REC *p_rec,
             break;
         default:
             SDP_TRACE_WARNING1 ("SDP - bad len in boolean attr: %d", attr_len);
-            return (p + attr_len);
+            return p_attr_end;
         }
         break;
 

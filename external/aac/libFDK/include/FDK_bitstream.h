@@ -415,22 +415,6 @@ FDK_INLINE void FDKsyncCacheBwd (HANDLE_FDK_BITSTREAM hBitStream)
 
 
 /**
- * \brief Byte Alignment Function.
- *        This function performs the byte_alignment() syntactic function on the input stream,
- *        i.e. some bits will be discarded/padded so that the next bits to be read/written will
- *        be aligned on a byte boundary with respect to the bit position 0.
- *
- * \param  hBitStream HANDLE_FDK_BITSTREAM handle
- * \return void
- */
-FDK_INLINE void FDKbyteAlign (HANDLE_FDK_BITSTREAM hBitStream)
-{
-  FDKsyncCache (hBitStream) ;
-  FDK_byteAlign (&hBitStream->hBitBuf, (UCHAR)hBitStream->ConfigCache) ;
-}
-
-
-/**
  * \brief Byte Alignment Function with anchor
  *        This function performs the byte_alignment() syntactic function on the input stream,
  *        i.e. some bits will be discarded so that the next bits to be read/written would be aligned
@@ -530,41 +514,6 @@ FDK_INLINE INT FDKgetFreeBits (HANDLE_FDK_BITSTREAM hBitStream)
 {
    return FDK_getFreeBits (&hBitStream->hBitBuf) ;
 }
-
-/**
- * \brief reset bitcounter in bitBuffer to zero.
- * \param hBitStream HANDLE_FDK_BITSTREAM handle
- * \return void
- */
-FDK_INLINE void FDKresetBitCnt (HANDLE_FDK_BITSTREAM hBitStream)
-{
-    FDKsyncCache (hBitStream) ;
-    FDK_setBitCnt (&hBitStream->hBitBuf, 0) ;
-}
-
-/**
- * \brief set bitcoutner in bitBuffer to given value.
- * \param hBitStream HANDLE_FDK_BITSTREAM handle
- * \param value new value to be assigned to the bit counter
- * \return void
- */
-FDK_INLINE void FDKsetBitCnt (HANDLE_FDK_BITSTREAM hBitStream, UINT value)
-{
-    FDKsyncCache (hBitStream) ;
-    FDK_setBitCnt (&hBitStream->hBitBuf, value) ;
-}
-
-/**
- * \brief get bitcounter state from bitBuffer.
- * \param hBitStream HANDLE_FDK_BITSTREAM handle
- * \return current bit counter value
- */
-FDK_INLINE INT  FDKgetBitCnt (HANDLE_FDK_BITSTREAM hBitStream)
-{
-    FDKsyncCache(hBitStream) ;
-    return FDK_getBitCnt(&hBitStream->hBitBuf) ;
-}
-
 
 /**
  * \brief Fill the BitBuffer with a number of input bytes from  external source.

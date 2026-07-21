@@ -57,6 +57,7 @@
 #include "btif_hl.h"
 #include "btif_storage.h"
 #include "btu.h"
+#include "utl.h"
 
 #define MAX_DATATYPE_SUPPORTED 8
 
@@ -2491,6 +2492,10 @@ static BOOLEAN btif_hl_proc_sdp_query_cfm(tBTA_HL *p_data){
                 }
             }
         }
+
+    // this was allocated in bta_hl_sdp_query_results
+    utl_freebuf((void **)&p_data->sdp_query_cfm.p_sdp);
+
     return status;
 }
 

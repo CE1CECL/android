@@ -557,6 +557,7 @@ UINT Hcr_State_BODY_ONLY(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -678,6 +679,7 @@ UINT Hcr_State_BODY_SIGN__BODY(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -790,6 +792,7 @@ UINT Hcr_State_BODY_SIGN__SIGN(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -903,6 +906,7 @@ UINT Hcr_State_BODY_SIGN_ESC__BODY(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -1053,6 +1057,7 @@ UINT Hcr_State_BODY_SIGN_ESC__SIGN(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -1197,6 +1202,7 @@ UINT Hcr_State_BODY_SIGN_ESC__ESC_PREFIX(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);
@@ -1311,6 +1317,7 @@ UINT Hcr_State_BODY_SIGN_ESC__ESC_WORD(HANDLE_FDK_BITSTREAM bs, void *ptr)
   for ( ; pRemainingBitsInSegment[segmentOffset] > 0 ; pRemainingBitsInSegment[segmentOffset] -= 1 ) {
 
     carryBit = HcrGetABitFromBitstream( bs,
+                                        pHcr->decInOut.bitstreamAnchor,
                                        &pLeftStartOfSegment[segmentOffset],
                                        &pRightStartOfSegment[segmentOffset],
                                         readDirection);

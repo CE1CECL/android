@@ -35,6 +35,7 @@
 
 #include "l2c_api.h"
 #include "l2cdefs.h"
+#include "log/log.h"
 
 #include "btu.h"
 #include "btm_api.h"
@@ -465,6 +466,11 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
     tBNEP_CONN    *p_bcb;
     UINT8         *p = (UINT8 *)(p_buf + 1) + p_buf->offset;
     UINT16        rem_len = p_buf->len;
+    if (rem_len == 0) {
+      android_errorWriteLog(0x534e4554, "78286118");
+      GKI_freebuf (p_buf);
+      return;
+    }
     UINT8         type, ctrl_type, ext_type = 0;
     BOOLEAN       extension_present, fw_ext_present;
     UINT16        protocol = 0;
@@ -483,6 +489,13 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
     type = *p++;
     extension_present = type >> 7;
     type &= 0x7f;
+    if (type >= sizeof(bnep_frame_hdr_sizes) / sizeof(bnep_frame_hdr_sizes[0])) 
+    {
+        BNEP_TRACE_EVENT1 ("BNEP - rcvd frame, bad type: 0x%02x", type);
+        android_errorWriteLog(0x534e4554, "68818034");
+        GKI_freebuf (p_buf);
+        return;
+    }
     if ((rem_len <= bnep_frame_hdr_sizes[type]) || (rem_len > BNEP_MTU_SIZE))
     {
         BNEP_TRACE_EVENT2 ("BNEP - rcvd frame, bad len: %d  type: 0x%02x", p_buf->len, type);
@@ -510,25 +523,36 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
             UINT16      org_len, new_len;
             /* parse the extension headers and process unknown control headers */
             org_len = rem_len;
-            new_len = 0;
             p_data  = p;
             do {
-
+                if (org_len < 2) {
+                  android_errorWriteLog(0x534e4554, "67863755");
+                  break;
+                }
                 ext     = *p++;
                 length  = *p++;
+
+                new_len = (length + 2);
+                if (new_len > org_len) {
+                  android_errorWriteLog(0x534e4554, "67863755");
+                  break;
+                }
+
+                if ((ext & 0x7F) == BNEP_EXTENSION_FILTER_CONTROL) {
+                  if (length == 0) {
+                    android_errorWriteLog(0x534e4554, "79164722");
+                    break;
+                  }
+                  if (*p > BNEP_FILTER_MULTI_ADDR_RESPONSE_MSG) {
+                    bnep_send_command_not_understood(p_bcb, *p);
+                  }
+                }
+
                 p += length;
 
-                if ((!(ext & 0x7F)) && (*p > BNEP_FILTER_MULTI_ADDR_RESPONSE_MSG))
-                    bnep_send_command_not_understood (p_bcb, *p);
-
-                new_len += (length + 2);
-
-                if (new_len > org_len)
-                    break;
-
+                org_len -= new_len;
             } while (ext & 0x80);
         }
-
         GKI_freebuf (p_buf);
         return;
     }
@@ -564,7 +588,9 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
             p_bcb->con_state != BNEP_STATE_CONNECTED &&
             extension_present && p && rem_len)
         {
-            p_bcb->p_pending_data = (BT_HDR *)GKI_getbuf (rem_len);
+            if (p_bcb->p_pending_data)
+                GKI_freebuf (p_bcb->p_pending_data);
+            p_bcb->p_pending_data = (BT_HDR *)GKI_getbuf (rem_len + sizeof(BT_HDR));
             if (p_bcb->p_pending_data)
             {
                 memcpy ((UINT8 *)(p_bcb->p_pending_data + 1), p, rem_len);
@@ -577,13 +603,14 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
             while (extension_present && p && rem_len)
             {
                 ext_type = *p++;
+                rem_len--;
                 extension_present = ext_type >> 7;
                 ext_type &= 0x7F;
 
                 /* if unknown extension present stop processing */
-                if (ext_type)
-                    break;
+                if (ext_type != BNEP_EXTENSION_FILTER_CONTROL) break;
 
+                android_errorWriteLog(0x534e4554, "69271284");
                 p = bnep_process_control_packet (p_bcb, p, &rem_len, TRUE);
             }
         }
@@ -646,9 +673,7 @@ static void bnep_data_ind (UINT16 l2cap_cid, BT_HDR *p_buf)
         fw_ext_present = FALSE;
 
     if (bnep_cb.p_data_buf_cb)
-    {
         (*bnep_cb.p_data_buf_cb)(p_bcb->handle, p_src_addr, p_dst_addr, protocol, p_buf, fw_ext_present);
-    }
     else if (bnep_cb.p_data_ind_cb)
     {
         (*bnep_cb.p_data_ind_cb)(p_bcb->handle, p_src_addr, p_dst_addr, protocol, p, rem_len, fw_ext_present);

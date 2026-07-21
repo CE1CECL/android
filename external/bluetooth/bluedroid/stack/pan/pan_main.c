@@ -223,6 +223,42 @@ void pan_conn_ind_cb (UINT16 handle,
         return;
     }
 
+    /* Check for valid interactions between the three PAN profile roles */
+    /*
+     * For reference, see Table 1 in PAN Profile v1.0 spec.
+     * Note: the remote is the initiator.
+     */
+    BOOLEAN is_valid_interaction = FALSE;
+    switch (remote_uuid->uu.uuid16)
+    {
+        case UUID_SERVCLASS_NAP:
+        case UUID_SERVCLASS_GN:
+            if (local_uuid->uu.uuid16 == UUID_SERVCLASS_PANU)
+                is_valid_interaction = TRUE;
+            break;
+        case UUID_SERVCLASS_PANU:
+            is_valid_interaction = TRUE;
+            break;
+    }
+    /*
+     * Explicitly disable connections to the local PANU if the remote is
+     * not PANU.
+     */
+    if ((local_uuid->uu.uuid16 == UUID_SERVCLASS_PANU) &&
+        (remote_uuid->uu.uuid16 != UUID_SERVCLASS_PANU))
+    {
+        is_valid_interaction = FALSE;
+    }
+    if (!is_valid_interaction)
+    {
+        PAN_TRACE_ERROR2 (
+            "PAN Connection failed because of invalid PAN profile roles "
+            "interaction: Remote UUID 0x%x Local UUID 0x%x",
+            remote_uuid->uu.uuid16, local_uuid->uu.uuid16);
+        BNEP_ConnectResp(handle, BNEP_CONN_FAILED_SRC_UUID);
+        return;
+    }
+
     /* Requested destination role is */
     if (local_uuid->uu.uuid16 == UUID_SERVCLASS_PANU)
         req_role = PAN_ROLE_CLIENT;
@@ -596,11 +632,9 @@ void pan_data_buf_ind_cb (UINT16 handle,
             if (pan_cb.pan_data_buf_ind_cb)
                 (*pan_cb.pan_data_buf_ind_cb) (pcb->handle, src, dst, protocol, p_buf, ext, forward);
             else if (pan_cb.pan_data_ind_cb)
-            {
                 (*pan_cb.pan_data_ind_cb) (pcb->handle, src, dst, protocol, p_data, len, ext, forward);
-                GKI_freebuf (p_buf);
-            }
 
+            GKI_freebuf (p_buf);
             return;
         }
 
@@ -620,13 +654,9 @@ void pan_data_buf_ind_cb (UINT16 handle,
     if (pan_cb.pan_data_buf_ind_cb)
         (*pan_cb.pan_data_buf_ind_cb) (pcb->handle, src, dst, protocol, p_buf, ext, forward);
     else if (pan_cb.pan_data_ind_cb)
-    {
         (*pan_cb.pan_data_ind_cb) (pcb->handle, src, dst, protocol, p_data, len, ext, forward);
-        GKI_freebuf (p_buf);
-    }
-    else
-        GKI_freebuf (p_buf);
 
+    GKI_freebuf (p_buf);
     return;
 }
 

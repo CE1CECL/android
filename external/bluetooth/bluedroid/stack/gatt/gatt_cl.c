@@ -29,6 +29,7 @@
 #include <string.h>
 #include "gki.h"
 #include "gatt_int.h"
+#include "log/log.h"
 
 #define GATT_WRITE_LONG_HDR_SIZE    5 /* 1 opcode + 2 handle + 2 offset */
 #define GATT_READ_CHAR_VALUE_HDL    (GATT_READ_CHAR_VALUE | 0x80)
@@ -546,9 +547,24 @@ void gatt_process_error_rsp(tGATT_TCB *p_tcb, tGATT_CLCB *p_clcb, UINT8 op_code,
     tGATT_VALUE  *p_attr = (tGATT_VALUE *)p_clcb->p_attr_buf;
 
     GATT_TRACE_DEBUG0("gatt_process_error_rsp ");
-    STREAM_TO_UINT8(opcode, p);
-    STREAM_TO_UINT16(handle, p);
-    STREAM_TO_UINT8(reason, p);
+
+    if (len < 4) {
+      android_errorWriteLog(0x534e4554, "79591688");
+      GATT_TRACE_ERROR0("Error response too short");
+      // Specification does not clearly define what should happen if error
+      // response is too short. General rule in BT Spec 5.0 Vol 3, Part F 3.4.1.1
+      // is: "If an error code is received in the Error Response that is not
+      // understood by the client, for example an error code that was reserved for
+      // future use that is now being used in a future version of this
+      // specification, then the Error Response shall still be considered to state
+      // that the given request cannot be performed for an unknown reason."
+      opcode = handle = 0;
+      reason = 0x7F;
+    } else {
+      STREAM_TO_UINT8(opcode, p);
+      STREAM_TO_UINT16(handle, p);
+      STREAM_TO_UINT8(reason, p);
+    }
 
     if (p_clcb->operation == GATTC_OPTYPE_DISCOVERY)
     {

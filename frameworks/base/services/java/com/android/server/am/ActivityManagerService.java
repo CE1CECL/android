@@ -804,6 +804,7 @@ public final class ActivityManagerService extends ActivityManagerNative
      * For example, references to the commonly used services.
      */
     HashMap<String, IBinder> mAppBindArgs;
+    HashMap<String, IBinder> mIsolatedAppBindArgs;
 
     /**
      * Temporary to avoid allocations.  Protected by main lock.
@@ -2317,7 +2318,17 @@ public final class ActivityManagerService extends ActivityManagerNative
      * process when the bindApplication() IPC is sent to the process. They're
      * lazily setup to make sure the services are running when they're asked for.
      */
-    private HashMap<String, IBinder> getCommonServicesLocked() {
+    private HashMap<String, IBinder> getCommonServicesLocked(boolean isolated) {
+        // Isolated processes won't get this optimization, so that we don't
+        // violate the rules about which services they have access to.
+        if (isolated) {
+            if (mIsolatedAppBindArgs == null) {
+                mIsolatedAppBindArgs = new HashMap<String, IBinder>();
+                mIsolatedAppBindArgs.put("package", ServiceManager.getService("package"));
+            }
+            return mIsolatedAppBindArgs;
+        }
+
         if (mAppBindArgs == null) {
             mAppBindArgs = new HashMap<String, IBinder>();
 
@@ -5144,7 +5155,8 @@ public final class ActivityManagerService extends ActivityManagerNative
                     app.instrumentationArguments, app.instrumentationWatcher,
                     app.instrumentationUiAutomationConnection, testMode, enableOpenGlTrace,
                     isRestrictedBackupMode || !normalMode, app.persistent,
-                    new Configuration(mConfiguration), app.compat, getCommonServicesLocked(),
+                    new Configuration(mConfiguration), app.compat,
+                    getCommonServicesLocked(app.isolated),
                     mCoreSettingsObserver.getCoreSettingsLocked());
             updateLruProcessLocked(app, false, null);
             app.lastRequestedGc = app.lastLowMemory = SystemClock.uptimeMillis();
@@ -6144,6 +6156,19 @@ public final class ActivityManagerService extends ActivityManagerNative
             return -1;
         }
 
+        // Bail early if system is trying to hand out permissions directly; it
+        // must always grant permissions on behalf of someone explicit.
+        final int callingAppId = UserHandle.getAppId(callingUid);
+        if (callingAppId == Process.SYSTEM_UID) {
+            if ("com.android.settings.files".equals(uri.getAuthority())) {
+                // Exempted authority for cropping user photos in Settings app
+            } else {
+                Slog.w(TAG, "For security reasons, the system cannot issue a Uri permission" +
+                       " grant to " + uri.getAuthority() + "; use startActivityAsCaller() instead");
+                return -1;
+            }
+        }
+
         final String authority = uri.getAuthority();
         final ProviderInfo pi = getProviderInfoLocked(authority, UserHandle.getUserId(callingUid));
         if (pi == null) {
@@ -6165,13 +6190,26 @@ public final class ActivityManagerService extends ActivityManagerNative
             }
         }
 
+        // Figure out the value returned when access is allowed
+        final int allowedResult;
+        if ((modeFlags & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0) {
+            // If we're extending a persistable grant, then we need to return
+            // "targetUid" so that we always create a grant data structure to
+            // support take/release APIs
+            allowedResult = targetUid;
+        } else {
+            // Otherwise, we can return "-1" to indicate that no grant data
+            // structures need to be created
+            allowedResult = -1;
+        }
+
         if (targetUid >= 0) {
             // First...  does the target actually need this permission?
             if (checkHoldingPermissionsLocked(pm, pi, uri, targetUid, modeFlags)) {
                 // No need to grant the target this permission.
                 if (DEBUG_URI_PERMISSION) Slog.v(TAG,
                         "Target " + targetPkg + " already has full permission to " + uri);
-                return -1;
+                return allowedResult;
             }
         } else {
             // First...  there is no target package, so can anyone access it?
@@ -6187,7 +6225,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                 }
             }
             if (allowed) {
-                return -1;
+                return allowedResult;
             }
         }
 

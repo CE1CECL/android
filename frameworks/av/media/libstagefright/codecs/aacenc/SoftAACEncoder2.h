@@ -42,6 +42,8 @@ protected:
 
     virtual void onQueueFilled(OMX_U32 portIndex);
 
+    virtual void onReset();
+
 private:
     enum {
         kNumBuffers             = 4,
@@ -58,6 +60,7 @@ private:
     bool mSentCodecSpecificData;
     size_t mInputSize;
     int16_t *mInputFrame;
+    size_t mAllocatedFrameSize;
     int64_t mInputTimeUs;
 
     bool mSawInputEOS;

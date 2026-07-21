@@ -90,8 +90,7 @@ BOOLEAN  smp_send_msg_to_L2CAP(BD_ADDR rem_bda, BT_HDR *p_toL2CAP)
 
     if ((l2cap_ret = L2CA_SendFixedChnlData (L2CAP_SMP_CID, rem_bda, p_toL2CAP)) == L2CAP_DW_FAILED)
     {
-        SMP_TRACE_ERROR1("SMP   failed to pass msg:0x%0x to L2CAP",
-                         *((UINT8 *)(p_toL2CAP + 1) + p_toL2CAP->offset));
+        SMP_TRACE_ERROR0("SMP failed to pass msg to L2CAP");
         GKI_freebuf(p_toL2CAP);
         return FALSE;
     }

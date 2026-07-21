@@ -464,7 +464,6 @@ void bta_ag_do_disc(tBTA_AG_SCB *p_scb, tBTA_SERVICE_MASK service)
         if (p_scb->hsp_version >= HSP_VERSION_1_2)
         {
             uuid_list[1].uu.uuid16 = UUID_SERVCLASS_HEADSET_HS;
-            num_uuid = 2;
         }
     }
     /* HSP acceptor; no discovery */

@@ -137,6 +137,7 @@ typedef struct
   UCHAR      direction;
 
   /* bitstream indices */
+  INT        bsAnchor;                    /* hcr bit buffer reference index */
   USHORT     bitstreamIndexRvlFwd;        /* base address of RVL-coded-scalefactor data (ESC 2) for forward  decoding */
   USHORT     bitstreamIndexRvlBwd;        /* base address of RVL-coded-scalefactor data (ESC 2) for backward decoding */
   USHORT     bitstreamIndexEsc;           /* base address where RVLC-escapes start (ESC 2) */

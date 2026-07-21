@@ -112,6 +112,7 @@ SoftMPEG4Encoder::SoftMPEG4Encoder(
 
 SoftMPEG4Encoder::~SoftMPEG4Encoder() {
     ALOGV("Destruct SoftMPEG4Encoder");
+    onReset();
     releaseEncoder();
     List<BufferInfo *> &outQueue = getPortQueue(1);
     List<BufferInfo *> &inQueue = getPortQueue(0);
@@ -221,23 +222,16 @@ OMX_ERRORTYPE SoftMPEG4Encoder::initEncoder() {
 }
 
 OMX_ERRORTYPE SoftMPEG4Encoder::releaseEncoder() {
-    if (!mStarted) {
-        return OMX_ErrorNone;
+    if (mEncParams) {
+        delete mEncParams;
+        mEncParams = NULL;
     }
-
-    PVCleanUpVideoEncoder(mHandle);
-
-    delete mInputFrameData;
-    mInputFrameData = NULL;
-
-    delete mEncParams;
-    mEncParams = NULL;
-
-    delete mHandle;
-    mHandle = NULL;
-
-    mStarted = false;
-
+ 
+    if (mHandle) {
+        delete mHandle;
+        mHandle = NULL;
+    }
+ 
     return OMX_ErrorNone;
 }
 
@@ -716,6 +710,14 @@ void SoftMPEG4Encoder::onQueueFilled(OMX_U32 portIndex) {
 
         buffer_handle_t srcBuffer; // for MetaDataMode only
         if (inHeader->nFilledLen > 0) {
+            OMX_ERRORTYPE error = validateInputBuffer(inHeader, mVideoWidth, mVideoHeight);
+            if (error != OMX_ErrorNone) {
+                ALOGE("b/69065651");
+                android_errorWriteLog(0x534e4554, "69065651");
+                mSignalledError = true;
+                notify(OMX_EventError, error, 0, 0);
+                return;
+            }
             uint8_t *inputData = NULL;
             if (mStoreMetaDataInBuffers) {
                 if (inHeader->nFilledLen != 8) {
@@ -833,6 +835,19 @@ void SoftMPEG4Encoder::releaseGrallocData(buffer_handle_t buffer) {
     if (mStoreMetaDataInBuffers) {
         GraphicBufferMapper::get().unlock(buffer);
     }
+}
+
+void SoftMPEG4Encoder::onReset() {
+    if (!mStarted) {
+        return;
+    }
+
+    PVCleanUpVideoEncoder(mHandle);
+
+    free(mInputFrameData);
+    mInputFrameData = NULL;
+
+    mStarted = false;
 }
 
 }  // namespace android

@@ -126,6 +126,7 @@ static void DeriveNumberOfExtendedSortedSectionsInSets(UINT   numSegment,
                                                        int      numExtendedSortedSectionsInSetsIdx);
 
 static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
+                                 const INT             bsAnchor,
                                  INT                   quantSpecCoef,
                                  USHORT               *pLeftStartOfSegment,
                                  SCHAR                *pRemainingBitsInSegment,
@@ -133,6 +134,7 @@ static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
                                 );
 
 static int DecodePCW_Sign(HANDLE_FDK_BITSTREAM  bs,
+                          const INT             bsAnchor,
                           UINT                  codebookDim,
                           const SCHAR          *pQuantVal,
                           FIXP_DBL             *pQuantSpecCoef,
@@ -143,6 +145,7 @@ static int DecodePCW_Sign(HANDLE_FDK_BITSTREAM  bs,
                          );
 
 static const SCHAR *DecodePCW_Body(HANDLE_FDK_BITSTREAM  bs,
+                                   const INT             bsAnchor,
                                    const UINT           *pCurrentTree,
                                    const SCHAR          *pQuantValBase,
                                          USHORT         *pLeftStartOfSegment,
@@ -301,7 +304,7 @@ UINT HcrInit(H_HCR_INFO              pHcr,
   pHcr->nonPcwSideinfo.pResultBase                  = SPEC_LONG(pAacDecoderChannelInfo->pSpectralCoefficient);
 
   FDKsyncCache(bs);
-  pHcr->decInOut.bitstreamIndex                     = FDKgetBitCnt(bs);
+  pHcr->decInOut.bitstreamAnchor = (INT)FDKgetValidBits(bs);
 
   if (!IsLongBlock(&pAacDecoderChannelInfo->icsInfo))   /* short block */
   {
@@ -480,7 +483,7 @@ UINT HcrDecoder(H_HCR_INFO              pHcr,
 #endif
 
   INT        bitCntOffst;
-  UINT       saveBitCnt = FDKgetBitCnt(bs);   /* save bitstream position */
+  INT        saveBitCnt = (INT)FDKgetValidBits(bs); /* save bitstream position */
 
   HcrCalcNumCodeword(pHcr);
 
@@ -534,7 +537,7 @@ UINT HcrDecoder(H_HCR_INFO              pHcr,
   HcrReorderQuantizedSpectralCoefficients(pHcr, pAacDecoderChannelInfo, pSamplingRateInfo);
 
   /* restore bitstream position */
-  bitCntOffst = saveBitCnt - FDKgetBitCnt(bs);
+  bitCntOffst = (INT)FDKgetValidBits(bs) - saveBitCnt;
   if( bitCntOffst ) {
     FDKpushBiDirectional(bs, bitCntOffst);
   }
@@ -854,7 +857,6 @@ static void HcrPrepareSegmentationGrid(H_HCR_INFO pHcr)
   USHORT  *pLeftStartOfSegment           =   pHcr->segmentInfo.pLeftStartOfSegment;
   USHORT  *pRightStartOfSegment          =   pHcr->segmentInfo.pRightStartOfSegment;
   SCHAR   *pRemainingBitsInSegment       =   pHcr->segmentInfo.pRemainingBitsInSegment;
-  USHORT   bitstreamIndex                =   pHcr->decInOut.bitstreamIndex;
   const UCHAR *pMaxCwLength              =   pHcr->tableInfo.pMaxCwLength;
 
   for ( i=numSortedSection; i != 0; i-- ) {
@@ -863,7 +865,7 @@ static void HcrPrepareSegmentationGrid(H_HCR_INFO pHcr)
 
     for ( j = *pNumSortedCodewordInSection; j != 0 ; j-- ) {
       /* width allows a new segment */
-      intermediateResult = bitstreamIndex + segmentStart;
+      intermediateResult = segmentStart;
       if ( (segmentStart + segmentWidth) <= lengthOfReorderedSpectralData ) {
         /* store segment start, segment length and increment the number of segments */
         *pLeftStartOfSegment++ = intermediateResult;
@@ -878,11 +880,11 @@ static void HcrPrepareSegmentationGrid(H_HCR_INFO pHcr)
         pLeftStartOfSegment--;
         pRightStartOfSegment--;
         pRemainingBitsInSegment--;
-        segmentStart = *pLeftStartOfSegment - bitstreamIndex;
+        segmentStart = *pLeftStartOfSegment;
 
         lastSegmentWidth = lengthOfReorderedSpectralData - segmentStart;
         *pRemainingBitsInSegment = lastSegmentWidth;
-        *pRightStartOfSegment = bitstreamIndex + segmentStart + lastSegmentWidth - 1;
+        *pRightStartOfSegment = segmentStart + lastSegmentWidth - 1;
         endFlag = 1;
         break;
       }
@@ -1106,6 +1108,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
 
         /* decode PCW_BODY */
         pQuantVal = DecodePCW_Body(bs,
+                                   pHcr->decInOut.bitstreamAnchor, 
                                    pCurrentTree,
                                    pQuantValBase,
                                    pLeftStartOfSegment,
@@ -1149,6 +1152,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
         numDecodedBits  = 0;
 
         pQuantVal = DecodePCW_Body(bs,
+                                   pHcr->decInOut.bitstreamAnchor,
                                    pCurrentTree,
                                    pQuantValBase,
                                    pLeftStartOfSegment,
@@ -1157,6 +1161,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
                                   );
 
         err = DecodePCW_Sign( bs,
+                              pHcr->decInOut.bitstreamAnchor,
                               dimension,
                               pQuantVal,
                               pQuantizedSpectralCoefficients,
@@ -1196,6 +1201,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
 
         /* decode PCW_BODY */
         pQuantVal = DecodePCW_Body(bs,
+                                   pHcr->decInOut.bitstreamAnchor,
                                    pCurrentTree,
                                    pQuantValBase,
                                    pLeftStartOfSegment,
@@ -1204,6 +1210,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
                                   );
 
         err = DecodePCW_Sign( bs,
+                              pHcr->decInOut.bitstreamAnchor,
                               dimension,
                               pQuantVal,
                               pQuantizedSpectralCoefficients,
@@ -1221,6 +1228,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
 
         if ( fixp_abs(pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx]) == (FIXP_DBL)ESCAPE_VALUE ) {
           pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx] = (FIXP_DBL) DecodeEscapeSequence( bs,
+                                                   pHcr->decInOut.bitstreamAnchor,
                                                    pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx],
                                                    pLeftStartOfSegment,
                                                    pRemainingBitsInSegment,
@@ -1234,6 +1242,7 @@ static void DecodePCWs(HANDLE_FDK_BITSTREAM bs, H_HCR_INFO pHcr)
 
         if ( fixp_abs(pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx]) == (FIXP_DBL)ESCAPE_VALUE ) {
           pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx] = (FIXP_DBL) DecodeEscapeSequence( bs,
+                                                   pHcr->decInOut.bitstreamAnchor,
                                                    pQuantizedSpectralCoefficients[quantizedSpectralCoefficientsIdx],
                                                    pLeftStartOfSegment,
                                                    pRemainingBitsInSegment,
@@ -1374,6 +1383,7 @@ void  CarryBitToBranchValue(UCHAR  carryBit,
                     coefficients
 -------------------------------------------------------------------------------------------- */
 static const SCHAR *DecodePCW_Body(HANDLE_FDK_BITSTREAM  bs,
+                                   const INT             bsAnchor,
                                    const UINT           *pCurrentTree,
                                    const SCHAR          *pQuantValBase,
                                          USHORT         *pLeftStartOfSegment,
@@ -1394,6 +1404,7 @@ static const SCHAR *DecodePCW_Body(HANDLE_FDK_BITSTREAM  bs,
   while (1) {
 
     carryBit = HcrGetABitFromBitstream(bs,
+                                       bsAnchor,
                                        pLeftStartOfSegment,
                                        pLeftStartOfSegment,                 /* dummy */
                                        FROM_LEFT_TO_RIGHT);
@@ -1429,6 +1440,7 @@ static const SCHAR *DecodePCW_Body(HANDLE_FDK_BITSTREAM  bs,
 -------------------------------------------------------------------------------------------- */
 
 static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
+                                 const                 INT bsAnchor,
                                  INT                   quantSpecCoef,
                                  USHORT               *pLeftStartOfSegment,
                                  SCHAR                *pRemainingBitsInSegment,
@@ -1444,6 +1456,7 @@ static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
   /* decode escape prefix */
   while (1) {
     carryBit = HcrGetABitFromBitstream(bs,
+                                       bsAnchor,
                                        pLeftStartOfSegment,
                                        pLeftStartOfSegment,                /* dummy */
                                        FROM_LEFT_TO_RIGHT);
@@ -1462,6 +1475,7 @@ static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
   /* decode escape word */
   for( i=escapeOnesCounter; i != 0 ; i-- ) {
     carryBit = HcrGetABitFromBitstream(bs,
+                                       bsAnchor,
                                        pLeftStartOfSegment,
                                        pLeftStartOfSegment,                /* dummy */
                                        FROM_LEFT_TO_RIGHT);
@@ -1491,6 +1505,7 @@ static INT  DecodeEscapeSequence(HANDLE_FDK_BITSTREAM  bs,
         return:   - updated pQuantSpecCoef pointer (to next empty storage for a line)
 -------------------------------------------------------------------------------------------- */
 static int DecodePCW_Sign(HANDLE_FDK_BITSTREAM  bs,
+                          const INT             bsAnchor,
                           UINT                  codebookDim,
                           const SCHAR          *pQuantVal,
                           FIXP_DBL             *pQuantSpecCoef,
@@ -1508,6 +1523,7 @@ static int DecodePCW_Sign(HANDLE_FDK_BITSTREAM  bs,
     quantSpecCoef = *pQuantVal++;
     if (quantSpecCoef != 0) {
       carryBit = HcrGetABitFromBitstream(bs,
+                                         bsAnchor,
                                          pLeftStartOfSegment,
                                          pLeftStartOfSegment,    /* dummy */
                                          FROM_LEFT_TO_RIGHT);

@@ -43,6 +43,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
@@ -256,7 +257,6 @@ public class Launcher extends Activity
     private DragController mDragController;
     private View mWeightWatcher;
 
-    private TransitionEffectsFragment mTransitionEffectsFragment;
     private DynamicGridSizeFragment mDynamicGridSizeFragment;
     private LauncherClings mLauncherClings;
     protected HiddenFolderFragment mHiddenFolderFragment;
@@ -1258,12 +1258,13 @@ public class Launcher extends Activity
         mAppsCustomizeContent.onResume();
 
         //Close out Fragments
-        Fragment f = getFragmentManager().findFragmentByTag(
-                TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
-        if (f != null) {
-            mTransitionEffectsFragment.setEffect();
+        TransitionEffectsFragment tef =
+                (TransitionEffectsFragment)getFragmentManager().findFragmentByTag(
+                        TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
+        if (tef != null) {
+            tef.setEffect();
         }
-        f = getFragmentManager().findFragmentByTag(
+        Fragment f = getFragmentManager().findFragmentByTag(
                 DynamicGridSizeFragment.DYNAMIC_GRID_SIZE_FRAGMENT);
         if (f != null) {
             mDynamicGridSizeFragment.setSize();
@@ -1454,10 +1455,10 @@ public class Launcher extends Activity
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 
-        mTransitionEffectsFragment = new TransitionEffectsFragment();
-        mTransitionEffectsFragment.setArguments(bundle);
+        TransitionEffectsFragment tef = new TransitionEffectsFragment();
+        tef.setArguments(bundle);
         fragmentTransaction.setCustomAnimations(0, 0);
-        fragmentTransaction.replace(R.id.launcher, mTransitionEffectsFragment,
+        fragmentTransaction.replace(R.id.launcher, tef,
                 TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
         fragmentTransaction.commit();
     }
@@ -1486,8 +1487,10 @@ public class Launcher extends Activity
             fragmentTransaction
                     .setCustomAnimations(0, R.anim.exit_out_right);
         }
+        Fragment f = getFragmentManager().findFragmentByTag(
+                TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
         fragmentTransaction
-                .remove(mTransitionEffectsFragment).commit();
+                .remove(f).commit();
 
         mDarkPanel.setVisibility(View.VISIBLE);
         ObjectAnimator anim = ObjectAnimator.ofFloat(
@@ -2601,6 +2604,30 @@ public class Launcher extends Activity
         }
     }
 
+    /**
+     * This is used when starting widget config activities. Make sure to set mWaitingForResult so that
+     * the ItemInfo for the pending item is properly saved.
+     *
+     * @param intent
+     * @param requestCode
+     * @param fillInIntent
+     * @param flagsMask
+     * @param flagsValues
+     * @param extraFlags
+     * @param options
+     * @throws IntentSender.SendIntentException
+     */
+    @Override
+    public void startIntentSenderForResult(IntentSender intent, int requestCode,
+        Intent fillInIntent, int flagsMask, int flagsValues, int extraFlags, Bundle options)
+            throws IntentSender.SendIntentException {
+        if (requestCode >= 0) {
+            mWaitingForResult = true;
+        }
+        super.startIntentSenderForResult(intent, requestCode, fillInIntent, flagsMask, flagsValues,
+                extraFlags, options);
+    }
+
     protected void moveToCustomContentScreen(boolean animate) {
         // Close any folders that may be open.
         closeFolder();
@@ -2807,15 +2834,24 @@ public class Launcher extends Activity
                 }
             }
         } else if (mWorkspace.isInOverviewMode()) {
-            Fragment f = getFragmentManager().findFragmentByTag(
-                    TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
+            TransitionEffectsFragment tef =
+                    (TransitionEffectsFragment)getFragmentManager().findFragmentByTag(
+                            TransitionEffectsFragment.TRANSITION_EFFECTS_FRAGMENT);
             Fragment f2 = getFragmentManager().findFragmentByTag(
                     DynamicGridSizeFragment.DYNAMIC_GRID_SIZE_FRAGMENT);
-            if (f != null) {
-                mTransitionEffectsFragment.setEffect();
+            if (tef  != null) {
+                tef.setEffect();
             } else if (f2 != null) {
                 mDynamicGridSizeFragment.setSize();
             } else {
+                // if a user backs up twice very quickly from the widget add screen to the
+                // homescreen, the UI can get into a messed up state and mStateAnimation never
+                // completes or gets cancelled. Cancelling mStateAnimation here fixes this bug
+                if (mStateAnimation != null && mStateAnimation.isRunning()) {
+                    mStateAnimation.cancel();
+                    mStateAnimation = null;
+                }
+
                 mWorkspace.exitOverviewMode(true);
             }
         } else if (mWorkspace.getOpenFolder() != null) {
@@ -3815,7 +3851,11 @@ public class Launcher extends Activity
         if (resetPageToZero) {
             mAppsCustomizeLayout.reset();
         }
-        mAppsCustomizeContent.sortApps();
+        if (mAppsCustomizeContent.getSortMode() != AppsCustomizePagedView.SortMode.Title) {
+            // optimize Title sort by not reinflating views every time we open the app drawer
+            // since we already sort based on new app installs and change of sort mode
+            mAppsCustomizeContent.sortApps();
+        }
         showAppsCustomizeHelper(animated, false, contentType);
         mAppsCustomizeLayout.requestFocus();
 
@@ -4082,7 +4122,7 @@ public class Launcher extends Activity
             if (voiceButtonContainer != null) voiceButtonContainer.setVisibility(View.GONE);
             if (searchButton != null) searchButton.setVisibility(View.GONE);
             if (voiceButton != null) voiceButton.setVisibility(View.GONE);
-            updateVoiceButtonProxyVisible(false);
+            updateVoiceButtonProxyVisible(true);
             return false;
         }
     }
@@ -4135,7 +4175,7 @@ public class Launcher extends Activity
         } else {
             if (voiceButtonContainer != null) voiceButtonContainer.setVisibility(View.GONE);
             if (voiceButton != null) voiceButton.setVisibility(View.GONE);
-            updateVoiceButtonProxyVisible(false);
+            updateVoiceButtonProxyVisible(true);
             return false;
         }
     }

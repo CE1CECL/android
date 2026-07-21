@@ -11,7 +11,6 @@
 
 #include "utils/list.h"
 
-struct wpa_peerkey;
 struct wpa_tdls_peer;
 struct wpa_eapol_key;
 
@@ -29,6 +28,12 @@ struct wpa_sm {
 	u8 rx_replay_counter[WPA_REPLAY_COUNTER_LEN];
 	int rx_replay_counter_set;
 	u8 request_counter[WPA_REPLAY_COUNTER_LEN];
+	struct wpa_gtk gtk;
+	struct wpa_gtk gtk_wnm_sleep;
+#ifdef CONFIG_IEEE80211W
+	struct wpa_igtk igtk;
+	struct wpa_igtk igtk_wnm_sleep;
+#endif /* CONFIG_IEEE80211W */
 
 	struct eapol_sm *eapol; /* EAPOL state machine from upper level code */
 
@@ -50,7 +55,6 @@ struct wpa_sm {
 	int fast_reauth; /* whether EAP fast re-authentication is enabled */
 
 	void *network_ctx;
-	int peerkey_enabled;
 	int allowed_pairwise_cipher; /* bitfield of WPA_CIPHER_* */
 	int proactive_key_caching;
 	int eap_workaround;
@@ -85,9 +89,6 @@ struct wpa_sm {
 	u8 *ap_wpa_ie, *ap_rsn_ie;
 	size_t ap_wpa_ie_len, ap_rsn_ie_len;
 
-#ifdef CONFIG_PEERKEY
-	struct wpa_peerkey *peerkey;
-#endif /* CONFIG_PEERKEY */
 #ifdef CONFIG_TDLS
 	struct wpa_tdls_peer *tdls;
 	int tdls_prohibited;
@@ -115,6 +116,7 @@ struct wpa_sm {
 	size_t r0kh_id_len;
 	u8 r1kh_id[FT_R1KH_ID_LEN];
 	int ft_completed;
+	int ft_reassoc_completed;
 	int over_the_ds_in_progress;
 	u8 target_ap[ETH_ALEN]; /* over-the-DS target AP */
 	int set_ptk_after_assoc;

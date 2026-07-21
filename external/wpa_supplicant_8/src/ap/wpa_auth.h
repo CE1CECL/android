@@ -134,7 +134,6 @@ struct wpa_auth_config {
 	int rsn_pairwise;
 	int rsn_preauth;
 	int eapol_version;
-	int peerkey;
 	int wmm_enabled;
 	int wmm_uapsd;
 	int disable_pmksa_caching;
@@ -252,6 +251,7 @@ int wpa_auth_pairwise_set(struct wpa_state_machine *sm);
 int wpa_auth_get_pairwise(struct wpa_state_machine *sm);
 int wpa_auth_sta_key_mgmt(struct wpa_state_machine *sm);
 int wpa_auth_sta_wpa_version(struct wpa_state_machine *sm);
+int wpa_auth_sta_ft_tk_already_set(struct wpa_state_machine *sm);
 int wpa_auth_sta_clear_pmksa(struct wpa_state_machine *sm,
 			     struct rsn_pmksa_cache_entry *entry);
 struct rsn_pmksa_cache_entry *

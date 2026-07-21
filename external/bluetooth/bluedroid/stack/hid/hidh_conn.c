@@ -42,6 +42,8 @@
 #include "hidh_api.h"
 #include "hidh_int.h"
 
+#include "log/log.h"
+
 static UINT8 find_conn_by_cid (UINT16 cid);
 static void hidh_conn_retry (UINT8 dhandle);
 
@@ -809,6 +811,14 @@ static void hidh_l2cif_data_ind (UINT16 l2cap_cid, BT_HDR *p_msg)
         return;
     }
 
+
+    if (p_msg->len < 1) {
+      HIDH_TRACE_WARNING1("Rcvd L2CAP data, invalid length %d, should be >= 1",
+                         p_msg->len);
+      GKI_freebuf (p_msg);
+      android_errorWriteLog(0x534e4554, "80493272");
+      return;
+    }
 
     ttype    = HID_GET_TRANS_FROM_HDR(*p_data);
     param    = HID_GET_PARAM_FROM_HDR(*p_data);

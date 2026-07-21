@@ -1969,6 +1969,11 @@ public class LauncherModel extends BroadcastReceiver {
                                             iconPackageIndex, iconResourceIndex, iconIndex,
                                             titleIndex);
 
+                                    CharSequence title = getShortcutTitle(manager, intent);
+                                    if (title != null) {
+                                        info.title = title;
+                                    }
+
                                     // App shortcuts that used to be automatically added to Launcher
                                     // didn't always have the correct intent flags set, so do that
                                     // here
@@ -2476,10 +2481,13 @@ public class LauncherModel extends BroadcastReceiver {
                             ShortcutInfo finalItem = folder.contents.get(0);
                             finalItem.container = folder.container;
                             LauncherModel.deleteItemFromDatabase(mContext, folder);
-                            LauncherModel.addOrMoveItemInDatabase(mContext, finalItem, folder.container,
-                                    folder.screenId, folder.cellX, folder.cellY);
+                            // only replace this item back on the workspace if it's not protected
+                            if (!mHiddenApps.contains(finalItem.intent.getComponent())) {
+                                LauncherModel.addOrMoveItemInDatabase(mContext, finalItem, folder.container,
+                                        folder.screenId, folder.cellX, folder.cellY);
+                                workspaceItems.add(finalItem);
+                            }
                             workspaceItems.remove(i);
-                            workspaceItems.add(finalItem);
                             folders.remove(Long.valueOf(item.id));
                         } else if (folder.contents.size() == 0 /*&& !(folder instanceof LiveFolderInfo)*/) {
                             LauncherModel.deleteFolderContentsFromDatabase(mContext, folder);
@@ -3658,4 +3666,17 @@ public class LauncherModel extends BroadcastReceiver {
             Log.d(TAG, "mLoaderTask=null");
         }
     }
+
+    private CharSequence getShortcutTitle(PackageManager manager, Intent intent) {
+        ComponentName componentName = intent.getComponent();
+        if (componentName == null) {
+            return null;
+        }
+        ResolveInfo resolveInfo = manager.resolveActivity(intent, 0);
+        if (resolveInfo != null) {
+            return resolveInfo.activityInfo.loadLabel(manager);
+        }
+        return null;
+    }
+
 }

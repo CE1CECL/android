@@ -150,9 +150,10 @@ void rvlcInit (CErRvlcInfo            *pRvlc,
 
   /* set base bitstream ptr to the RVL-coded part (start of RVLC data (ESC 2)) */
   FDKsyncCache (bs);
+  pRvlc->bsAnchor = (INT)FDKgetValidBits(bs);
 
-  pRvlc->bitstreamIndexRvlFwd = FDKgetBitCnt(bs); /* first bit within RVL coded block as start address for  forward decoding */
-  pRvlc->bitstreamIndexRvlBwd = FDKgetBitCnt(bs) + pRvlc->length_of_rvlc_sf - 1; /* last bit within RVL coded block as start address for backward decoding */
+  pRvlc->bitstreamIndexRvlFwd = 0; /* first bit within RVL coded block as start address for  forward decoding */
+  pRvlc->bitstreamIndexRvlBwd = pRvlc->length_of_rvlc_sf - 1; /* last bit within RVL coded block as start address for backward decoding */
 
   /* skip RVLC-bitstream-part -- pointing now to escapes (if present) or to TNS data (if present) */
   FDKpushFor (bs, pRvlc->length_of_rvlc_sf);
@@ -161,7 +162,7 @@ void rvlcInit (CErRvlcInfo            *pRvlc,
 
     /* locate internal bitstream ptr at escapes (which is the second part) */
     FDKsyncCache (bs);
-    pRvlc->bitstreamIndexEsc = FDKgetBitCnt(bs);
+    pRvlc->bitstreamIndexEsc = pRvlc->bsAnchor - (INT)FDKgetValidBits(bs);
 
     /* skip escapeRVLC-bitstream-part -- pointing to TNS data (if present)   to make decoder continue */
     /* decoding of RVLC should work despite this second pushFor during initialization because        */
@@ -241,7 +242,8 @@ SCHAR rvlcDecodeEscapeWord (CErRvlcInfo          *pRvlc,
 
   for (i=MAX_LEN_RVLC_ESCAPE_WORD-1; i >= 0; i--) {
     carryBit = rvlcReadBitFromBitstream(bs,                         /* get next bit */
-                                        pBitstreamIndexEsc,
+                                        pRvlc->bsAnchor, 
+                                        pBitstreamIndexEsc, 
                                         FWD);
 
     CarryBitToBranchValue(carryBit,                                 /* huffman decoding, do a single step in huffman decoding tree */
@@ -356,6 +358,7 @@ SCHAR decodeRVLCodeword (HANDLE_FDK_BITSTREAM  bs, CErRvlcInfo *pRvlc)
 
   for (i=MAX_LEN_RVLC_CODE_WORD-1; i >= 0; i--) { 
     carryBit = rvlcReadBitFromBitstream(bs,             /* get next bit */
+                                        pRvlc->bsAnchor,
                                         pBitstrIndxRvl,
                                         direction);
 
@@ -1136,7 +1139,7 @@ void CRvlc_Decode (
   rvlcInit(pRvlc,pAacDecoderChannelInfo,bs);  
 
   /* save bitstream position */
-  saveBitCnt = FDKgetBitCnt(bs);
+  saveBitCnt = (INT)FDKgetValidBits(bs);
 
 #if RVLC_ADVANCED_BITSTREAM_ERROR_GENERATOR_SF
   GenerateSingleBitError(pRvlc,
@@ -1164,7 +1167,7 @@ void CRvlc_Decode (
   pAacDecoderChannelInfo->data.aac.PnsData.PnsActive = pRvlc->noise_used;
 
   /* restore bitstream position */
-  bitCntOffst = saveBitCnt - FDKgetBitCnt(bs);
+  bitCntOffst = (INT)FDKgetValidBits(bs) - saveBitCnt;
   if( bitCntOffst ) {
     FDKpushBiDirectional(bs, bitCntOffst);
   }

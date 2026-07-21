@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 The CyanogenMod Project
+ * Copyright (C) 2016-2017 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -168,7 +169,6 @@ public class SetupWizardActivity extends Activity implements SetupDataCallbacks,
         switch (id) {
             case DIALOG_SIM_MISSING:
                 return new AlertDialog.Builder(this)
-                        .setIcon(R.drawable.cid_confused)
                         .setTitle(R.string.setup_sim_missing)
                         .setMessage(R.string.sim_missing_summary)
                         .setNeutralButton(R.string.ok, new DialogInterface.OnClickListener() {

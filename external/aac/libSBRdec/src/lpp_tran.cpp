@@ -96,6 +96,8 @@ amm-info@iis.fraunhofer.de
   \sa lppTransposer(), main_audio.cpp, sbr_scale.h, \ref documentationOverview
 */
 
+#include "log/log.h"
+
 #include "lpp_tran.h"
 
 #include "sbr_ram.h"
@@ -256,7 +258,6 @@ void lppTransposer (HANDLE_SBR_LPP_TRANS hLppTrans,    /*!< Handle of lpp transp
   int ovLowBandShift;
   int lowBandShift;
 /*  int ovHighBandShift;*/
-  int targetStopBand;
 
 
   alphai[0] = FL2FXCONST_SGL(0.0f);
@@ -273,27 +274,31 @@ void lppTransposer (HANDLE_SBR_LPP_TRANS hLppTrans,    /*!< Handle of lpp transp
 
   autoCorrLength = pSettings->nCols + pSettings->overlap;
 
-  /* Set upper subbands to zero:
-     This is required in case that the patches do not cover the complete highband
-     (because the last patch would be too short).
-     Possible optimization: Clearing bands up to usb would be sufficient here. */
-  targetStopBand = patchParam[pSettings->noOfPatches-1].targetStartBand
-                 + patchParam[pSettings->noOfPatches-1].numBandsInPatch;
-
-  int memSize = ((64) - targetStopBand) * sizeof(FIXP_DBL);
-
-  if (!useLP) {
+  if (pSettings->noOfPatches > 0) {
+    /* Set upper subbands to zero:
+       This is required in case that the patches do not cover the complete highband
+       (because the last patch would be too short).
+       Possible optimization: Clearing bands up to usb would be sufficient here. */
+    int targetStopBand = patchParam[pSettings->noOfPatches-1].targetStartBand
+                   + patchParam[pSettings->noOfPatches-1].numBandsInPatch;
+    int memSize = ((64) - targetStopBand) * sizeof(FIXP_DBL);
+    if (!useLP) {
+      for (i = startSample; i < stopSampleClear; i++) {
+        FDKmemclear(&qmfBufferReal[i][targetStopBand], memSize);
+        FDKmemclear(&qmfBufferImag[i][targetStopBand], memSize);
+      }
+    } else
     for (i = startSample; i < stopSampleClear; i++) {
       FDKmemclear(&qmfBufferReal[i][targetStopBand], memSize);
-      FDKmemclear(&qmfBufferImag[i][targetStopBand], memSize);
     }
-  } else
-  for (i = startSample; i < stopSampleClear; i++) {
-    FDKmemclear(&qmfBufferReal[i][targetStopBand], memSize);
+  }
+  else {
+    // Safetynet logging
+    android_errorWriteLog(0x534e4554, "112160868");
   }
 
   /* init bwIndex for each patch */
-  FDKmemclear(bwIndex, pSettings->noOfPatches*sizeof(INT));
+  FDKmemclear(bwIndex, MAX_NUM_PATCHES*sizeof(INT));
 
   /*
     Calc common low band scale factor
@@ -621,9 +626,9 @@ void lppTransposer (HANDLE_SBR_LPP_TRANS hLppTrans,    /*!< Handle of lpp transp
       FDK_ASSERT( hiBand < (64) );
 
       /* bwIndex[patch] is already initialized with value from previous band inside this patch */
-      while (hiBand >= pSettings->bwBorders[bwIndex[patch]])
+      while (hiBand >= pSettings->bwBorders[bwIndex[patch]] && bwIndex[patch] < MAX_NUM_PATCHES-1) {
         bwIndex[patch]++;
-
+      }
 
       /*
         Filter Step 2: add the left slope with the current filter to the buffer
@@ -962,6 +967,10 @@ resetLppTransposer (HANDLE_SBR_LPP_TRANS hLppTrans,  /*!< Handle of lpp transpos
   for(i = 0 ; i < noNoiseBands; i++){
     pSettings->bwBorders[i] = noiseBandTable[i+1];
   }
+  for (;i < MAX_NUM_NOISE_VALUES; i++) {
+    pSettings->bwBorders[i] = 255;
+  }
+
 
   /*
    * Choose whitening factors

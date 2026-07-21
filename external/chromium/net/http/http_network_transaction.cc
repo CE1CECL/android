@@ -1158,23 +1158,6 @@ int HttpNetworkTransaction::HandleSSLHandshakeError(int error) {
     session_->ssl_client_auth_cache()->Remove(
         GetHostAndPort(request_->url));
   }
-
-  switch (error) {
-    case ERR_SSL_PROTOCOL_ERROR:
-    case ERR_SSL_VERSION_OR_CIPHER_MISMATCH:
-    case ERR_SSL_DECOMPRESSION_FAILURE_ALERT:
-    case ERR_SSL_BAD_RECORD_MAC_ALERT:
-      if (ssl_config_.tls1_enabled) {
-        // This could be a TLS-intolerant server, an SSL 3.0 server that
-        // chose a TLS-only cipher suite or a server with buggy DEFLATE
-        // support. Turn off TLS 1.0, DEFLATE support and retry.
-        session_->http_stream_factory()->AddTLSIntolerantServer(
-            HostPortPair::FromURL(request_->url));
-        ResetConnectionAndRequestForResend();
-        error = OK;
-      }
-      break;
-  }
   return error;
 }
 

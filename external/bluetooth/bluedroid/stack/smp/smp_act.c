@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include "bt_target.h"
+#include <cutils/log.h>
 
 #if SMP_INCLUDED == TRUE
 
@@ -214,7 +215,7 @@ void smp_send_init(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 *******************************************************************************/
 void smp_send_enc_info(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 {
-    tBTM_LE_LENC_KEYS   le_key;
+    tBTM_LE_KEY_VALUE le_key;
 
     SMP_TRACE_DEBUG1 ("smp_send_enc_info  p_cb->loc_enc_size = %d", p_cb->loc_enc_size);
     smp_update_key_mask (p_cb, SMP_SEC_KEY_TYPE_ENC, FALSE);
@@ -223,10 +224,10 @@ void smp_send_enc_info(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
     smp_send_cmd(SMP_OPCODE_MASTER_ID, p_cb);
 
     /* save the DIV and key size information when acting as slave device */
-    le_key.div =  p_cb->div;
-    le_key.key_size = p_cb->loc_enc_size;
-    le_key.sec_level = p_cb->sec_level;
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_LENC, (tBTM_LE_KEY_VALUE *)&le_key, TRUE);
+    le_key.lenc_key.div =  p_cb->div;
+    le_key.lenc_key.key_size = p_cb->loc_enc_size;
+    le_key.lenc_key.sec_level = p_cb->sec_level;
+    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_LENC, &le_key, TRUE);
 
     SMP_TRACE_WARNING0( "smp_send_enc_info");
 
@@ -466,19 +467,28 @@ void smp_proc_enc_info(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 void smp_proc_master_id(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 {
     UINT8   *p = (UINT8 *)p_data;
-    tBTM_LE_PENC_KEYS   le_key;
+    tBTM_LE_KEY_VALUE le_key;
 
     SMP_TRACE_DEBUG0 (" smp_proc_master_id");
+
+    if (p_cb->rcvd_cmd_len < 11)  // 1(Code) + 2(EDIV) + 8(Rand)
+    {
+       android_errorWriteLog(0x534e4554, "111937027");
+       SMP_TRACE_ERROR2("%s: Invalid command length: %d, should be at least 11",
+                       __func__, p_cb->rcvd_cmd_len);
+       return;
+    }
+
     smp_update_key_mask (p_cb, SMP_SEC_KEY_TYPE_ENC, TRUE);
 
-    STREAM_TO_UINT16(le_key.ediv, p);
-    STREAM_TO_ARRAY(le_key.rand, p, BT_OCTET8_LEN );
+    STREAM_TO_UINT16(le_key.penc_key.ediv, p);
+    STREAM_TO_ARRAY(le_key.penc_key.rand, p, BT_OCTET8_LEN );
 
     /* store the encryption keys from peer device */
-    memcpy(le_key.ltk, p_cb->ltk, BT_OCTET16_LEN);
-    le_key.sec_level = p_cb->sec_level;
-    le_key.key_size  = p_cb->loc_enc_size;
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PENC, (tBTM_LE_KEY_VALUE *)&le_key, TRUE);
+    memcpy(le_key.penc_key.ltk, p_cb->ltk, BT_OCTET16_LEN);
+    le_key.penc_key.sec_level = p_cb->sec_level;
+    le_key.penc_key.key_size = p_cb->loc_enc_size;
+    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PENC, &le_key, TRUE);
 
     smp_key_distribution(p_cb, NULL);
 }
@@ -502,17 +512,17 @@ void smp_proc_id_info(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 void smp_proc_id_addr(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 {
     UINT8   *p = (UINT8 *)p_data;
-    tBTM_LE_PID_KEYS    pid_key;
+    tBTM_LE_KEY_VALUE pid_key;
 
     SMP_TRACE_DEBUG0 ("smp_proc_id_addr  ");
     smp_update_key_mask (p_cb, SMP_SEC_KEY_TYPE_ID, TRUE);
 
-    STREAM_TO_UINT8(pid_key.addr_type, p);
-    STREAM_TO_BDADDR(pid_key.static_addr, p);
-    memcpy(pid_key.irk, p_cb->tk, BT_OCTET16_LEN);
+    STREAM_TO_UINT8(pid_key.pid_key.addr_type, p);
+    STREAM_TO_BDADDR(pid_key.pid_key.static_addr, p);
+    memcpy(pid_key.pid_key.irk, p_cb->tk, BT_OCTET16_LEN);
 
     /* store the ID key from peer device */
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PID, (tBTM_LE_KEY_VALUE *)&pid_key, TRUE);
+    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PID, &pid_key, TRUE);
 
     smp_key_distribution(p_cb, NULL);
 }
@@ -522,16 +532,16 @@ void smp_proc_id_addr(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 *******************************************************************************/
 void smp_proc_srk_info(tSMP_CB *p_cb, tSMP_INT_DATA *p_data)
 {
-    tBTM_LE_PCSRK_KEYS   le_key;
+    tBTM_LE_KEY_VALUE le_key;
 
     SMP_TRACE_DEBUG0 ("smp_proc_srk_info ");
     smp_update_key_mask (p_cb, SMP_SEC_KEY_TYPE_CSRK, TRUE);
 
     /* save CSRK to security record */
-    le_key.sec_level = p_cb->sec_level;
-    memcpy (le_key.csrk, p_data, BT_OCTET16_LEN);   /* get peer CSRK */
-    le_key.counter = 0; /* initialize the peer counter */
-    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PCSRK, (tBTM_LE_KEY_VALUE *)&le_key, TRUE);
+    le_key.pcsrk_key.sec_level = p_cb->sec_level;
+    memcpy (le_key.pcsrk_key.csrk, p_data, BT_OCTET16_LEN);   /* get peer CSRK */
+    le_key.pcsrk_key.counter = 0; /* initialize the peer counter */
+    btm_sec_save_le_key(p_cb->pairing_bda, BTM_LE_KEY_PCSRK, &le_key, TRUE);
 
     smp_key_distribution(p_cb, NULL);
 }

@@ -155,9 +155,13 @@ public class ClockWidgetService extends IntentService {
                 refreshCalendar(remoteViews, id);
             }
             // Hide the calendar panel if not visible
-            remoteViews.setViewVisibility(R.id.calendar_panel, showCalendar ? View.VISIBLE : View.GONE);
+            remoteViews.setViewVisibility(R.id.calendar_panel,
+                    showCalendar ? View.VISIBLE : View.GONE);
 
-            boolean canFitWeather = smallWidget || WidgetUtils.canFitWeather(this, id, digitalClock, isKeyguard);
+            boolean canFitWeather = smallWidget
+                    || WidgetUtils.canFitWeather(this, id, digitalClock, isKeyguard);
+            boolean canFitTimestamp = smallWidget
+                    || WidgetUtils.canFitTimestamp(this, id, digitalClock);
             // Now, if we need to show the actual weather, do so
             if (showWeather && canFitWeather) {
                 WeatherInfo weatherInfo = Preferences.getCachedWeatherInfo(this);
@@ -168,7 +172,10 @@ public class ClockWidgetService extends IntentService {
                     setNoWeatherData(remoteViews, smallWidget);
                 }
             }
-            remoteViews.setViewVisibility(R.id.weather_panel, (showWeather && canFitWeather) ? View.VISIBLE : View.GONE);
+            remoteViews.setViewVisibility(R.id.update_time,
+                    (showWeather && canFitWeather && canFitTimestamp) ? View.VISIBLE : View.GONE);
+            remoteViews.setViewVisibility(R.id.weather_panel,
+                    (showWeather && canFitWeather) ? View.VISIBLE : View.GONE);
 
             // Resize the clock font if needed
             if (digitalClock) {
@@ -216,6 +223,8 @@ public class ClockWidgetService extends IntentService {
         String hours = new SimpleDateFormat(getHourFormat(), locale).format(now);
         String minutes = new SimpleDateFormat(getString(R.string.widget_12_hours_format_no_ampm_m),
                 locale).format(now);
+        String amPM = new SimpleDateFormat(getString(R.string.widget_12_hours_format_ampm),
+                locale).format(now);
 
         // Hours
         if (Preferences.useBoldFontForHours(this)) {
@@ -241,11 +250,14 @@ public class ClockWidgetService extends IntentService {
         } else {
             clockViews.setTextViewText(R.id.date, date);
         }
+
+        if (!DateFormat.is24HourFormat(this) && Preferences.showAmPmIndicator(this)) {
+            clockViews.setTextViewText(R.id.clock_ampm, amPM);
+        }
     }
 
     private void refreshClockFont(RemoteViews clockViews, boolean smallWidget) {
         int color = Preferences.clockFontColor(this);
-        String amPM = new SimpleDateFormat("a", Locale.getDefault()).format(new Date());
 
         // Hours
         if (Preferences.useBoldFontForHours(this)) {
@@ -272,7 +284,6 @@ public class ClockWidgetService extends IntentService {
         // Show the AM/PM indicator
         if (!DateFormat.is24HourFormat(this) && Preferences.showAmPmIndicator(this)) {
             clockViews.setViewVisibility(R.id.clock_ampm, View.VISIBLE);
-            clockViews.setTextViewText(R.id.clock_ampm, amPM);
             clockViews.setTextColor(R.id.clock_ampm, color);
         } else {
             clockViews.setViewVisibility(R.id.clock_ampm, View.GONE);

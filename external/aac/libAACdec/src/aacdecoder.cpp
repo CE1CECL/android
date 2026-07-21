@@ -1188,8 +1188,14 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
 
     if (! (self->flags & (AC_USAC|AC_RSVD50|AC_ELD|AC_SCALABLE|AC_ER)))
       type = (MP4_ELEMENT_ID) FDKreadBits(bs,3);
-    else 
+    else {
+      if (element_count >= (3 * ((8) * 2) + (((8) * 2)) / 2 + 4 * (1) + 1)) {
+        self->frameOK = 0;
+        ErrorStatus = AAC_DEC_PARSE_ERROR;
+        break;
+      }
       type = self->elements[element_count];
+    }
 
     setHcrType(&self->aacCommonData.overlay.aac.erHcrInfo, type);
 
@@ -1484,6 +1490,12 @@ LINKSPEC_CPP AAC_DECODER_ERROR CAacDecoder_DecodeFrame(
 
       case ID_EXT:
         {
+          if (element_count >= (3 * ((8) * 2) + (((8) * 2)) / 2 + 4 * (1) + 1))
+          {
+            self->frameOK = 0;
+            ErrorStatus = AAC_DEC_PARSE_ERROR;
+            break;
+          }
           INT bitCnt = 0;
 
           /* get the remaining bits of this frame */
