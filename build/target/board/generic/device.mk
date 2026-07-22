@@ -17,6 +17,12 @@
 # This is a build configuration for the product aspects that
 # are specific to the emulator.
 
+TARGET_SCREEN_WIDTH := 1620
+
+TARGET_SCREEN_HEIGHT := 540
+
+TARGET_BOOTANIMATION_HALF_RES := true
+
 PRODUCT_PROPERTY_OVERRIDES := \
     ro.config.low_ram=true \
     ro.ril.hsxpa=1 \
