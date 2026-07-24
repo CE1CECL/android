@@ -92,7 +92,7 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
     if (hnd->flags & private_handle_t::PRIV_FLAGS_FRAMEBUFFER) {
         const size_t offset = hnd->base - m->framebuffer->base;
         m->info.activate = FB_ACTIVATE_VBL;
-        m->info.yoffset = offset / m->finfo.line_length;
+        m->info.yoffset = offset / (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres) * m->info.bits_per_pixel;
         if (ioctl(m->framebuffer->fd, FBIOPUT_VSCREENINFO, &m->info) == -1) {
             LOGE("FBIOPUT_VSCREENINFO failed");
             m->base.unlock(&m->base, buffer); 
@@ -109,15 +109,15 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
         
         m->base.lock(&m->base, m->framebuffer, 
                 GRALLOC_USAGE_SW_WRITE_RARELY, 
-                0, 0, (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres_virtual) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres), m->info.yres,
+                0, 0, (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres), (((m->info.yres != 0) && (m->info.yres_virtual != 0) && (m->info.yres != m->info.yres_virtual)) ? (m->finfo.smem_len / m->finfo.line_length) : m->info.yres),
                 &fb_vaddr);
 
         m->base.lock(&m->base, buffer, 
                 GRALLOC_USAGE_SW_READ_RARELY, 
-                0, 0, (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres_virtual) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres), m->info.yres,
+                0, 0, (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres), (((m->info.yres != 0) && (m->info.yres_virtual != 0) && (m->info.yres != m->info.yres_virtual)) ? (m->finfo.smem_len / m->finfo.line_length) : m->info.yres),
                 &buffer_vaddr);
 
-        memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
+        memcpy(fb_vaddr, buffer_vaddr, m->finfo.smem_len);
         
         m->base.unlock(&m->base, buffer); 
         m->base.unlock(&m->base, m->framebuffer); 
@@ -172,8 +172,8 @@ int mapFrameBufferLocked(struct private_module_t* module)
 
     uint64_t  refreshQuotient =
     (
-            uint64_t( info.upper_margin + info.lower_margin + info.yres )
-            * ( info.left_margin  + info.right_margin + (((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres_virtual) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) )
+            uint64_t( info.upper_margin + info.lower_margin + (((info.yres != 0) && (info.yres_virtual != 0) && (info.yres != info.yres_virtual)) ? (finfo.smem_len / finfo.line_length) : info.yres) )
+            * ( info.left_margin  + info.right_margin + (((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) )
             * info.pixclock
     );
 
@@ -187,29 +187,25 @@ int mapFrameBufferLocked(struct private_module_t* module)
     }
 
     // default to 160 dpi
-    info.width  = (((((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres_virtual) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) * 25.4f)/160.0f + 0.5f);
-    info.height = ((info.yres * 25.4f)/160.0f + 0.5f);
+    info.width  = (((((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) * 25.4f)/160.0f + 0.5f);
+    info.height = (((((info.yres != 0) && (info.yres_virtual != 0) && (info.yres != info.yres_virtual)) ? (finfo.smem_len / finfo.line_length) : info.yres) * 25.4f)/160.0f + 0.5f);
 
-    float xdpi = ((((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres_virtual) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) * 25.4f) / info.width;
-    float ydpi = (info.yres * 25.4f) / info.height;
+    float xdpi = ((((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres) * 25.4f) / info.width;
+    float ydpi = ((((info.yres != 0) && (info.yres_virtual != 0) && (info.yres != info.yres_virtual)) ? (finfo.smem_len / finfo.line_length) : info.yres) * 25.4f) / info.height;
     float fps  = refreshRate / 1000.0f;
 
     LOGI(   "using (fd=%d)\n"
             "id           = %s\n"
             "xres         = %d px\n"
             "yres         = %d px\n"
-            "xres_virtual = %d px\n"
-            "yres_virtual = %d px\n"
             "bpp          = %d\n"
             "r            = %2u:%u\n"
             "g            = %2u:%u\n"
             "b            = %2u:%u\n",
             fd,
             finfo.id,
-            (((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres_virtual) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres),
-            info.yres,
-            (((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres_virtual) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres),
-            info.yres,
+            (((((finfo.line_length * 8) / info.bits_per_pixel) != info.xres) && (((finfo.line_length * 8) / info.bits_per_pixel) != 0) && (info.xres != 0) && (info.xres_virtual != 0)) ? ((finfo.line_length * 8) / info.bits_per_pixel) : info.xres),
+            (((info.yres != 0) && (info.yres_virtual != 0) && (info.yres != info.yres_virtual)) ? (finfo.smem_len / finfo.line_length) : info.yres),
             info.bits_per_pixel,
             info.red.offset, info.red.length,
             info.green.offset, info.green.length,
@@ -244,7 +240,7 @@ int mapFrameBufferLocked(struct private_module_t* module)
      */
 
     int err;
-    size_t fbSize = roundUpToPageSize(finfo.line_length * info.yres);
+    size_t fbSize = finfo.smem_len;
     module->framebuffer = new private_handle_t(dup(fd), fbSize, 0);
 
     module->numBuffers = 1;
@@ -305,14 +301,13 @@ int fb_device_open(hw_module_t const* module, const char* name,
         private_module_t* m = (private_module_t*)module;
         status = mapFrameBuffer(m);
         if (status >= 0) {
-            int stride = (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres_virtual) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres);
             int format = (m->info.bits_per_pixel == 32)
                          ? ((m->info.red.offset == 16) ? HAL_PIXEL_FORMAT_BGRA_8888 : (m->info.red.offset == 24) ? HAL_PIXEL_FORMAT_RGBA_8888 : HAL_PIXEL_FORMAT_RGBX_8888)
                          : HAL_PIXEL_FORMAT_RGB_565;
             const_cast<uint32_t&>(dev->device.flags) = 0;
-            const_cast<uint32_t&>(dev->device.width) = (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres_virtual) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres);
-            const_cast<uint32_t&>(dev->device.height) = m->info.yres;
-            const_cast<int&>(dev->device.stride) = stride;
+            const_cast<uint32_t&>(dev->device.width) = (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres);
+            const_cast<uint32_t&>(dev->device.height) = (((m->info.yres != 0) && (m->info.yres_virtual != 0) && (m->info.yres != m->info.yres_virtual)) ? (m->finfo.smem_len / m->finfo.line_length) : m->info.yres);
+            const_cast<int&>(dev->device.stride) = (((((m->finfo.line_length * 8) / m->info.bits_per_pixel) != m->info.xres) && (((m->finfo.line_length * 8) / m->info.bits_per_pixel) != 0) && (m->info.xres != 0) && (m->info.xres_virtual != 0)) ? ((m->finfo.line_length * 8) / m->info.bits_per_pixel) : m->info.xres);
             const_cast<int&>(dev->device.format) = format;
             const_cast<float&>(dev->device.xdpi) = m->xdpi;
             const_cast<float&>(dev->device.ydpi) = m->ydpi;
