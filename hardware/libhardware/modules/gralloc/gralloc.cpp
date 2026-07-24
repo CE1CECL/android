@@ -119,7 +119,7 @@ static int gralloc_alloc_framebuffer_locked(alloc_device_t* dev,
 
     const uint32_t bufferMask = m->bufferMask;
     const uint32_t numBuffers = m->numBuffers;
-    const size_t bufferSize = m->finfo.line_length * m->info.yres;
+    const size_t bufferSize = m->finfo.smem_len;
     if (numBuffers == 1) {
         // If we have only one buffer, we never use page-flipping. Instead,
         // we return a regular buffer which will be memcpy'ed to the main
@@ -171,8 +171,6 @@ static int gralloc_alloc_buffer(alloc_device_t* dev,
     int err = 0;
     int fd = -1;
 
-    size = roundUpToPageSize(size);
-    
     fd = ashmem_create_region("gralloc-buffer", size);
     if (fd < 0) {
         LOGE("couldn't create ashmem (%s)", strerror(-errno));
@@ -254,7 +252,7 @@ static int gralloc_free(alloc_device_t* dev,
         // free this buffer
         private_module_t* m = reinterpret_cast<private_module_t*>(
                 dev->common.module);
-        const size_t bufferSize = m->finfo.line_length * m->info.yres;
+        const size_t bufferSize = m->finfo.smem_len;
         int index = (hnd->base - m->framebuffer->base) / bufferSize;
         m->bufferMask &= ~(1<<index); 
     } else { 
