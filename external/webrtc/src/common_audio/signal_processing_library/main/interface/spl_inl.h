@@ -27,13 +27,7 @@ __asm (
 
 WEBRTC_INLINE WebRtc_Word32 WEBRTC_SPL_MUL(WebRtc_Word32 a, WebRtc_Word32 b)
 {
-#ifdef __ARM_ARCH__
     return a * b;
-#else
-    WebRtc_Word32 tmp;
-    __asm__("mul %0, %1, %2":"=r"(tmp):"r"(a), "r"(b));
-    return tmp;
-#endif
 }
 
 WEBRTC_INLINE WebRtc_Word32 WEBRTC_SPL_MUL_16_32_RSFT16(WebRtc_Word16 a,
