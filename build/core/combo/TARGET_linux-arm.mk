@@ -87,8 +87,8 @@ endif
 # with -mlong-calls.  When built at -O0, those libraries are
 # too big for a thumb "BL <label>" to go from one end to the other.
 ifeq ($(FORCE_ARM_DEBUGGING),true)
-  TARGET_arm_CFLAGS += -fno-omit-frame-pointer -fno-strict-aliasing
-  TARGET_thumb_CFLAGS += -marm -fno-omit-frame-pointer
+  TARGET_arm_CFLAGS += -fomit-frame-pointer -fno-strict-aliasing
+  TARGET_thumb_CFLAGS += -marm -fomit-frame-pointer
 endif
 
 android_config_h := $(call select-android-config-h,linux-arm)
