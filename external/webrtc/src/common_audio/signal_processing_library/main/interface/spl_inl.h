@@ -19,7 +19,7 @@
 
 #ifdef WEBRTC_ANDROID
 
-#ifdef __ARM_ARCH_5__
+#ifdef __ARM_ARCH__
 __asm (
 "   .arch armv7-a\n"
 );
@@ -27,7 +27,7 @@ __asm (
 
 WEBRTC_INLINE WebRtc_Word32 WEBRTC_SPL_MUL(WebRtc_Word32 a, WebRtc_Word32 b)
 {
-#ifdef __ARM_ARCH_5__
+#ifdef __ARM_ARCH__
     return a * b;
 #else
     WebRtc_Word32 tmp;
