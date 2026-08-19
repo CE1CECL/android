@@ -34,7 +34,7 @@ on init
 
 sysclktz 0
 
-loglevel 3
+loglevel 0
 
 # setup the global environment
     export PATH /sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
@@ -70,6 +70,18 @@ loglevel 3
     # See storage config details at http://source.android.com/tech/storage/
     mkdir /mnt/shell 0700 shell shell
     mkdir /storage 0050 root sdcard_r
+    mkdir /mnt/shell/emulated 0700 shell shell
+    mkdir /storage/emulated 0555 root root
+    mkdir /data/media 0770 media_rw media_rw
+
+    export EXTERNAL_STORAGE /storage/emulated/legacy
+    export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
+    export EMULATED_STORAGE_TARGET /storage/emulated
+
+    symlink /storage/emulated/legacy /sdcard
+    symlink /storage/emulated/legacy /mnt/sdcard
+    symlink /storage/emulated/legacy /storage/sdcard0
+    symlink /mnt/shell/emulated/0 /storage/emulated/legacy
 
     # Directory for putting things only root should see.
     mkdir /mnt/secure 0700 root root
@@ -95,9 +107,9 @@ loglevel 3
     mkdir /mnt/fuse 0700 root system
     mount tmpfs tmpfs /mnt/fuse mode=0775,gid=1000
 
-    write /proc/sys/kernel/panic_on_oops 1
+    write /proc/sys/kernel/panic_on_oops 0
     write /proc/sys/kernel/hung_task_timeout_secs 0
-    write /proc/cpu/alignment 4
+    write /proc/cpu/alignment 3
     write /proc/sys/kernel/sched_latency_ns 10000000
     write /proc/sys/kernel/sched_wakeup_granularity_ns 2000000
     write /proc/sys/kernel/sched_compat_yield 1
@@ -146,16 +158,11 @@ loglevel 3
     chmod 0644 /dev/xt_qtaguid
 
 on fs
-# mount mtd partitions
-    # Mount /system rw first to give the filesystem a chance to save a checkpoint
-    mount yaffs2 mtd@system /system
-    mount yaffs2 mtd@system /system ro remount
-    mount yaffs2 mtd@userdata /data nosuid nodev
-    mount yaffs2 mtd@cache /cache nosuid nodev
+    start brightness
 
 on post-fs
     # once everything is setup, no need to modify /
-    mount rootfs rootfs / ro remount
+    mount rootfs rootfs / rw remount
     # mount shared so changes propagate into child namespaces
     mount rootfs rootfs / shared rec
     mount tmpfs tmpfs /mnt/secure private rec
@@ -228,6 +235,8 @@ on post-fs-data
     mkdir /data/misc/systemkeys 0700 system system
     # give system access to wpa_supplicant.conf for backup and restore
     mkdir /data/misc/wifi 0770 wifi wifi
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/misc/dhcp 0770 dhcp dhcp
     chmod 0660 /data/misc/wifi/wpa_supplicant.conf
     mkdir /data/local 0751 root root
     mkdir /data/misc/media 0700 media media
@@ -236,6 +245,7 @@ on post-fs-data
     # Do not place files or directories in /data/local/tmp
     mkdir /data/local/tmp 0771 shell shell
     mkdir /data/data 0771 system system
+    mkdir /data/system 0771 system system
     mkdir /data/app-private 0771 system system
     mkdir /data/app-asec 0700 root root
     mkdir /data/app-lib 0771 system system
@@ -276,7 +286,7 @@ on post-fs-data
     # must uncomment this line, otherwise encrypted filesystems
     # won't work.
     # Set indication (checked by vold) that we have finished this action
-    #setprop vold.post_fs_data_done 1
+    setprop vold.post_fs_data_done 1
 
 # Include extra init file
     import /init.cm.rc
@@ -406,9 +416,26 @@ on boot
     setprop system_init.startsurfaceflinger 0
 
     class_start core
+
+    write /sys/class/vtconsole/vtcon0/bind 0
+    write /sys/class/vtconsole/vtcon1/bind 0
+    write /sys/class/vtconsole/vtcon2/bind 0
+    write /sys/class/vtconsole/vtcon3/bind 0
+    write /sys/class/vtconsole/vtcon4/bind 0
+    write /sys/class/vtconsole/vtcon5/bind 0
+    write /sys/class/vtconsole/vtcon6/bind 0
+    write /sys/class/vtconsole/vtcon7/bind 0
+    write /sys/class/vtconsole/vtcon8/bind 0
+    write /sys/class/vtconsole/vtcon9/bind 0
+    write /sys/class/vtconsole/vtcon10/bind 0
+    write /sys/class/vtconsole/vtcon11/bind 0
+    write /sys/class/vtconsole/vtcon12/bind 0
+    write /sys/class/vtconsole/vtcon13/bind 0
+    write /sys/class/vtconsole/vtcon14/bind 0
+    write /sys/class/vtconsole/vtcon15/bind 0
+
     class_start main
 
-on nonencrypted
     class_start late_start
 
 on charger
@@ -457,8 +484,28 @@ service console /system/bin/sh
 service auditd /system/bin/auditd -k
     class main
 
-on property:ro.debuggable=1
+on property:ro.debuggable.console=1
     start console
+
+service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
+    class late_start
+
+service brightness /system/bin/sh -c "for a in /sys/class/backlight/*/brightness; do chown system system $a; done"
+    disabled
+    oneshot
+
+service wpa_supplicant /system/bin/wpa_supplicant -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf
+    socket wpa_wlan0 dgram 0660 wifi wifi
+    disabled
+    oneshot
+
+service dhcpcd_wlan0 /system/bin/dhcpcd -ABKL
+    disabled
+    oneshot
+
+service iprenew_wlan0 /system/bin/dhcpcd -n
+    disabled
+    oneshot
 
 # adbd is controlled via property triggers in init.<platform>.usb.rc
 service adbd /sbin/adbd

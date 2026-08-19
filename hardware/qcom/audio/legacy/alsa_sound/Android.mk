@@ -64,7 +64,7 @@ LOCAL_C_INCLUDES += frameworks/base/include
 LOCAL_C_INCLUDES += system/core/include
 
 
-LOCAL_MODULE := audio.primary.msm8960
+LOCAL_MODULE := audio.primary.default
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
@@ -81,7 +81,7 @@ LOCAL_SRC_FILES := \
     audio_policy_hal.cpp \
     AudioPolicyManagerALSA.cpp
 
-LOCAL_MODULE := audio_policy.msm8960
+LOCAL_MODULE := audio_policy.default
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_MODULE_TAGS := optional
 
@@ -142,7 +142,7 @@ else
  LOCAL_SHARED_LIBRARIES += libdl
 endif
 
-LOCAL_MODULE:= alsa.msm8960
+LOCAL_MODULE:= alsa.default
 LOCAL_MODULE_TAGS := optional
 
   include $(BUILD_SHARED_LIBRARY)

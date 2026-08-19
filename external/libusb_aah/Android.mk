@@ -35,6 +35,6 @@ LOCAL_C_INCLUDES := \
 LOCAL_SHARED_LIBRARIES := \
     libc
 
-LOCAL_MODULE:= libusb
+LOCAL_MODULE:= libusb_aah
 
 include $(BUILD_SHARED_LIBRARY)

@@ -2198,7 +2198,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     R.bool.def_auto_time_zone); // Sync timezone to NITZ
 
             loadSetting(stmt, Settings.Global.STAY_ON_WHILE_PLUGGED_IN,
-                    ("1".equals(SystemProperties.get("ro.kernel.qemu")) ||
+                    ("1".equals(SystemProperties.get("ro.stay.on.while.plugged.in")) ||
                         mContext.getResources().getBoolean(R.bool.def_stay_on_while_plugged_in))
                      ? 1 : 0);
 

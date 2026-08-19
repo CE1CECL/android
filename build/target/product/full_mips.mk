@@ -28,4 +28,4 @@ include $(SRC_TARGET_DIR)/product/emulator.mk
 PRODUCT_NAME := full_mips
 PRODUCT_DEVICE := generic_mips
 PRODUCT_BRAND := Android
-PRODUCT_MODEL := AOSP on MIPS Emulator
+PRODUCT_MODEL := AOSP on MIPS
