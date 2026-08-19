@@ -24,6 +24,7 @@ PRODUCT_PROPERTY_OVERRIDES := \
     ro.adb.qemud=1
 
 PRODUCT_COPY_FILES := \
+    frameworks/base/data/etc/platform.xml:system/etc/permissions/platform.xml \
     frameworks/native/data/etc/android.hardware.audio.low_latency.xml:system/etc/permissions/android.hardware.audio.low_latency.xml \
     frameworks/native/data/etc/android.hardware.bluetooth.xml:system/etc/permissions/android.hardware.bluetooth.xml \
     frameworks/native/data/etc/android.hardware.bluetooth_le.xml:system/etc/permissions/android.hardware.bluetooth_le.xml \
