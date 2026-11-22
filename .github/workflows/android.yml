@@ -1,0 +1,235 @@
+name: android
+on: [workflow_dispatch, push]
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9999
+    steps:
+      - name: android
+        run: |
+          export LANG=C 
+          export LANGUAGE=C 
+          export LC_CTYPE=C 
+          export LC_NUMERIC=C 
+          export LC_TIME=C 
+          export LC_COLLATE=C 
+          export LC_MONETARY=C 
+          export LC_MESSAGES=C 
+          export LC_PAPER=C 
+          export LC_NAME=C 
+          export LC_ADDRESS=C 
+          export LC_TELEPHONE=C 
+          export LC_MEASUREMENT=C 
+          export LC_IDENTIFICATION=C 
+          export LC_ALL=C
+          swapoff /swapfile
+          rm -rf /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
+          mkdir -p /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
+          apt --yes --force-yes update
+          apt --yes --force-yes install --no-install-suggests --no-install-recommends
+          apt --yes --force-yes clean
+          apt --yes --force-yes autoclean
+          apt --yes --force-yes autoremove
+          git config --global user.email "you@example.com"
+          git config --global user.name "Your Name"
+          mkdir -p android-out
+          git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
+          cd android-gingerbread
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-gingerbread
+          git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
+          cd android-CyanogenMod-gingerbread
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-CyanogenMod-gingerbread
+          git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
+          cd android-ics-mr1
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-ics-mr1
+          git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
+          cd android-CyanogenMod-ics-mr1
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-CyanogenMod-ics-mr1
+          git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
+          cd android-jb-mr2.0.0
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-jb-mr2.0.0
+          git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
+          cd android-CyanogenMod-jb-mr2.0.0
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-CyanogenMod-jb-mr2.0.0
+          git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
+          cd android-kitkat-mr2.2
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-kitkat-mr2.2
+          git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
+          cd android-CyanogenMod-kitkat-mr2.2
+          rm -rf .git
+          source build/envsetup.sh
+          lunch full-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          rm -rf out
+          lunch full_armv5-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          rm -rf out
+          lunch full_x86-userdebug
+          make -j droid
+          cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          tar -zcvf ../android-out/android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          rm -rf out
+          cd ..
+          rm -rf android-CyanogenMod-kitkat-mr2.2
+          tar -zcvf android-out.tar.gz android-out
+          rm -rf android-out
+      - name: upload
+        uses: actions/upload-artifact@main
+        with:
+          name: android
+          path: |
+            android-out.tar.gz
