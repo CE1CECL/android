@@ -26,7 +26,7 @@ jobs:
           sudo rm -rf /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
           sudo apt --yes --force-yes update
-          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-static binfmt-support
+          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-binfmt binfmt-support
           sudo apt --yes --force-yes clean
           sudo apt --yes --force-yes autoclean
           sudo apt --yes --force-yes autoremove
