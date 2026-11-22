@@ -26,15 +26,37 @@ jobs:
           sudo rm -rf /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
           sudo apt --yes --force-yes update
-          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends
+          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-static binfmt-support
           sudo apt --yes --force-yes clean
           sudo apt --yes --force-yes autoclean
           sudo apt --yes --force-yes autoremove
-          git config --global user.email "you@example.com"
-          git config --global user.name "Your Name"
-          sudo git config --global user.email "you@example.com"
-          sudo git config --global user.name "Your Name"
           mkdir -p android-out
+          sudo debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
+          cd ubuntu-lucid
+          rm -rf etc/apt/preferences
+          echo "Package: *" > etc/apt/preferences
+          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" >> etc/apt/preferences
+          echo "Pin-Priority: 1001" >> etc/apt/preferences
+          rm -rf etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" > etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" >> etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" >> etc/apt/sources.list
+          sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated --allow-insecure-repositories
+          sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-suggests --no-install-recommends
+          sudo chroot . apt-get --yes --force-yes install --no-install-suggests --no-install-recommends
+          sudo chroot . apt-get --yes --force-yes clean
+          sudo chroot . apt-get --yes --force-yes autoclean
+          sudo chroot . apt-get --yes --force-yes autoremove
+
+          exit 1
+
           git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
           cd android-gingerbread
           rm -rf .git
