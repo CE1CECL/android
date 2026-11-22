@@ -22,16 +22,18 @@ jobs:
           export LC_MEASUREMENT=C 
           export LC_IDENTIFICATION=C 
           export LC_ALL=C
-          swapoff /swapfile
-          rm -rf /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
-          mkdir -p /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
-          apt --yes --force-yes update
-          apt --yes --force-yes install --no-install-suggests --no-install-recommends
-          apt --yes --force-yes clean
-          apt --yes --force-yes autoclean
-          apt --yes --force-yes autoremove
+          sudo swapoff /swapfile
+          sudo rm -rf /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
+          sudo mkdir -p /swapfile /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
+          sudo apt --yes --force-yes update
+          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends
+          sudo apt --yes --force-yes clean
+          sudo apt --yes --force-yes autoclean
+          sudo apt --yes --force-yes autoremove
           git config --global user.email "you@example.com"
           git config --global user.name "Your Name"
+          sudo git config --global user.email "you@example.com"
+          sudo git config --global user.name "Your Name"
           mkdir -p android-out
           git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
           cd android-gingerbread
