@@ -33,21 +33,21 @@ jobs:
           mkdir -p android-out
           sudo debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
           cd ubuntu-lucid
-          rm -rf etc/apt/preferences
-          echo "Package: *" > etc/apt/preferences
-          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" >> etc/apt/preferences
-          echo "Pin-Priority: 1001" >> etc/apt/preferences
-          rm -rf etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" > etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" >> etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" >> etc/apt/sources.list
+          sudo rm -rf etc/apt/preferences
+          echo "Package: *" | sudo tee etc/apt/preferences
+          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" | sudo tee -a etc/apt/preferences
+          echo "Pin-Priority: 1001" | sudo tee -a etc/apt/preferences
+          sudo rm -rf etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
           sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated --allow-insecure-repositories
           sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-suggests --no-install-recommends
           sudo chroot . apt-get --yes --force-yes install --no-install-suggests --no-install-recommends
