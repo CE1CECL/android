@@ -34,7 +34,7 @@ PRODUCT_LOCALES := en_US
 
 # Pick up some sounds - stick with the short list to save space
 # on smaller devices.
-$(call inherit-product-if-exists, frameworks/base/data/sounds/OriginalAudio.mk)
+$(call inherit-product-if-exists, frameworks/base/data/sounds/AudioPackage2.mk)
 
 # Get the TTS language packs
 $(call inherit-product-if-exists, external/svox/pico/lang/all_pico_languages.mk)
