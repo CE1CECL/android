@@ -35,7 +35,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated
           sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
           sudo mount -B /proc proc
-          sudo chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev
+          sudo chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev openjdk-6-jdk
           sudo umount proc
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
