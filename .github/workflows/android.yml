@@ -52,7 +52,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated
           sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
           sudo mount -B /proc proc
-          sudo chroot . apt-get --yes --force-yes install --no-install-recommends g++ make openjdk-6-jdk bison flex
+          sudo chroot . apt-get --yes --force-yes install --no-install-recommends g++ make openjdk-6-jdk bison flex ia32-libs
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
