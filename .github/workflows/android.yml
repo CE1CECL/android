@@ -23,7 +23,6 @@ jobs:
           export LC_MEASUREMENT=C 
           export LC_IDENTIFICATION=C 
           export LC_ALL=C
-          # sudo swapoff /swapfile || echo
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
           sudo apt --yes --force-yes update
