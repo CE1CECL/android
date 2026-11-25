@@ -53,17 +53,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-gingerbread-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-gingerbread
@@ -73,17 +73,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-gingerbread
@@ -93,17 +93,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-ics-mr1-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-ics-mr1
@@ -113,17 +113,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-ics-mr1
@@ -133,17 +133,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-jb-mr2.0.0
@@ -153,17 +153,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-jb-mr2.0.0
@@ -173,17 +173,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-kitkat-mr2.2
@@ -193,17 +193,17 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
           sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
           sudo rm -rf out
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
           sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
+          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-kitkat-mr2.2
@@ -212,7 +212,7 @@ jobs:
           sudo umount proc
           cd ..
           rm -rf ubuntu-lucid
-          tar -zcvf android-out.tar.gz android-out
+          tar -zcvf android-out.tar.gz -C android-out/ ./
           rm -rf android-out
       - name: upload
         uses: actions/upload-artifact@main
