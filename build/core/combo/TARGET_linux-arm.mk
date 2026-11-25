@@ -64,11 +64,11 @@ ifneq ($(wildcard $(TARGET_TOOLS_PREFIX)gcc$(HOST_EXECUTABLE_SUFFIX)),)
     endif
 endif
 
-TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
+TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--allow-shlib-undefined
 
-TARGET_arm_CFLAGS :=    -O2 \
+TARGET_arm_CFLAGS :=    -Os \
                         -fomit-frame-pointer \
-                        -fstrict-aliasing    \
+                        -fno-strict-aliasing \
                         -funswitch-loops
 
 # Modules can choose to compile some source as thumb. As
@@ -81,7 +81,10 @@ TARGET_thumb_CFLAGS :=  -mthumb \
                         -fomit-frame-pointer \
                         -fno-strict-aliasing
 else
-TARGET_thumb_CFLAGS := $(TARGET_arm_CFLAGS)
+TARGET_thumb_CFLAGS :=  -marm \
+                        -Os \
+                        -fomit-frame-pointer \
+                        -fno-strict-aliasing
 endif
 
 # Set FORCE_ARM_DEBUGGING to "true" in your buildspec.mk
@@ -94,8 +97,8 @@ endif
 # with -mlong-calls.  When built at -O0, those libraries are
 # too big for a thumb "BL <label>" to go from one end to the other.
 ifeq ($(FORCE_ARM_DEBUGGING),true)
-  TARGET_arm_CFLAGS += -fomit-frame-pointer -fno-strict-aliasing
-  TARGET_thumb_CFLAGS += -marm -fomit-frame-pointer
+  TARGET_arm_CFLAGS += -marm -fomit-frame-pointer -fno-strict-aliasing
+  TARGET_thumb_CFLAGS += -marm -fomit-frame-pointer -fno-strict-aliasing
 endif
 
 android_config_h := $(call select-android-config-h,linux-arm)
