@@ -42,7 +42,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes autoremove
           echo "#!/bin/bash" | sudo tee build-android.sh
           echo "cd \$1" | sudo tee -a build-android.sh
-          echo "export PATH=/android-javadk/64/jdk-1.6.0_45/usr/java/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
+          echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
           echo "make -j droid" | sudo tee -a build-android.sh
