@@ -3,4 +3,4 @@ ARCH_ARM_HAVE_NEON := false
 ARCH_ARM_HAVE_VFP := false
 ARCH_ARM_HAVE_VFP_D32 := false
 FORCE_ARM_DEBUGGING := true
-arch_variant_cflags := -march=armv5te
+arch_variant_cflags := -march=armv5te -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__
