@@ -50,6 +50,7 @@ jobs:
           echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
           sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated
           sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
+          sudo mount -B /proc proc
           sudo chroot . apt-get --yes --force-yes install --no-install-recommends g++ make openjdk-6-jdk
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
