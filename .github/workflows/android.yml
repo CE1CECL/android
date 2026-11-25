@@ -24,208 +24,208 @@ jobs:
           export LC_IDENTIFICATION=C 
           export LC_ALL=C
           export JAVA_HOME=/android-javadk/64/jdk-1.6.0_45/usr/java/jdk1.6.0_45
-          sudo -E rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
-          sudo -E mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
-          sudo -E apt --yes --force-yes update
-          sudo -E apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-binfmt binfmt-support
-          sudo -E apt --yes --force-yes clean
-          sudo -E apt --yes --force-yes autoclean
-          sudo -E apt --yes --force-yes autoremove
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME apt --yes --force-yes update
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-binfmt binfmt-support
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME apt --yes --force-yes clean
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME apt --yes --force-yes autoclean
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME apt --yes --force-yes autoremove
           mkdir -p android-out
-          sudo -E debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
           cd ubuntu-lucid
-          sudo -E rm -rf etc/apt/preferences
-          echo "Package: *" | sudo -E tee etc/apt/preferences
-          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" | sudo -E tee -a etc/apt/preferences
-          echo "Pin-Priority: 1001" | sudo -E tee -a etc/apt/preferences
-          sudo -E rm -rf etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo -E tee etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo -E tee -a etc/apt/sources.list
-          sudo -E chroot . apt-get --yes --force-yes update --allow-unauthenticated
-          sudo -E chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
-          sudo -E mount -B /proc proc
-          sudo -E chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev
-          sudo -E umount proc
-          sudo -E chroot . apt-get --yes --force-yes clean
-          sudo -E chroot . apt-get --yes --force-yes autoclean
-          sudo -E chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo -E tee build-android.sh
-          echo "cd \$1" | sudo -E tee -a build-android.sh
-          echo "source build/envsetup.sh" | sudo -E tee -a build-android.sh
-          echo "lunch \$2" | sudo -E tee -a build-android.sh
-          echo "make -j droid" | sudo -E tee -a build-android.sh
-          sudo -E chmod 0777 build-android.sh
-          sudo -E git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
-          sudo -E git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf etc/apt/preferences
+          echo "Package: *" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee etc/apt/preferences
+          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/preferences
+          echo "Pin-Priority: 1001" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/preferences
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a etc/apt/sources.list
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes update --allow-unauthenticated
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME mount -B /proc proc
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME umount proc
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes clean
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes autoclean
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot . apt-get --yes --force-yes autoremove
+          echo "#!/bin/bash" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee build-android.sh
+          echo "cd \$1" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a build-android.sh
+          echo "source build/envsetup.sh" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a build-android.sh
+          echo "lunch \$2" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a build-android.sh
+          echo "make -j droid" | sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME tee -a build-android.sh
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chmod 0777 build-android.sh
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
           cd android-gingerbread
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-gingerbread
-          sudo -E git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-gingerbread
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
           cd android-CyanogenMod-gingerbread
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-CyanogenMod-gingerbread
-          sudo -E git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-CyanogenMod-gingerbread
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
           cd android-ics-mr1
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-ics-mr1
-          sudo -E git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-ics-mr1
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
           cd android-CyanogenMod-ics-mr1
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-CyanogenMod-ics-mr1
-          sudo -E git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-CyanogenMod-ics-mr1
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
           cd android-jb-mr2.0.0
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-jb-mr2.0.0
-          sudo -E git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-jb-mr2.0.0
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
           cd android-CyanogenMod-jb-mr2.0.0
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-CyanogenMod-jb-mr2.0.0
-          sudo -E git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-CyanogenMod-jb-mr2.0.0
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
           cd android-kitkat-mr2.2
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-kitkat-mr2.2
-          sudo -E git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-kitkat-mr2.2
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
           cd android-CyanogenMod-kitkat-mr2.2
-          sudo -E rm -rf .git
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo -E cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo -E cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf .git
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic/system out/target/product/generic/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz . -C out/target/product/generic/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo -E cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo -E cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz . -C out/target/product/generic_armv5/toor/
-          sudo -E rm -rf out
-          sudo -E chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo -E cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo -E cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
           tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz . -C out/target/product/generic_x86/toor/
-          sudo -E rm -rf out
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf out
           cd ..
-          sudo -E rm -rf android-CyanogenMod-kitkat-mr2.2
-          sudo -E rm -rf build-android.sh
-          sudo -E rm -rf android-javadk
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-CyanogenMod-kitkat-mr2.2
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf build-android.sh
+          sudo --preserve-env=PATH,LANG,LANGUAGE,LC_CTYPE,LC_NUMERIC,LC_TIME,LC_COLLATE,LC_MONETARY,LC_MESSAGES,LC_PAPER,LC_NAME,LC_ADDRESS,LC_TELEPHONE,LC_MEASUREMENT,LC_IDENTIFICATION,LC_ALL,JAVA_HOME rm -rf android-javadk
           cd ..
           rm -rf ubuntu-lucid
           tar -zcvf android-out.tar.gz android-out
