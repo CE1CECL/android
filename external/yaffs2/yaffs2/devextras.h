@@ -36,9 +36,11 @@
 #if !(defined __KERNEL__) || (defined WIN32)
 
 /* User space defines */
+#if !defined(__ASM_ARM_TYPES_H) || !defined(__ASM_X86_TYPES_H)
 typedef unsigned char __u8;
 typedef unsigned short __u16;
 typedef unsigned __u32;
+#endif 
 
 #if defined(__APPLE__) || defined(__FreeBSD__)
 typedef long long loff_t;
