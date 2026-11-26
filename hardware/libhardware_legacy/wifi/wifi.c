@@ -86,7 +86,7 @@ struct genl_family *nl80211;
 #define WIFI_DRIVER_MODULE_ARG          "firmware_path=/system/lib/firmware/arcadyan/bcm4319.bin nvram_path=/system/lib/firmware/arcadyan/nvram.fw iface_name=wlan0 dhd_watchdog_ms=100"
 #endif
 #ifndef WIFI_DRIVER_MODULE_AP_ARG
-#define WIFI_DRIVER_MODULE_AP_ARG       ""
+#define WIFI_DRIVER_MODULE_AP_ARG       WIFI_DRIVER_MODULE_ARG
 #endif
 #ifndef WIFI_FIRMWARE_LOADER
 #define WIFI_FIRMWARE_LOADER		""
