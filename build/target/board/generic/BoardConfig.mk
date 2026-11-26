@@ -8,6 +8,7 @@ TARGET_NO_BOOTLOADER := true
 TARGET_NO_KERNEL := true
 TARGET_ARCH := arm
 TARGET_PRELINK_MODULE := false
+WITH_SIMPLE_RECOVERY := true
 
 # Note: we build the platform images for ARMv7-A _without_ NEON.
 #
