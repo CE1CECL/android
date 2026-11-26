@@ -1,11 +1,11 @@
 name: android
 on: [workflow_dispatch, push]
 jobs:
-  android:
+  android-gingerbread-full-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android
+      - name: android-gingerbread-full-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -14,7 +14,6 @@ jobs:
           sudo apt --yes --force-yes clean
           sudo apt --yes --force-yes autoclean
           sudo apt --yes --force-yes autoremove
-          mkdir -p android-out
           sudo debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
           cd ubuntu-lucid
           sudo rm -rf etc/apt/preferences
@@ -53,170 +52,147 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
+          tar -zcvf ../../android-gingerbread-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-gingerbread
-          sudo git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
-          cd android-CyanogenMod-gingerbread
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-gingerbread-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-CyanogenMod-gingerbread
-          sudo git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
-          cd android-ics-mr1
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-ics-mr1
-          sudo git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
-          cd android-CyanogenMod-ics-mr1
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-ics-mr1-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-CyanogenMod-ics-mr1
-          sudo git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
-          cd android-jb-mr2.0.0
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-jb-mr2.0.0
-          sudo git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
-          cd android-CyanogenMod-jb-mr2.0.0
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-CyanogenMod-jb-mr2.0.0
-          sudo git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
-          cd android-kitkat-mr2.2
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-kitkat-mr2.2
-          sudo git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
-          cd android-CyanogenMod-kitkat-mr2.2
-          sudo rm -rf .git
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
-          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
-          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
-          sudo cp -rfna out/target/product/generic_armv5/root out/target/product/generic_armv5/toor
-          sudo cp -rfna out/target/product/generic_armv5/system out/target/product/generic_armv5/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-generic_armv5-rootfs.tar.gz -C out/target/product/generic_armv5/toor/ ./
-          sudo rm -rf out
-          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
-          sudo cp -rfna out/target/product/generic_x86/root out/target/product/generic_x86/toor
-          sudo cp -rfna out/target/product/generic_x86/system out/target/product/generic_x86/toor/
-          tar -zcvf ../../android-out/android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-generic_x86-rootfs.tar.gz -C out/target/product/generic_x86/toor/ ./
-          sudo rm -rf out
-          cd ..
-          sudo rm -rf android-CyanogenMod-kitkat-mr2.2
           sudo rm -rf build-android.sh
           sudo rm -rf android-javadk
           sudo umount proc
           cd ..
           rm -rf ubuntu-lucid
-          tar -zcvf android-out.tar.gz -C android-out/ ./
-          rm -rf android-out
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android
-          path: |
-            android-out.tar.gz
+          name: android-gingerbread-full-userdebug-rootfs
+          path: android-gingerbread-full-userdebug-rootfs.tar.gz
+  android-gingerbread-full_armv5-userdebug-rootfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9999
+    steps:
+      - name: android-gingerbread-full_armv5-userdebug-rootfs
+        run: |
+          sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
+          sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
+          sudo apt --yes --force-yes update
+          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-binfmt binfmt-support
+          sudo apt --yes --force-yes clean
+          sudo apt --yes --force-yes autoclean
+          sudo apt --yes --force-yes autoremove
+          sudo debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
+          cd ubuntu-lucid
+          sudo rm -rf etc/apt/preferences
+          echo "Package: *" | sudo tee etc/apt/preferences
+          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" | sudo tee -a etc/apt/preferences
+          echo "Pin-Priority: 1001" | sudo tee -a etc/apt/preferences
+          sudo rm -rf etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated
+          sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
+          sudo mount -B /proc proc
+          sudo chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev
+          sudo chroot . apt-get --yes --force-yes clean
+          sudo chroot . apt-get --yes --force-yes autoclean
+          sudo chroot . apt-get --yes --force-yes autoremove
+          echo "#!/bin/bash" | sudo tee build-android.sh
+          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
+          echo "source build/envsetup.sh" | sudo tee -a build-android.sh
+          echo "lunch \$2" | sudo tee -a build-android.sh
+          echo "make -j droid" | sudo tee -a build-android.sh
+          sudo chmod 0777 build-android.sh
+          sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
+          sudo git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
+          cd android-gingerbread
+          sudo rm -rf .git
+          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
+          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../../android-gingerbread-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          sudo rm -rf out
+          cd ..
+          sudo rm -rf android-gingerbread
+          sudo rm -rf build-android.sh
+          sudo rm -rf android-javadk
+          sudo umount proc
+          cd ..
+          rm -rf ubuntu-lucid
+      - name: upload
+        uses: actions/upload-artifact@main
+        with:
+          name: android-gingerbread-full_armv5-userdebug-rootfs
+          path: android-gingerbread-full_armv5-userdebug-rootfs.tar.gz
+  android-gingerbread-full_x86-userdebug-rootfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9999
+    steps:
+      - name: android-gingerbread-full_x86-userdebug-rootfs
+        run: |
+          sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
+          sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
+          sudo apt --yes --force-yes update
+          sudo apt --yes --force-yes install --no-install-suggests --no-install-recommends debootstrap qemu-user-binfmt binfmt-support
+          sudo apt --yes --force-yes clean
+          sudo apt --yes --force-yes autoclean
+          sudo apt --yes --force-yes autoremove
+          sudo debootstrap --no-merged-usr --arch=amd64 --variant=minbase --no-check-gpg --no-check-certificate lucid ubuntu-lucid http://old-releases.ubuntu.com/ubuntu
+          cd ubuntu-lucid
+          sudo rm -rf etc/apt/preferences
+          echo "Package: *" | sudo tee etc/apt/preferences
+          echo "Pin: release o=*,a=*,n=*,l=*,c=*,b=*" | sudo tee -a etc/apt/preferences
+          echo "Pin-Priority: 1001" | sudo tee -a etc/apt/preferences
+          sudo rm -rf etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-backports restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-proposed restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-security restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          echo "deb-src http://old-releases.ubuntu.com/ubuntu lucid-updates restricted main multiverse universe" | sudo tee -a etc/apt/sources.list
+          sudo chroot . apt-get --yes --force-yes update --allow-unauthenticated
+          sudo chroot . apt-get --yes --force-yes dist-upgrade --no-install-recommends
+          sudo mount -B /proc proc
+          sudo chroot . apt-get --yes --force-yes install --no-install-recommends gcc-multilib g++-multilib make python bison flex ia32-libs perl gperf zip unzip libc6-dev-i386 zlib1g-dev lib32z1-dev libncurses5-dev lib32ncurses5-dev x11proto-core-dev libx11-dev
+          sudo chroot . apt-get --yes --force-yes clean
+          sudo chroot . apt-get --yes --force-yes autoclean
+          sudo chroot . apt-get --yes --force-yes autoremove
+          echo "#!/bin/bash" | sudo tee build-android.sh
+          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
+          echo "source build/envsetup.sh" | sudo tee -a build-android.sh
+          echo "lunch \$2" | sudo tee -a build-android.sh
+          echo "make -j droid" | sudo tee -a build-android.sh
+          sudo chmod 0777 build-android.sh
+          sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
+          sudo git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
+          cd android-gingerbread
+          sudo rm -rf .git
+          sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
+          sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
+          sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
+          tar -zcvf ../../android-gingerbread-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          sudo rm -rf out
+          cd ..
+          sudo rm -rf android-gingerbread
+          sudo rm -rf build-android.sh
+          sudo rm -rf android-javadk
+          sudo umount proc
+          cd ..
+          rm -rf ubuntu-lucid
+      - name: upload
+        uses: actions/upload-artifact@main
+        with:
+          name: android-gingerbread-full_x86-userdebug-rootfs
+          path: android-gingerbread-full_x86-userdebug-rootfs.tar.gz
