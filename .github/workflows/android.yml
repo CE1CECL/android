@@ -781,11 +781,11 @@ jobs:
         with:
           name: android-CyanogenMod-ics-mr1-full_x86-userdebug-rootfs
           path: android-CyanogenMod-ics-mr1-full_x86-userdebug-rootfs.tar.gz
-  android-jb-mr2.0.0-full-userdebug-rootfs:
+  android-jb-mr2_0_0-full-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-jb-mr2.0.0-full-userdebug-rootfs
+      - name: android-jb-mr2_0_0-full-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -832,7 +832,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-jb-mr2_0_0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-jb-mr2.0.0
@@ -844,13 +844,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-jb-mr2.0.0-full-userdebug-rootfs
-          path: android-jb-mr2.0.0-full-userdebug-rootfs.tar.gz
-  android-jb-mr2.0.0-full_armv5-userdebug-rootfs:
+          name: android-jb-mr2_0_0-full-userdebug-rootfs
+          path: android-jb-mr2_0_0-full-userdebug-rootfs.tar.gz
+  android-jb-mr2_0_0-full_armv5-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-jb-mr2.0.0-full_armv5-userdebug-rootfs
+      - name: android-jb-mr2_0_0-full_armv5-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -897,7 +897,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-jb-mr2.0.0-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-jb-mr2.0.0
@@ -909,13 +909,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-jb-mr2.0.0-full_armv5-userdebug-rootfs
-          path: android-jb-mr2.0.0-full_armv5-userdebug-rootfs.tar.gz
-  android-jb-mr2.0.0-full_x86-userdebug-rootfs:
+          name: android-jb-mr2_0_0-full_armv5-userdebug-rootfs
+          path: android-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz
+  android-jb-mr2_0_0-full_x86-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-jb-mr2.0.0-full_x86-userdebug-rootfs
+      - name: android-jb-mr2_0_0-full_x86-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -962,7 +962,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-jb-mr2.0.0-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-jb-mr2.0.0
@@ -974,13 +974,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-jb-mr2.0.0-full_x86-userdebug-rootfs
-          path: android-jb-mr2.0.0-full_x86-userdebug-rootfs.tar.gz
-  android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs:
+          name: android-jb-mr2_0_0-full_x86-userdebug-rootfs
+          path: android-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz
+  android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs
+      - name: android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1027,7 +1027,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-jb-mr2.0.0
@@ -1039,13 +1039,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs
-          path: android-CyanogenMod-jb-mr2.0.0-full-userdebug-rootfs.tar.gz
-  android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-rootfs:
+          name: android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs
+          path: android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs.tar.gz
+  android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-rootfs
+      - name: android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1092,7 +1092,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-jb-mr2.0.0
@@ -1104,13 +1104,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-rootfs
-          path: android-CyanogenMod-jb-mr2.0.0-full_armv5-userdebug-rootfs.tar.gz
-  android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-rootfs:
+          name: android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs
+          path: android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz
+  android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-rootfs
+      - name: android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1157,7 +1157,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-jb-mr2.0.0
@@ -1169,13 +1169,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-rootfs
-          path: android-CyanogenMod-jb-mr2.0.0-full_x86-userdebug-rootfs.tar.gz
-  android-kitkat-mr2.2-full-userdebug-rootfs:
+          name: android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs
+          path: android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz
+  android-kitkat-mr2_2-full-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-kitkat-mr2.2-full-userdebug-rootfs
+      - name: android-kitkat-mr2_2-full-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1222,7 +1222,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-kitkat-mr2_2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-kitkat-mr2.2
@@ -1234,13 +1234,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-kitkat-mr2.2-full-userdebug-rootfs
-          path: android-kitkat-mr2.2-full-userdebug-rootfs.tar.gz
-  android-kitkat-mr2.2-full_armv5-userdebug-rootfs:
+          name: android-kitkat-mr2_2-full-userdebug-rootfs
+          path: android-kitkat-mr2_2-full-userdebug-rootfs.tar.gz
+  android-kitkat-mr2_2-full_armv5-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-kitkat-mr2.2-full_armv5-userdebug-rootfs
+      - name: android-kitkat-mr2_2-full_armv5-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1287,7 +1287,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-kitkat-mr2.2-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-kitkat-mr2.2
@@ -1299,13 +1299,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-kitkat-mr2.2-full_armv5-userdebug-rootfs
-          path: android-kitkat-mr2.2-full_armv5-userdebug-rootfs.tar.gz
-  android-kitkat-mr2.2-full_x86-userdebug-rootfs:
+          name: android-kitkat-mr2_2-full_armv5-userdebug-rootfs
+          path: android-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz
+  android-kitkat-mr2_2-full_x86-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-kitkat-mr2.2-full_x86-userdebug-rootfs
+      - name: android-kitkat-mr2_2-full_x86-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1352,7 +1352,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-kitkat-mr2.2-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-kitkat-mr2.2
@@ -1364,13 +1364,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-kitkat-mr2.2-full_x86-userdebug-rootfs
-          path: android-kitkat-mr2.2-full_x86-userdebug-rootfs.tar.gz
-  android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs:
+          name: android-kitkat-mr2_2-full_x86-userdebug-rootfs
+          path: android-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz
+  android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs
+      - name: android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1417,7 +1417,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-kitkat-mr2.2
@@ -1429,13 +1429,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs
-          path: android-CyanogenMod-kitkat-mr2.2-full-userdebug-rootfs.tar.gz
-  android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-rootfs:
+          name: android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs
+          path: android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs.tar.gz
+  android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-rootfs
+      - name: android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1482,7 +1482,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_armv5-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-kitkat-mr2.2
@@ -1494,13 +1494,13 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-rootfs
-          path: android-CyanogenMod-kitkat-mr2.2-full_armv5-userdebug-rootfs.tar.gz
-  android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-rootfs:
+          name: android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs
+          path: android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz
+  android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs:
     runs-on: ubuntu-latest
     timeout-minutes: 9999
     steps:
-      - name: android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-rootfs
+      - name: android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs
         run: |
           sudo rm -rf /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt /home/runner/.*
           sudo mkdir -p /usr/src /usr/lib/jvm /home/linuxbrew /home/packer /root /usr/share/dotnet /usr/share/swift /usr/share/miniconda /usr/lib/google-cloud-sdk /var/lib/docker /usr/local /opt
@@ -1547,7 +1547,7 @@ jobs:
           sudo chroot .. ../build-android.sh $(basename $(pwd)) full_x86-userdebug
           sudo cp -rfna out/target/product/generic/root out/target/product/generic/toor
           sudo cp -rfna out/target/product/generic/system out/target/product/generic/toor/
-          tar -zcvf ../../android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
+          tar -zcvf ../../android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz -C out/target/product/generic/toor/ ./
           sudo rm -rf out
           cd ..
           sudo rm -rf android-CyanogenMod-kitkat-mr2.2
@@ -1559,5 +1559,5 @@ jobs:
       - name: upload
         uses: actions/upload-artifact@main
         with:
-          name: android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-rootfs
-          path: android-CyanogenMod-kitkat-mr2.2-full_x86-userdebug-rootfs.tar.gz
+          name: android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs
+          path: android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz
