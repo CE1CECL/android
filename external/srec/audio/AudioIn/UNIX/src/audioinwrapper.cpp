@@ -18,7 +18,7 @@
  *---------------------------------------------------------------------------*/
 
 
-#if defined(ANDROID) && (defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_4__))
+#if defined(ANDROID) && (0)
 
 #define USE_DEV_EAC_FILE 1
 
@@ -32,7 +32,7 @@
 using namespace android;
 #endif
 
-#endif // defined(ANDROID) && (defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_4__))
+#endif // defined(ANDROID) && (0)
 
 #include "plog.h"
 
@@ -51,7 +51,7 @@ static struct timeval buffer_save_audio;
 extern "C" 
 {
 
-#if defined(ANDROID) && (defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_4__))
+#if defined(ANDROID) && (0)
     
 #if defined(USE_DEV_EAC_FILE)
 static int audiofd = -1;
