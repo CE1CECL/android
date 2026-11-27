@@ -38,8 +38,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -103,8 +102,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -168,8 +166,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -233,8 +230,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -298,8 +294,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -363,8 +358,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -428,8 +422,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -493,8 +486,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -558,8 +550,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -623,8 +614,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -688,8 +678,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -753,8 +742,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -818,8 +806,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -883,8 +870,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -948,8 +934,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1013,8 +998,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1078,8 +1062,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1143,8 +1126,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1208,8 +1190,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1273,8 +1254,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1338,8 +1318,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1403,8 +1382,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1468,8 +1446,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
@@ -1533,8 +1510,7 @@ jobs:
           sudo chroot . apt-get --yes --force-yes clean
           sudo chroot . apt-get --yes --force-yes autoclean
           sudo chroot . apt-get --yes --force-yes autoremove
-          echo "#!/bin/bash" | sudo tee build-android.sh
-          echo "cd \$1" | sudo tee -a build-android.sh
+          echo "cd \$1" | sudo tee build-android.sh
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
