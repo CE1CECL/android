@@ -106,7 +106,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-ffunction-sections \
 			-fdata-sections \
 			-funwind-tables \
-			-fstack-protector \
+			-fno-stack-protector \
 			-Wa,--noexecstack \
 			-Wno-format-security \
 			-D_FORTIFY_SOURCE=1 \
