@@ -86,7 +86,7 @@ TARGET_GLOBAL_CFLAGS += \
 
 # Needs to be fixed later
 #TARGET_GLOBAL_CFLAGS += \
-#			-fstack-protector
+#			-fno-stack-protector
 
 # Needs to be added for RELEASE
 #TARGET_GLOBAL_CFLAGS += \
