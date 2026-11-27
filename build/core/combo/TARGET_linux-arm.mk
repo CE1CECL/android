@@ -102,7 +102,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-msoft-float -fpic \
 			-ffunction-sections \
 			-funwind-tables \
-			-fstack-protector \
+			-fno-stack-protector \
 			-Wa,--noexecstack \
 			-Wno-format-security \
 			-fno-short-enums \
