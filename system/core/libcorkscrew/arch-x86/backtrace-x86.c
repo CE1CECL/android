@@ -18,12 +18,6 @@
  * Backtracing functions for x86.
  */
 
-#ifndef __BIONIC__
-// glibc has its own renaming of the Linux kernel's structures.
-#define _GNU_SOURCE // For REG_EBP, REG_ESP, and REG_EIP.
-#include <ucontext.h>
-#endif
-
 #define LOG_TAG "Corkscrew"
 //#define LOG_NDEBUG 0
 
@@ -41,8 +35,6 @@
 #include <string.h>
 #include <sys/ptrace.h>
 #include <cutils/log.h>
-
-#if defined(__BIONIC__)
 
 #if defined(__BIONIC_HAVE_UCONTEXT_T)
 
@@ -80,8 +72,6 @@ typedef struct ucontext {
 } ucontext_t;
 
 #endif /* __BIONIC_HAVE_UCONTEXT_T */
-
-#endif /* __ BIONIC__ */
 
 /* Unwind state. */
 typedef struct {
