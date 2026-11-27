@@ -91,7 +91,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-funwind-tables \
 			-include $(call select-android-config-h,target_linux-x86)
 
-TARGET_GLOBAL_CFLAGS += -fstack-protector
+TARGET_GLOBAL_CFLAGS += -fno-stack-protector
 
 # Needs to be added for RELEASE
 #TARGET_GLOBAL_CFLAGS += \
@@ -99,7 +99,7 @@ TARGET_GLOBAL_CFLAGS += -fstack-protector
 
 
 # Fix this after ssp.c is fixed for x86
-# TARGET_GLOBAL_CFLAGS += -fstack-protector
+# TARGET_GLOBAL_CFLAGS += -fno-stack-protector
 
 TARGET_GLOBAL_CPPFLAGS += \
 			-fno-use-cxa-atexit
