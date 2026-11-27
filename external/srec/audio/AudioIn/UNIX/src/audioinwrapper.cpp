@@ -18,7 +18,7 @@
  *---------------------------------------------------------------------------*/
 
 
-#if defined(ANDROID) && (0)
+#if defined(ANDROID) && (defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_4__))
 
 #define USE_DEV_EAC_FILE 1
 
