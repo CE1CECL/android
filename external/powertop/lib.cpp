@@ -35,6 +35,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
+#define DISABLE_PCI
 #ifndef DISABLE_PCI
 extern "C" {
 #include <pci/pci.h>
