@@ -121,6 +121,7 @@
 #include "syscall.h"
 
 /* Define these shorthand notations to simplify the syscallent files. */
+#define TD TRACE_DESC
 #define TF TRACE_FILE
 #define TI TRACE_IPC
 #define TN TRACE_NETWORK
