@@ -42,7 +42,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
@@ -60,6 +60,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -106,7 +107,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
@@ -124,6 +125,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -170,7 +172,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=gingerbread http://github.com/CE1CECL/android android-gingerbread
@@ -188,6 +190,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -234,7 +237,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
@@ -252,6 +255,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -298,7 +302,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
@@ -316,6 +320,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -362,7 +367,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-gingerbread http://github.com/CE1CECL/android android-CyanogenMod-gingerbread
@@ -380,6 +385,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -426,7 +432,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
@@ -444,6 +450,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -490,7 +497,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
@@ -508,6 +515,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -554,7 +562,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=ics-mr1 http://github.com/CE1CECL/android android-ics-mr1
@@ -572,6 +580,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -618,7 +627,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
@@ -636,6 +645,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -682,7 +692,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
@@ -700,6 +710,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -746,7 +757,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-ics-mr1 http://github.com/CE1CECL/android android-CyanogenMod-ics-mr1
@@ -764,6 +775,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -810,7 +822,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
@@ -828,6 +840,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -874,7 +887,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
@@ -892,6 +905,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -938,7 +952,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=jb-mr2.0.0 http://github.com/CE1CECL/android android-jb-mr2.0.0
@@ -956,6 +970,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1002,7 +1017,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
@@ -1020,6 +1035,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1066,7 +1082,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
@@ -1084,6 +1100,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1130,7 +1147,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-jb-mr2.0.0 http://github.com/CE1CECL/android android-CyanogenMod-jb-mr2.0.0
@@ -1148,6 +1165,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1194,7 +1212,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
@@ -1212,6 +1230,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1258,7 +1277,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
@@ -1276,6 +1295,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1322,7 +1342,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=kitkat-mr2.2 http://github.com/CE1CECL/android android-kitkat-mr2.2
@@ -1340,6 +1360,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1386,7 +1407,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
@@ -1404,6 +1425,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1450,7 +1472,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
@@ -1468,6 +1490,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
@@ -1514,7 +1537,7 @@ jobs:
           echo "export PATH=/android-javadk/64/jdk1.6.0_45/bin:\$PATH" | sudo tee -a build-android.sh
           echo "source build/envsetup.sh" | sudo tee -a build-android.sh
           echo "lunch \$2" | sudo tee -a build-android.sh
-          echo "make -j droid" | sudo tee -a build-android.sh
+          echo "make -j4 droid" | sudo tee -a build-android.sh
           sudo chmod 0777 build-android.sh
           sudo git clone --depth=1 --single-branch http://github.com/CE1CECL/JDK android-javadk
           sudo git clone --depth=1 --single-branch --branch=CyanogenMod-kitkat-mr2.2 http://github.com/CE1CECL/android android-CyanogenMod-kitkat-mr2.2
@@ -1532,6 +1555,7 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
+          mkdir -p /home/runner/work/android/android
       - name: upload
         uses: actions/upload-artifact@main
         with:
