@@ -27,7 +27,7 @@
 
 #include "log.h"
 
-#ifdef ANDROID
+#if 0 // #ifdef ANDROID
 #include <cutils/memory.h>
 #else
 void android_memset16(void *_ptr, unsigned short val, unsigned count)
