@@ -61,9 +61,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-gingerbread-full-userdebug-rootfs
           path: /android-gingerbread-full-userdebug-rootfs.tar.gz
@@ -127,9 +126,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-gingerbread-full_armv5-userdebug-rootfs
           path: /android-gingerbread-full_armv5-userdebug-rootfs.tar.gz
@@ -193,9 +191,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-gingerbread-full_x86-userdebug-rootfs
           path: /android-gingerbread-full_x86-userdebug-rootfs.tar.gz
@@ -259,9 +256,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-gingerbread-full-userdebug-rootfs
           path: /android-CyanogenMod-gingerbread-full-userdebug-rootfs.tar.gz
@@ -325,9 +321,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-gingerbread-full_armv5-userdebug-rootfs
           path: /android-CyanogenMod-gingerbread-full_armv5-userdebug-rootfs.tar.gz
@@ -391,9 +386,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-gingerbread-full_x86-userdebug-rootfs
           path: /android-CyanogenMod-gingerbread-full_x86-userdebug-rootfs.tar.gz
@@ -457,9 +451,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-ics-mr1-full-userdebug-rootfs
           path: /android-ics-mr1-full-userdebug-rootfs.tar.gz
@@ -523,9 +516,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-ics-mr1-full_armv5-userdebug-rootfs
           path: /android-ics-mr1-full_armv5-userdebug-rootfs.tar.gz
@@ -589,9 +581,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-ics-mr1-full_x86-userdebug-rootfs
           path: /android-ics-mr1-full_x86-userdebug-rootfs.tar.gz
@@ -655,9 +646,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-ics-mr1-full-userdebug-rootfs
           path: /android-CyanogenMod-ics-mr1-full-userdebug-rootfs.tar.gz
@@ -721,9 +711,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-ics-mr1-full_armv5-userdebug-rootfs
           path: /android-CyanogenMod-ics-mr1-full_armv5-userdebug-rootfs.tar.gz
@@ -787,9 +776,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-ics-mr1-full_x86-userdebug-rootfs
           path: /android-CyanogenMod-ics-mr1-full_x86-userdebug-rootfs.tar.gz
@@ -853,9 +841,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-jb-mr2_0_0-full-userdebug-rootfs
           path: /android-jb-mr2_0_0-full-userdebug-rootfs.tar.gz
@@ -919,9 +906,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-jb-mr2_0_0-full_armv5-userdebug-rootfs
           path: /android-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz
@@ -985,9 +971,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-jb-mr2_0_0-full_x86-userdebug-rootfs
           path: /android-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz
@@ -1051,9 +1036,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs
           path: /android-CyanogenMod-jb-mr2_0_0-full-userdebug-rootfs.tar.gz
@@ -1117,9 +1101,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs
           path: /android-CyanogenMod-jb-mr2_0_0-full_armv5-userdebug-rootfs.tar.gz
@@ -1183,9 +1166,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs
           path: /android-CyanogenMod-jb-mr2_0_0-full_x86-userdebug-rootfs.tar.gz
@@ -1249,9 +1231,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-kitkat-mr2_2-full-userdebug-rootfs
           path: /android-kitkat-mr2_2-full-userdebug-rootfs.tar.gz
@@ -1315,9 +1296,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-kitkat-mr2_2-full_armv5-userdebug-rootfs
           path: /android-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz
@@ -1381,9 +1361,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-kitkat-mr2_2-full_x86-userdebug-rootfs
           path: /android-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz
@@ -1447,9 +1426,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs
           path: /android-CyanogenMod-kitkat-mr2_2-full-userdebug-rootfs.tar.gz
@@ -1513,9 +1491,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs
           path: /android-CyanogenMod-kitkat-mr2_2-full_armv5-userdebug-rootfs.tar.gz
@@ -1579,9 +1556,8 @@ jobs:
           sudo umount proc
           cd ..
           sudo rm -rf ubuntu-lucid
-          mkdir -p /home/runner/work/android/android
       - name: upload
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs
           path: /android-CyanogenMod-kitkat-mr2_2-full_x86-userdebug-rootfs.tar.gz
