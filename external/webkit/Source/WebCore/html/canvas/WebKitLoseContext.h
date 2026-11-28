@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2010 Google Inc. All rights reserved.
- * Copyright (C) 2012 Sony Ericsson Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +42,6 @@ public:
     virtual ExtensionName getName() const;
 
     void loseContext();
-    void restoreContext();
     void contextDestroyed() { m_context = 0; }
 
 private:

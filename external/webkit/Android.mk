@@ -23,11 +23,6 @@
 ## OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ##
 
-# Control WebGL compiling in webkit.
-ifeq ($(ENABLE_WEBGL),true)
-LOCAL_CFLAGS += -DENABLE_WEBGL=1
-endif
-
 # Control SVG compiling in webkit.
 # Default is true unless explictly disabled.
 ifneq ($(ENABLE_SVG),false)
@@ -153,8 +148,6 @@ LOCAL_C_INCLUDES := \
 	external/jpeg \
 	external/libxml2/include \
 	external/libxslt \
-	external/libpng \
-	external/zlib \
 	external/hyphenation \
 	external/skia/emoji \
 	external/skia/gpu/include \
@@ -270,10 +263,6 @@ LOCAL_C_INCLUDES := $(LOCAL_C_INCLUDES) \
 	external/chromium/chrome \
 	external/skia
 
-# Needed for ANGLE
-LOCAL_C_INCLUDES := $(LOCAL_C_INCLUDES) \
-	$(SOURCE_PATH)/ThirdParty/ANGLE/include/GLSLANG
-
 ifeq ($(JAVASCRIPT_ENGINE),v8)
 # Include WTF source file.
 d := Source/JavaScriptCore
@@ -363,10 +352,6 @@ ifeq ($(ENABLE_SVG),true)
 LOCAL_CFLAGS += -DENABLE_SVG=1 -DENABLE_SVG_ANIMATION=1
 endif
 
-ifeq ($(ENABLE_WEBGL),true)
-LOCAL_CFLAGS += -DENABLE_WEBGL=1
-endif
-
 ifeq ($(ENABLE_WTF_USE_ACCELERATED_COMPOSITING),false)
 LOCAL_CFLAGS += -DWTF_USE_ACCELERATED_COMPOSITING=0
 endif
@@ -425,7 +410,7 @@ LOCAL_CFLAGS += -DSUPPORT_COMPLEX_SCRIPTS=1
 endif
 
 # Build the list of static libraries
-LOCAL_STATIC_LIBRARIES := libxml2 libxslt libhyphenation libskiagpu libpng
+LOCAL_STATIC_LIBRARIES := libxml2 libxslt libhyphenation libskiagpu
 ifeq ($(JAVASCRIPT_ENGINE),v8)
 ifeq ($(DYNAMIC_SHARED_LIBV8SO),true)
 LOCAL_SHARED_LIBRARIES += libv8
@@ -485,23 +470,6 @@ LOCAL_C_INCLUDES := $(WEBKIT_C_INCLUDES) \
 include $(BUILD_STATIC_LIBRARY)
 endif  # JAVASCRIPT_ENGINE == jsc
 
-# Build ANGLE as a static library.
-include $(CLEAR_VARS)
-LOCAL_MODULE := libangle
-LOCAL_MODULE_CLASS := STATIC_LIBRARIES
-ANGLE_PATH := $(SOURCE_PATH)/ThirdParty/ANGLE
-LOCAL_SHARED_LIBRARIES := $(WEBKIT_SHARED_LIBRARIES)
-include $(ANGLE_PATH)/Android.mk
-# Redefine LOCAL_SRC_FILES with the correct prefix
-LOCAL_SRC_FILES := $(addprefix Source/ThirdParty/ANGLE/src/compiler/,$(LOCAL_SRC_FILES))
-# Append angle intermediate include paths to the WebKit include list.
-LOCAL_C_INCLUDES := $(WEBKIT_C_INCLUDES) \
-	$(ANGLE_PATH)/include \
-	$(ANGLE_PATH)/src
-LOCAL_CFLAGS += -Wno-error=non-virtual-dtor
-# Build libangle
-include $(BUILD_STATIC_LIBRARY)
-
 # Now build the shared library using only the exported jni entry point. This
 # will strip out any unused code from the entry point.
 include $(CLEAR_VARS)
@@ -516,7 +484,6 @@ LOCAL_STATIC_LIBRARIES := libwebcore $(WEBKIT_STATIC_LIBRARIES)
 ifeq ($(JAVASCRIPT_ENGINE),jsc)
 LOCAL_STATIC_LIBRARIES += libjs
 endif
-LOCAL_STATIC_LIBRARIES += libangle
 LOCAL_LDFLAGS := -fvisibility=hidden
 LOCAL_CFLAGS := $(WEBKIT_CFLAGS)
 LOCAL_CPPFLAGS := $(WEBKIT_CPPFLAGS)

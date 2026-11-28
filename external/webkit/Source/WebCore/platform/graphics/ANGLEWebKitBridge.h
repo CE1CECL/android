@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2010 Apple Inc. All rights reserved.
- * Copyright (C) 2011, Sony Ericsson Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +29,7 @@
 #include "PlatformString.h"
 #include <wtf/text/CString.h>
 
-#if !PLATFORM(GTK) && !PLATFORM(ANDROID)
+#if !PLATFORM(GTK)
 #include "ANGLE/ShaderLang.h"
 #else
 #include "ShaderLang.h"

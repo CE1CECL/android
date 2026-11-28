@@ -1,7 +1,5 @@
 /*
  * Copyright 2006, The Android Open Source Project
- * Copyright (C) 2012 Sony Ericsson Mobile Communications AB.
- * Copyright (C) 2012 Sony Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -4496,11 +4494,6 @@ static void Pause(JNIEnv* env, jobject obj)
         Geolocation* geolocation = frame->domWindow()->navigator()->optionalGeolocation();
         if (geolocation)
             geolocation->suspend();
-#if ENABLE(WEBGL)
-        Document* document = frame->document();
-        if (document)
-            document->suspendDocument();
-#endif
     }
 
     GET_NATIVE_VIEW(env, obj)->deviceMotionAndOrientationManager()->maybeSuspendClients();
@@ -4520,11 +4513,6 @@ static void Resume(JNIEnv* env, jobject obj)
         Geolocation* geolocation = frame->domWindow()->navigator()->optionalGeolocation();
         if (geolocation)
             geolocation->resume();
-#if ENABLE(WEBGL)
-        Document* document = frame->document();
-        if (document)
-            document->resumeDocument();
-#endif
     }
 
     GET_NATIVE_VIEW(env, obj)->deviceMotionAndOrientationManager()->maybeResumeClients();

@@ -1,7 +1,6 @@
 /*
  * Copyright (C) 2009 Apple Inc. All Rights Reserved.
  * Copyright (C) 2009 Google Inc. All Rights Reserved.
- * Copyright (C) 2012 Sony Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +31,6 @@
 #include "Int32Array.h"
 #include "PlatformString.h"
 #include "Uint8Array.h"
-#include "Uint32Array.h"
 #include "WebGLBuffer.h"
 #include "WebGLFramebuffer.h"
 #include "WebGLProgram.h"
@@ -69,7 +67,6 @@ public:
         kTypeWebGLRenderbuffer,
         kTypeWebGLTexture,
         kTypeWebGLUnsignedByteArray,
-        kTypeWebGLUnsignedIntArray,
         kTypeWebGLVertexArrayObjectOES,
     };
 
@@ -91,7 +88,6 @@ public:
     WebGLGetInfo(PassRefPtr<WebGLRenderbuffer> value);
     WebGLGetInfo(PassRefPtr<WebGLTexture> value);
     WebGLGetInfo(PassRefPtr<Uint8Array> value);
-    WebGLGetInfo(PassRefPtr<Uint32Array> value);
     WebGLGetInfo(PassRefPtr<WebGLVertexArrayObjectOES> value);
 
     virtual ~WebGLGetInfo();
@@ -114,7 +110,6 @@ public:
     PassRefPtr<WebGLRenderbuffer> getWebGLRenderbuffer() const;
     PassRefPtr<WebGLTexture> getWebGLTexture() const;
     PassRefPtr<Uint8Array> getWebGLUnsignedByteArray() const;
-    PassRefPtr<Uint32Array> getWebGLUnsignedIntArray() const;
     PassRefPtr<WebGLVertexArrayObjectOES> getWebGLVertexArrayObjectOES() const;
 
 private:
@@ -135,7 +130,6 @@ private:
     RefPtr<WebGLRenderbuffer> m_webglRenderbuffer;
     RefPtr<WebGLTexture> m_webglTexture;
     RefPtr<Uint8Array> m_webglUnsignedByteArray;
-    RefPtr<Uint32Array> m_webglUnsignedIntArray;
     RefPtr<WebGLVertexArrayObjectOES> m_webglVertexArrayObject;
 };
 

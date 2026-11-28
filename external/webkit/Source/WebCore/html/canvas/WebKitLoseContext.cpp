@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2010 Google Inc. All rights reserved.
- * Copyright (C) 2012 Sony Ericsson Mobile Communications AB
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,13 +56,7 @@ PassRefPtr<WebKitLoseContext> WebKitLoseContext::create(WebGLRenderingContext* c
 void WebKitLoseContext::loseContext()
 {
     if (m_context)
-        m_context->forceLostContext(WebGLRenderingContext::SyntheticLostContext);
-}
-
-void WebKitLoseContext::restoreContext()
-{
-    if (m_context)
-        m_context->forceRestoreContext();
+        m_context->forceLostContext();
 }
 
 } // namespace WebCore
